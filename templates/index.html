@@ -96,13 +96,17 @@
 
     <div class="search-box">
 
-        <i class="fas fa-search"></i>
+    <i class="fas fa-search"></i>
 
-        <input
+    <input
         type="text"
-        placeholder="Search Anime...">
+        id="animeSearch"
+        placeholder="Search Anime..."
+        autocomplete="off">
 
-    </div>
+    <div id="searchResults"></div>
+
+</div>
 
 </section>
 
@@ -124,7 +128,8 @@
 
 {% for anime in anime_list %}
 
-<div class="anime-card">
+<div class="anime-card"
+     data-title="{{ anime.title }}">
 
     <!-- Anime Poster -->
 
@@ -372,7 +377,7 @@
     </div>
 
 </footer>
-
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
 </body>
 
 </html>

@@ -716,3 +716,72 @@ grid-template-columns:1fr;
 }
 
 }
+.search-box{
+    position:relative;
+}
+
+#searchResults{
+
+    position:absolute;
+
+    top:100%;
+
+    left:0;
+
+    width:100%;
+
+    background:#1d1d1d;
+
+    border-radius:15px;
+
+    margin-top:10px;
+
+    overflow:hidden;
+
+    display:none;
+
+    z-index:999;
+
+    box-shadow:0 15px 40px rgba(0,0,0,.4);
+
+}
+
+.search-item{
+
+    padding:14px 18px;
+
+    cursor:pointer;
+
+    transition:.25s;
+
+    border-bottom:1px solid rgba(255,255,255,.06);
+
+}
+
+.search-item:last-child{
+
+    border-bottom:none;
+
+}
+
+.search-item:hover{
+
+    background:#2f2f2f;
+
+}
+
+.search-item strong{
+
+    color:white;
+
+    font-size:16px;
+
+}
+
+.search-item span{
+
+    color:#9f9f9f;
+
+    font-size:13px;
+
+}
