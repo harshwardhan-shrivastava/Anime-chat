@@ -30,16 +30,31 @@ searchInput.addEventListener("input", () => {
 
     }
 
-    const matches = animeList.filter(anime => {
+    const matches = animeList
+.map(anime => {
 
-    const firstWord = anime.title
-        .toLowerCase()
-        .split(" ")[0];
+    const title = anime.title.toLowerCase();
+    const words = title.split(" ");
 
-    return firstWord.startsWith(value);
+    let score = -1;
 
-});
+    // First word starts with search
+    if(words[0].startsWith(value))
+        score = 3;
 
+    // Any other word starts with search
+    else if(words.some(word => word.startsWith(value)))
+        score = 2;
+
+    // Search appears anywhere
+    else if(title.includes(value))
+        score = 1;
+
+    return {...anime, score};
+
+})
+.filter(anime => anime.score > 0)
+.sort((a,b)=>b.score-a.score);
     if(matches.length === 0){
 
         resultsBox.style.display = "none";
@@ -49,7 +64,7 @@ searchInput.addEventListener("input", () => {
 
     resultsBox.style.display = "grid";
 
-    matches.slice(0,12).forEach(anime=>{
+    matches.slice(0,8).forEach(anime=>{
 
         const card=document.createElement("div");
 
