@@ -840,3 +840,36 @@ grid-template-columns:1fr;
     color:#9b9b9b;
 
 }
+
+.card-bottom{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-top:18px;
+}
+
+.enter-chat{
+    color:#7dd3fc;
+    text-decoration:none;
+    font-weight:700;
+    font-size:15px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    transition:.25s;
+}
+
+.enter-chat:hover{
+    color:#ffffff;
+    transform:translateX(4px);
+}
+
+.heart{
+    cursor:pointer;
+    font-size:18px;
+    transition:.25s;
+}
+
+.heart:hover{
+    color:#ff5f8a;
+}
