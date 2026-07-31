@@ -1,5 +1,6 @@
 from flask import Flask, render_template
 from anime_data import anime_database
+from database import create_tables
 
 app = Flask(__name__)
 
@@ -139,6 +140,8 @@ def community(anime_slug):
         anime_image=anime["image"]
     )
 
-
 if __name__ == "__main__":
+
+    create_tables()
+
     app.run(debug=True)
