@@ -30,9 +30,15 @@ searchInput.addEventListener("input", () => {
 
     }
 
-    const matches = animeList.filter(anime =>
-        anime.title.toLowerCase().includes(value)
-    );
+    const matches = animeList.filter(anime => {
+
+    const firstWord = anime.title
+        .toLowerCase()
+        .split(" ")[0];
+
+    return firstWord.startsWith(value);
+
+});
 
     if(matches.length === 0){
 
