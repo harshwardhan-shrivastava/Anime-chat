@@ -148,13 +148,7 @@
 
         </div>
 
-        <!-- Rating -->
-
-        <div class="anime-rating">
-
-            ⭐ 9.2
-
-        </div>
+        
 
        
 
@@ -164,37 +158,39 @@
 
     <div class="card-content">
 
-        <h3>
+    <h3>
+        {{ anime.title }}
+    </h3>
 
-            {{ anime.title }}
+    <p class="anime-description">
+        Join the community, discuss theories,
+        memes, fights, endings and your
+        favorite characters.
+    </p>
 
-        </h3>
+    <div class="card-bottom">
 
-        <p class="anime-description">
+        <span class="members">
+            <i class="fas fa-users"></i>
+            0 Members
+        </span>
 
-            Join the community, discuss theories,
-            memes, fights, endings and your
-            favorite characters.
+        <span class="heart">
+            <i class="far fa-heart"></i>
+        </span>
 
-        </p>
+        <a href="#" class="enter-chat">
+            Enter Chat
+            <i class="fas fa-arrow-right"></i>
+        </a>
 
-        <div class="card-bottom">
+    </div>
 
-    <span class="members">
-        <i class="fas fa-users"></i>
-        12.5K
-    </span>
+</div> <!-- card-content -->
 
-    <span class="heart">
-        <i class="far fa-heart"></i>
-    </span>
+</div> <!-- anime-card -->
 
-    <a href="#" class="enter-chat">
-        Enter Chat
-        <i class="fas fa-arrow-right"></i>
-    </a>
-
-</div>
+{% endfor %}
 
 {% endfor %}
 
