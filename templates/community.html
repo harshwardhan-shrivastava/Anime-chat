@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>{{ anime_name }} | AnimeChat</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/community.css') }}">
+
+    <link rel="preconnect"
+          href="https://fonts.googleapis.com">
+
+    <link rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet">
+
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js"
+            crossorigin="anonymous"></script>
+
+</head>
+
+<body>
+
+<div class="background">
+
+    <div class="circle one"></div>
+
+    <div class="circle two"></div>
+
+    <div class="circle three"></div>
+
+</div>
+
+<!-- ================= TOP BAR ================= -->
+
+<nav>
+
+    <a href="/"
+       class="back-button">
+
+        <i class="fas fa-arrow-left"></i>
+
+        AnimeChat
+
+    </a>
+
+</nav>
+
+<!-- ================= HERO ================= -->
+
+<section class="hero">
+
+    <div class="hero-image">
+
+        <img src="{{ url_for('static',
+        filename='images/anime/' + anime_image) }}">
+
+        <div class="hero-overlay"></div>
+
+    </div>
+
+    <div class="hero-content">
+
+        <div class="community-icon">
+
+            ⚔
+
+        </div>
+
+        <h1>
+
+            {% if anime_name == "Demon Slayer" %}
+
+                The Demon Slayer Corps
+
+            {% else %}
+
+                {{ anime_name }} Community
+
+            {% endif %}
+
+        </h1>
+
+        <p>
+
+            {% if anime_name == "Demon Slayer" %}
+
+            Enter the headquarters of the Demon Slayer Corps.
+            Share theories, discuss episodes,
+            debate your favorite Hashira,
+            and meet fellow fans from around the world.
+
+            {% else %}
+
+            Welcome to the official AnimeChat
+            community for {{ anime_name }} fans.
+
+            {% endif %}
+
+        </p>
+
+    </div>
+
+</section>
+
+<!-- ================= CHAT ================= -->
+
+<section class="chat-wrapper">
+
+    <div class="chat-header">
+
+        <div>
+
+            <h2>
+
+                Community Discussion
+
+            </h2>
+
+            <span>
+
+                Public Chatroom
+
+            </span>
+
+        </div>
+
+        <div class="online-users">
+
+            <i class="fas fa-users"></i>
+
+            0 Members
+
+        </div>
+
+    </div>
+
+    <div class="chat-box"
+         id="chatBox">
+
+        <div class="welcome-box">
+
+            <div class="welcome-icon">
+
+                💬
+
+            </div>
+
+            <h3>
+
+                Welcome!
+
+            </h3>
+
+            <p>
+
+                {% if anime_name == "Demon Slayer" %}
+
+                The crows have not delivered
+                any messages yet.
+
+                Become the first member of
+                the Demon Slayer Corps to
+                begin today's discussion.
+
+                {% else %}
+
+                No messages yet.
+
+                Start the first discussion!
+
+                {% endif %}
+
+            </p>
+
+        </div>
+
+        </div>
+
+    </div>
+
+    <!-- ================= MESSAGE INPUT ================= -->
+
+    <div class="chat-input-area">
+
+        <button class="emoji-btn">
+
+            😊
+
+        </button>
+
+        <input
+            type="text"
+            id="messageInput"
+            placeholder="Share your thoughts with the Corps...">
+
+        <button
+            class="send-btn"
+            id="sendBtn">
+
+            <i class="fas fa-paper-plane"></i>
+
+            Send
+
+        </button>
+
+    </div>
+
+</section>
+
+<!-- ================= COMMUNITY INFO ================= -->
+
+<section class="community-info">
+
+    <div class="info-card">
+
+        <i class="fas fa-comments"></i>
+
+        <h3>
+
+            Open Discussion
+
+        </h3>
+
+        <p>
+
+            Talk about episodes,
+            manga, theories,
+            memes and characters.
+
+        </p>
+
+    </div>
+
+    <div class="info-card">
+
+        <i class="fas fa-users"></i>
+
+        <h3>
+
+            Growing Community
+
+        </h3>
+
+        <p>
+
+            Every discussion begins
+            with one fan.
+
+            Be the first to
+            start today's conversation.
+
+        </p>
+
+    </div>
+
+    <div class="info-card">
+
+        <i class="fas fa-shield-alt"></i>
+
+        <h3>
+
+            Respect Everyone
+
+        </h3>
+
+        <p>
+
+            Keep discussions friendly,
+            avoid spoilers without warning,
+            and help build an awesome
+            anime community.
+
+        </p>
+
+    </div>
+
+</section>
+
+<!-- ================= FOOTER ================= -->
+
+<footer>
+
+    <h2>
+
+        AnimeChat
+
+    </h2>
+
+    <p>
+
+        Every anime deserves a community.
+
+    </p>
+
+</footer>
+
+<script src="{{ url_for('static', filename='js/community.js') }}"></script>
+
+</body>
+
+</html>
+
