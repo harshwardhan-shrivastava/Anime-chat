@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AnimeChat</title>
+
+    <link rel="stylesheet"
+    href="{{ url_for('static', filename='css/style.css') }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js"
+    crossorigin="anonymous"></script>
+
+</head>
+
+<body>
+
+<div class="background">
+    <div class="circle one"></div>
+    <div class="circle two"></div>
+    <div class="circle three"></div>
+</div>
+
+<!-- ================= NAVBAR ================= -->
+
+<nav>
+
+    <div class="logo">
+
+        <span class="logo-anime">Anime</span>
+
+        <span class="logo-chat">Chat</span>
+
+    </div>
+
+    <div class="nav-links">
+
+        <a href="#">Popular</a>
+
+        <a href="#">Trending</a>
+
+        <a href="#">Critics</a>
+
+        <a href="#">Underrated</a>
+        <a href="#">Categories</a>
+
+    </div>
+
+    <div class="nav-right">
+
+        <button class="login-btn">
+
+            Login
+
+        </button>
+
+    </div>
+
+</nav>
+
+<!-- ================= HERO ================= -->
+
+<section class="hero">
+
+    <h1>
+
+        Find Your Next
+
+        <span>Anime Community</span>
+
+    </h1>
+
+    <p>
+
+        Join thousands of anime fans.
+
+        Discuss episodes.
+
+        Share theories.
+
+        Make friends.
+
+        One giant chatroom for every anime.
+
+    </p>
+
+    <div class="search-box">
+
+        <i class="fas fa-search"></i>
+
+        <input
+        type="text"
+        placeholder="Search Anime...">
+
+    </div>
+
+</section>
+
+<!-- ================= CATEGORY ================= -->
+
+<section class="section-title">
+
+    <h2>
+
+        Most Popular Anime
+
+    </h2>
+
+</section>
+
+<!-- ================= GRID ================= -->
+
+<section class="anime-grid">
+
+{% for anime in anime_list %}
+
+<div class="anime-card">
+
+    <!-- Anime Poster -->
+
+    <div class="image-box">
+
+        <img
+        src="{{ url_for('static', filename='images/anime/' + anime.image) }}"
+        alt="{{ anime.title }}">
+
+        <!-- Popular Badge -->
+
+        <div class="anime-badge">
+
+            POPULAR
+
+        </div>
+
+        <!-- Rating -->
+
+        <div class="anime-rating">
+
+            ⭐ 9.2
+
+        </div>
+
+        <!-- Hover Overlay -->
+
+        <div class="overlay">
+
+            <button class="chat-btn">
+
+                Enter Chat
+
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- Card Info -->
+
+    <div class="card-content">
+
+        <h3>
+
+            {{ anime.title }}
+
+        </h3>
+
+        <p class="anime-description">
+
+            Join the community, discuss theories,
+            memes, fights, endings and your
+            favorite characters.
+
+        </p>
+
+        <div class="card-bottom">
+
+            <span class="members">
+
+                <i class="fas fa-users"></i>
+
+                12.5K
+
+            </span>
+
+            <span class="online">
+
+                🟢 Live
+
+            </span>
+
+            <span class="heart">
+
+                <i class="far fa-heart"></i>
+
+            </span>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endfor %}
+
+</section>
+
+<!-- ================= COMMUNITY STATS ================= -->
+
+<section class="stats-section">
+
+    <div class="stat-card">
+
+        <h2>57+</h2>
+
+        <p>Anime Communities</p>
+
+    </div>
+
+    <div class="stat-card">
+
+        <h2>25K+</h2>
+
+        <p>Active Fans</p>
+
+    </div>
+
+    <div class="stat-card">
+
+        <h2>100K+</h2>
+
+        <p>Messages Shared</p>
+
+    </div>
+
+    <div class="stat-card">
+
+        <h2>24/7</h2>
+
+        <p>Community Online</p>
+
+    </div>
+
+</section>
+
+<!-- ================= WHY SECTION ================= -->
+
+<section class="why-section">
+
+    <h2>
+
+        Why AnimeChat?
+
+    </h2>
+
+    <div class="why-grid">
+
+        <div class="why-card">
+
+            <i class="fas fa-comments"></i>
+
+            <h3>
+
+                One Chatroom
+
+            </h3>
+
+            <p>
+
+                Every anime has one giant community chat where fans
+                can discuss anything—from memes to theories.
+
+            </p>
+
+        </div>
+
+        <div class="why-card">
+
+            <i class="fas fa-fire"></i>
+
+            <h3>
+
+                Live Discussions
+
+            </h3>
+
+            <p>
+
+                Talk while watching episodes and join conversations
+                happening in real time.
+
+            </p>
+
+        </div>
+
+        <div class="why-card">
+
+            <i class="fas fa-user-friends"></i>
+
+            <h3>
+
+                Meet Fans
+
+            </h3>
+
+            <p>
+
+                Make friends who enjoy the same anime as you and
+                build your own profile.
+
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ================= FOOTER ================= -->
+
+<footer>
+
+    <div class="footer-left">
+
+        <h2>
+
+            AnimeChat
+
+        </h2>
+
+        <p>
+
+            The place where every anime has its own community.
+
+        </p>
+
+    </div>
+
+    <div class="footer-links">
+
+        <a href="#">Home</a>
+
+        <a href="#">Popular</a>
+
+        <a href="#">Trending</a>
+
+        <a href="#">Critics</a>
+
+        <a href="#">Underrated</a>
+
+    </div>
+
+    <div class="footer-social">
+
+        <a href="#"><i class="fab fa-discord"></i></a>
+
+        <a href="#"><i class="fab fa-github"></i></a>
+
+        <a href="#"><i class="fab fa-reddit"></i></a>
+
+        <a href="#"><i class="fab fa-instagram"></i></a>
+
+    </div>
+
+</footer>
+
+</body>
+
+</html>
