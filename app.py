@@ -205,8 +205,148 @@ def rate_anime():
 
     })
 
+
+
+@app.route("/post-review", methods=["POST"])
+def post_review():
+
+    data = request.get_json()
+
+    anime_slug = data.get("anime_slug")
+    username = data.get("username", "Anonymous")
+    rating = int(data.get("rating"))
+    comment = data.get("comment", "").strip()
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO reviews
+        (anime_slug, username, rating, comment)
+        VALUES (?, ?, ?, ?)
+        """,
+        (anime_slug, username, rating, comment)
+    )
+
+    conn.commit()
+
+    review_id = cursor.lastrowid
+
+    conn.close()
+
+    return jsonify({
+
+        "success": True,
+        "id": review_id
+
+    })
+
+
 if __name__ == "__main__":
 
     create_tables()
 
     app.run(debug=True)
+
+@app.route("/rate-episode", methods=["POST"])
+def rate_episode():
+
+    data = request.get_json()
+
+    anime_slug = data.get("anime_slug")
+    season_name = data.get("season_name")
+    episode_number = int(data.get("episode_number"))
+    rating = int(data.get("rating"))
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM episode_ratings
+        WHERE anime_slug=?
+        AND season_name=?
+        AND episode_number=?
+        """,
+        (anime_slug, season_name, episode_number)
+    )
+
+    existing = cursor.fetchone()
+
+    if existing:
+
+        cursor.execute(
+            """
+            UPDATE episode_ratings
+            SET total_rating = total_rating + ?,
+                total_votes = total_votes + 1
+            WHERE anime_slug=?
+            AND season_name=?
+            AND episode_number=?
+            """,
+            (
+                rating,
+                anime_slug,
+                season_name,
+                episode_number
+            )
+        )
+
+    else:
+
+        cursor.execute(
+            """
+            INSERT INTO episode_ratings
+            (
+                anime_slug,
+                season_name,
+                episode_number,
+                total_rating,
+                total_votes
+            )
+            VALUES (?,?,?,?,?)
+            """,
+            (
+                anime_slug,
+                season_name,
+                episode_number,
+                rating,
+                1
+            )
+        )
+
+    conn.commit()
+
+    cursor.execute(
+        """
+        SELECT total_rating,total_votes
+        FROM episode_ratings
+        WHERE anime_slug=?
+        AND season_name=?
+        AND episode_number=?
+        """,
+        (
+            anime_slug,
+            season_name,
+            episode_number
+        )
+    )
+
+    row = cursor.fetchone()
+
+    average = round(
+        row["total_rating"] / row["total_votes"],
+        2
+    )
+
+    conn.close()
+
+    return jsonify({
+
+        "success": True,
+        "average": average,
+        "votes": row["total_votes"]
+
+    })
