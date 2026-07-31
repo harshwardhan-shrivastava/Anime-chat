@@ -62,9 +62,65 @@ anime_list = [
     {"title": "Samurai Champloo", "image": "samurai_champloo.jpg"}
 ]
 
+
 @app.route("/")
 def home():
-    return render_template("index.html", anime_list=anime_list)
+
+    anime_data = []
+
+    for anime in anime_list:
+
+        anime_copy = anime.copy()
+
+        anime_copy["slug"] = (
+            anime["title"]
+            .lower()
+            .replace(" ", "-")
+            .replace(".", "")
+            .replace("'", "")
+        )
+
+        anime_data.append(anime_copy)
+
+    return render_template(
+        "index.html",
+        anime_list=anime_data
+    )
+
+
+@app.route("/community/<anime_slug>")
+def community(anime_slug):
+
+    anime_name = anime_slug.replace("-", " ").title()
+
+    anime = None
+
+    for item in anime_list:
+
+        slug = (
+            item["title"]
+            .lower()
+            .replace(" ", "-")
+            .replace(".", "")
+            .replace("'", "")
+        )
+
+        if slug == anime_slug:
+
+            anime = item
+
+            break
+
+    if anime is None:
+
+        return "Anime not found", 404
+
+    return render_template(
+        "community.html",
+        anime_name=anime["title"],
+        anime_image=anime["image"]
+    )
+
 
 if __name__ == "__main__":
     app.run(debug=True)
