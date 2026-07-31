@@ -1,4 +1,5 @@
 from flask import Flask, render_template
+from anime_data import anime_database
 
 app = Flask(__name__)
 
@@ -91,25 +92,7 @@ def home():
 @app.route("/anime/<anime_slug>")
 def anime(anime_slug):
 
-    anime = None
-
-    for item in anime_list:
-
-        slug = (
-            item["title"]
-            .lower()
-            .replace(" ", "-")
-            .replace(".", "")
-            .replace("'", "")
-        )
-
-        if slug == anime_slug:
-
-            anime = item.copy()
-
-            anime["slug"] = slug
-
-            break
+    anime = anime_database.get(anime_slug)
 
     if anime is None:
 
