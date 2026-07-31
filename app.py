@@ -1,6 +1,6 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, jsonify
 from anime_data import anime_database
-from database import create_tables
+from database import create_tables, get_connection
 
 app = Flask(__name__)
 
@@ -139,6 +139,71 @@ def community(anime_slug):
         anime_name=anime["title"],
         anime_image=anime["image"]
     )
+
+@app.route("/rate-anime", methods=["POST"])
+def rate_anime():
+
+    data = request.get_json()
+
+    anime_slug = data.get("anime_slug")
+    rating = int(data.get("rating"))
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT * FROM anime_ratings WHERE anime_slug=?",
+        (anime_slug,)
+    )
+
+    existing = cursor.fetchone()
+
+    if existing:
+
+        cursor.execute(
+            """
+            UPDATE anime_ratings
+            SET total_rating = total_rating + ?,
+                total_votes = total_votes + 1
+            WHERE anime_slug = ?
+            """,
+            (rating, anime_slug)
+        )
+
+    else:
+
+        cursor.execute(
+            """
+            INSERT INTO anime_ratings
+            (anime_slug,total_rating,total_votes)
+            VALUES(?,?,?)
+            """,
+            (anime_slug, rating, 1)
+        )
+
+    conn.commit()
+
+    cursor.execute(
+        "SELECT total_rating,total_votes FROM anime_ratings WHERE anime_slug=?",
+        (anime_slug,)
+    )
+
+    row = cursor.fetchone()
+
+    average = round(
+        row["total_rating"] / row["total_votes"],
+        2
+    )
+
+    conn.close()
+
+    return jsonify({
+
+        "success": True,
+        "average": average,
+        "votes": row["total_votes"]
+
+    })
 
 if __name__ == "__main__":
 
