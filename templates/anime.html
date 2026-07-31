@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{{ anime.title }} | AnimeChat</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/anime.css') }}">
+
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+</head>
+
+<body>
+
+    <!-- Background Effects -->
+
+    <div class="bg-circle one"></div>
+
+    <div class="bg-circle two"></div>
+
+    <div class="bg-circle three"></div>
+
+    <!-- Navigation -->
+
+    <nav>
+
+        <a href="/" class="logo">
+
+            AnimeChat
+
+        </a>
+
+        <a href="/" class="back-btn">
+
+            <i class="fas fa-arrow-left"></i>
+
+            Back
+
+        </a>
+
+    </nav>
+
+    <!-- Hero Banner -->
+
+    <section class="hero">
+
+        <img src="{{ url_for('static', filename='images/anime/' + anime.banner) }}"
+            class="hero-image">
+
+        <div class="hero-overlay"></div>
+
+        <div class="hero-content">
+
+            <div class="poster">
+
+                <img src="{{ url_for('static', filename='images/anime/' + anime.image) }}">
+
+            </div>
+
+            <div class="hero-text">
+
+                <span class="anime-type">
+
+                    {{ anime.type }}
+
+                </span>
+
+                <h1>
+
+                    {{ anime.title }}
+
+                </h1>
+
+                <p>
+
+                    {{ anime.tagline }}
+
+                </p>
+
+                <div class="rating-box">
+
+                    <div class="stars">
+
+                        ★★★★★
+
+                    </div>
+
+                    <div class="score">
+
+                        {{ anime.rating }}
+
+                    </div>
+
+                    <span>
+
+                        Community Rating
+
+                    </span>
+
+                </div>
+
+                <a href="/community/{{ anime.slug }}" class="join-btn">
+
+                    <i class="fas fa-comments"></i>
+
+                    Join Community
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- Information Section -->
+
+    <section class="info-section">
+
+        <div class="info-left">
+
+            <div class="glass-card">
+
+                <h2>
+
+                    Synopsis
+
+                </h2>
+
+                <p>
+
+                    {{ anime.synopsis }}
+
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="info-right">
+
+            <div class="glass-card">
+
+                <h2>
+
+                    Anime Information
+
+                </h2>
+
+                <div class="info-row">
+
+                    <span>Status</span>
+
+                    <strong>{{ anime.status }}</strong>
+
+                </div>
+
+                <div class="info-row">
+
+                    <span>Studio</span>
+
+                    <strong>{{ anime.studio }}</strong>
+
+                </div>
+
+                <div class="info-row">
+
+                    <span>Released</span>
+
+                    <strong>{{ anime.release }}</strong>
+
+                </div>
+
+                <div class="info-row">
+
+                    <span>Genres</span>
+
+                    <strong>{{ anime.genre }}</strong>
+
+                </div>
+
+                <div class="info-row">
+
+                    <span>Source</span>
+
+                    <strong>{{ anime.source }}</strong>
+
+                </div>
+
+                <div class="info-row">
+
+                    <span>Duration</span>
+
+                    <strong>{{ anime.duration }}</strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+        <!-- Seasons -->
+
+    <section class="content-section">
+
+        <h2 class="section-title">
+
+            <i class="fas fa-film"></i>
+
+            Seasons
+
+        </h2>
+
+        <div class="season-grid">
+
+            {% for season in anime.seasons %}
+
+            <div class="season-card">
+
+                <div class="season-top">
+
+                    <h3>
+
+                        {{ season.name }}
+
+                    </h3>
+
+                    <span>
+
+                        {{ season.episodes|length }} Episodes
+
+                    </span>
+
+                </div>
+
+                <button class="expand-btn">
+
+                    View Episodes
+
+                    <i class="fas fa-chevron-down"></i>
+
+                </button>
+
+                <div class="episode-list">
+
+                    {% for episode in season.episodes %}
+
+                    <div class="episode">
+
+                        <div>
+
+                            <h4>
+
+                                Episode {{ episode.number }}
+
+                            </h4>
+
+                            <p>
+
+                                {{ episode.title }}
+
+                            </p>
+
+                        </div>
+
+                        <div class="episode-rating">
+
+                            ⭐ {{ episode.rating }}
+
+                        </div>
+
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+    <!-- Streaming -->
+
+    <section class="content-section">
+
+        <h2 class="section-title">
+
+            <i class="fas fa-tv"></i>
+
+            Streaming Platforms
+
+        </h2>
+
+        <div class="stream-grid">
+
+            {% for service in anime.streaming %}
+
+            <div class="stream-card">
+
+                <i class="fas fa-play-circle"></i>
+
+                <h3>
+
+                    {{ service.name }}
+
+                </h3>
+
+                <p>
+
+                    {{ service.status }}
+
+                </p>
+
+                <div class="region-list">
+
+                    {% for region in service.regions %}
+
+                    <span>
+
+                        {{ region }}
+
+                    </span>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+    <!-- Languages -->
+
+    <section class="content-section">
+
+        <h2 class="section-title">
+
+            <i class="fas fa-language"></i>
+
+            Audio & Subtitles
+
+        </h2>
+
+        <div class="language-grid">
+
+            <div class="glass-card">
+
+                <h3>
+
+                    Dub Available
+
+                </h3>
+
+                <ul>
+
+                    {% for dub in anime.dub %}
+
+                    <li>{{ dub }}</li>
+
+                    {% endfor %}
+
+                </ul>
+
+            </div>
+
+            <div class="glass-card">
+
+                <h3>
+
+                    Subtitle Languages
+
+                </h3>
+
+                <ul>
+
+                    {% for sub in anime.subtitles %}
+
+                    <li>{{ sub }}</li>
+
+                    {% endfor %}
+
+                </ul>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- Community Rating -->
+
+    <section class="content-section">
+
+        <h2 class="section-title">
+
+            <i class="fas fa-star"></i>
+
+            Community Rating
+
+        </h2>
+
+        <div class="rating-panel">
+
+            <div class="big-rating">
+
+                {{ anime.rating }}
+
+            </div>
+
+            <div class="rating-stars">
+
+                ★★★★★
+
+            </div>
+
+            <p>
+
+                {{ anime.review_count }} Community Reviews
+
+            </p>
+
+            <div class="rate-box">
+
+                <h3>
+
+                    Rate This Anime
+
+                </h3>
+
+                <div class="user-stars">
+
+                    <i class="far fa-star"></i>
+                    <i class="far fa-star"></i>
+                    <i class="far fa-star"></i>
+                    <i class="far fa-star"></i>
+                    <i class="far fa-star"></i>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- Reviews -->
+
+    <section class="content-section">
+
+        <h2 class="section-title">
+
+            <i class="fas fa-comments"></i>
+
+            Community Reviews
+
+        </h2>
+
+        <div class="review-box">
+
+            <textarea
+
+                placeholder="Share your thoughts about this anime..."></textarea>
+
+            <button>
+
+                Post Review
+
+            </button>
+
+        </div>
+
+        <div class="reviews">
+
+            {% for review in anime.reviews %}
+
+            <div class="review-card">
+
+                <div class="review-header">
+
+                    <img src="{{ url_for('static', filename='images/avatars/' + review.avatar) }}">
+
+                    <div>
+
+                        <h3>
+
+                            {{ review.username }}
+
+                        </h3>
+
+                        <span>
+
+                            ★ {{ review.rating }}/5
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <p>
+
+                    {{ review.comment }}
+
+                </p>
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+    <!-- Watch Order -->
+
+    <section class="content-section">
+
+        <h2 class="section-title">
+
+            <i class="fas fa-list-ol"></i>
+
+            Recommended Watch Order
+
+        </h2>
+
+        <div class="watch-order">
+
+            {% for item in anime.watch_order %}
+
+            <div class="watch-card">
+
+                <div class="watch-number">
+
+                    {{ loop.index }}
+
+                </div>
+
+                <div>
+
+                    <h3>
+
+                        {{ item }}
+
+                    </h3>
+
+                </div>
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+    <!-- Similar Anime -->
+
+    <section class="content-section">
+
+        <h2 class="section-title">
+
+            <i class="fas fa-fire"></i>
+
+            You May Also Like
+
+        </h2>
+
+        <div class="recommendation-grid">
+
+            {% for recommendation in anime.recommendations %}
+
+            <a href="/anime/{{ recommendation.slug }}" class="recommend-card">
+
+                <img src="{{ url_for('static', filename='images/anime/' + recommendation.image) }}">
+
+                <h3>
+
+                    {{ recommendation.title }}
+
+                </h3>
+
+            </a>
+
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+    <!-- Community Statistics -->
+
+    <section class="content-section">
+
+        <h2 class="section-title">
+
+            <i class="fas fa-chart-line"></i>
+
+            Community Statistics
+
+        </h2>
+
+        <div class="stats-grid">
+
+            <div class="stat-card">
+
+                <h1>
+
+                    {{ anime.member_count }}
+
+                </h1>
+
+                <p>
+
+                    Members
+
+                </p>
+
+            </div>
+
+            <div class="stat-card">
+
+                <h1>
+
+                    {{ anime.message_count }}
+
+                </h1>
+
+                <p>
+
+                    Messages
+
+                </p>
+
+            </div>
+
+            <div class="stat-card">
+
+                <h1>
+
+                    {{ anime.review_count }}
+
+                </h1>
+
+                <p>
+
+                    Reviews
+
+                </p>
+
+            </div>
+
+            <div class="stat-card">
+
+                <h1>
+
+                    {{ anime.favorite_count }}
+
+                </h1>
+
+                <p>
+
+                    Favorites
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- Anime Quote -->
+
+    <section class="content-section">
+
+        <div class="quote-card">
+
+            <i class="fas fa-quote-left"></i>
+
+            <p>
+
+                "{{ anime.quote }}"
+
+            </p>
+
+            <span>
+
+                — {{ anime.quote_author }}
+
+            </span>
+
+        </div>
+
+    </section>
+
+    <!-- Footer -->
+
+    <footer>
+
+        <h2>
+
+            AnimeChat
+
+        </h2>
+
+        <p>
+
+            Discover. Rate. Discuss. Share your passion with anime fans around the world.
+
+        </p>
+
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/anime.js') }}"></script>
+
+</body>
+
+</html>
