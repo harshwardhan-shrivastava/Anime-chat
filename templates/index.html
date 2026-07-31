@@ -136,9 +136,13 @@
 
     <div class="image-box">
 
+    <a href="/anime/{{ anime.slug }}">
+
         <img
         src="{{ url_for('static', filename='images/anime/' + anime.image) }}"
         alt="{{ anime.title }}">
+
+    </a>
 
         <!-- Popular Badge -->
 

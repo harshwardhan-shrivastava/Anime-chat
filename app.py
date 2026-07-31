@@ -88,6 +88,41 @@ def home():
     )
 
 
+@app.route("/anime/<anime_slug>")
+def anime(anime_slug):
+
+    anime = None
+
+    for item in anime_list:
+
+        slug = (
+            item["title"]
+            .lower()
+            .replace(" ", "-")
+            .replace(".", "")
+            .replace("'", "")
+        )
+
+        if slug == anime_slug:
+
+            anime = item.copy()
+
+            anime["slug"] = slug
+
+            break
+
+    if anime is None:
+
+        return "Anime not found", 404
+
+    return render_template(
+        "anime.html",
+        anime=anime
+    )
+
+
+
+
 @app.route("/community/<anime_slug>")
 def community(anime_slug):
 
