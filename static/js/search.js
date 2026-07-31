@@ -3,26 +3,27 @@ const resultsBox = document.getElementById("searchResults");
 
 const cards = document.querySelectorAll(".anime-card");
 
-let animeList = [];
+const animeList = [];
 
 cards.forEach(card => {
 
     animeList.push({
 
         title: card.dataset.title,
+        image: card.dataset.image,
         element: card
 
     });
 
 });
 
-searchInput.addEventListener("input", function () {
+searchInput.addEventListener("input", () => {
 
-    const value = this.value.toLowerCase().trim();
+    const value = searchInput.value.toLowerCase().trim();
 
     resultsBox.innerHTML = "";
 
-    if (value === "") {
+    if(value === ""){
 
         resultsBox.style.display = "none";
         return;
@@ -33,60 +34,63 @@ searchInput.addEventListener("input", function () {
         anime.title.toLowerCase().includes(value)
     );
 
-    if (matches.length === 0) {
+    if(matches.length === 0){
 
         resultsBox.style.display = "none";
         return;
 
     }
 
-    resultsBox.style.display = "block";
+    resultsBox.style.display = "grid";
 
-    matches.slice(0, 6).forEach(anime => {
+    matches.slice(0,12).forEach(anime=>{
 
-        const item = document.createElement("div");
+        const card=document.createElement("div");
 
-        item.className = "search-item";
+        card.className="search-card";
 
-        item.innerHTML = `
-            <strong>${anime.title}</strong><br>
-            <span>Anime Community</span>
+        card.innerHTML=`
+
+            <img src="/static/images/anime/${anime.image}">
+
+            <h4>${anime.title}</h4>
+
         `;
 
-        item.onclick = () => {
+        card.onclick=()=>{
 
             anime.element.scrollIntoView({
 
-                behavior: "smooth",
-                block: "center"
+                behavior:"smooth",
+                block:"center"
 
             });
 
-            anime.element.style.boxShadow = "0 0 30px #ff4da6";
+            anime.element.style.boxShadow="0 0 35px #8F5BFF";
 
-            setTimeout(() => {
+            setTimeout(()=>{
 
-                anime.element.style.boxShadow = "";
+                anime.element.style.boxShadow="";
 
-            }, 1800);
+            },1800);
 
-            searchInput.value = anime.title;
+            searchInput.value=anime.title;
 
-            resultsBox.style.display = "none";
+            resultsBox.style.display="none";
 
         };
 
-        resultsBox.appendChild(item);
+        resultsBox.appendChild(card);
 
     });
 
 });
 
-document.addEventListener("click", function (e) {
+document.addEventListener("click",(e)=>{
 
-    if (!e.target.closest(".search-box")) {
+    if(!e.target.closest(".search-box")){
 
-        resultsBox.style.display = "none";
+        resultsBox.style.display="none";
 
     }
 
