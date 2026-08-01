@@ -187,11 +187,13 @@ def rate_anime():
     })
 
 
+
+@app.route("/find-mood")
+def find_mood():
+    return render_template("find_mood.html")
+
 if __name__ == "__main__":
     create_tables()
     app.run(debug=True)
 
 
-@app.route("/find-mood")
-def find_mood():
-    return render_template("find_mood.html")
