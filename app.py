@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 from anime_data import anime_database
-from database import create_tables, get_connection
+from database import create_tables, get_connection, get_anime_stats, add_review
 
 app = Flask(__name__)
 
@@ -65,22 +65,28 @@ anime_list = [
 ]
 
 
+def slugify(title):
+    return (
+        title
+        .lower()
+        .replace(" ", "-")
+        .replace(".", "")
+        .replace("'", "")
+    )
+
+
 @app.route("/")
 def home():
-
     anime_data = []
 
     for anime in anime_list:
-
         anime_copy = anime.copy()
+        slug = slugify(anime["title"])
+        anime_copy["slug"] = slug
 
-        anime_copy["slug"] = (
-            anime["title"]
-            .lower()
-            .replace(" ", "-")
-            .replace(".", "")
-            .replace("'", "")
-        )
+        stats = get_anime_stats(slug)
+        anime_copy["live_rating"] = stats["average"] if stats["votes"] > 0 else anime_database.get(slug, {}).get("rating", "N/A")
+        anime_copy["live_votes"] = stats["votes"]
 
         anime_data.append(anime_copy)
 
@@ -92,11 +98,9 @@ def home():
 
 @app.route("/anime/<anime_slug>")
 def anime(anime_slug):
-
     anime = anime_database.get(anime_slug)
 
     if anime is None:
-
         return "Anime not found", 404
 
     return render_template(
@@ -105,248 +109,84 @@ def anime(anime_slug):
     )
 
 
-
-
 @app.route("/community/<anime_slug>")
 def community(anime_slug):
-
-    anime_name = anime_slug.replace("-", " ").title()
-
     anime = None
 
     for item in anime_list:
-
-        slug = (
-            item["title"]
-            .lower()
-            .replace(" ", "-")
-            .replace(".", "")
-            .replace("'", "")
-        )
+        slug = slugify(item["title"])
 
         if slug == anime_slug:
-
             anime = item
-
             break
 
     if anime is None:
-
         return "Anime not found", 404
 
     return render_template(
         "community.html",
         anime_name=anime["title"],
-        anime_image=anime["image"]
+        anime_image=anime["image"],
+        anime_slug=anime_slug
     )
 
-@app.route("/rate-anime", methods=["POST"])
-def rate_anime():
 
-    data = request.get_json()
+@app.route("/anime-reviews/<anime_slug>", methods=["GET"])
+def anime_reviews(anime_slug):
+    """Returns the live average rating, vote breakdown, and every review
+    written for this anime, computed straight from the database."""
 
-    anime_slug = data.get("anime_slug")
-    rating = int(data.get("rating"))
+    if anime_slug not in anime_database:
+        return jsonify({"success": False, "error": "Anime not found"}), 404
 
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        "SELECT * FROM anime_ratings WHERE anime_slug=?",
-        (anime_slug,)
-    )
-
-    existing = cursor.fetchone()
-
-    if existing:
-
-        cursor.execute(
-            """
-            UPDATE anime_ratings
-            SET total_rating = total_rating + ?,
-                total_votes = total_votes + 1
-            WHERE anime_slug = ?
-            """,
-            (rating, anime_slug)
-        )
-
-    else:
-
-        cursor.execute(
-            """
-            INSERT INTO anime_ratings
-            (anime_slug,total_rating,total_votes)
-            VALUES(?,?,?)
-            """,
-            (anime_slug, rating, 1)
-        )
-
-    conn.commit()
-
-    cursor.execute(
-        "SELECT total_rating,total_votes FROM anime_ratings WHERE anime_slug=?",
-        (anime_slug,)
-    )
-
-    row = cursor.fetchone()
-
-    average = round(
-        row["total_rating"] / row["total_votes"],
-        2
-    )
-
-    conn.close()
+    stats = get_anime_stats(anime_slug)
 
     return jsonify({
-
         "success": True,
-        "average": average,
-        "votes": row["total_votes"]
-
+        "average": stats["average"],
+        "votes": stats["votes"],
+        "breakdown": stats["breakdown"],
+        "reviews": stats["reviews"],
     })
 
 
+@app.route("/rate-anime", methods=["POST"])
+def rate_anime():
+    """Accepts a star rating (1-5) plus an optional username and review
+    text, stores it, and returns the freshly recalculated average across
+    every rating submitted so far."""
 
-@app.route("/post-review", methods=["POST"])
-def post_review():
-
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
 
     anime_slug = data.get("anime_slug")
-    username = data.get("username", "Anonymous")
-    rating = int(data.get("rating"))
-    comment = data.get("comment", "").strip()
+    rating = data.get("rating")
+    username = (data.get("username") or "Anonymous").strip()[:40] or "Anonymous"
+    comment = (data.get("comment") or "").strip()[:1000]
 
-    conn = get_connection()
-    cursor = conn.cursor()
+    if not anime_slug or anime_slug not in anime_database:
+        return jsonify({"success": False, "error": "Unknown anime"}), 404
 
-    cursor.execute(
-        """
-        INSERT INTO reviews
-        (anime_slug, username, rating, comment)
-        VALUES (?, ?, ?, ?)
-        """,
-        (anime_slug, username, rating, comment)
-    )
+    try:
+        rating = int(rating)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "error": "Rating must be a number"}), 400
 
-    conn.commit()
+    if rating < 1 or rating > 5:
+        return jsonify({"success": False, "error": "Rating must be between 1 and 5"}), 400
 
-    review_id = cursor.lastrowid
+    add_review(anime_slug, username, rating, comment)
 
-    conn.close()
+    stats = get_anime_stats(anime_slug)
 
     return jsonify({
-
         "success": True,
-        "id": review_id
-
+        "average": stats["average"],
+        "votes": stats["votes"],
+        "breakdown": stats["breakdown"],
+        "reviews": stats["reviews"],
     })
 
 
 if __name__ == "__main__":
-
     create_tables()
-
     app.run(debug=True)
-
-@app.route("/rate-episode", methods=["POST"])
-def rate_episode():
-
-    data = request.get_json()
-
-    anime_slug = data.get("anime_slug")
-    season_name = data.get("season_name")
-    episode_number = int(data.get("episode_number"))
-    rating = int(data.get("rating"))
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        """
-        SELECT *
-        FROM episode_ratings
-        WHERE anime_slug=?
-        AND season_name=?
-        AND episode_number=?
-        """,
-        (anime_slug, season_name, episode_number)
-    )
-
-    existing = cursor.fetchone()
-
-    if existing:
-
-        cursor.execute(
-            """
-            UPDATE episode_ratings
-            SET total_rating = total_rating + ?,
-                total_votes = total_votes + 1
-            WHERE anime_slug=?
-            AND season_name=?
-            AND episode_number=?
-            """,
-            (
-                rating,
-                anime_slug,
-                season_name,
-                episode_number
-            )
-        )
-
-    else:
-
-        cursor.execute(
-            """
-            INSERT INTO episode_ratings
-            (
-                anime_slug,
-                season_name,
-                episode_number,
-                total_rating,
-                total_votes
-            )
-            VALUES (?,?,?,?,?)
-            """,
-            (
-                anime_slug,
-                season_name,
-                episode_number,
-                rating,
-                1
-            )
-        )
-
-    conn.commit()
-
-    cursor.execute(
-        """
-        SELECT total_rating,total_votes
-        FROM episode_ratings
-        WHERE anime_slug=?
-        AND season_name=?
-        AND episode_number=?
-        """,
-        (
-            anime_slug,
-            season_name,
-            episode_number
-        )
-    )
-
-    row = cursor.fetchone()
-
-    average = round(
-        row["total_rating"] / row["total_votes"],
-        2
-    )
-
-    conn.close()
-
-    return jsonify({
-
-        "success": True,
-        "average": average,
-        "votes": row["total_votes"]
-
-    })

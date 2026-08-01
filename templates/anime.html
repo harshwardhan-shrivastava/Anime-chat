@@ -18,7 +18,7 @@
 
 </head>
 
-<body>
+<body data-anime-slug="{{ anime.slug }}">
 
     <!-- Background Effects -->
 
@@ -87,19 +87,19 @@
 
                 <div class="rating-box">
 
-                    <div class="stars">
+                    <div class="stars" id="heroStars">
 
                         ★★★★★
 
                     </div>
 
-                    <div class="score">
+                    <div class="score" id="heroScore">
 
                         {{ anime.rating }}
 
                     </div>
 
-                    <span>
+                    <span id="heroVotesLabel">
 
                         Community Rating
 
@@ -419,23 +419,29 @@
 
         <div class="rating-panel">
 
-            <div class="big-rating">
+            <div class="big-rating" id="bigRating">
 
-                {{ anime.rating }}
+                --
 
             </div>
 
-            <div class="rating-stars">
+            <div class="rating-stars" id="ratingStarsDisplay">
 
                 ★★★★★
 
             </div>
 
-            <p>
+            <p id="reviewCountLabel">
 
-                {{ anime.review_count }} Community Reviews
+                0 Community Reviews
 
             </p>
+
+            <div class="rating-breakdown" id="ratingBreakdown">
+
+                <!-- filled by JS: bars for 5,4,3,2,1 star counts -->
+
+            </div>
 
             <div class="rate-box">
 
@@ -445,15 +451,21 @@
 
                 </h3>
 
-                <div class="user-stars">
+                <div class="user-stars" id="userStars">
 
-                    <i class="far fa-star"></i>
-                    <i class="far fa-star"></i>
-                    <i class="far fa-star"></i>
-                    <i class="far fa-star"></i>
-                    <i class="far fa-star"></i>
+                    <i class="far fa-star" data-value="1"></i>
+                    <i class="far fa-star" data-value="2"></i>
+                    <i class="far fa-star" data-value="3"></i>
+                    <i class="far fa-star" data-value="4"></i>
+                    <i class="far fa-star" data-value="5"></i>
 
                 </div>
+
+                <p class="selected-rating-label" id="selectedRatingLabel">
+
+                    Tap a star to choose your rating
+
+                </p>
 
             </div>
 
@@ -475,55 +487,33 @@
 
         <div class="review-box">
 
-            <textarea
+            <input
+                type="text"
+                id="reviewUsername"
+                placeholder="Your name (optional — defaults to Anonymous)"
+                maxlength="40">
 
+            <textarea
+                id="reviewComment"
                 placeholder="Share your thoughts about this anime..."></textarea>
 
-            <button>
+            <button id="postReviewBtn">
 
                 Post Review
 
             </button>
 
+            <p class="review-error" id="reviewError"></p>
+
         </div>
 
-        <div class="reviews">
+        <div class="reviews" id="reviewsContainer">
 
-            {% for review in anime.reviews %}
+            <p class="no-reviews" id="noReviewsMsg">
 
-            <div class="review-card">
+                No reviews yet — be the first to rate {{ anime.title }}!
 
-                <div class="review-header">
-
-                    <img src="{{ url_for('static', filename='images/avatars/' + review.avatar) }}">
-
-                    <div>
-
-                        <h3>
-
-                            {{ review.username }}
-
-                        </h3>
-
-                        <span>
-
-                            ★ {{ review.rating }}/5
-
-                        </span>
-
-                    </div>
-
-                </div>
-
-                <p>
-
-                    {{ review.comment }}
-
-                </p>
-
-            </div>
-
-            {% endfor %}
+            </p>
 
         </div>
 
@@ -653,9 +643,9 @@
 
             <div class="stat-card">
 
-                <h1>
+                <h1 id="statReviewCount">
 
-                    {{ anime.review_count }}
+                    0
 
                 </h1>
 

@@ -1294,3 +1294,138 @@ footer p{
     }
 
 }
+/* ==========================================
+   RATING BREAKDOWN (added)
+========================================== */
+
+.rating-breakdown{
+
+    max-width:420px;
+    margin:0 auto 30px auto;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+
+}
+
+.breakdown-row{
+
+    display:flex;
+    align-items:center;
+    gap:14px;
+
+}
+
+.breakdown-label{
+
+    width:36px;
+    color:#a9b5c3;
+    font-size:14px;
+    text-align:right;
+
+}
+
+.breakdown-track{
+
+    flex:1;
+    height:10px;
+    background:#0d131c;
+    border-radius:20px;
+    overflow:hidden;
+
+}
+
+.breakdown-fill{
+
+    height:100%;
+    background:linear-gradient(90deg,#ffd54a,#ff9f43);
+    border-radius:20px;
+    transition:width .5s ease;
+
+}
+
+.breakdown-count{
+
+    width:28px;
+    color:#7b8595;
+    font-size:13px;
+
+}
+
+/* Filled state for the interactive rating stars */
+
+.user-stars i.filled{
+
+    color:#ffd54a;
+
+}
+
+.selected-rating-label{
+
+    margin-top:14px;
+    color:#a9b5c3;
+    font-size:14px;
+
+}
+
+/* ==========================================
+   REVIEW BOX (added: username input + error)
+========================================== */
+
+.review-box input[type="text"]{
+
+    width:100%;
+    border:none;
+    outline:none;
+    border-radius:14px;
+    padding:16px 22px;
+    background:#171f29;
+    color:white;
+    font-size:15px;
+    font-family:inherit;
+
+}
+
+.review-box input[type="text"]::placeholder{
+
+    color:#95a3b2;
+
+}
+
+.review-error{
+
+    align-self:flex-end;
+    color:#ff6b6b;
+    font-size:14px;
+    min-height:18px;
+
+}
+
+/* ==========================================
+   REVIEWS (added: initials avatar + empty state)
+========================================== */
+
+.review-avatar-initial{
+
+    width:65px;
+    height:65px;
+    min-width:65px;
+    border-radius:50%;
+    background:linear-gradient(135deg,#00c16a,#00875a);
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:800;
+    font-size:24px;
+
+}
+
+.no-reviews{
+
+    text-align:center;
+    color:#7b8595;
+    grid-column:1 / -1;
+    padding:40px 0;
+
+}

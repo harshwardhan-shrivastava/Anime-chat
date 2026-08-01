@@ -552,6 +552,20 @@ nav{
 
 }
 
+.rating-badge{
+
+    top:15px;
+    left:auto;
+    right:15px;
+    background:#171f29;
+    border:1px solid rgba(255,213,74,.5);
+    color:#ffd54a;
+    display:flex;
+    align-items:center;
+    gap:6px;
+
+}
+
 .anime-rating{
 
     position:absolute;
