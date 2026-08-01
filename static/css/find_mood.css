@@ -1,0 +1,1650 @@
+/* ==========================================================
+                    FIND YOUR MOOD
+                    PART 1
+========================================================== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html{
+    scroll-behavior:smooth;
+}
+
+body{
+
+    font-family:'Montserrat',sans-serif;
+
+    background:#060816;
+
+    color:white;
+
+    overflow-x:hidden;
+
+    min-height:100vh;
+
+    position:relative;
+
+}
+
+
+/* ============================
+        BACKGROUND
+============================ */
+
+.background{
+
+    position:fixed;
+
+    inset:0;
+
+    overflow:hidden;
+
+    z-index:-5;
+
+    background:
+    radial-gradient(circle at top,#192144 0%,#090b18 45%,#04050d 100%);
+
+}
+
+
+.gradient{
+
+    position:absolute;
+
+    border-radius:50%;
+
+    filter:blur(120px);
+
+    opacity:.45;
+
+    animation:float 16s ease-in-out infinite;
+
+}
+
+
+.gradient1{
+
+    width:600px;
+    height:600px;
+
+    background:#6d4cff;
+
+    top:-200px;
+    left:-150px;
+
+}
+
+
+.gradient2{
+
+    width:500px;
+    height:500px;
+
+    background:#2f7bff;
+
+    right:-150px;
+    top:100px;
+
+    animation-delay:4s;
+
+}
+
+
+.gradient3{
+
+    width:450px;
+    height:450px;
+
+    background:#ff4ecb;
+
+    bottom:-150px;
+    left:40%;
+
+    animation-delay:8s;
+
+}
+
+
+/* ============================
+            NAVBAR
+============================ */
+
+.navbar{
+
+    width:100%;
+
+    height:90px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:0 7%;
+
+    position:sticky;
+
+    top:0;
+
+    backdrop-filter:blur(20px);
+
+    background:rgba(7,10,24,.45);
+
+    border-bottom:1px solid rgba(255,255,255,.08);
+
+    z-index:999;
+
+}
+
+
+.logo{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+    font-size:28px;
+
+    font-weight:800;
+
+    letter-spacing:1px;
+
+}
+
+
+.logo-icon{
+
+    color:#8c7bff;
+
+    font-size:30px;
+
+}
+
+
+.logo-text{
+
+    background:linear-gradient(
+    90deg,
+    #ffffff,
+    #8c7bff,
+    #5eb7ff);
+
+    -webkit-background-clip:text;
+
+    color:transparent;
+
+}
+
+
+.nav-links{
+
+    display:flex;
+
+    list-style:none;
+
+    gap:45px;
+
+}
+
+
+.nav-links a{
+
+    text-decoration:none;
+
+    color:white;
+
+    font-weight:600;
+
+    transition:.35s;
+
+    position:relative;
+
+}
+
+
+.nav-links a:hover{
+
+    color:#8b7cff;
+
+}
+
+
+.nav-links a::after{
+
+    content:"";
+
+    position:absolute;
+
+    left:0;
+
+    bottom:-8px;
+
+    width:0;
+
+    height:2px;
+
+    background:#8b7cff;
+
+    transition:.35s;
+
+}
+
+
+.nav-links a:hover::after,
+
+.nav-links .active::after{
+
+    width:100%;
+
+}
+
+
+.active{
+
+    color:#9f91ff !important;
+
+}
+
+
+
+/* ============================
+            HERO
+============================ */
+
+.hero{
+
+    width:100%;
+
+    min-height:92vh;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:120px 7%;
+
+    gap:80px;
+
+}
+
+
+.hero-left{
+
+    flex:1;
+
+}
+
+
+.hero-badge{
+
+    display:inline-block;
+
+    padding:12px 24px;
+
+    border-radius:40px;
+
+    background:rgba(109,76,255,.18);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    margin-bottom:35px;
+
+    font-size:15px;
+
+    color:#d7d0ff;
+
+}
+
+
+.hero h1{
+
+    font-size:72px;
+
+    line-height:1.1;
+
+    font-weight:900;
+
+    margin-bottom:28px;
+
+}
+
+
+.hero h1 span{
+
+    background:linear-gradient(
+    90deg,
+    #8d7bff,
+    #45c2ff,
+    #ff67dd);
+
+    -webkit-background-clip:text;
+
+    color:transparent;
+
+}
+
+
+.hero p{
+
+    color:#b9bfd5;
+
+    font-size:19px;
+
+    line-height:1.9;
+
+    max-width:700px;
+
+}
+
+
+.hero-buttons{
+
+    margin-top:45px;
+
+    display:flex;
+
+    gap:20px;
+
+}
+
+
+.primary-btn{
+
+    border:none;
+
+    cursor:pointer;
+
+    padding:18px 36px;
+
+    border-radius:50px;
+
+    font-weight:700;
+
+    color:white;
+
+    background:linear-gradient(
+    90deg,
+    #6d4cff,
+    #3b7bff);
+
+    transition:.35s;
+
+    box-shadow:
+    0 10px 35px rgba(84,92,255,.35);
+
+}
+
+
+.primary-btn:hover{
+
+    transform:translateY(-5px);
+
+}
+
+
+.secondary-btn{
+
+    cursor:pointer;
+
+    border:1px solid rgba(255,255,255,.12);
+
+    background:rgba(255,255,255,.05);
+
+    color:white;
+
+    padding:18px 36px;
+
+    border-radius:50px;
+
+    backdrop-filter:blur(12px);
+
+    transition:.35s;
+
+}
+
+
+.secondary-btn:hover{
+
+    background:rgba(255,255,255,.12);
+
+}
+
+
+.hero-right{
+
+    width:420px;
+
+    display:flex;
+
+    justify-content:center;
+
+}
+
+
+.hero-card{
+
+    width:100%;
+
+    background:rgba(255,255,255,.06);
+
+    backdrop-filter:blur(22px);
+
+    border-radius:30px;
+
+    border:1px solid rgba(255,255,255,.08);
+
+    overflow:hidden;
+
+    box-shadow:
+    0 25px 80px rgba(0,0,0,.45);
+
+}
+
+
+.hero-card-top{
+
+    padding:18px 25px;
+
+    background:rgba(255,255,255,.04);
+
+    font-weight:700;
+
+    color:#d9d6ff;
+
+}
+
+
+.hero-card img{
+
+    width:100%;
+
+    height:500px;
+
+    object-fit:cover;
+
+}
+
+
+.hero-info{
+
+    padding:28px;
+
+}
+
+
+.hero-info h3{
+
+    font-size:28px;
+
+    margin-bottom:12px;
+
+}
+
+
+.hero-info p{
+
+    color:#bcc2dc;
+
+}
+
+/* ==========================================================
+                    MOOD SECTION
+========================================================== */
+
+.mood-section{
+
+    width:100%;
+
+    padding:100px 7%;
+
+}
+
+
+.section-title{
+
+    text-align:center;
+
+    margin-bottom:70px;
+
+}
+
+
+.section-title span{
+
+    display:inline-block;
+
+    padding:10px 24px;
+
+    border-radius:40px;
+
+    background:rgba(118,94,255,.15);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    color:#d6d1ff;
+
+    font-size:15px;
+
+    margin-bottom:20px;
+
+}
+
+
+.section-title h2{
+
+    font-size:52px;
+
+    font-weight:800;
+
+    margin-bottom:18px;
+
+}
+
+
+.section-title p{
+
+    color:#aeb4cb;
+
+    max-width:700px;
+
+    margin:auto;
+
+    line-height:1.8;
+
+    font-size:18px;
+
+}
+
+
+/* ==========================
+        MOOD GRID
+========================== */
+
+.mood-grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+
+    gap:35px;
+
+}
+
+
+.mood-card{
+
+    position:relative;
+
+    overflow:hidden;
+
+    background:rgba(255,255,255,.05);
+
+    backdrop-filter:blur(18px);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    border-radius:28px;
+
+    padding:40px 30px;
+
+    transition:.35s;
+
+    cursor:pointer;
+
+}
+
+
+.mood-card::before{
+
+    content:"";
+
+    position:absolute;
+
+    inset:0;
+
+    background:linear-gradient(
+        140deg,
+        rgba(255,255,255,.08),
+        transparent 60%
+    );
+
+    opacity:0;
+
+    transition:.35s;
+
+}
+
+
+.mood-card:hover::before{
+
+    opacity:1;
+
+}
+
+
+.mood-card:hover{
+
+    transform:translateY(-12px);
+
+    border-color:rgba(255,255,255,.15);
+
+}
+
+
+.mood-icon{
+
+    width:85px;
+
+    height:85px;
+
+    border-radius:22px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    font-size:40px;
+
+    margin-bottom:28px;
+
+    background:rgba(255,255,255,.08);
+
+}
+
+
+.mood-card h3{
+
+    font-size:28px;
+
+    margin-bottom:18px;
+
+}
+
+
+.mood-card p{
+
+    color:#bcc3db;
+
+    line-height:1.8;
+
+    margin-bottom:30px;
+
+    min-height:90px;
+
+}
+
+
+.mood-card button{
+
+    width:100%;
+
+    border:none;
+
+    cursor:pointer;
+
+    padding:16px;
+
+    border-radius:40px;
+
+    color:white;
+
+    font-weight:700;
+
+    transition:.35s;
+
+}
+
+
+/* ==========================
+      HAPPY
+========================== */
+
+.happy .mood-icon{
+
+    background:rgba(255,205,55,.18);
+
+}
+
+.happy:hover{
+
+    box-shadow:0 15px 40px rgba(255,210,0,.18);
+
+}
+
+.happy button{
+
+    background:#ffcb29;
+
+    color:#181818;
+
+}
+
+
+/* ==========================
+        SAD
+========================== */
+
+.sad .mood-icon{
+
+    background:rgba(88,170,255,.18);
+
+}
+
+.sad:hover{
+
+    box-shadow:0 15px 40px rgba(88,170,255,.18);
+
+}
+
+.sad button{
+
+    background:#59a9ff;
+
+}
+
+
+/* ==========================
+        ACTION
+========================== */
+
+.action .mood-icon{
+
+    background:rgba(255,90,90,.18);
+
+}
+
+.action:hover{
+
+    box-shadow:0 15px 40px rgba(255,70,70,.22);
+
+}
+
+.action button{
+
+    background:#ff5454;
+
+}
+
+
+/* ==========================
+       ROMANCE
+========================== */
+
+.romance .mood-icon{
+
+    background:rgba(255,105,180,.18);
+
+}
+
+.romance:hover{
+
+    box-shadow:0 15px 40px rgba(255,105,180,.20);
+
+}
+
+.romance button{
+
+    background:#ff5db5;
+
+}
+
+
+/* ==========================
+        HORROR
+========================== */
+
+.horror .mood-icon{
+
+    background:rgba(145,90,255,.18);
+
+}
+
+.horror:hover{
+
+    box-shadow:0 15px 40px rgba(145,90,255,.22);
+
+}
+
+.horror button{
+
+    background:#945dff;
+
+}
+
+
+/* ==========================
+       FANTASY
+========================== */
+
+.fantasy .mood-icon{
+
+    background:rgba(70,220,180,.18);
+
+}
+
+.fantasy:hover{
+
+    box-shadow:0 15px 40px rgba(70,220,180,.22);
+
+}
+
+.fantasy button{
+
+    background:#42dcb4;
+
+}
+
+
+/* ==========================
+        RELAX
+========================== */
+
+.chill .mood-icon{
+
+    background:rgba(140,220,255,.18);
+
+}
+
+.chill:hover{
+
+    box-shadow:0 15px 40px rgba(120,220,255,.22);
+
+}
+
+.chill button{
+
+    background:#6fd8ff;
+
+}
+
+
+/* ==========================
+        MYSTERY
+========================== */
+
+.mystery .mood-icon{
+
+    background:rgba(150,150,255,.18);
+
+}
+
+.mystery:hover{
+
+    box-shadow:0 15px 40px rgba(130,130,255,.22);
+
+}
+
+.mystery button{
+
+    background:#7f83ff;
+
+}
+
+
+/* ==========================
+        COMEDY
+========================== */
+
+.comedy .mood-icon{
+
+    background:rgba(255,180,50,.18);
+
+}
+
+.comedy:hover{
+
+    box-shadow:0 15px 40px rgba(255,180,50,.22);
+
+}
+
+.comedy button{
+
+    background:#ffb431;
+
+}
+
+
+/* ==========================
+        SCI-FI
+========================== */
+
+.scifi .mood-icon{
+
+    background:rgba(55,255,240,.16);
+
+}
+
+.scifi:hover{
+
+    box-shadow:0 15px 40px rgba(55,255,240,.18);
+
+}
+
+.scifi button{
+
+    background:#2fe7ff;
+
+}
+
+
+/* ==========================
+        SPORTS
+========================== */
+
+.sports .mood-icon{
+
+    background:rgba(80,255,140,.18);
+
+}
+
+.sports:hover{
+
+    box-shadow:0 15px 40px rgba(80,255,140,.20);
+
+}
+
+.sports button{
+
+    background:#49df82;
+
+}
+
+
+/* ==========================
+      MIND BENDING
+========================== */
+
+.mind .mood-icon{
+
+    background:rgba(255,90,220,.18);
+
+}
+
+.mind:hover{
+
+    box-shadow:0 15px 40px rgba(255,90,220,.22);
+
+}
+
+.mind button{
+
+    background:#ff55cb;
+
+}
+
+
+/* Hover Button */
+
+.mood-card button:hover{
+
+    transform:scale(1.04);
+
+    filter:brightness(1.08);
+
+}
+
+/* ==========================================================
+                RECOMMENDATION SECTION
+========================================================== */
+
+.recommendation-section{
+
+    width:100%;
+
+    padding:110px 7%;
+
+}
+
+
+.recommendation-grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+
+    gap:35px;
+
+}
+
+
+/* ==========================
+        EMPTY STATE
+========================== */
+
+.empty-state{
+
+    grid-column:1/-1;
+
+    text-align:center;
+
+    padding:100px 40px;
+
+    border-radius:35px;
+
+    background:rgba(255,255,255,.05);
+
+    backdrop-filter:blur(18px);
+
+    border:1px solid rgba(255,255,255,.08);
+
+}
+
+
+.empty-icon{
+
+    width:120px;
+
+    height:120px;
+
+    margin:auto;
+
+    margin-bottom:35px;
+
+    border-radius:50%;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    font-size:60px;
+
+    background:linear-gradient(
+        135deg,
+        #6d4cff,
+        #2f7bff
+    );
+
+    box-shadow:
+    0 20px 50px rgba(90,95,255,.35);
+
+}
+
+
+.empty-state h3{
+
+    font-size:34px;
+
+    margin-bottom:18px;
+
+}
+
+
+.empty-state p{
+
+    max-width:650px;
+
+    margin:auto;
+
+    color:#bfc5dd;
+
+    line-height:1.8;
+
+}
+
+
+
+/* ==========================
+        RECOMMEND CARD
+========================== */
+
+.recommend-card{
+
+    overflow:hidden;
+
+    border-radius:30px;
+
+    background:rgba(255,255,255,.05);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    backdrop-filter:blur(20px);
+
+    transition:.4s;
+
+}
+
+
+.recommend-card:hover{
+
+    transform:translateY(-12px);
+
+    box-shadow:
+    0 25px 60px rgba(0,0,0,.45);
+
+}
+
+
+.recommend-card img{
+
+    width:100%;
+
+    height:430px;
+
+    object-fit:cover;
+
+}
+
+
+.recommend-content{
+
+    padding:28px;
+
+}
+
+
+.recommend-content h3{
+
+    font-size:28px;
+
+    margin-bottom:14px;
+
+}
+
+
+.recommend-content p{
+
+    color:#bcc2d9;
+
+    line-height:1.8;
+
+    margin-bottom:24px;
+
+}
+
+
+.recommend-meta{
+
+    display:flex;
+
+    gap:12px;
+
+    flex-wrap:wrap;
+
+    margin-bottom:24px;
+
+}
+
+
+.recommend-meta span{
+
+    padding:8px 16px;
+
+    border-radius:40px;
+
+    background:rgba(255,255,255,.08);
+
+    font-size:14px;
+
+}
+
+
+.recommend-btn{
+
+    width:100%;
+
+    border:none;
+
+    cursor:pointer;
+
+    padding:16px;
+
+    border-radius:50px;
+
+    font-weight:700;
+
+    color:white;
+
+    background:linear-gradient(
+        135deg,
+        #6d4cff,
+        #2f7bff
+    );
+
+    transition:.35s;
+
+}
+
+
+.recommend-btn:hover{
+
+    transform:translateY(-3px);
+
+}
+
+
+
+/* ==========================================================
+                    FEATURES
+========================================================== */
+
+.features-section{
+
+    width:100%;
+
+    padding:110px 7%;
+
+}
+
+
+.features-grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+
+    gap:35px;
+
+}
+
+
+.feature-card{
+
+    padding:45px;
+
+    border-radius:30px;
+
+    background:rgba(255,255,255,.05);
+
+    backdrop-filter:blur(18px);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    transition:.35s;
+
+}
+
+
+.feature-card:hover{
+
+    transform:translateY(-10px);
+
+    box-shadow:
+    0 20px 55px rgba(0,0,0,.35);
+
+}
+
+
+.feature-icon{
+
+    width:85px;
+
+    height:85px;
+
+    border-radius:22px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    font-size:38px;
+
+    margin-bottom:30px;
+
+    background:linear-gradient(
+        135deg,
+        #6d4cff,
+        #2f7bff
+    );
+
+}
+
+
+.feature-card h3{
+
+    font-size:28px;
+
+    margin-bottom:16px;
+
+}
+
+
+.feature-card p{
+
+    color:#bcc3dc;
+
+    line-height:1.8;
+
+}
+
+/* ==========================================================
+                        FOOTER
+========================================================== */
+
+footer{
+
+    margin-top:120px;
+
+    padding:80px 7%;
+
+    border-top:1px solid rgba(255,255,255,.08);
+
+    background:rgba(255,255,255,.03);
+
+    backdrop-filter:blur(20px);
+
+}
+
+
+.footer-content{
+
+    max-width:900px;
+
+    margin:auto;
+
+    text-align:center;
+
+}
+
+
+.footer-content h2{
+
+    font-size:42px;
+
+    margin-bottom:20px;
+
+}
+
+
+.footer-content p{
+
+    color:#b7bdd5;
+
+    line-height:1.8;
+
+    margin-bottom:35px;
+
+}
+
+
+.footer-links{
+
+    display:flex;
+
+    justify-content:center;
+
+    gap:40px;
+
+    flex-wrap:wrap;
+
+}
+
+
+.footer-links a{
+
+    color:white;
+
+    text-decoration:none;
+
+    transition:.3s;
+
+    font-weight:600;
+
+}
+
+
+.footer-links a:hover{
+
+    color:#8f7fff;
+
+}
+
+
+
+/* ==========================================================
+                    ANIMATIONS
+========================================================== */
+
+@keyframes float{
+
+    0%{
+
+        transform:translateY(0px) scale(1);
+
+    }
+
+    50%{
+
+        transform:translateY(-35px) scale(1.05);
+
+    }
+
+    100%{
+
+        transform:translateY(0px) scale(1);
+
+    }
+
+}
+
+
+@keyframes fadeUp{
+
+    from{
+
+        opacity:0;
+
+        transform:translateY(50px);
+
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:translateY(0);
+
+    }
+
+}
+
+
+.hero,
+
+.mood-card,
+
+.feature-card,
+
+.recommend-card,
+
+.empty-state{
+
+    animation:fadeUp .9s ease;
+
+}
+
+
+
+/* ==========================================================
+                    SCROLLBAR
+========================================================== */
+
+::-webkit-scrollbar{
+
+    width:10px;
+
+}
+
+::-webkit-scrollbar-track{
+
+    background:#060816;
+
+}
+
+::-webkit-scrollbar-thumb{
+
+    background:#4c54ff;
+
+    border-radius:100px;
+
+}
+
+::-webkit-scrollbar-thumb:hover{
+
+    background:#7280ff;
+
+}
+
+
+
+/* ==========================================================
+                RESPONSIVE
+========================================================== */
+
+@media(max-width:1200px){
+
+    .hero{
+
+        flex-direction:column;
+
+        text-align:center;
+
+    }
+
+    .hero-right{
+
+        width:100%;
+
+        max-width:500px;
+
+    }
+
+}
+
+
+@media(max-width:900px){
+
+    .navbar{
+
+        flex-direction:column;
+
+        height:auto;
+
+        padding:20px;
+
+        gap:20px;
+
+    }
+
+    .nav-links{
+
+        gap:20px;
+
+        flex-wrap:wrap;
+
+        justify-content:center;
+
+    }
+
+    .hero{
+
+        padding:80px 6%;
+
+    }
+
+    .hero h1{
+
+        font-size:54px;
+
+    }
+
+    .section-title h2{
+
+        font-size:40px;
+
+    }
+
+}
+
+
+@media(max-width:700px){
+
+    .hero h1{
+
+        font-size:42px;
+
+    }
+
+    .hero p{
+
+        font-size:16px;
+
+    }
+
+    .hero-buttons{
+
+        flex-direction:column;
+
+    }
+
+    .primary-btn,
+
+    .secondary-btn{
+
+        width:100%;
+
+    }
+
+    .hero-card img{
+
+        height:380px;
+
+    }
+
+    .section-title h2{
+
+        font-size:34px;
+
+    }
+
+}
+
+
+@media(max-width:500px){
+
+    .logo{
+
+        font-size:22px;
+
+    }
+
+    .nav-links{
+
+        gap:15px;
+
+        font-size:14px;
+
+    }
+
+    .mood-card{
+
+        padding:30px 24px;
+
+    }
+
+    .feature-card{
+
+        padding:30px;
+
+    }
+
+    .footer-content h2{
+
+        font-size:32px;
+
+    }
+
+}
