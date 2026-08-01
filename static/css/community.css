@@ -998,7 +998,7 @@ section{
 
     flex-direction:column;
 
-    min-height:720px;
+    height:900px;
 
     overflow:hidden;
 
@@ -1174,7 +1174,7 @@ section{
 
     background:var(--green);
 
-    box-shadow:0 0 14px var(--green);
+    box-shadow:none;
 
 }
 
@@ -1256,9 +1256,9 @@ section{
 
     overflow-y:auto;
 
-    min-height:600px;
+    overflow-x:hidden;
 
-    max-height:700px;
+    min-height:0;
 
 }
 
@@ -1437,30 +1437,45 @@ section{
 
 .message-gif{
 
-    margin-top:10px;
+    margin-top:12px;
 
-    max-width:340px;
+    width:fit-content;
+
+    max-width:420px;
 
     border-radius:18px;
 
     overflow:hidden;
 
+    background:transparent;
+
 }
 
 .message-gif img{
 
+    display:block;
+
+    width:auto;
+
+    max-width:420px;
+
+    max-height:260px;
+
+    height:auto;
+
+    object-fit:contain;
+
     border-radius:18px;
 
-    transition:.3s;
+    transition:.25s;
 
 }
 
 .message-gif img:hover{
 
-    transform:scale(1.03);
+    transform:scale(1.02);
 
 }
-
 
 /* ==========================================================
    TYPING INDICATOR
@@ -1468,7 +1483,7 @@ section{
 
 .typing-indicator{
 
-    display:flex;
+    display:none;
 
     align-items:center;
 
@@ -1580,11 +1595,17 @@ section{
 
     position:sticky;
 
-    bottom:20px;
+    bottom:0;
 
-    margin-top:28px;
+    margin-top:auto;
 
-    z-index:20;
+    z-index:100;
+
+    padding:18px;
+
+    background:#18222f;
+
+    border-top:1px solid rgba(255,255,255,.06);
 
 }
 
