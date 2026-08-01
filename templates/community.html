@@ -10,11 +10,17 @@
 
     <title>{{ anime_name }} | AnimeChat</title>
 
+    <!-- Main CSS -->
+
     <link rel="stylesheet"
           href="{{ url_for('static', filename='css/community.css') }}">
 
+    <!-- Authentication CSS -->
+
     <link rel="stylesheet"
           href="{{ url_for('static', filename='css/auth.css') }}">
+
+    <!-- Google Font -->
 
     <link rel="preconnect"
           href="https://fonts.googleapis.com">
@@ -26,71 +32,139 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap"
           rel="stylesheet">
 
+    <!-- Font Awesome -->
+
     <script src="https://kit.fontawesome.com/6c5c3d9d54.js"
             crossorigin="anonymous"></script>
 
 </head>
 
-<body data-anime-slug="{{ anime_slug }}"
-      data-user='{{ current_user | tojson if current_user else "null" }}'>
+<body
+
+data-anime-slug="{{ anime_slug }}"
+
+data-user='{{ current_user | tojson if current_user else "null" }}'>
+
+<!-- ====================================================== -->
+<!-- BACKGROUND -->
+<!-- ====================================================== -->
 
 <div class="background">
 
-    <div class="circle one"></div>
+    <div class="bg-circle bg-one"></div>
 
-    <div class="circle two"></div>
+    <div class="bg-circle bg-two"></div>
 
-    <div class="circle three"></div>
+    <div class="bg-circle bg-three"></div>
 
 </div>
 
-<!-- ================= TOP BAR ================= -->
+<!-- ====================================================== -->
+<!-- PAGE -->
+<!-- ====================================================== -->
 
-<nav>
+<div class="community-page">
 
-    <a href="/"
-       class="back-button">
+<!-- ====================================================== -->
+<!-- TOP NAVIGATION -->
+<!-- ====================================================== -->
 
-        <i class="fas fa-arrow-left"></i>
+<header class="topbar">
 
-        AnimeChat
+    <div class="topbar-left">
 
-    </a>
+        <a href="/"
+           class="logo">
 
-    {% if current_user %}
+            <i class="fas fa-arrow-left"></i>
 
-    <div class="nav-auth-widget">
+            <span>
 
-        <div class="nav-user-pill">
+                AnimeChat
 
-            <span class="nav-user-avatar" style="background:{{ current_user.avatar_color }}">
-                {{ current_user.username[:2]|upper }}
             </span>
 
-            <span class="nav-user-name">{{ current_user.username }}</span>
-
-        </div>
-
-        <a href="{{ url_for('auth.logout') }}" class="nav-logout-btn">Logout</a>
+        </a>
 
     </div>
 
-    {% else %}
+    <div class="topbar-right">
 
-    <a href="{{ url_for('auth.login', next=request.path) }}" class="nav-login-btn">Login to chat</a>
+        {% if current_user %}
 
-    {% endif %}
+        <div class="user-card">
 
-</nav>
+            <div
 
-<!-- ================= HERO ================= -->
+                class="user-avatar"
 
-<section class="hero">
+                style="background:{{ current_user.avatar_color }}">
 
-    <div class="hero-image">
+                {{ current_user.username[:2]|upper }}
 
-        <img src="{{ url_for('static',
-        filename='images/anime/' + anime_image) }}">
+            </div>
+
+            <div class="user-information">
+
+                <span>
+
+                    {{ current_user.username }}
+
+                </span>
+
+                <small>
+
+                    Online
+
+                </small>
+
+            </div>
+
+        </div>
+
+        <a
+
+        href="{{ url_for('auth.logout') }}"
+
+        class="logout-button">
+
+            Logout
+
+        </a>
+
+        {% else %}
+
+        <a
+
+        href="{{ url_for('auth.login', next=request.path) }}"
+
+        class="login-button">
+
+            Login
+
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</header>
+
+<!-- ====================================================== -->
+<!-- HERO STARTS IN PART 2A -->
+<!-- ====================================================== -->
+
+<!-- ====================================================== -->
+<!-- COMMUNITY HERO -->
+<!-- ====================================================== -->
+
+<section class="community-hero">
+
+    <div class="hero-banner">
+
+        <img
+            src="{{ url_for('static', filename='images/anime/' + anime_image) }}"
+            alt="{{ anime_name }}">
 
         <div class="hero-overlay"></div>
 
@@ -98,90 +172,257 @@
 
     <div class="hero-content">
 
-        <div class="community-icon">
+        <div class="hero-left">
 
-            ⚔
+            <div class="community-tag">
+
+                <i class="fas fa-fire"></i>
+
+                <span>
+
+                    Official AnimeChat Community
+
+                </span>
+
+            </div>
+
+            <h1>
+
+                {{ anime_name }}
+
+            </h1>
+
+            <p>
+
+                Welcome to the official community for
+                <strong>{{ anime_name }}</strong>.
+
+                Share theories, discuss episodes,
+                post GIFs, react with emojis,
+                and meet anime fans from around the world.
+
+            </p>
+
+            <div class="hero-actions">
+
+                <button class="primary-button">
+
+                    Join Discussion
+
+                </button>
+
+                <button class="secondary-button">
+
+                    Community Rules
+
+                </button>
+
+            </div>
 
         </div>
 
-        <h1>
+        <div class="hero-right">
 
-            {% if anime_name == "Demon Slayer" %}
+            <div class="stats-grid">
 
-                The Demon Slayer Corps
+                <div class="stat-card">
 
-            {% else %}
+                    <span class="stat-number">
 
-                {{ anime_name }} Community
+                        12K+
 
-            {% endif %}
+                    </span>
 
-        </h1>
+                    <span class="stat-label">
 
-        <p>
+                        Members
 
-            {% if anime_name == "Demon Slayer" %}
+                    </span>
 
-            Enter the headquarters of the Demon Slayer Corps.
-            Share theories, discuss episodes,
-            debate your favorite Hashira,
-            and meet fellow fans from around the world.
+                </div>
 
-            {% else %}
+                <div class="stat-card">
 
-            Welcome to the official AnimeChat
-            community for {{ anime_name }} fans.
+                    <span
+                        class="stat-number"
+                        id="heroOnlineCount">
 
-            {% endif %}
+                        0
 
-        </p>
+                    </span>
+
+                    <span class="stat-label">
+
+                        Online
+
+                    </span>
+
+                </div>
+
+                <div class="stat-card">
+
+                    <span class="stat-number">
+
+                        24/7
+
+                    </span>
+
+                    <span class="stat-label">
+
+                        Active
+
+                    </span>
+
+                </div>
+
+                <div class="stat-card">
+
+                    <span class="stat-number">
+
+                        ∞
+
+                    </span>
+
+                    <span class="stat-label">
+
+                        Conversations
+
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
 
     </div>
 
 </section>
 
-<!-- ================= CHAT ================= -->
+<!-- ====================================================== -->
+<!-- ANIMECHAT APPLICATION -->
+<!-- ====================================================== -->
 
-<section class="chat-wrapper">
+<section class="app-shell">
 
-    <div class="chat-header" id="chatHeader">
+    <!-- ================= LEFT SIDEBAR ================= -->
 
-        <div>
+    <aside class="left-sidebar">
 
-            <h2>
+        <div class="sidebar-card">
 
-                Community Discussion
+            <h3>
 
-            </h2>
+                Explore
 
-            <span>
+            </h3>
 
-                Public Chatroom
+            <nav class="sidebar-menu">
 
-            </span>
+                <button class="sidebar-item active">
+
+                    <i class="fas fa-comments"></i>
+
+                    Discussion
+
+                </button>
+
+                <button class="sidebar-item">
+
+                    <i class="fas fa-fire"></i>
+
+                    Trending
+
+                </button>
+
+                <button class="sidebar-item">
+
+                    <i class="fas fa-images"></i>
+
+                    GIF Gallery
+
+                </button>
+
+                <button class="sidebar-item">
+
+                    <i class="fas fa-book"></i>
+
+                    Guides
+
+                </button>
+
+            </nav>
 
         </div>
 
-        <div class="online-users" id="onlineToggle">
+        <div class="sidebar-card">
 
-            <span class="pulse-dot"></span>
+            <h3>
 
-            <span id="onlineCount">12</span> online
+                About This Community
+
+            </h3>
+
+            <p>
+
+                Discuss episodes,
+                manga,
+                theories,
+                characters,
+                memes,
+                fan art,
+                and everything related to
+                <strong>{{ anime_name }}</strong>.
+
+            </p>
 
         </div>
 
-    </div>
+    </aside>
 
-    <!-- ================= TWO COLUMN LAYOUT ================= -->
+    <!-- ================= CHAT ================= -->
 
-    <div class="chat-layout">
+    <main class="chat-area">
 
-        <!-- MAIN CHAT COLUMN -->
+        <div class="chat-container">
 
-        <div class="chat-main">
+            <header class="chat-header">
 
-            <div class="chat-box"
-                 id="chatBox">
+                <div>
+
+                    <h2>
+
+                        Community Discussion
+
+                    </h2>
+
+                    <span>
+
+                        Live public discussion
+
+                    </span>
+
+                </div>
+
+                <div class="chat-status">
+
+                    <span class="pulse-dot"></span>
+
+                    <span id="onlineCount">
+
+                        0
+
+                    </span>
+
+                    Online
+
+                </div>
+
+            </header>
+
+            <div
+                class="chat-feed"
+                id="chatBox">
 
                 <div class="welcome-box">
 
@@ -191,30 +432,15 @@
 
                     </div>
 
-                    <h3>
+                    <h2>
 
-                        Welcome!
+                        Welcome to AnimeChat
 
-                    </h3>
+                    </h2>
 
                     <p>
 
-                        {% if anime_name == "Demon Slayer" %}
-
-                        The crows have not delivered
-                        any messages yet.
-
-                        Become the first member of
-                        the Demon Slayer Corps to
-                        begin today's discussion.
-
-                        {% else %}
-
-                        No messages yet.
-
-                        Start the first discussion!
-
-                        {% endif %}
+                        Start today's first discussion.
 
                     </p>
 
@@ -222,123 +448,231 @@
 
             </div>
 
-            <!-- ================= TYPING INDICATOR ================= -->
+            <div
+                class="typing-indicator"
+                id="typingIndicator">
 
-            <div class="typing-indicator" id="typingIndicator">
+                <span>
 
-                <span>Someone is typing</span>
+                    Someone is typing...
+
+                </span>
 
                 <div class="typing-dots">
 
                     <span></span>
+
                     <span></span>
+
                     <span></span>
 
                 </div>
 
             </div>
-
-            <!-- ================= EMOJI PICKER PANEL ================= -->
-
-            <div class="picker-panel" id="emojiPanel">
-
-                <div class="picker-inner">
-
-                    <div class="emoji-grid" id="emojiGrid"></div>
-
-                </div>
-
-            </div>
-
-            <!-- ================= GIF PICKER PANEL ================= -->
-
-            <div class="picker-panel" id="gifPanel">
-
-                <div class="picker-inner">
-
-                    <input type="text"
-                           class="gif-search"
-                           id="gifSearch"
-                           placeholder="Search gifs (e.g. hype, cry, laugh, shock)">
-
-                    <div class="gif-grid" id="gifGrid"></div>
-
-                </div>
-
-            </div>
-
-            <!-- ================= MESSAGE INPUT ================= -->
-
-            {% if current_user %}
-
-            <div class="chat-input-area">
-
-                <button class="emoji-btn" id="emojiBtn">
-
-                    😊
-
-                </button>
-
-                <button class="gif-btn" id="gifBtn">
-
-                    GIF
-
-                </button>
-
-                <textarea
-                    id="messageInput"
-                    rows="1"
-                    placeholder="Share your thoughts with the Corps..."></textarea>
-
-                <button
-                    class="send-btn"
-                    id="sendBtn">
-
-                    <i class="fas fa-paper-plane"></i>
-
-                    Send
-
-                </button>
-
-            </div>
-
-            {% else %}
-
-            <div class="chat-login-gate">
-
-                <p>
-                    <i class="fas fa-lock"></i>
-                    <a href="{{ url_for('auth.login', next=request.path) }}">Log in</a>
-                    or
-                    <a href="{{ url_for('auth.signup') }}">create an account</a>
-                    to join the conversation.
-                </p>
-
-            </div>
-
-            {% endif %}
 
         </div>
 
-        <!-- ================= ONLINE MEMBERS SIDEBAR ================= -->
+    </main>
 
-        <aside class="chat-sidebar" id="chatSidebar">
+    <!-- ================= ONLINE MEMBERS ================= -->
+
+    <aside class="right-sidebar">
+
+        <div class="sidebar-card">
 
             <div class="sidebar-title">
 
-                Online — <span id="sidebarOnlineCount">12</span>
+                <h3>
+
+                    Online Members
+
+                </h3>
+
+                <span>
+
+                    <span id="sidebarOnlineCount">
+
+                        0
+
+                    </span>
+
+                    online
+
+                </span>
 
             </div>
 
-            <div class="member-list" id="memberList"></div>
+            <div
+                class="member-list"
+                id="memberList">
 
-        </aside>
+            </div>
 
-    </div>
+        </div>
+
+    </aside>
 
 </section>
 
-<!-- ================= COMMUNITY INFO ================= -->
+<!-- ====================================================== -->
+<!-- CHAT COMPOSER -->
+<!-- ====================================================== -->
+
+<section class="composer-section">
+
+    <!-- ================= EMOJI PANEL ================= -->
+
+    <div
+        class="picker-panel"
+        id="emojiPanel">
+
+        <div class="picker-header">
+
+            <h3>
+
+                Emojis
+
+            </h3>
+
+        </div>
+
+        <div
+            id="emojiGrid"
+            class="emoji-grid">
+
+        </div>
+
+    </div>
+
+    <!-- ================= GIF PANEL ================= -->
+
+    <div
+        class="picker-panel"
+        id="gifPanel">
+
+        <div class="picker-header">
+
+            <h3>
+
+                Search GIFs
+
+            </h3>
+
+        </div>
+
+        <input
+
+            id="gifSearch"
+
+            class="gif-search"
+
+            type="text"
+
+            placeholder="Search anything... Naruto, Gojo, Absolute Cinema...">
+
+        <div
+
+            id="gifGrid"
+
+            class="gif-grid">
+
+        </div>
+
+    </div>
+
+    <!-- ================= CHAT INPUT ================= -->
+
+    {% if current_user %}
+
+    <div class="composer">
+
+        <div class="composer-tools">
+
+            <button
+
+                id="emojiBtn"
+
+                class="tool-btn">
+
+                😊
+
+            </button>
+
+            <button
+
+                id="gifBtn"
+
+                class="tool-btn gif-btn">
+
+                GIF
+
+            </button>
+
+        </div>
+
+        <div class="composer-input">
+
+            <textarea
+
+                id="messageInput"
+
+                rows="1"
+
+                placeholder="Share your thoughts with the {{ anime_name }} community...">
+
+            </textarea>
+
+        </div>
+
+        <button
+
+            id="sendBtn"
+
+            class="send-btn">
+
+            <i class="fas fa-paper-plane"></i>
+
+            Send
+
+        </button>
+
+    </div>
+
+    {% else %}
+
+    <div class="login-notice">
+
+        <i class="fas fa-lock"></i>
+
+        <span>
+
+            <a href="{{ url_for('auth.login', next=request.path) }}">
+
+                Login
+
+            </a>
+
+            or
+
+            <a href="{{ url_for('auth.signup') }}">
+
+                create an account
+
+            </a>
+
+            to participate in the discussion.
+
+        </span>
+
+    </div>
+
+    {% endif %}
+
+</section>
+
+<!-- ====================================================== -->
+<!-- COMMUNITY INFO -->
+<!-- ====================================================== -->
 
 <section class="community-info">
 
@@ -354,9 +688,11 @@
 
         <p>
 
-            Talk about episodes,
-            manga, theories,
-            memes and characters.
+            Share theories, manga discussions,
+            episode reactions,
+            memes,
+            GIFs,
+            and your favorite moments.
 
         </p>
 
@@ -368,17 +704,15 @@
 
         <h3>
 
-            Growing Community
+            Meet Anime Fans
 
         </h3>
 
         <p>
 
-            Every discussion begins
-            with one fan.
-
-            Be the first to
-            start today's conversation.
+            Connect with fans from around the world
+            who love
+            {{ anime_name }}.
 
         </p>
 
@@ -390,16 +724,19 @@
 
         <h3>
 
-            Respect Everyone
+            Community Rules
 
         </h3>
 
         <p>
 
-            Keep discussions friendly,
-            avoid spoilers without warning,
-            and help build an awesome
-            anime community.
+            Respect everyone.
+
+            Avoid harassment.
+
+            Mark spoilers.
+
+            Help create a friendly anime community.
 
         </p>
 
@@ -407,9 +744,11 @@
 
 </section>
 
-<!-- ================= FOOTER ================= -->
+<!-- ====================================================== -->
+<!-- FOOTER -->
+<!-- ====================================================== -->
 
-<footer>
+<footer class="footer">
 
     <h2>
 
@@ -419,11 +758,13 @@
 
     <p>
 
-        Every anime deserves a community.
+        Every Anime Deserves A Community.
 
     </p>
 
 </footer>
+
+</div>
 
 <script src="{{ url_for('static', filename='js/community.js') }}"></script>
 

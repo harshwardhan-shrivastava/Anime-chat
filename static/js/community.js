@@ -179,14 +179,14 @@ async function searchGiphy(query) {
 
 if (gifSearch) {
     // Load trending gifs as soon as the panel exists
-    searchTenor("");
+    searchGiphy("");
 
     gifSearch.addEventListener("input", function () {
         clearTimeout(gifSearchTimer);
         const query = gifSearch.value.trim();
 
         gifSearchTimer = setTimeout(function () {
-            searchTenor(query);
+            searchGiphy(query);
         }, 350);
     });
 }
