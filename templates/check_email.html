@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Your Email | AnimeChat</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js" crossorigin="anonymous"></script>
+</head>
+<body class="auth-body">
+
+<div class="background">
+    <div class="circle one"></div>
+    <div class="circle two"></div>
+    <div class="circle three"></div>
+</div>
+
+<div class="auth-wrapper">
+
+    <a href="{{ url_for('home') }}" class="auth-brand">
+        <span class="brand-anime">Anime</span><span class="brand-chat">Chat</span>
+    </a>
+
+    <div class="auth-card" style="text-align:center;">
+
+        <div class="mail-icon">
+            <i class="fas fa-envelope-open-text"></i>
+        </div>
+
+        <h1>{{ "Verification link resent" if resent else "Check your inbox" }}</h1>
+        <p class="auth-subtitle">
+            We sent a verification link to <strong style="color:white">{{ email }}</strong>.
+            Click it to activate your account.
+        </p>
+
+        {% if dev_link %}
+        <div class="dev-link-box">
+            <p><i class="fas fa-flask"></i> SMTP isn't configured on this server yet, so here's your link directly (this box only shows up in dev mode):</p>
+            <a href="{{ dev_link }}">{{ dev_link }}</a>
+        </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('auth.resend_verification') }}" class="resend-form">
+            <input type="hidden" name="email" value="{{ email }}">
+            <input type="text" value="{{ email }}" disabled>
+            <button type="submit">Resend</button>
+        </form>
+
+        <div class="auth-switch">
+            <a href="{{ url_for('auth.login') }}">Back to login</a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

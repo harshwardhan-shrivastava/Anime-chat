@@ -1,8 +1,30 @@
-from flask import Flask, render_template, request, jsonify
+import os
+
+from dotenv import load_dotenv
+load_dotenv()
+
+from flask import Flask, render_template, request, jsonify, g
 from anime_data import anime_database
 from database import create_tables, get_connection, get_anime_stats, add_review
 
+from auth import auth, load_logged_in_user
+from chat import chat_bp
+
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "dev-insecure-change-me")
+
+app.register_blueprint(auth)
+app.register_blueprint(chat_bp)
+
+
+@app.before_request
+def _attach_user():
+    load_logged_in_user()
+
+
+@app.context_processor
+def _inject_user():
+    return {"current_user": g.get("user")}
 
 anime_list = [
     {"title": "Demon Slayer", "image": "demon_slayer.jpg"},

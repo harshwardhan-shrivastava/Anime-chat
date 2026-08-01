@@ -1,0 +1,356 @@
+/* ===========================================
+   AUTH PAGES (login / signup / verify)
+   Matches the AnimeChat dark + blurred-orb theme.
+=========================================== */
+
+.auth-body{
+    font-family:"Montserrat", sans-serif;
+    background:#0d1117;
+    color:white;
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:40px 20px;
+}
+
+.auth-body .background{
+    position:fixed;
+    inset:0;
+    z-index:-2;
+    overflow:hidden;
+}
+
+.auth-body .circle{
+    position:absolute;
+    border-radius:50%;
+    filter:blur(90px);
+    opacity:.20;
+}
+
+.auth-body .one{ width:420px; height:420px; background:#00c16a; top:-120px; left:-100px; }
+.auth-body .two{ width:340px; height:340px; background:#3b82f6; right:-100px; top:120px; }
+.auth-body .three{ width:300px; height:300px; background:#9333ea; bottom:-120px; left:35%; }
+
+.auth-wrapper{
+    width:100%;
+    max-width:440px;
+}
+
+.auth-brand{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:28px;
+    text-decoration:none;
+    font-weight:800;
+    font-size:22px;
+    color:white;
+}
+
+.auth-brand .brand-anime{ color:#00c16a; }
+.auth-brand .brand-chat{ color:#3b82f6; }
+
+.auth-card{
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.09);
+    border-radius:26px;
+    padding:42px 38px;
+    backdrop-filter:blur(18px);
+    box-shadow:0 24px 70px rgba(0,0,0,.5);
+}
+
+.auth-card h1{
+    font-size:26px;
+    font-weight:800;
+    margin-bottom:6px;
+    text-align:center;
+}
+
+.auth-subtitle{
+    text-align:center;
+    color:rgba(255,255,255,.55);
+    font-size:14px;
+    margin-bottom:30px;
+}
+
+.auth-field{
+    margin-bottom:18px;
+}
+
+.auth-field label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:rgba(255,255,255,.7);
+    margin-bottom:8px;
+}
+
+.auth-field input{
+    width:100%;
+    padding:14px 16px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.05);
+    color:white;
+    font-family:inherit;
+    font-size:14.5px;
+    outline:none;
+    transition:.25s;
+}
+
+.auth-field input::placeholder{
+    color:rgba(255,255,255,.35);
+}
+
+.auth-field input:focus{
+    border-color:#3b82f6;
+    box-shadow:0 0 0 4px rgba(59,130,246,.18);
+    background:rgba(255,255,255,.07);
+}
+
+.auth-hint{
+    font-size:12px;
+    color:rgba(255,255,255,.4);
+    margin-top:6px;
+}
+
+.auth-submit{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:40px;
+    cursor:pointer;
+    color:white;
+    background:linear-gradient(135deg, #7B2EFF, #3F8CFF);
+    font-weight:700;
+    font-size:15px;
+    font-family:inherit;
+    margin-top:8px;
+    transition:.3s;
+}
+
+.auth-submit:hover{
+    transform:translateY(-2px);
+    box-shadow:0 0 25px rgba(123,46,255,.55);
+}
+
+.auth-switch{
+    text-align:center;
+    margin-top:26px;
+    font-size:14px;
+    color:rgba(255,255,255,.55);
+}
+
+.auth-switch a{
+    color:#00c16a;
+    text-decoration:none;
+    font-weight:700;
+}
+
+.auth-switch a:hover{
+    text-decoration:underline;
+}
+
+/* ---------- flash messages ---------- */
+
+.flash-list{
+    margin-bottom:20px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.flash{
+    padding:12px 16px;
+    border-radius:12px;
+    font-size:13.5px;
+    line-height:1.4;
+}
+
+.flash-error{
+    background:rgba(239,68,68,.12);
+    border:1px solid rgba(239,68,68,.35);
+    color:#fca5a5;
+}
+
+.flash-success{
+    background:rgba(0,193,106,.12);
+    border:1px solid rgba(0,193,106,.35);
+    color:#7ee9b8;
+}
+
+/* ---------- check-your-email panel ---------- */
+
+.mail-icon{
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    background:linear-gradient(135deg, rgba(0,193,106,.25), rgba(59,130,246,.25));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:30px;
+    margin:0 auto 20px;
+}
+
+.dev-link-box{
+    margin-top:22px;
+    padding:16px;
+    border-radius:14px;
+    background:rgba(245,158,11,.1);
+    border:1px dashed rgba(245,158,11,.5);
+    font-size:13px;
+    line-height:1.5;
+}
+
+.dev-link-box p{
+    color:#fcd34d;
+    margin-bottom:10px;
+}
+
+.dev-link-box a{
+    color:#3b82f6;
+    word-break:break-all;
+}
+
+.resend-form{
+    margin-top:24px;
+    display:flex;
+    gap:10px;
+}
+
+.resend-form input{
+    flex:1;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.05);
+    color:white;
+    font-family:inherit;
+}
+
+.resend-form button{
+    padding:12px 18px;
+    border:none;
+    border-radius:12px;
+    background:rgba(255,255,255,.08);
+    color:white;
+    font-weight:600;
+    cursor:pointer;
+    white-space:nowrap;
+}
+
+.resend-form button:hover{
+    background:rgba(255,255,255,.14);
+}
+
+/* ===========================================
+   NAV AUTH WIDGET
+   Used inside the existing site navbars once
+   a person is logged in / out.
+=========================================== */
+
+.nav-auth-widget{
+    display:flex;
+    align-items:center;
+    gap:14px;
+}
+
+.nav-user-pill{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:6px 16px 6px 6px;
+    border-radius:40px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.1);
+}
+
+.nav-user-avatar{
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+    font-weight:700;
+    color:white;
+}
+
+.nav-user-name{
+    font-weight:600;
+    font-size:14px;
+}
+
+.nav-logout-btn,
+.nav-login-btn{
+    text-decoration:none;
+    color:white;
+    font-weight:700;
+    font-size:14px;
+    padding:10px 22px;
+    border-radius:40px;
+    transition:.3s;
+}
+
+.nav-logout-btn{
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.12);
+}
+
+.nav-logout-btn:hover{
+    background:rgba(239,68,68,.18);
+    border-color:rgba(239,68,68,.4);
+}
+
+.nav-login-btn{
+    background:linear-gradient(135deg, #7B2EFF, #3F8CFF);
+}
+
+.nav-login-btn:hover{
+    transform:translateY(-2px);
+    box-shadow:0 0 25px rgba(123,46,255,.6);
+}
+
+/* ---------- chat login gate ---------- */
+
+.chat-login-gate{
+    padding:22px;
+    text-align:center;
+    border-top:1px solid rgba(255,255,255,.08);
+    background:rgba(255,255,255,.02);
+}
+
+.chat-login-gate p{
+    color:rgba(255,255,255,.65);
+    font-size:14.5px;
+}
+
+.chat-login-gate i{
+    margin-right:8px;
+    color:#f59e0b;
+}
+
+.chat-login-gate a{
+    color:#00c16a;
+    font-weight:700;
+    text-decoration:none;
+}
+
+.chat-login-gate a:hover{
+    text-decoration:underline;
+}
+
+@media (max-width:520px){
+    .auth-card{
+        padding:32px 24px;
+    }
+    .resend-form{
+        flex-direction:column;
+    }
+}
