@@ -116,7 +116,7 @@
 
 <section class="chat-wrapper">
 
-    <div class="chat-header">
+    <div class="chat-header" id="chatHeader">
 
         <div>
 
@@ -134,84 +134,159 @@
 
         </div>
 
-        <div class="online-users">
+        <div class="online-users" id="onlineToggle">
 
-            <i class="fas fa-users"></i>
+            <span class="pulse-dot"></span>
 
-            0 Members
+            <span id="onlineCount">12</span> online
 
         </div>
 
     </div>
 
-    <div class="chat-box"
-         id="chatBox">
+    <!-- ================= TWO COLUMN LAYOUT ================= -->
 
-        <div class="welcome-box">
+    <div class="chat-layout">
 
-            <div class="welcome-icon">
+        <!-- MAIN CHAT COLUMN -->
 
-                💬
+        <div class="chat-main">
+
+            <div class="chat-box"
+                 id="chatBox">
+
+                <div class="welcome-box">
+
+                    <div class="welcome-icon">
+
+                        💬
+
+                    </div>
+
+                    <h3>
+
+                        Welcome!
+
+                    </h3>
+
+                    <p>
+
+                        {% if anime_name == "Demon Slayer" %}
+
+                        The crows have not delivered
+                        any messages yet.
+
+                        Become the first member of
+                        the Demon Slayer Corps to
+                        begin today's discussion.
+
+                        {% else %}
+
+                        No messages yet.
+
+                        Start the first discussion!
+
+                        {% endif %}
+
+                    </p>
+
+                </div>
 
             </div>
 
-            <h3>
+            <!-- ================= TYPING INDICATOR ================= -->
 
-                Welcome!
+            <div class="typing-indicator" id="typingIndicator">
 
-            </h3>
+                <span>Someone is typing</span>
 
-            <p>
+                <div class="typing-dots">
 
-                {% if anime_name == "Demon Slayer" %}
+                    <span></span>
+                    <span></span>
+                    <span></span>
 
-                The crows have not delivered
-                any messages yet.
+                </div>
 
-                Become the first member of
-                the Demon Slayer Corps to
-                begin today's discussion.
+            </div>
 
-                {% else %}
+            <!-- ================= EMOJI PICKER PANEL ================= -->
 
-                No messages yet.
+            <div class="picker-panel" id="emojiPanel">
 
-                Start the first discussion!
+                <div class="picker-inner">
 
-                {% endif %}
+                    <div class="emoji-grid" id="emojiGrid"></div>
 
-            </p>
+                </div>
+
+            </div>
+
+            <!-- ================= GIF PICKER PANEL ================= -->
+
+            <div class="picker-panel" id="gifPanel">
+
+                <div class="picker-inner">
+
+                    <input type="text"
+                           class="gif-search"
+                           id="gifSearch"
+                           placeholder="Search gifs (e.g. hype, cry, laugh, shock)">
+
+                    <div class="gif-grid" id="gifGrid"></div>
+
+                </div>
+
+            </div>
+
+            <!-- ================= MESSAGE INPUT ================= -->
+
+            <div class="chat-input-area">
+
+                <button class="emoji-btn" id="emojiBtn">
+
+                    😊
+
+                </button>
+
+                <button class="gif-btn" id="gifBtn">
+
+                    GIF
+
+                </button>
+
+                <textarea
+                    id="messageInput"
+                    rows="1"
+                    placeholder="Share your thoughts with the Corps..."></textarea>
+
+                <button
+                    class="send-btn"
+                    id="sendBtn">
+
+                    <i class="fas fa-paper-plane"></i>
+
+                    Send
+
+                </button>
+
+            </div>
 
         </div>
 
-        </div>
+        <!-- ================= ONLINE MEMBERS SIDEBAR ================= -->
 
-    </div>
+        <aside class="chat-sidebar" id="chatSidebar">
 
-    <!-- ================= MESSAGE INPUT ================= -->
+            <div class="sidebar-title">
 
-    <div class="chat-input-area">
+                Online — <span id="sidebarOnlineCount">12</span>
 
-        <button class="emoji-btn">
+            </div>
 
-            😊
+            <div class="member-list" id="memberList"></div>
 
-        </button>
-
-        <input
-            type="text"
-            id="messageInput"
-            placeholder="Share your thoughts with the Corps...">
-
-        <button
-            class="send-btn"
-            id="sendBtn">
-
-            <i class="fas fa-paper-plane"></i>
-
-            Send
-
-        </button>
+        </aside>
 
     </div>
 
@@ -309,4 +384,3 @@
 </body>
 
 </html>
-
