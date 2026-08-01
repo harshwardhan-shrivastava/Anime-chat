@@ -1477,6 +1477,265 @@ section{
 
 }
 
+
+/* ==========================================================
+   SENT GIF ATTACHMENT (JS renders .gif-attachment)
+========================================================== */
+
+.gif-attachment{
+
+    margin-top:6px;
+
+    width:fit-content;
+
+    max-width:300px;
+
+    border-radius:14px;
+
+    overflow:hidden;
+
+    background:transparent;
+
+}
+
+.gif-attachment img{
+
+    display:block;
+
+    width:auto;
+
+    max-width:300px;
+
+    max-height:190px;
+
+    height:auto;
+
+    object-fit:contain;
+
+    border-radius:14px;
+
+    transition:.25s;
+
+}
+
+.gif-attachment img:hover{
+
+    transform:scale(1.03);
+
+}
+
+
+/* ==========================================================
+   MESSAGE GROUPS (JS renders .msg-group / .msg-line)
+========================================================== */
+
+.msg-group{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:2px;
+
+    margin-bottom:6px;
+
+}
+
+.msg-group-head{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+}
+
+.msg-group-head .avatar{
+
+    width:36px;
+
+    height:36px;
+
+    border-radius:50%;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:13px;
+
+    font-weight:700;
+
+    color:#fff;
+
+    flex-shrink:0;
+
+}
+
+.msg-group-name{
+
+    font-weight:700;
+
+    font-size:15px;
+
+}
+
+.msg-group-time{
+
+    color:var(--muted);
+
+    font-size:12px;
+
+    margin-left:4px;
+
+}
+
+.msg-lines{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:2px;
+
+    padding-left:46px;
+
+}
+
+.msg-line{
+
+    display:flex;
+
+    align-items:flex-start;
+
+    gap:8px;
+
+}
+
+.msg-line-time{
+
+    color:var(--muted);
+
+    font-size:11px;
+
+    min-width:44px;
+
+    padding-top:2px;
+
+    text-align:right;
+
+    opacity:.7;
+
+}
+
+.msg-line p{
+
+    color:#e6ecf4;
+
+    font-size:15px;
+
+    line-height:1.6;
+
+    word-break:break-word;
+
+}
+
+.vote-row{
+
+    display:flex;
+
+    gap:10px;
+
+    margin-top:4px;
+
+    padding-left:46px;
+
+}
+
+.vote-pill,
+.add-reaction-pill{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:6px;
+
+    padding:6px 12px;
+
+    border-radius:999px;
+
+    background:rgba(255,255,255,.06);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    color:var(--muted);
+
+    font-size:13px;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:.25s;
+
+}
+
+.vote-pill:hover,
+.add-reaction-pill:hover{
+
+    background:rgba(39,208,125,.12);
+
+    border-color:rgba(39,208,125,.30);
+
+    color:var(--green);
+
+}
+
+.vote-pill.upvoted{
+
+    background:rgba(39,208,125,.15);
+
+    border-color:rgba(39,208,125,.35);
+
+    color:var(--green);
+
+}
+
+.date-divider{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+    color:var(--muted);
+
+    font-size:12px;
+
+    font-weight:600;
+
+    margin:14px 0 6px;
+
+}
+
+.date-divider::before,
+.date-divider::after{
+
+    content:"";
+
+    flex:1;
+
+    height:1px;
+
+    background:rgba(255,255,255,.07);
+
+}
+
 /* ==========================================================
    TYPING INDICATOR
 ========================================================== */
@@ -1591,23 +1850,7 @@ section{
    COMPOSER SECTION
 ========================================================== */
 
-.composer-section{
-
-    position:sticky;
-
-    bottom:0;
-
-    margin-top:auto;
-
-    z-index:100;
-
-    padding:18px;
-
-    background:#18222f;
-
-    border-top:1px solid rgba(255,255,255,.06);
-
-}
+/* Composer now lives inside .chat-container (attached to the chat box) */
 
 
 /* ==========================================================
@@ -1620,20 +1863,15 @@ section{
 
     align-items:flex-end;
 
-    gap:18px;
+    gap:12px;
 
-    padding:18px;
+    padding:12px 16px;
 
-    background:rgba(20,28,38,.90);
+    background:rgba(18,25,35,.96);
 
     backdrop-filter:blur(22px);
 
-    border:1px solid rgba(255,255,255,.08);
-
-    border-radius:24px;
-
-    box-shadow:
-        0 20px 55px rgba(0,0,0,.40);
+    border-top:1px solid rgba(255,255,255,.08);
 
 }
 
@@ -1654,11 +1892,11 @@ section{
 
 .tool-btn{
 
-    width:52px;
+    width:44px;
 
-    height:52px;
+    height:44px;
 
-    border-radius:16px;
+    border-radius:14px;
 
     background:rgba(255,255,255,.05);
 
@@ -1715,9 +1953,9 @@ section{
 
     width:100%;
 
-    min-height:56px;
+    min-height:44px;
 
-    max-height:180px;
+    max-height:120px;
 
     resize:none;
 
@@ -1727,9 +1965,9 @@ section{
 
     background:rgba(255,255,255,.04);
 
-    border-radius:18px;
+    border-radius:14px;
 
-    padding:16px 20px;
+    padding:12px 16px;
 
     color:var(--white);
 
@@ -1769,11 +2007,11 @@ section{
 
     align-items:center;
 
-    gap:10px;
+    gap:8px;
 
-    padding:15px 26px;
+    padding:11px 20px;
 
-    border-radius:18px;
+    border-radius:14px;
 
     background:linear-gradient(
         135deg,
@@ -1903,7 +2141,8 @@ section{
 
 }
 
-.picker-panel.active{
+.picker-panel.active,
+.picker-panel.show{
 
     display:block;
 

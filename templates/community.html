@@ -386,7 +386,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
         <div class="chat-container">
 
-            <header class="chat-header">
+            <header class="chat-header" id="chatHeader">
 
                 <div>
 
@@ -470,6 +470,154 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
             </div>
 
+            <!-- ================= EMOJI PANEL ================= -->
+
+            <div
+                class="picker-panel"
+                id="emojiPanel">
+
+                <div class="picker-header">
+
+                    <h3>
+
+                        Emojis
+
+                    </h3>
+
+                </div>
+
+                <div
+                    id="emojiGrid"
+                    class="emoji-grid">
+
+                </div>
+
+            </div>
+
+            <!-- ================= GIF PANEL ================= -->
+
+            <div
+                class="picker-panel"
+                id="gifPanel">
+
+                <div class="picker-header">
+
+                    <h3>
+
+                        Search GIFs
+
+                    </h3>
+
+                </div>
+
+                <input
+
+                    id="gifSearch"
+
+                    class="gif-search"
+
+                    type="text"
+
+                    placeholder="Search anything... Naruto, Gojo, Absolute Cinema...">
+
+                <div
+
+                    id="gifGrid"
+
+                    class="gif-grid">
+
+                </div>
+
+            </div>
+
+            <!-- ================= CHAT INPUT ================= -->
+
+            {% if current_user %}
+
+            <div class="composer">
+
+                <div class="composer-tools">
+
+                    <button
+
+                        id="emojiBtn"
+
+                        class="tool-btn">
+
+                        😊
+
+                    </button>
+
+                    <button
+
+                        id="gifBtn"
+
+                        class="tool-btn gif-btn">
+
+                        GIF
+
+                    </button>
+
+                </div>
+
+                <div class="composer-input">
+
+                    <textarea
+
+                        id="messageInput"
+
+                        rows="1"
+
+                        placeholder="Share your thoughts with the {{ anime_name }} community...">
+
+                    </textarea>
+
+                </div>
+
+                <button
+
+                    id="sendBtn"
+
+                    class="send-btn">
+
+                    <i class="fas fa-paper-plane"></i>
+
+                    Send
+
+                </button>
+
+            </div>
+
+            {% else %}
+
+            <div class="login-notice">
+
+                <i class="fas fa-lock"></i>
+
+                <span>
+
+                    <a href="{{ url_for('auth.login', next=request.path) }}">
+
+                        Login
+
+                    </a>
+
+                    or
+
+                    <a href="{{ url_for('auth.signup') }}">
+
+                        create an account
+
+                    </a>
+
+                    to participate in the discussion.
+
+                </span>
+
+            </div>
+
+            {% endif %}
+
         </div>
 
     </main>
@@ -514,161 +662,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
 </section>
 
-<!-- ====================================================== -->
-<!-- CHAT COMPOSER -->
-<!-- ====================================================== -->
 
-<section class="composer-section">
-
-    <!-- ================= EMOJI PANEL ================= -->
-
-    <div
-        class="picker-panel"
-        id="emojiPanel">
-
-        <div class="picker-header">
-
-            <h3>
-
-                Emojis
-
-            </h3>
-
-        </div>
-
-        <div
-            id="emojiGrid"
-            class="emoji-grid">
-
-        </div>
-
-    </div>
-
-    <!-- ================= GIF PANEL ================= -->
-
-    <div
-        class="picker-panel"
-        id="gifPanel">
-
-        <div class="picker-header">
-
-            <h3>
-
-                Search GIFs
-
-            </h3>
-
-        </div>
-
-        <input
-
-            id="gifSearch"
-
-            class="gif-search"
-
-            type="text"
-
-            placeholder="Search anything... Naruto, Gojo, Absolute Cinema...">
-
-        <div
-
-            id="gifGrid"
-
-            class="gif-grid">
-
-        </div>
-
-    </div>
-
-    <!-- ================= CHAT INPUT ================= -->
-
-    {% if current_user %}
-
-    <div class="composer">
-
-        <div class="composer-tools">
-
-            <button
-
-                id="emojiBtn"
-
-                class="tool-btn">
-
-                😊
-
-            </button>
-
-            <button
-
-                id="gifBtn"
-
-                class="tool-btn gif-btn">
-
-                GIF
-
-            </button>
-
-        </div>
-
-        <div class="composer-input">
-
-            <textarea
-
-                id="messageInput"
-
-                rows="1"
-
-                placeholder="Share your thoughts with the {{ anime_name }} community...">
-
-            </textarea>
-
-        </div>
-
-        <button
-
-            id="sendBtn"
-
-            class="send-btn">
-
-            <i class="fas fa-paper-plane"></i>
-
-            Send
-
-        </button>
-
-    </div>
-
-    {% else %}
-
-    <div class="login-notice">
-
-        <i class="fas fa-lock"></i>
-
-        <span>
-
-            <a href="{{ url_for('auth.login', next=request.path) }}">
-
-                Login
-
-            </a>
-
-            or
-
-            <a href="{{ url_for('auth.signup') }}">
-
-                create an account
-
-            </a>
-
-            to participate in the discussion.
-
-        </span>
-
-    </div>
-
-    {% endif %}
-
-</section>
 
 <!-- ====================================================== -->
 <!-- COMMUNITY INFO -->
