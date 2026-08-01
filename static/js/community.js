@@ -147,25 +147,34 @@ function renderGifResults(gifs) {
     });
 }
 
-async function searchTenor(query) {
-    gifGrid.innerHTML = `<div class="gif-empty-state">Searching Tenor...</div>`;
+async function searchGiphy(query) {
+
+    gifGrid.innerHTML = `<div class="gif-empty-state">Searching GIFs...</div>`;
 
     try {
+
         const url = query
             ? `/api/gif-search?q=${encodeURIComponent(query)}`
             : `/api/gif-search`;
+
         const res = await fetch(url);
         const data = await res.json();
 
         if (!data.success) {
-            gifGrid.innerHTML = `<div class="gif-empty-state">${escapeHtml(data.error || "GIF search unavailable.")}</div>`;
+            gifGrid.innerHTML =
+                `<div class="gif-empty-state">${escapeHtml(data.error)}</div>`;
             return;
         }
 
         renderGifResults(data.results);
+
     } catch (err) {
-        gifGrid.innerHTML = `<div class="gif-empty-state">Couldn't reach Tenor. Try again.</div>`;
+
+        gifGrid.innerHTML =
+            `<div class="gif-empty-state">Couldn't reach GIPHY.</div>`;
+
     }
+
 }
 
 if (gifSearch) {

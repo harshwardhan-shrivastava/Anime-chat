@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, g
 
 import database
-from services import tenor
+from services import giphy
 
 chat_bp = Blueprint("chat_bp", __name__)
 
@@ -75,24 +75,36 @@ def presence(anime_slug):
 @chat_bp.route("/api/gif-search", methods=["GET"])
 def gif_search():
     query = (request.args.get("q") or "").strip()
-    pos = request.args.get("pos") or None
 
-    if not tenor.is_configured():
+    try:
+        offset = int(request.args.get("offset", 0))
+    except ValueError:
+        offset = 0
+
+    if not giphy.is_configured():
         return jsonify({
             "success": False,
-            "error": "GIF search isn't configured yet -- set TENOR_API_KEY on the server.",
+            "error": "GIPHY_API_KEY is not configured.",
         }), 503
 
     try:
         if query:
-            raw = tenor.search(query, pos=pos)
+            raw = giphy.search(query, offset=offset)
         else:
-            raw = tenor.trending(pos=pos)
+            raw = giphy.trending(offset=offset)
     except Exception as exc:
-        return jsonify({"success": False, "error": f"Tenor request failed: {exc}"}), 502
+        return jsonify({
+            "success": False,
+            "error": f"GIPHY request failed: {exc}"
+        }), 502
 
     if "error" in raw:
-        return jsonify({"success": False, "error": raw["error"]}), 502
+        return jsonify({
+            "success": False,
+            "error": raw["error"]
+        }), 502
 
-    simplified = tenor.simplify(raw)
-    return jsonify({"success": True, **simplified})
+    return jsonify({
+        "success": True,
+        **giphy.simplify(raw)
+    })
