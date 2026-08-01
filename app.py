@@ -216,6 +216,14 @@ def find_mood():
 
 if __name__ == "__main__":
     create_tables()
-    app.run(debug=True)
+    # Bind to 0.0.0.0 and honor the PORT env var so the managed preview can
+    # reach the dev server. The reloader subprocess is disabled because the
+    # platform manages the process lifecycle.
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", "5000")),
+        debug=True,
+        use_reloader=False,
+    )
 
 
