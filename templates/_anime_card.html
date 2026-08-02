@@ -20,7 +20,15 @@
 
         <div class="anime-badge">
 
-            {{ badge_label | default("POPULAR") }}
+            {% if anime.badge_label %}
+                {{ anime.badge_label }}
+            {% elif anime.next_episode_at %}
+                AIRING NOW
+            {% elif anime.start_year %}
+                EXP {{ anime.start_year }}
+            {% else %}
+                {{ badge_label | default("POPULAR") }}
+            {% endif %}
 
         </div>
 

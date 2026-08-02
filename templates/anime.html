@@ -164,6 +164,16 @@
 
                 </div>
 
+                {% if anime.next_episode_at %}
+                <div class="info-row next-ep-row">
+
+                    <span>Next Episode</span>
+
+                    <strong>{{ next_episode_label }}</strong>
+
+                </div>
+                {% endif %}
+
                 <div class="info-row">
 
                     <span>Studio</span>

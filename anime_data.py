@@ -444,7 +444,10 @@ anime_database = {
         "image": "seven_deadly_sins.jpg"
       }
     ],
-    "anilist_id": 21612
+    "anilist_id": 21612,
+    "start_year": 2016,
+    "start_month": 4,
+    "start_day": 7
   },
   "one-piece": {
     "title": "One Piece",
@@ -2557,7 +2560,12 @@ anime_database = {
         "image": "samurai_champloo.jpg"
       }
     ],
-    "anilist_id": 21
+    "anilist_id": 21,
+    "next_episode": 1172,
+    "next_episode_at": 1785680160,
+    "start_year": 1999,
+    "start_month": 10,
+    "start_day": 20
   },
   "naruto": {
     "title": "Naruto",
@@ -47575,7 +47583,12 @@ anime_database = {
         "title": "Love Live! μ's Final Love Live! Opening Animation",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/n105906-WELwe50YILK4.jpg"
       }
-    ]
+    ],
+    "next_episode": 18,
+    "next_episode_at": 1786199400,
+    "start_year": 2026,
+    "start_month": 4,
+    "start_day": 4
   },
   "how-heavy-are-the-dumbbells-you-lift": {
     "title": "How Heavy Are the Dumbbells You Lift?",
@@ -54224,7 +54237,12 @@ anime_database = {
         "title": "Huhuan Shaonü Special: Xiang Zuo de Shi Daodi Shi Shenme",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx210376-1z3KgIvnh7ky.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1786028160,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 10
   },
   "blood-c": {
     "title": "Blood-C",
@@ -63008,7 +63026,12 @@ anime_database = {
         "title": "Cang Lan Jue 2",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx191976-NMmRUFMSkMze.jpg"
       }
-    ]
+    ],
+    "next_episode": 1210,
+    "next_episode_at": 1787389200,
+    "start_year": 1996,
+    "start_month": 1,
+    "start_day": 8
   },
   "hanasaku-iroha-blossoms-for-tomorrow": {
     "title": "Hanasaku Iroha ~Blossoms for Tomorrow~",
@@ -76611,7 +76634,12 @@ anime_database = {
         "title": "Kyouryuu Pikora",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b206886-O8gN2tt1sJBj.jpg"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786030200,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 3
   },
   "infinite-dendrogram": {
     "title": "Infinite Dendrogram",
@@ -79783,7 +79811,12 @@ anime_database = {
         "title": "Queen Emeraldas",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/nx1553-KvFiw3uwx136.jpg"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786194000,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 4
   },
   "the-ryuo-s-work-is-never-done": {
     "title": "The Ryuo's Work is Never Done!",
@@ -86493,7 +86526,12 @@ anime_database = {
         "title": "Cheer Boys!!",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21713-iIdNBkcihMMx.png"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786029960,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 3
   },
   "tune-in-to-the-midnight-heart": {
     "title": "Tune In to the Midnight Heart",
@@ -87774,7 +87812,12 @@ anime_database = {
         "title": "First Squad: The Moment of Truth",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/5178.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785846600,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 7
   },
   "there-was-a-cute-girl-in-the-hero-s-party-so-i-tried-confessing-to-her": {
     "title": "There was a Cute Girl in the Hero’s Party, so I Tried Confessing to Her",
@@ -87957,7 +88000,8 @@ anime_database = {
         "title": "The Dungeon of Black Company",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx120608-gjCnIszBGe9k.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "sparks-of-tomorrow": {
     "title": "Sparks of Tomorrow",
@@ -88018,7 +88062,12 @@ anime_database = {
         "title": "Xingchen Bian: An Xing Jie Pian",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx153494-kLf2wpHv6Jf3.png"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785679200,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 5
   },
   "princess-tutu": {
     "title": "Princess Tutu",
@@ -88506,7 +88555,8 @@ anime_database = {
         "title": "A-Channel",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx9776-1JMnQWJhpKVr.png"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "castle-town-dandelion": {
     "title": "Castle Town Dandelion",
@@ -95643,7 +95693,12 @@ anime_database = {
         "title": "Komekami! Girls",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx209940-AmmMcfBXmB3c.jpg"
       }
-    ]
+    ],
+    "next_episode": 18,
+    "next_episode_at": 1785769200,
+    "start_year": 2026,
+    "start_month": 4,
+    "start_day": 7
   },
   "natsume-s-book-of-friends-season-6": {
     "title": "Natsume's Book of Friends Season 6",
@@ -96253,7 +96308,12 @@ anime_database = {
         "title": "Gag Mensou",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b185671-VCbMmTC196UG.jpg"
       }
-    ]
+    ],
+    "next_episode": 7,
+    "next_episode_at": 1786028400,
+    "start_year": 2026,
+    "start_month": 6,
+    "start_day": 26
   },
   "train-to-the-end-of-the-world": {
     "title": "Train to the End of the World",
@@ -97290,7 +97350,9 @@ anime_database = {
         "title": "The Detective Is Already Dead",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx128712-AlVwHbrugvj6.jpg"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 10
   },
   "the-great-passage": {
     "title": "The Great Passage",
@@ -105037,7 +105099,9 @@ anime_database = {
         "title": "Inari Kon Kon",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx20488-3kTJBoU55DeQ.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "super-danganronpa-2-5-komaeda-nagito-to-sekai-no-hakaisha": {
     "title": "Super Danganronpa 2.5 Komaeda Nagito to Sekai no Hakaisha",
@@ -105708,7 +105772,12 @@ anime_database = {
         "title": "Bamboo Blade",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx2986-WroNLF4WEnRo.png"
       }
-    ]
+    ],
+    "next_episode": 7,
+    "next_episode_at": 1786199400,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 4
   },
   "a-i-c-o-incarnation": {
     "title": "A.I.C.O. -Incarnation-",
@@ -106745,7 +106814,12 @@ anime_database = {
         "title": "The Daichis - Earth's Defense Family",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx1962-yb0mwjWCC4WU.jpg"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786210680,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 5
   },
   "a-good-librarian-like-a-good-shepherd": {
     "title": "A Good Librarian Like a Good Shepherd",
@@ -108514,7 +108588,12 @@ anime_database = {
         "title": "Osei Toujou",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b193614-On4LF7o2flWq.png"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785758400,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 6
   },
   "brothers-conflict": {
     "title": "Brothers Conflict",
@@ -108697,7 +108776,12 @@ anime_database = {
         "title": "Toaru Kagaku no Railgun 4th Season",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b186743-9PkeVPQRs2b4.jpg"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786109400,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 3
   },
   "bastard-heavy-metal-dark-fantasy": {
     "title": "BASTARD!! -Heavy Metal, Dark Fantasy-",
@@ -109673,7 +109757,12 @@ anime_database = {
         "title": "The Cat and the Dragon",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx186863-AO4efoB8HuzA.png"
       }
-    ]
+    ],
+    "next_episode": 7,
+    "next_episode_at": 1785942000,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 2
   },
   "the-slayers": {
     "title": "The Slayers",
@@ -109795,7 +109884,12 @@ anime_database = {
         "title": "A Nobody's Way Up to an Exploration Hero",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx172416-RvQq9bWUxUWt.jpg"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786033680,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 3
   },
   "fate-grand-order-divine-realm-of-the-round-table-camelot-paladin-agateram": {
     "title": "Fate/Grand Order Divine Realm of the Round Table: Camelot - Paladin; Agateram",
@@ -110527,7 +110621,12 @@ anime_database = {
         "title": "The Snow Queen",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b754-4kvd4k8HPQ6F.jpg"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1795100400,
+    "start_year": 2026,
+    "start_month": 11,
+    "start_day": 20
   },
   "yasuke": {
     "title": "Yasuke",
@@ -111564,7 +111663,12 @@ anime_database = {
         "title": "Natsu no Owari",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx212519-R7iPkBObAwej.png"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785767400,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 6
   },
   "planetarian": {
     "title": "Planetarian",
@@ -113577,7 +113681,9 @@ anime_database = {
         "title": "Kizumonogatari Part 3: Reiketsu",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21400-38ykNo3j4xXo.png"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "cross-game": {
     "title": "Cross Game",
@@ -117481,7 +117587,8 @@ anime_database = {
         "title": "Talentless Nana",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx117343-NgCLZTaxallv.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "dance-with-devils": {
     "title": "Dance with Devils",
@@ -118030,7 +118137,12 @@ anime_database = {
         "title": "The Legend of Black Heaven",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx1025-f9yZiEWi0LjY.png"
       }
-    ]
+    ],
+    "next_episode": 4,
+    "next_episode_at": 1785681960,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 12
   },
   "how-i-attended-an-all-guy-s-mixer": {
     "title": "How I Attended an All-Guy's Mixer",
@@ -120165,7 +120277,9 @@ anime_database = {
         "title": "Hypnosis Mic -Division Rap Battle- Movie",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx187305-Mzyh5PICkk9X.jpg"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 4
   },
   "trickster": {
     "title": "Trickster",
@@ -121446,7 +121560,12 @@ anime_database = {
         "title": "KAIJU DECODE: Aidara no Yubiwa",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx198663-eIYld0XWimKB.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785946500,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 9
   },
   "the-invisible-man-and-his-soon-to-be-wife": {
     "title": "The Invisible Man and His Soon-to-Be Wife",
@@ -121995,7 +122114,12 @@ anime_database = {
         "title": "TRILLION GAME",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx169315-NtbOlSyDtSCZ.png"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1792076400,
+    "start_year": 2026,
+    "start_month": 10,
+    "start_day": 16
   },
   "rumbling-hearts": {
     "title": "Rumbling Hearts",
@@ -122300,7 +122424,12 @@ anime_database = {
         "title": "Black Jack (TV)",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx2213-wemXPc8z0r6a.jpg"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786109400,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 3
   },
   "reincarnated-as-a-dragon-hatchling": {
     "title": "Reincarnated as a Dragon Hatchling",
@@ -123337,7 +123466,12 @@ anime_database = {
         "title": "MAJOR SECOND Season 2",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx112302-VZZnJ1NY0waA.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785684600,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 6
   },
   "alice-in-borderland": {
     "title": "Alice in Borderland",
@@ -123764,7 +123898,8 @@ anime_database = {
         "title": "Shingeki no Kyojin: Chimi Kyara Gekijou - Rivai-han",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx108942-UdPtw4CZUQmC.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "noein-to-your-other-self": {
     "title": "Noein: To Your Other Self",
@@ -126753,7 +126888,12 @@ anime_database = {
         "title": "Please tell me! Galko-chan",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21472-D65q8PNXVgiw.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785843000,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 7
   },
   "and-yet-the-town-moves": {
     "title": "And Yet The Town Moves",
@@ -134927,7 +135067,12 @@ anime_database = {
         "title": "BUILD-DIVIDE -#​FFFFFF- CODE WHITE",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx132526-okGRyho25ZFE.png"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1790262000,
+    "start_year": 2026,
+    "start_month": 9,
+    "start_day": 25
   },
   "mobile-suit-gundam-hathaway": {
     "title": "Mobile Suit Gundam Hathaway",
@@ -136574,7 +136719,12 @@ anime_database = {
         "title": "Quanzhi Gaoshou: Rongyao Xiao Juchang",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx185726-CRJpwjpBpYss.jpg"
       }
-    ]
+    ],
+    "next_episode": 1347,
+    "next_episode_at": 1786174200,
+    "start_year": 1992,
+    "start_month": 4,
+    "start_day": 13
   },
   "etotama": {
     "title": "Etotama",
@@ -136696,7 +136846,12 @@ anime_database = {
         "title": "G2.5",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b204472-HYgrIIKUDLSm.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785758220,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 6
   },
   "natsuyuki-rendezvous": {
     "title": "Natsuyuki Rendezvous",
@@ -137428,7 +137583,12 @@ anime_database = {
         "title": "Why the hell are you here, Teacher!?",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx104325-rqQLoYjr9lEC.jpg"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1796914800,
+    "start_year": 2026,
+    "start_month": 12,
+    "start_day": 11
   },
   "if-my-favorite-pop-idol-made-it-to-the-budokan-i-would-die": {
     "title": "If My Favorite Pop Idol Made It to the Budokan, I Would Die",
@@ -137672,7 +137832,8 @@ anime_database = {
         "title": "TenPuru",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx160447-we52M5P85oaJ.png"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "garo-vanishing-line": {
     "title": "GARO -VANISHING LINE-",
@@ -137794,7 +137955,12 @@ anime_database = {
         "title": "KAGEWANI",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b21225-5tYcq03RU6RL.jpg"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1785762000,
+    "start_year": 2026,
+    "start_month": 6,
+    "start_day": 29
   },
   "build-divide-000000-code-black": {
     "title": "BUILD-DIVIDE -#000000- CODE BLACK",
@@ -137977,7 +138143,12 @@ anime_database = {
         "title": "NAKAIMO - My Little Sister Is Among Them!",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx13367-mjPgNBIcatlt.png"
       }
-    ]
+    ],
+    "next_episode": 7,
+    "next_episode_at": 1786190400,
+    "start_year": 2026,
+    "start_month": 6,
+    "start_day": 27
   },
   "bakuon": {
     "title": "Bakuon!!",
@@ -141515,7 +141686,9 @@ anime_database = {
         "title": "Jiu Cang Miao Wo Season 2.5",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b204624-sXlPYQKkXYSl.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "kusunoki-s-garden-of-gods": {
     "title": "Kusunoki's Garden of Gods",
@@ -141942,7 +142115,12 @@ anime_database = {
         "title": "The Daily Life of a Part-time Torturer",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx197731-6E0qjPFaNjC6.jpg"
       }
-    ]
+    ],
+    "next_episode": 7,
+    "next_episode_at": 1785936600,
+    "start_year": 2026,
+    "start_month": 6,
+    "start_day": 24
   },
   "mobile-fighter-g-gundam": {
     "title": "Mobile Fighter G Gundam",
@@ -142064,7 +142242,12 @@ anime_database = {
         "title": "Natsume Yuujinchou × Kumamoto-ken: Hitoyoshi Kuma de no Yasashii Jikan",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b188619-zBWxqUo3oWXo.png"
       }
-    ]
+    ],
+    "next_episode": 19,
+    "next_episode_at": 1786200360,
+    "start_year": 2026,
+    "start_month": 4,
+    "start_day": 4
   },
   "visual-prison": {
     "title": "VISUAL PRISON",
@@ -142552,7 +142735,12 @@ anime_database = {
         "title": "Muteki-kyuu*Believer",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx122979-yU17flSSRsa2.png"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1786208400,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 12
   },
   "the-guy-she-was-interested-in-wasn-t-a-guy-at-all": {
     "title": "The Guy She Was Interested In Wasn't a Guy At All",
@@ -142613,7 +142801,9 @@ anime_database = {
         "title": "The Master of Killing Time OVA",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx20600-d7QD2EDRe20U.png"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "sword-art-offline": {
     "title": "Sword Art OFFline",
@@ -144382,7 +144572,12 @@ anime_database = {
         "title": "Kyoro-chan",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/4375.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785763800,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 6
   },
   "obey-me": {
     "title": "Obey Me!",
@@ -144809,7 +145004,12 @@ anime_database = {
         "title": "Science (feat. KASANE TETO)",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx204481-vGJOTgSaL27P.png"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785675600,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 5
   },
   "the-law-of-ueki": {
     "title": "The Law of Ueki",
@@ -149384,7 +149584,12 @@ anime_database = {
         "title": "Maoyu: Archenemy & Hero",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx14833-6M3yEmu4SJkH.png"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1785848400,
+    "start_year": 2026,
+    "start_month": 6,
+    "start_day": 30
   },
   "anima-yell": {
     "title": "Anima Yell!",
@@ -151153,7 +151358,12 @@ anime_database = {
         "title": "Gunjo Sanka (2022)",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx155171-yF5BrmDN7kLX.png"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786203000,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 5
   },
   "persona-trinity-soul": {
     "title": "Persona -trinity soul-",
@@ -153654,7 +153864,8 @@ anime_database = {
         "title": "Shinya Ramen no Yuuwaku: SUNTORY Karada wo Omou All-Free CM",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx199371-gxvEDjfgJQQS.png"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "deep-insanity-the-lost-child": {
     "title": "Deep Insanity THE LOST CHILD",
@@ -154996,7 +155207,12 @@ anime_database = {
         "title": "My Status as an Assassin Obviously Exceeds the Hero’s",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx186794-Ns8xWNdMdOxq.jpg"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786120200,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 4
   },
   "skate-leading-stars": {
     "title": "Skate-Leading Stars",
@@ -157680,7 +157896,8 @@ anime_database = {
         "title": "Free! -Timeless Medley- The Promise",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/nx98496-5t9VFhYHyhzA.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "dirty-pair": {
     "title": "Dirty Pair",
@@ -157985,7 +158202,12 @@ anime_database = {
         "title": "The Everyday Tales of a Cat God",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/9934.jpg"
       }
-    ]
+    ],
+    "next_episode": 377,
+    "next_episode_at": 1785661200,
+    "start_year": 2019,
+    "start_month": 5,
+    "start_day": 5
   },
   "dragon-ball-mystical-adventure": {
     "title": "Dragon Ball: Mystical Adventure",
@@ -159693,7 +159915,12 @@ anime_database = {
         "title": "Lupin the Third Part 3",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx1426-DOXCZNxTn7f0.jpg"
       }
-    ]
+    ],
+    "next_episode": 42,
+    "next_episode_at": 1786233600,
+    "start_year": 2025,
+    "start_month": 10,
+    "start_day": 5
   },
   "nobunaga-concerto": {
     "title": "Nobunaga Concerto",
@@ -168111,7 +168338,9 @@ anime_database = {
         "title": "Uri Veranda-eseo Mannayo",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b184292-xg3FSU57Sut7.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "housing-complex-c": {
     "title": "Housing Complex C",
@@ -168782,7 +169011,12 @@ anime_database = {
         "title": "Vampire Knight",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx3457-owSEHJYvflx5.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785855600,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 8
   },
   "captain-harlock-space-pirate": {
     "title": "Captain Harlock Space Pirate",
@@ -170612,7 +170846,8 @@ anime_database = {
         "title": "Anne of Green Gables",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx283-HlHQFRlU8IfB.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "dragon-ball-plan-to-eradicate-the-super-saiyans": {
     "title": "Dragon Ball: Plan to Eradicate the Super Saiyans",
@@ -174821,7 +175056,8 @@ anime_database = {
         "title": "When Will Ayumu Make His Move?",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx128223-TOQovu2MXr8k.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "double-decker-doug-kirill": {
     "title": "DOUBLE DECKER! DOUG & KIRILL",
@@ -176712,7 +176948,12 @@ anime_database = {
         "title": "GUILTY GEAR STRIVE: DUAL RULERS",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx178046-4EeU8cC3WJOs.jpg"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1786179660,
+    "start_year": 2026,
+    "start_month": 8,
+    "start_day": 8
   },
   "turkey-time-to-strike": {
     "title": "Turkey! Time to Strike",
@@ -177627,7 +177868,12 @@ anime_database = {
         "title": "POP POP CITY",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b185889-nAm6STtvG5aM.jpg"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786019400,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 2
   },
   "master-keaton": {
     "title": "MASTER Keaton",
@@ -178237,7 +178483,12 @@ anime_database = {
         "title": "Kingdom Season 6",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx190840-CvKAz6aWHB21.png"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1785682800,
+    "start_year": 2026,
+    "start_month": 8,
+    "start_day": 3
   },
   "saint-seiya-the-hades-chapter-inferno": {
     "title": "Saint Seiya: The Hades Chapter - Inferno",
@@ -180311,7 +180562,12 @@ anime_database = {
         "title": "Mudai",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx102063-dNYZWEgrml6v.jpg"
       }
-    ]
+    ],
+    "next_episode": 366,
+    "next_episode_at": 1785796800,
+    "start_year": 2022,
+    "start_month": 4,
+    "start_day": 4
   },
   "frame-arms-girl": {
     "title": "Frame Arms Girl",
@@ -181897,7 +182153,9 @@ anime_database = {
         "title": "4th Project (Provisional Title)",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx213878-P0cHS1je1dkH.jpg"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 4
   },
   "my-stepmother-and-stepsisters-aren-t-wicked": {
     "title": "My Stepmother and Stepsisters Aren’t Wicked",
@@ -181958,7 +182216,12 @@ anime_database = {
         "title": "Smart-san",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx3335-jXiEf0WKtHxK.png"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785940200,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 8
   },
   "major-2nd": {
     "title": "MAJOR 2nd",
@@ -182812,7 +183075,12 @@ anime_database = {
         "title": "hot wind",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx190619-HCX6oPI0AwZx.png"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786206600,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 5
   },
   "blade-runner-black-lotus": {
     "title": "Blade Runner: Black Lotus",
@@ -185984,7 +186252,10 @@ anime_database = {
         "title": "Code Geass",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b126169-H7bkp7C91o9X.jpg"
       }
-    ]
+    ],
+    "start_year": 2014,
+    "start_month": 12,
+    "start_day": 27
   },
   "yuru-camp-season-4": {
     "title": "Yuru Camp△ SEASON 4",
@@ -186045,7 +186316,8 @@ anime_database = {
         "title": "There's No Freaking Way I'll Be Your Lover! Unless…",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx184591-jRXZ29bN61Zc.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "les-mis-rables-shoujo-cosette": {
     "title": "Les Misérables: Shoujo Cosette",
@@ -188058,7 +188330,12 @@ anime_database = {
         "title": "Major S6",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx7655-HRR4NF39Vo3W.png"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785861300,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 8
   },
   "augmented-reality-girls-trinary": {
     "title": "Augmented Reality Girls Trinary",
@@ -189583,7 +189860,10 @@ anime_database = {
         "title": "Himouto! Umaru-chan",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx20987-9Tq7kZTeJPMo.jpg"
       }
-    ]
+    ],
+    "start_year": 2016,
+    "start_month": 4,
+    "start_day": 7
   },
   "kindaichi-shounen-no-jikenbo-tv": {
     "title": "Kindaichi Shounen no Jikenbo (TV)",
@@ -189949,7 +190229,8 @@ anime_database = {
         "title": "Guangying Tian Yan Zhan Jia",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx195890-cWBQMfYjboKh.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "busou-shinki-armored-war-goddess": {
     "title": "Busou Shinki: Armored War Goddess",
@@ -192511,7 +192792,12 @@ anime_database = {
         "title": "Regalia: The Three Sacred Stars",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21707-2j3DygPJrJs4.jpg"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786113000,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 3
   },
   "katte-ni-kaizou": {
     "title": "Katte ni Kaizou",
@@ -194646,7 +194932,12 @@ anime_database = {
         "title": "Wo de Tian Jie Nüyou",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx100296-5nXlg3HVC7PS.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785659400,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 5
   },
   "soul-land": {
     "title": "Soul Land",
@@ -198672,7 +198963,12 @@ anime_database = {
         "title": "selector spread WIXOSS",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx20714-U3IV9ccn7tVO.jpg"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786201200,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 5
   },
   "please-save-my-earth": {
     "title": "Please Save My Earth",
@@ -199526,7 +199822,12 @@ anime_database = {
         "title": "WANDER BURABURA BAKKAMU",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b184758-HdJakPNF40It.jpg"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786114800,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 4
   },
   "kiyo-in-kyoto-from-the-maiko-house": {
     "title": "Kiyo in Kyoto: From the Maiko House",
@@ -202088,7 +202389,9 @@ anime_database = {
         "title": "Araiguma Calcal-dan",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx186522-DtPbWQQyirEf.png"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "gekidol": {
     "title": "Gekidol",
@@ -203613,7 +203916,9 @@ anime_database = {
         "title": "A Couple of Cuckoos",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx132052-3gDTi19HyW6E.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "neo-ranga": {
     "title": "Neo Ranga",
@@ -205016,7 +205321,12 @@ anime_database = {
         "title": "Gyoukou Chronicle",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx184651-ModmT0NfP2wO.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1786026600,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 9
   },
   "those-who-hunt-elves": {
     "title": "Those Who Hunt Elves",
@@ -205504,7 +205814,12 @@ anime_database = {
         "title": "Phoenix",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1371.jpg"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1791471600,
+    "start_year": 2026,
+    "start_month": 10,
+    "start_day": 9
   },
   "yamibo-darkness-the-hat-and-travelers-of-the-books": {
     "title": "YAMIBO: Darkness, the Hat, and Travelers of the Books",
@@ -205931,7 +206246,8 @@ anime_database = {
         "title": "Heavy Object",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx20881-UqK6rR9vzRrw.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "pico-boku-no-chiisana-natsu-monogatari": {
     "title": "pico: Boku no Chiisana Natsu Monogatari",
@@ -206968,7 +207284,9 @@ anime_database = {
         "title": "A Little Princess Sara",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx2547-q6wOsnE2Eu5E.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "supernatural-the-anime-series": {
     "title": "Supernatural: The Anime Series",
@@ -208066,7 +208384,8 @@ anime_database = {
         "title": "Kuroko no Basket: Oshaberi Shiyou ka",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/nx98525-s8UIbkp4wx1R.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "tsukiuta-the-animation": {
     "title": "TSUKIUTA. The Animation",
@@ -209042,7 +209361,8 @@ anime_database = {
         "title": "Holoearth Anime PV: \"Now, Discover Your Other World\"",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b191405-tznD61HQFgLp.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "sorcerer-hunters": {
     "title": "Sorcerer Hunters",
@@ -209591,7 +209911,10 @@ anime_database = {
         "title": "Gunbuster",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx949-LDCFxDufSwTQ.png"
       }
-    ]
+    ],
+    "start_year": 2025,
+    "start_month": 2,
+    "start_day": 12
   },
   "fate-grand-order-memorial-movie-2023": {
     "title": "Fate/Grand Order - Memorial Movie 2023",
@@ -209713,7 +210036,12 @@ anime_database = {
         "title": "THE IDOLM@STER Million Live!",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx120755-GNWdZXkBtNlw.jpg"
       }
-    ]
+    ],
+    "next_episode": 152,
+    "next_episode_at": 1785722400,
+    "start_year": 2023,
+    "start_month": 9,
+    "start_day": 25
   },
   "dou-po-cangqiong-nian-fan": {
     "title": "Dou Po Cangqiong: Nian Fan",
@@ -210079,7 +210407,10 @@ anime_database = {
         "title": "Towanoquon: Dancing Orchid in Chaos",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/10713.jpg"
       }
-    ]
+    ],
+    "start_year": 2023,
+    "start_month": 10,
+    "start_day": 3
   },
   "new-genesis": {
     "title": "New Genesis",
@@ -211970,7 +212301,10 @@ anime_database = {
         "title": "Once Upon a Time... Life",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx3624-UA6xrVgqsoPo.png"
       }
-    ]
+    ],
+    "start_year": 2021,
+    "start_month": 5,
+    "start_day": 21
   },
   "shinkiro": {
     "title": "SHINKIRO",
@@ -222767,7 +223101,10 @@ anime_database = {
         "title": "Fuuka",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21887-CAq64M7WMgY5.jpg"
       }
-    ]
+    ],
+    "start_year": 2023,
+    "start_month": 5,
+    "start_day": 3
   },
   "how-dare-you": {
     "title": "How Dare You!?",
@@ -231673,7 +232010,10 @@ anime_database = {
         "title": "Umiyuri Kaiteitan",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx184142-JaBZ3AoPeEzR.png"
       }
-    ]
+    ],
+    "start_year": 2020,
+    "start_month": 1,
+    "start_day": 7
   },
   "huyao-xiao-hongniang-wangquan": {
     "title": "Huyao Xiao Hongniang: Wangquan",
@@ -238078,7 +238418,10 @@ anime_database = {
         "title": "Busou Shinki: Armored War Goddess",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx14237-pPc6o8bvfOFC.png"
       }
-    ]
+    ],
+    "start_year": 2022,
+    "start_month": 1,
+    "start_day": 7
   },
   "honkai-impact-3rd-pre-revelation": {
     "title": "Honkai Impact 3rd - Pre-Revelation",
@@ -242531,7 +242874,10 @@ anime_database = {
         "title": "Kino no Tabi: Nanika wo Suru Tame ni -life goes on.-",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx1379-poWbykTYlXzi.jpg"
       }
-    ]
+    ],
+    "start_year": 2021,
+    "start_month": 1,
+    "start_day": 25
   },
   "viva-happy": {
     "title": "Viva Happy",
@@ -243080,7 +243426,12 @@ anime_database = {
         "title": "Departure Song",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx207414-Hc8ZIApufISO.png"
       }
-    ]
+    ],
+    "next_episode": 71,
+    "next_episode_at": 1786230000,
+    "start_year": 2025,
+    "start_month": 4,
+    "start_day": 6
   },
   "honkai-star-rail-sparkling-tricks": {
     "title": "Honkai: Star Rail — Sparkling Tricks",
@@ -253694,7 +254045,10 @@ anime_database = {
         "title": "Hei Lian Da Baogong",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b204530-QXpVanGe8L1v.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 6,
+    "start_day": 13
   },
   "uniteup": {
     "title": "UniteUp!",
@@ -258391,7 +258745,12 @@ anime_database = {
         "title": "Holy Knight",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx11005-xSkwQg5teObI.jpg"
       }
-    ]
+    ],
+    "next_episode": 12,
+    "next_episode_at": 1786541400,
+    "start_year": 2026,
+    "start_month": 4,
+    "start_day": 8
   },
   "maomao-no-hitorigoto-2nd-season": {
     "title": "Maomao no Hitorigoto 2nd Season",
@@ -261868,7 +262227,10 @@ anime_database = {
         "title": "H2O: Footprints in the Sand",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx3299-E3PTKYMS6DnB.png"
       }
-    ]
+    ],
+    "start_year": 2025,
+    "start_month": 10,
+    "start_day": 3
   },
   "kurae-telepathy": {
     "title": "Kurae! Telepathy",
@@ -263576,7 +263938,9 @@ anime_database = {
         "title": "Martial Conqueror of the Cosmos",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx198703-TmNQmhov0N7X.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "tsuihou-sareta-shounin-wa-kin-no-chikara-de-sekai-wo-sukuu": {
     "title": "Tsuihou Sareta Shounin wa Kin no Chikara de Sekai wo Sukuu",
@@ -263759,7 +264123,10 @@ anime_database = {
         "title": "Only Yesterday",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/nx1029-Ch9LIVLFnssA.jpg"
       }
-    ]
+    ],
+    "start_year": 2024,
+    "start_month": 12,
+    "start_day": 18
   },
   "dragon-lancer": {
     "title": "Dragon Lancer",
@@ -264003,7 +264370,8 @@ anime_database = {
         "title": "Saint Seiya: The Heaven Chapter - Overture",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx1259-To3xqSUc49gn.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "odoru-sennen-kazoku": {
     "title": "Odoru Sennen Kazoku",
@@ -264125,7 +264493,8 @@ anime_database = {
         "title": "Hanarokushou ga Akeru Hi ni",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx177132-V5P7e5f5OzNB.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "mii-chan-to-yamada-san": {
     "title": "Mii-chan to Yamada-san",
@@ -264186,7 +264555,8 @@ anime_database = {
         "title": "Lloromannic",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx205874-lxO9rK67cChT.png"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "ginga-tetsudou-999-movie-provisional-title": {
     "title": "Ginga Tetsudou 999 Movie (Provisional Title)",
@@ -264369,7 +264739,8 @@ anime_database = {
         "title": "Towanoquon: The Roaring Anxiety",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/10715.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "kusunoki-san-wa-koukou-debut-ni-shippaishiteiru": {
     "title": "Kusunoki-san wa Koukou Debut ni Shippaishiteiru",
@@ -264491,7 +264862,8 @@ anime_database = {
         "title": "Jing: King of Bandits",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx107-w685twC2xgyr.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "coffee-kousou": {
     "title": "Coffee Kousou",
@@ -264613,7 +264985,12 @@ anime_database = {
         "title": "Grenadier: The Beautiful Warrior",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx297-Sg9F6AkZczuH.jpg"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786150800,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 18
   },
   "yao-shen-ji-10": {
     "title": "Yao Shen Ji 10",
@@ -264674,7 +265051,10 @@ anime_database = {
         "title": "Akane-banashi",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx196935-RnLWBsEvNp8M.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 18
   },
   "yura-yura-q": {
     "title": "Yura Yura Q",
@@ -264796,7 +265176,8 @@ anime_database = {
         "title": "DARLING in the FRANXX",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/nx99423-8MBxtwCeHf8B.png"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "deng-xia-jiu-fa": {
     "title": "Deng Xia Jiu Fa",
@@ -264857,7 +265238,8 @@ anime_database = {
         "title": "The Skull Man",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b2161-6kmOYXsEXzMI.png"
       }
-    ]
+    ],
+    "start_year": 2028
   },
   "rebirth-yuu-vs-great-o-kahn": {
     "title": "Rebirth: Yuu vs. Great-O-Kahn",
@@ -264979,7 +265361,8 @@ anime_database = {
         "title": "Koala's Diary",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx194389-DAbj4TOj5GB9.png"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "zeztz-anime-dream-arbeiter-baku": {
     "title": "Zeztz Anime: Dream Arbeiter Baku",
@@ -265040,7 +265423,10 @@ anime_database = {
         "title": "Corpse Princess: Aka",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx4581-RT3vGrNYCVqY.jpg"
       }
-    ]
+    ],
+    "start_year": 2025,
+    "start_month": 12,
+    "start_day": 28
   },
   "the-fox-elevator-boy-renard": {
     "title": "THE FOX ELEVATOR BOY RENARD",
@@ -265345,7 +265731,9 @@ anime_database = {
         "title": "Adana no Uta",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/default.jpg"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "noa-senpai-wa-tomodachi": {
     "title": "Noa-senpai wa Tomodachi.",
@@ -265528,7 +265916,8 @@ anime_database = {
         "title": "Genshin",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b154765-RhfBamIEdCN0.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "sarangui-heartsping-goraeboseok-ui-jeonseol": {
     "title": "Sarangui Heartsping: Goraeboseok-ui Jeonseol",
@@ -265589,7 +265978,12 @@ anime_database = {
         "title": "Answer (2016)",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b102293-RkZMY6SHETkG.jpg"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1785855600,
+    "start_year": 2026,
+    "start_month": 8,
+    "start_day": 5
   },
   "watashi-wo-center-ni-suru-to-chikaimasuka": {
     "title": "Watashi wo Center ni Suru to Chikaimasuka?",
@@ -265711,7 +266105,8 @@ anime_database = {
         "title": "Toilet-bound Hanako-kun",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx108463-u03vrYnyB3L9.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "han-ye-deng-zhu": {
     "title": "Han ye Deng Zhu",
@@ -266077,7 +266472,8 @@ anime_database = {
         "title": "Sinbi Apateu: Ghost Ball ZERO - Du Beonjjae Iyagi",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx206854-egSpUgYa2m8W.png"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "qiu-mo": {
     "title": "Qiu Mo",
@@ -266382,7 +266778,10 @@ anime_database = {
         "title": "Dance Dance Danseur",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx132171-7eUhRXuzbR20.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 2
   },
   "here-u-are": {
     "title": "Here U Are",
@@ -266504,7 +266903,12 @@ anime_database = {
         "title": "Trickster",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21832-2p2k6zjjeVv7.jpg"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786120920,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 4
   },
   "mamono-tsukai-no-musume": {
     "title": "Mamono Tsukai no Musume",
@@ -266687,7 +267091,8 @@ anime_database = {
         "title": "GOOD NIGHT WORLD",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx167820-RO0nRXw7fcpu.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "the-bugle-call-song-of-war": {
     "title": "The Bugle Call: Song of War",
@@ -266748,7 +267153,8 @@ anime_database = {
         "title": "Perman: Birdman ga Yatte Kita!!",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b185670-yVtGbGcoA3o3.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "ari-to-hato": {
     "title": "Ari to Hato",
@@ -267175,7 +267581,12 @@ anime_database = {
         "title": "Miniforce V Rangers",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b188827-VYvt3BCiNUM6.png"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785898800,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 8
   },
   "ruguo-lishi-shi-yi-qun-miao-10": {
     "title": "Ruguo Lishi Shi Yi Qun Miao 10",
@@ -267541,7 +267952,12 @@ anime_database = {
         "title": "Sakuna: Of Rice and Ruin",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx175868-oSzeoiq8nAkj.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785934800,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 8
   },
   "saved-by-the-ice-cold-prince-s-embrace": {
     "title": "Saved By the Ice Cold Prince's Embrace",
@@ -267602,7 +268018,12 @@ anime_database = {
         "title": "Aggretsuko",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b101571-7vzCaj13jkGS.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785848100,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 7
   },
   "zhe-tian-movie-bei-guan-zhan-wang-teng": {
     "title": "Zhe Tian Movie: Bei Guan Zhan Wang Teng",
@@ -267785,7 +268206,9 @@ anime_database = {
         "title": "The Ogre's Bride",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b194219-56EhyK775lga.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "ginga-tokkyuu-milky-subway-parco-original-animation": {
     "title": "Ginga Tokkyuu Milky☆Subway: PARCO Original Animation",
@@ -268151,7 +268574,10 @@ anime_database = {
         "title": "Panty & Stocking in Sanitarybox",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx10739-qWsZOdv7ljOa.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 10
   },
   "oshirimae-man": {
     "title": "Oshirimae Man",
@@ -268822,7 +269248,8 @@ anime_database = {
         "title": "Kyo Kara Maoh! - God (?) Save Our King!",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx251-Ayui0ECuDPEe.png"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "tunshi-xingkong-movie-juezhan-yuanshi-xing": {
     "title": "Tunshi Xingkong Movie: Juezhan Yuanshi Xing",
@@ -269432,7 +269859,10 @@ anime_database = {
         "title": "TAMAYOMI: The Baseball Girls",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx110130-QqvIQ5B2X3EJ.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 6
   },
   "nabe-ni-dangan-wo-uke-nagara": {
     "title": "Nabe ni Dangan wo Uke Nagara",
@@ -269493,7 +269923,8 @@ anime_database = {
         "title": "Ruri Rocks",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx180929-ytdzqbrOhots.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "sudachi-no-maoujou": {
     "title": "Sudachi no Maoujou",
@@ -269554,7 +269985,9 @@ anime_database = {
         "title": "The Morose Mononokean",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21643-1zrEKuiV3ASs.png"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "re-bel-robotica": {
     "title": "RE:BEL ROBOTICA",
@@ -269615,7 +270048,8 @@ anime_database = {
         "title": "Record of Grancrest War",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx97768-atbPjYJNXnIo.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "saijaku-na-boku-wa-kabenuke-bug-de-nariagaru-kabe-wo-surinuketara-shokai-clear-houshuu-wo-mugen-kaishuu-dekimashita": {
     "title": "Saijaku na Boku wa \"Kabenuke Bug\" de Nariagaru: Kabe wo Surinuketara Shokai Clear Houshuu wo Mugen Kaishuu Dekimashita!",
@@ -270713,7 +271147,10 @@ anime_database = {
         "title": "ARCANADEA",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx185697-hAEKGqiaUF2N.jpg"
       }
-    ]
+    ],
+    "start_year": 2021,
+    "start_month": 12,
+    "start_day": 12
   },
   "pie-no-mi-oshi-no-mori-e-youkoso": {
     "title": "Pie no Mi: Oshi no Mori e Youkoso!",
@@ -270774,7 +271211,10 @@ anime_database = {
         "title": "Palette",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx131142-frsaWSvqfxN1.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 6,
+    "start_day": 22
   },
   "chikyuu-daisuki-kikkun": {
     "title": "Chikyuu Daisuki! Kikkun",
@@ -270835,7 +271275,10 @@ anime_database = {
         "title": "Shin Chan",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b966-QUCdKAk4ls9J.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 1
   },
   "kosys-lite": {
     "title": "KoSys! LITE",
@@ -271750,7 +272193,8 @@ anime_database = {
         "title": "Shonen Maid",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21321-1WCJBmHhPqf3.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "mappa-15th-anniversary-movie": {
     "title": "MAPPA 15th Anniversary Movie",
@@ -271994,7 +272438,9 @@ anime_database = {
         "title": "Aishen Qiaokeli-ING...",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/21818-19F99CzDm0Vw.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "jueshi-zhan-hun-2": {
     "title": "Jueshi Zhan Hun 2",
@@ -272055,7 +272501,12 @@ anime_database = {
         "title": "My Tiny Senpai",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx155730-1dE2C3K8VFdW.png"
       }
-    ]
+    ],
+    "next_episode": 9,
+    "next_episode_at": 1785808800,
+    "start_year": 2026,
+    "start_month": 6,
+    "start_day": 9
   },
   "gaksital": {
     "title": "Gaksital",
@@ -272177,7 +272628,8 @@ anime_database = {
         "title": "Salaryman Mini Mini Sakusen",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx213439-DbT6hWbbzrIQ.png"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "saikyou-mahoushi-no-inton-keikaku": {
     "title": "Saikyou Mahoushi no Inton Keikaku",
@@ -272238,7 +272690,8 @@ anime_database = {
         "title": "GAMERS!",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx97766-AKr0m3uHkKyW.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "nin-city": {
     "title": "NIN CITY",
@@ -272482,7 +272935,10 @@ anime_database = {
         "title": "Miao Miao Xiao Juchang",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b204625-f2IoeJGeI0hm.png"
       }
-    ]
+    ],
+    "start_year": 2025,
+    "start_month": 7,
+    "start_day": 1
   },
   "neko-kikaku": {
     "title": "Neko Kikaku",
@@ -272787,7 +273243,10 @@ anime_database = {
         "title": "There She Is!!",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/6505.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 5
   },
   "unko-san-tsuiteru-hito-ni-shika-mienai-yousei-junjou-ha": {
     "title": "Unko-san: Tsuiteru Hito ni Shika Mienai Yousei Junjou Ha",
@@ -273031,7 +273490,9 @@ anime_database = {
         "title": "Owarimonogatari",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/nx21262-jfbv9hvjymMW.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "dengeki-daisy": {
     "title": "Dengeki Daisy",
@@ -273092,7 +273553,8 @@ anime_database = {
         "title": "Jin Shancheng Cai Qiu Hua Hui Yi Shi: 2022 Bainian Ji Dan Pin",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx184374-rqMzMPnUFuF0.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "juuheisou-gata-joshikousei": {
     "title": "Juuheisou-gata Joshikousei",
@@ -273153,7 +273615,8 @@ anime_database = {
         "title": "Ranma ½: Big Trouble in Nekonron, China",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx418-O6mu6r1k40jt.png"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "haiiro-no-shoumei": {
     "title": "Haiiro no Shoumei",
@@ -273336,7 +273799,8 @@ anime_database = {
         "title": "Neppuu Kairiku Bushi Road",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx19653-bnJEpdrrIrHB.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "overgeared": {
     "title": "Overgeared",
@@ -273397,7 +273861,9 @@ anime_database = {
         "title": "Street Fighter 6 VS SPY×FAMILY CODE: White",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx177098-PD8wTppylqog.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "e-shanai-system-subete-one-ope-shiteiru-watashi-wo-kaiko-desu-ka": {
     "title": "E, Shanai System Subete One Ope Shiteiru Watashi wo Kaiko desu ka?",
@@ -273519,7 +273985,9 @@ anime_database = {
         "title": "Jo Niijima's Story",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b213095-TYeXH23jtyGe.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "hitozukiai-ga-nigate-na-miboujin-no-yukionna-san-to-noroi-no-yubiwa": {
     "title": "Hitozukiai ga Nigate na Miboujin no Yukionna-san to Noroi no Yubiwa",
@@ -273580,7 +274048,9 @@ anime_database = {
         "title": "Hoero Bunbun",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b213641-IPJEOwVs16Aj.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "kidou-keisatsu-patlabor-ezy-file-3": {
     "title": "Kidou Keisatsu Patlabor EZY File 3",
@@ -273641,7 +274111,9 @@ anime_database = {
         "title": "A Ninja and an Assassin Under One Roof",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx177120-xRucIg2WDr77.png"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 3
   },
   "kidou-keisatsu-patlabor-ezy-file-2": {
     "title": "Kidou Keisatsu Patlabor EZY File 2",
@@ -273702,7 +274174,12 @@ anime_database = {
         "title": "Fuji Lieren",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b199412-9XVz18eEvUio.png"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1787238000,
+    "start_year": 2026,
+    "start_month": 8,
+    "start_day": 21
   },
   "mamiko-s-poop": {
     "title": "Mamiko’s Poop",
@@ -273885,7 +274362,10 @@ anime_database = {
         "title": "The Cat Returns",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx597-Prw5pUyYwcFO.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 4,
+    "start_day": 30
   },
   "danzaisareta-akuyaku-reijou-wa-gyakkoushite-kanpeki-na-akujo-wo-mezasu": {
     "title": "Danzaisareta Akuyaku Reijou wa, Gyakkoushite Kanpeki na Akujo wo Mezasu",
@@ -274495,7 +274975,10 @@ anime_database = {
         "title": "Momo, the Girl God of Death",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx789-wfR4OziJ8Ton.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 5,
+    "start_day": 20
   },
   "pan-no-akachan-tv": {
     "title": "Pan no Akachan (TV)",
@@ -274556,7 +275039,12 @@ anime_database = {
         "title": "Clevatess",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx178869-qiEz0gQD8H5N.png"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786145400,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 4
   },
   "bouken-wa-tsuzuite-iru-final-fantasy-xi-24th-anniversary-movie": {
     "title": "Bouken wa Tsuzuite iru. FINAL FANTASY XI 24th Anniversary Movie",
@@ -274678,7 +275166,10 @@ anime_database = {
         "title": "Wandering Witch: The Journey of Elaina",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx112609-hBCbnYlEHluz.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10,
+    "start_day": 2
   },
   "umi-ga-hashiru-end-roll": {
     "title": "Umi ga Hashiru End Roll",
@@ -274739,7 +275230,8 @@ anime_database = {
         "title": "Sand Land: The Series",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx175642-TAHPp5wztFUp.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "breakfast-eggs": {
     "title": "Breakfast Eggs",
@@ -274861,7 +275353,9 @@ anime_database = {
         "title": "Watashi wo Center ni Suru to Chikaimasuka?",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx213952-1DegwC5aES0U.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "mysterious-star": {
     "title": "MYSTERIOUS STAR",
@@ -274983,7 +275477,10 @@ anime_database = {
         "title": "Den-noh Coil",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx2164-4tUI4MJCZQO3.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10,
+    "start_day": 7
   },
   "go-toubun-no-hanayome-shinsaku-ova": {
     "title": "Go-toubun no Hanayome (Shinsaku OVA)",
@@ -275776,7 +276273,12 @@ anime_database = {
         "title": "Yukikaze",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx1080-f56ixGzYinVs.png"
       }
-    ]
+    ],
+    "next_episode": 4,
+    "next_episode_at": 1785891600,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 29
   },
   "wo-bushi-xi-shen": {
     "title": "Wo Bushi Xi Shen",
@@ -275959,7 +276461,8 @@ anime_database = {
         "title": "Gal & Dino",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx111323-quqYgAchD9PM.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "pen-to-wappa-to-jijitsukon": {
     "title": "Pen to Wappa to Jijitsukon",
@@ -276081,7 +276584,8 @@ anime_database = {
         "title": "The Princess and the Pilot",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx9000-pjbZ6oEtUACO.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "shiguang-dailiren-xiao-juchang-2": {
     "title": "Shiguang Dailiren: Xiao Juchang 2",
@@ -276264,7 +276768,8 @@ anime_database = {
         "title": "Macross Zero",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx194-WGTjEMUnjGaW.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "huhuan-shaon-special-xiang-zuo-de-shi-daodi-shi-shenme": {
     "title": "Huhuan Shaonü Special: Xiang Zuo de Shi Daodi Shi Shenme",
@@ -276508,7 +277013,8 @@ anime_database = {
         "title": "Slow Start",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b98693-eGeXZZ0rhBYx.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "tower-dungeon-volume-6-release-commemorative-pv": {
     "title": "Tower Dungeon Volume 6 Release Commemorative PV",
@@ -276874,7 +277380,12 @@ anime_database = {
         "title": "Gundam: Reconguista in G",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx20658-P5QBsXm2dslC.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785853800,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 7
   },
   "sirotan": {
     "title": "Sirotan",
@@ -276935,7 +277446,9 @@ anime_database = {
         "title": "Tensei Shitara Slime Datta Ken: Sukuwareru Ramiris",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b146503-7YahVCQ9T039.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "vertex-force": {
     "title": "Vertex Force",
@@ -276996,7 +277509,10 @@ anime_database = {
         "title": "Ojarumaru: Chitchai Mono no Ookina Chikara",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b200646-qYnI9TMoER7c.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10,
+    "start_day": 3
   },
   "shiotaiou-no-satou-san-ga-ore-ni-dake-amai": {
     "title": "Shiotaiou no Satou-san ga Ore ni dake Amai",
@@ -277057,7 +277573,9 @@ anime_database = {
         "title": "Tunshi Xingkong Movie: Juezhan Yuanshi Xing",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx213516-3JYaWXcnbX6r.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "tank-chair-sensha-isu": {
     "title": "TANK CHAIR: Sensha Isu",
@@ -277118,7 +277636,8 @@ anime_database = {
         "title": "Compu Movie",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx186199-65pfRqcLmLGQ.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "miss-puff-season-3": {
     "title": "Miss Puff Season 3",
@@ -277240,7 +277759,12 @@ anime_database = {
         "title": "Yuru Camp△ SEASON 4",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx184072-oF3L8oVi7VM9.jpg"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1791126000,
+    "start_year": 2026,
+    "start_month": 10,
+    "start_day": 5
   },
   "game-sekai-tensei-dankatsu-gamer-wa-dungeon-shuukatsu-no-susume-wo-hajime-kara-play-suru": {
     "title": "Game Sekai Tensei <Dankatsu>: Gamer wa [Dungeon Shuukatsu no Susume] wo <Hajime kara> Play Suru",
@@ -277423,7 +277947,9 @@ anime_database = {
         "title": "Planetarian",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/nx21732-uOgNB5Y4FH5h.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "bad-end-mokuzen-no-heroine-ni-tensei-shita-watashi-konse-de-wa-renai-suru-tsumori-ga-cheat-na-ani-ga-hanashitekuremasen": {
     "title": "Bad End Mokuzen no Heroine ni Tensei Shita Watashi, Konse de wa Renai Suru Tsumori ga Cheat na Ani ga Hanashitekuremasen!?",
@@ -277545,7 +278071,9 @@ anime_database = {
         "title": "Jormungand",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx12413-LAnEEGbT5JQP.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "j-m": {
     "title": "J⇔M",
@@ -277667,7 +278195,9 @@ anime_database = {
         "title": "MINKY MOMO in Yume ni Kakeru Hashi",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/nx3462-4xLkDwIwm6NJ.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "guskou-budori-no-denki-1998": {
     "title": "Guskou Budori no Denki (1998)",
@@ -278277,7 +278807,12 @@ anime_database = {
         "title": "Kin of the Stained Blade",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx121956-yHofGSekWxEX.png"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1786226400,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 12
   },
   "yomosugara": {
     "title": "Yomosugara",
@@ -279070,7 +279605,10 @@ anime_database = {
         "title": "D.C.if: Da Capo if",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/5216.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 2,
+    "start_day": 22
   },
   "digital-love-feat-hoshimachi-suisei": {
     "title": "DIGITAL LOVE (feat. Hoshimachi Suisei)",
@@ -279619,7 +280157,9 @@ anime_database = {
         "title": "Tokyo Ghoul",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b20605-k665mVkSug8D.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "run-run-lantern": {
     "title": "Run Run Lantern",
@@ -280046,7 +280586,8 @@ anime_database = {
         "title": "the Garden of sinners -recalled out summer-",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx14807-R4SzEi0zRDl4.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "hyakki-yakoushou": {
     "title": "Hyakki Yakoushou",
@@ -280351,7 +280892,10 @@ anime_database = {
         "title": "Prince of Stride: Alternative",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21330-2PhigzTo5dTm.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 3,
+    "start_day": 3
   },
   "carrots-don-t-wait": {
     "title": "Carrots Don't Wait",
@@ -281022,7 +281566,9 @@ anime_database = {
         "title": "Re:ZERO ~Starting Break Time From Zero~",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/21780-xCJk0z5vpn57.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "the-eternal-fool-s-words-of-wisdom-a-pawsitively-fantastic-adventure": {
     "title": "The Eternal Fool's Words of Wisdom: A Pawsitively Fantastic Adventure",
@@ -281083,7 +281629,9 @@ anime_database = {
         "title": "Sword of the Stranger",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/nx2418-AoLtfG2da5yo.jpg"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "thunder-3": {
     "title": "Thunder 3",
@@ -281144,7 +281692,12 @@ anime_database = {
         "title": "Imprisoned XII",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx192650-7F3BHRVTsZXe.png"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785944640,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 9
   },
   "mairimashita-iruma-kun-if-episode-of-mafia": {
     "title": "Mairimashita! Iruma-kun: If Episode of Mafia",
@@ -281205,7 +281758,9 @@ anime_database = {
         "title": "Tensei Goblin Dakedo Shitsumon Aru?",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx209219-vU7uIlcKmVlW.jpg"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "aqura-home-aqurin-anime-cm": {
     "title": "Aqura Home Aqurin Anime CM",
@@ -281388,7 +281943,8 @@ anime_database = {
         "title": "Qing Jiao Wo Gui Chai Da Ren",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx199357-FHGIDkMlHmOE.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "don-t-replay-the-boredom": {
     "title": "Don’t replay the boredom.",
@@ -281632,7 +282188,9 @@ anime_database = {
         "title": "Hundred",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21362-7YZq4TZ112Il.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "playing-sister": {
     "title": "Playing Sister",
@@ -281693,7 +282251,10 @@ anime_database = {
         "title": "Tales from Earthsea",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx1829-DqhBRfDU7n6D.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 1,
+    "start_day": 31
   },
   "ginga-tetsudou-999-jikuu-wo-koeta-energy-no-tabi-season-2": {
     "title": "Ginga Tetsudou 999: Jikuu wo Koeta Energy no Tabi season.2",
@@ -281876,7 +282437,12 @@ anime_database = {
         "title": "Spy Classroom",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx146323-vyj1w1VRgDN7.png"
       }
-    ]
+    ],
+    "next_episode": 18,
+    "next_episode_at": 1786226400,
+    "start_year": 2026,
+    "start_month": 4,
+    "start_day": 12
   },
   "kyouran-reijou-nia-liston": {
     "title": "Kyouran Reijou Nia Liston",
@@ -281937,7 +282503,12 @@ anime_database = {
         "title": "Haai! Myakumyaku desu",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx189733-PgwNxBPV1BSA.jpg"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1791289560,
+    "start_year": 2026,
+    "start_month": 10,
+    "start_day": 6
   },
   "tom-and-jerry-forbidden-compass": {
     "title": "Tom and Jerry: Forbidden Compass",
@@ -282364,7 +282935,8 @@ anime_database = {
         "title": "I Want to Love You Till Your Dying Day",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx187260-WW5RBa5NINRP.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "guimi-zhi-zhu-wu-mian-ren-pian": {
     "title": "Guimi Zhi Zhu: Wu Mian Ren Pian",
@@ -282425,7 +282997,8 @@ anime_database = {
         "title": "Into The Mortal World",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx185117-xHOWz2E7f0K1.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "wakuwaku-hakubutsukan-adventure": {
     "title": "Wakuwaku Hakubutsukan Adventure",
@@ -284072,7 +284645,8 @@ anime_database = {
         "title": "Kakunaru Ue wa",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx202564-gLnCiyS8vHsB.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "wasteland-knight": {
     "title": "Wasteland Knight",
@@ -284133,7 +284707,8 @@ anime_database = {
         "title": "Orange",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21647-zMUXNhcVyRyv.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "guruguru-live": {
     "title": "Guruguru Live",
@@ -284255,7 +284830,12 @@ anime_database = {
         "title": "Hitman Reborn",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx1604-W2q38L4OCGLI.png"
       }
-    ]
+    ],
+    "next_episode": 19,
+    "next_episode_at": 1786235400,
+    "start_year": 2026,
+    "start_month": 4,
+    "start_day": 5
   },
   "heroes-legend-of-the-battle-disks": {
     "title": "Heroes: Legend of the Battle Disks",
@@ -284499,7 +285079,9 @@ anime_database = {
         "title": "Kozou no Dance",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b185862-w9ex2zlqy4eJ.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "one-last-wish": {
     "title": "One Last Wish",
@@ -285170,7 +285752,8 @@ anime_database = {
         "title": "Xian Di Guilai",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx185858-NuN6KrV0aUbk.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "xiangzhe-xingchen-de-changzheng": {
     "title": "Xiangzhe Xingchen de Changzheng",
@@ -285353,7 +285936,10 @@ anime_database = {
         "title": "RESCUE Tayo",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b188065-nZCCBqkja5gJ.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 20
   },
   "xiao-bajie": {
     "title": "Xiao Bajie",
@@ -285658,7 +286244,8 @@ anime_database = {
         "title": "Kurozuka",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx5039-F9HXvMsrQGP8.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "wo-zai-feitu-shijie-sao-laji": {
     "title": "Wo Zai Feitu Shijie Sao Laji",
@@ -285719,7 +286306,8 @@ anime_database = {
         "title": "Lun Hui Leyuan",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx206599-TNd1eSsxP3ZE.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "tian-guan-xue-yuan": {
     "title": "Tian Guan Xue Yuan",
@@ -285841,7 +286429,8 @@ anime_database = {
         "title": "Night on the Galactic Railroad",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b1441-NOIDPZ2svpoS.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "lei-su-deng-yi-fei-chong-tian": {
     "title": "Lei Su Deng: Yi Fei Chong Tian",
@@ -286085,7 +286674,12 @@ anime_database = {
         "title": "Over Drive",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx2112-txrbJOYMRcco.png"
       }
-    ]
+    ],
+    "next_episode": 6,
+    "next_episode_at": 1786195800,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 4
   },
   "luo-xiaohei-zhan-ji-xue-qian-pian": {
     "title": "Luo Xiaohei Zhan Ji: Xue Qian Pian",
@@ -286146,7 +286740,8 @@ anime_database = {
         "title": "elDLIVE",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/nx21677-jVe7bGD1x1dJ.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "jiangtun-feng-shi-wu": {
     "title": "Jiangtun: Feng Shi Wu",
@@ -286268,7 +286863,8 @@ anime_database = {
         "title": "Fate/Grand Order Final Singularity - Grand Temple of Time: Solomon",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx116756-jIU2HrnEsDjR.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "huo-feng-liao-yuan-3": {
     "title": "Huo Feng Liao Yuan 3",
@@ -286329,7 +286925,8 @@ anime_database = {
         "title": "INTERNET YAMERO",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx169446-zQDZjCeabzjE.png"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "wan-yu-feng-shen-2": {
     "title": "Wan Yu Feng Shen 2",
@@ -286451,7 +287048,8 @@ anime_database = {
         "title": "Hayate the Combat Butler",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx2026-xoCa4unn5iOi.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "tuer-ni-wudile-xiashan-qu-ba": {
     "title": "Tuer Ni Wudile Xiashan Qu Ba",
@@ -286573,7 +287171,8 @@ anime_database = {
         "title": "BULLET/BULLET",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx157960-IrnEWE1pvoT3.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "zhu-xian-final": {
     "title": "Zhu Xian Final",
@@ -286634,7 +287233,8 @@ anime_database = {
         "title": "Princess Lover!",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx6201-OG9c0hLinRom.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "lata-dawang-qiyu-ji": {
     "title": "Lata Dawang Qiyu Ji",
@@ -286756,7 +287356,10 @@ anime_database = {
         "title": "365 Days to the Wedding",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx165790-OwIZI9ArGR4Q.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 11,
+    "start_day": 20
   },
   "yun-shen-buzhi-meng-2": {
     "title": "Yun Shen Buzhi Meng 2",
@@ -286817,7 +287420,8 @@ anime_database = {
         "title": "In/Spectre",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx107201-zQYOPotwmSXO.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "balala-xiao-mo-xian-xing-yuan-die-qi-2": {
     "title": "Balala Xiao Mo Xian: Xing Yuan Die Qi 2",
@@ -287000,7 +287604,10 @@ anime_database = {
         "title": "Dingding Zhan Houwang",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b206279-Y5wC7ipoe8mw.jpg"
       }
-    ]
+    ],
+    "start_year": 2025,
+    "start_month": 10,
+    "start_day": 4
   },
   "shan-shantian-tianjian": {
     "title": "Shan Shantian Tianjian",
@@ -287305,7 +287912,8 @@ anime_database = {
         "title": "Senryu Girl",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx106051-GanZefWWhRLa.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "yu-shen-ji": {
     "title": "Yu Shen Ji",
@@ -287366,7 +287974,8 @@ anime_database = {
         "title": "VOLTES V",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx1069-bNxKpwG1m9JQ.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "hua-qian-gu-hua-hun-zhi-lu": {
     "title": "Hua Qian Gu: Hua Hun Zhi Lu",
@@ -288098,7 +288707,8 @@ anime_database = {
         "title": "KU-RU-KU-RU Cruller!",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx136143-wFESobqJH1Se.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "emo-faze-2": {
     "title": "Emo Faze 2",
@@ -288159,7 +288769,8 @@ anime_database = {
         "title": "I Want You To Show Me Your Panties With a Disgusted Face Returns",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx196840-9l084Fis4fYF.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku": {
     "title": "Shinja Zero no Megami-sama to Hajimeru Isekai Kouryaku",
@@ -288220,7 +288831,9 @@ anime_database = {
         "title": "Captain Harlock Space Pirate",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx1000-Xpeob9jND2tg.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "lloromannic": {
     "title": "Lloromannic",
@@ -289196,7 +289809,12 @@ anime_database = {
         "title": "the Garden of sinners Chapter 8: The Final Chapter",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx6954-uMdvQ3Vy74Oa.png"
       }
-    ]
+    ],
+    "next_episode": 17,
+    "next_episode_at": 1785941760,
+    "start_year": 2026,
+    "start_month": 4,
+    "start_day": 15
   },
   "bero-dashi-chonma": {
     "title": "Bero-dashi Chonma",
@@ -289806,7 +290424,8 @@ anime_database = {
         "title": "Ein's Summer Vacation",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx17205-Dk5nmaKD7hPM.jpg"
       }
-    ]
+    ],
+    "start_year": 2028
   },
   "the-crow": {
     "title": "The Crow",
@@ -289867,7 +290486,8 @@ anime_database = {
         "title": "Digimon Adventure tri. Chapter 6: Our Future",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx100181-unLXc2eH5yCy.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "mang-wasteland-period": {
     "title": "Mang Wasteland Period",
@@ -289928,7 +290548,8 @@ anime_database = {
         "title": "I Want to Escape from Princess Lessons",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx170650-iVQC67atMVj3.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "shirube": {
     "title": "Shirube",
@@ -290050,7 +290671,9 @@ anime_database = {
         "title": "Jiangtun: Feng Shi Wu",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx206223-qF9cR9ZnL8e5.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 12
   },
   "mis-rable-miracle": {
     "title": "Misérable Miracle",
@@ -290355,7 +290978,9 @@ anime_database = {
         "title": "My Unique Skill Makes Me OP even at Level 1",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx148465-JHRudD6EbUVU.jpg"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "aware-meisaku-kun-2026": {
     "title": "Aware! Meisaku-kun (2026)",
@@ -290416,7 +291041,12 @@ anime_database = {
         "title": "Re: Cutie Honey",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx151-QxUNuq82t7XK.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785685500,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 5
   },
   "wollum-jogyonim": {
     "title": "Wollum Jogyonim",
@@ -290477,7 +291107,8 @@ anime_database = {
         "title": "UN-GO MOVIE",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx11531-hsCTtgEDRAMs.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "enter-the-garden": {
     "title": "Enter the Garden",
@@ -290538,7 +291169,10 @@ anime_database = {
         "title": "Fruits Basket -prelude-",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx136192-hxeNRzBHizBZ.jpg"
       }
-    ]
+    ],
+    "start_year": 2024,
+    "start_month": 4,
+    "start_day": 30
   },
   "tomo-ni-kagayaku-ashita-no-tame-ni": {
     "title": "Tomo ni Kagayaku Ashita no Tame ni.",
@@ -290965,7 +291599,12 @@ anime_database = {
         "title": "New Getter Robo",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx2978-wybJCsj1WaIh.jpg"
       }
-    ]
+    ],
+    "next_episode": 31,
+    "next_episode_at": 1785884400,
+    "start_year": 2025,
+    "start_month": 12,
+    "start_day": 22
   },
   "august-a-certain-moonlight": {
     "title": "August, A Certain, Moonlight",
@@ -291209,7 +291848,10 @@ anime_database = {
         "title": "The Frontier Lord Begins with Zero Subjects",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx196218-UsdTTCrwpDIN.jpg"
       }
-    ]
+    ],
+    "start_year": 2025,
+    "start_month": 12,
+    "start_day": 4
   },
   "miao-miao-xiao-juchang": {
     "title": "Miao Miao Xiao Juchang",
@@ -291819,7 +292461,9 @@ anime_database = {
         "title": "HUMAN LOST",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx108626-0TtoR6rqVMoI.jpg"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "mahou-no-princess-minky-momo-akogare-no-yume-he-magokoro-no-duo": {
     "title": "Mahou no Princess Minky Momo - Akogare no Yume he, Magokoro no Duo",
@@ -291880,7 +292524,12 @@ anime_database = {
         "title": "TenPuru",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx160447-we52M5P85oaJ.png"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1794495600,
+    "start_year": 2026,
+    "start_month": 11,
+    "start_day": 13
   },
   "heart-cocktail-colorful-fuyu-hen": {
     "title": "Heart Cocktail Colorful: Fuyu-hen",
@@ -293283,7 +293932,8 @@ anime_database = {
         "title": "Grimm's Notes The Animation",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/nx103735-xmpn76ipz86E.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "know-your-heart": {
     "title": "Know Your Heart",
@@ -294259,7 +294909,9 @@ anime_database = {
         "title": "Onegai My Melody",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b2489-iVJNpk4iZvH9.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "saijaku-tamer-wa-gomi-hiroi-no-tabi-wo-hajimemashita-2nd-season": {
     "title": "Saijaku Tamer wa Gomi Hiroi no Tabi wo Hajimemashita. 2nd Season",
@@ -294442,7 +295094,9 @@ anime_database = {
         "title": "Toaru Kagaku no Railgun: Motto Marutto Railgun",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/8023.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "himitsu-kessha-taka-no-tsume-xx": {
     "title": "Himitsu Kessha Taka no Tsume XX",
@@ -294564,7 +295218,8 @@ anime_database = {
         "title": "Heart and Yummie",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx9204-3mUQHY46RZp7.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "devils-crest": {
     "title": "Devils' Crest",
@@ -294625,7 +295280,10 @@ anime_database = {
         "title": "World War Blue",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx15133-4OUuajvHrqbn.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 11,
+    "start_day": 6
   },
   "super-charismatic-bon-odori": {
     "title": "Super Charismatic Bon-Odori",
@@ -294808,7 +295466,9 @@ anime_database = {
         "title": "Koisuru (Otome) no Tsukurikata",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx213422-bkk13nKcmfTt.jpg"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "akutou-ikka-no-manamusume-tensei-saki-mo-otome-game-no-gokudou-reijou-deshita-saijoukyuu-ranku-no-akuyaku-sama-sono-dekiai-wa-fuyou-desu": {
     "title": "Akutou Ikka no Manamusume, Tensei-saki mo Otome Game no Gokudou Reijou deshita.: Saijoukyuu Ranku no Akuyaku-sama, Sono Dekiai wa Fuyou desu!",
@@ -295296,7 +295956,12 @@ anime_database = {
         "title": "Prétear: The New Legend of Snow White",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx100-wr3vEOYOiAC1.png"
       }
-    ]
+    ],
+    "next_episode": 18,
+    "next_episode_at": 1786113000,
+    "start_year": 2026,
+    "start_month": 4,
+    "start_day": 10
   },
   "majutsu-wo-kiwamete-tabi-ni-deta-tensei-elf-moteamashita-jumyou-de-ikeru-densetsu-to-naru": {
     "title": "Majutsu wo Kiwamete Tabi ni Deta Tensei Elf, Moteamashita Jumyou de Ikeru Densetsu to Naru",
@@ -295357,7 +296022,8 @@ anime_database = {
         "title": "Digimon Adventure tri. Chapter 2: Determination",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21500-hC4Nhs2kNnZ3.png"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "wareware-wa-uchuujin": {
     "title": "Wareware wa Uchuujin",
@@ -295418,7 +296084,12 @@ anime_database = {
         "title": "Plus-Sized Elf",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx173388-iPHxsekSIFpg.png"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1790262000,
+    "start_year": 2026,
+    "start_month": 9,
+    "start_day": 25
   },
   "shimajirou-to-korasho-no-saigo-no-daiundoukai-tsunage-nakayoshi-relay": {
     "title": "Shimajirou to Korasho no Saigo no Daiundoukai Tsunage! Nakayoshi Relay",
@@ -296028,7 +296699,12 @@ anime_database = {
         "title": "Green Snake",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx130190-MxLEfnM1tZtQ.jpg"
       }
-    ]
+    ],
+    "next_episode": 18,
+    "next_episode_at": 1786226400,
+    "start_year": 2026,
+    "start_month": 4,
+    "start_day": 12
   },
   "daikaijuu-gaea-tima": {
     "title": "Daikaijuu Gaea-Tima",
@@ -296272,7 +296948,9 @@ anime_database = {
         "title": "Natsume Yuujinchou × Kumamoto-ken: Hitoyoshi Kuma de no Yasashii Jikan",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b188619-zBWxqUo3oWXo.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "uncle-s-obsession-with-cute-things": {
     "title": "Uncle's Obsession with Cute Things",
@@ -296333,7 +297011,12 @@ anime_database = {
         "title": "Cyborg 009: The Cyborg Soldier",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx1678-uOSEx7axxT56.jpg"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1791118800,
+    "start_year": 2026,
+    "start_month": 10,
+    "start_day": 4
   },
   "oshiri-dandy-the-young": {
     "title": "Oshiri Dandy the Young",
@@ -296394,7 +297077,10 @@ anime_database = {
         "title": "Nanashi Kaidan 3rd Season",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx185669-FSL1iKgP3a25.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 4,
+    "start_day": 4
   },
   "hangyodon-no-parallel-daisakusen": {
     "title": "Hangyodon no Parallel Daisakusen",
@@ -297309,7 +297995,9 @@ anime_database = {
         "title": "Kusuriya no Hitorigoto: Bouhi no Hihou",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx200929-ZnRFJbEqFbgJ.jpg"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "kasukana-yuuhi": {
     "title": "Kasukana Yuuhi",
@@ -297431,7 +298119,9 @@ anime_database = {
         "title": "Yano-kun's Ordinary Days",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx183965-7oMzkJp4FUyP.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "first-light": {
     "title": "First Light",
@@ -297797,7 +298487,10 @@ anime_database = {
         "title": "JoJo's Bizarre Adventure: Diamond is Unbreakable",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21450-D7XFwEQjZ5GA.jpg"
       }
-    ]
+    ],
+    "start_year": 2025,
+    "start_month": 9,
+    "start_day": 1
   },
   "kikaijikake-no-marie-mini-anime": {
     "title": "Kikaijikake no Marie Mini Anime",
@@ -298041,7 +298734,9 @@ anime_database = {
         "title": "Obake no... Holly",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/9015.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "let-s-go-kaikigumi": {
     "title": "Let's go KAIKIGUMI",
@@ -298102,7 +298797,12 @@ anime_database = {
         "title": "Lord of Vermilion: The Crimson King",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/nx101384-tsCJRW6ogtPR.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785655800,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 5
   },
   "so-bad": {
     "title": "SO BAD",
@@ -298834,7 +299534,10 @@ anime_database = {
         "title": "Nyan Koi!",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/6512.jpg"
       }
-    ]
+    ],
+    "start_year": 2025,
+    "start_month": 10,
+    "start_day": 30
   },
   "tetsuryou-meet-with-tetsudou-musume": {
     "title": "Tetsuryou! meet with Tetsudou Musume",
@@ -298895,7 +299598,9 @@ anime_database = {
         "title": "Evangelion",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b208192-09FVw3ZPUg96.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "mafiosa": {
     "title": "MafiosA",
@@ -299078,7 +299783,9 @@ anime_database = {
         "title": "Potemayo",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx2744-jshoXw1Qdcaq.png"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "uchi-no-3-shimai-movie": {
     "title": "Uchi no 3 Shimai Movie",
@@ -299383,7 +300090,10 @@ anime_database = {
         "title": "Kireigoto",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx192976-pPRLmhhiTubA.png"
       }
-    ]
+    ],
+    "start_year": 2023,
+    "start_month": 12,
+    "start_day": 2
   },
   "nan-hong": {
     "title": "Nan Hong",
@@ -299688,7 +300398,8 @@ anime_database = {
         "title": "Eyeshield 21",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx15-A4F2t0TgWoi4.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "shen-kong-bian": {
     "title": "Shen Kong Bian",
@@ -299871,7 +300582,8 @@ anime_database = {
         "title": "Ai-Mai-Mi",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx16169-JOD1GwgA0D5G.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "the-alchemist-s-rise": {
     "title": "The Alchemist's Rise",
@@ -300481,7 +301193,8 @@ anime_database = {
         "title": "The World's Strongest Rearguard",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx198409-EiWJXfYnvfu4.png"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "fuji-lieren": {
     "title": "Fuji Lieren",
@@ -300786,7 +301499,8 @@ anime_database = {
         "title": "Amatsuki",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx3359-OOtP9boQF7IE.png"
       }
-    ]
+    ],
+    "start_year": 2033
   },
   "zashikiro": {
     "title": "Zashikiro",
@@ -301213,7 +301927,8 @@ anime_database = {
         "title": "Final Fantasy VII: Last Order",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx408-iQDfox4DSCGb.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "zhen-dao-ge-3": {
     "title": "Zhen Dao Ge 3",
@@ -301335,7 +302050,8 @@ anime_database = {
         "title": "Piaomiao Jian Xian Zhuan",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx206256-W1oLDfTA8NCl.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "lang-lang-shan-xiao-yao-guai": {
     "title": "Lang Lang Shan Xiao Yao Guai",
@@ -301579,7 +302295,8 @@ anime_database = {
         "title": "Koikeya SDGs Theater Suss & Tina Season 5",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b204620-S0YODT7DkluN.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "xianwu-zhuan-4": {
     "title": "Xianwu Zhuan 4",
@@ -301701,7 +302418,8 @@ anime_database = {
         "title": "Quantum Heroes Dinoster 2nd Season",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b193468-W4omLbJ4MTTs.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "2200-nen-neko-no-kuni-nippon": {
     "title": "2200-nen Neko no Kuni Nippon",
@@ -301884,7 +302602,9 @@ anime_database = {
         "title": "Clannad",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx2167-pSDBcyc0vjej.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "fuun-kara-no-saikyou-otoko": {
     "title": "Fuun Kara no Saikyou Otoko",
@@ -301945,7 +302665,8 @@ anime_database = {
         "title": "Honkai: Star Rail  — The Destiny of Each New Dawn",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx206290-iXvhfXiy4W9H.png"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "kanagawa-elves": {
     "title": "Kanagawa Elves",
@@ -302433,7 +303154,9 @@ anime_database = {
         "title": "Rozen Maiden",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx64-JsxXAcf3ZKo1.png"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "huyao-xiao-hongniang-huang-feng-ling": {
     "title": "Huyao Xiao Hongniang: Huang Feng Ling",
@@ -302555,7 +303278,8 @@ anime_database = {
         "title": "Ohayou! Spank",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/2912-ruRDeiKzm19X.png"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "quanzhi-gaoshou-4": {
     "title": "Quanzhi Gaoshou 4",
@@ -302616,7 +303340,8 @@ anime_database = {
         "title": "Daikenja Riddle no Jikan Gyakko",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx210375-Nfj4cciZ35un.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "wangu-jian-di": {
     "title": "Wangu Jian Di",
@@ -302860,7 +303585,10 @@ anime_database = {
         "title": "LOVE FLOPS",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx146676-8hkJxhY3b4tX.jpg"
       }
-    ]
+    ],
+    "start_year": 2025,
+    "start_month": 8,
+    "start_day": 8
   },
   "zui-qiang-shengji": {
     "title": "Zui Qiang Shengji",
@@ -304080,7 +304808,9 @@ anime_database = {
         "title": "Tetsujin 28",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b2337-5bWtfDud2VHi.png"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "akuyaku-reijou-no-tsuihougo-kyoukai-kaikaku-gohan-de-yuuyuu-sister-kurashii": {
     "title": "Akuyaku Reijou no Tsuihougo! Kyoukai Kaikaku Gohan de Yuuyuu Sister Kurashii",
@@ -304446,7 +305176,9 @@ anime_database = {
         "title": "Calico Critters: Mini Episodes -Ivy-",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b187053-KFJCIPQQGZEm.png"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "oishinbo-pilot": {
     "title": "Oishinbo Pilot",
@@ -306154,7 +306886,10 @@ anime_database = {
         "title": "Nippon Tanjou",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx213370-QB4lsx0wlIrd.jpg"
       }
-    ]
+    ],
+    "start_year": 2025,
+    "start_month": 6,
+    "start_day": 5
   },
   "fanren-xiu-xian-zhuan-movie": {
     "title": "Fanren Xiu Xian Zhuan Movie",
@@ -306215,7 +306950,9 @@ anime_database = {
         "title": "The Disappearance of Conan Edogawa: The Worst Two Days in History",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx20878-p6VBv7uw1QFV.jpg"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 5
   },
   "xiao-xian-zhi-yao": {
     "title": "Xiao Xian Zhi Yao",
@@ -306459,7 +307196,12 @@ anime_database = {
         "title": "SPY x FAMILY",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx140960-Kb6R5nYQfjmP.jpg"
       }
-    ]
+    ],
+    "next_episode": 5,
+    "next_episode_at": 1785765600,
+    "start_year": 2026,
+    "start_month": 7,
+    "start_day": 6
   },
   "fate-rewinder": {
     "title": "Fate Rewinder",
@@ -306520,7 +307262,9 @@ anime_database = {
         "title": "Ootsuchi Kai Monogatari",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b200372-ZJi7NVV7dexu.png"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 4
   },
   "99-kai-danzai-sareta-loop-reijou-desu-ga-konse-wa-chouzetsu-aisare-mode-desu-tte-shin-no-chikara-ni-mezamete-hajimaru-100-kaime-no-jinsei": {
     "title": "99-kai Danzai sareta Loop Reijou desu ga Konse wa \"Chouzetsu Aisare Mode\" desu tte!? Shin no Chikara ni Mezamete Hajimaru 100-kaime no Jinsei",
@@ -306642,7 +307386,9 @@ anime_database = {
         "title": "Quanzhi Gaoshou 4",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx198705-JSOLxMF86quw.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "itou-junji-crimson": {
     "title": "Itou Junji: Crimson",
@@ -306947,7 +307693,8 @@ anime_database = {
         "title": "The Unwanted Undead Adventurer",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx147642-SztpXNn9ke6P.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "a-rank-party-wo-ridatsu-shita-ore-wa-moto-oshiegotachi-to-meikyuu-shinbu-wo-mezasu-2nd-season": {
     "title": "A-Rank Party wo Ridatsu Shita Ore wa, Moto Oshiegotachi to Meikyuu Shinbu wo Mezasu. 2nd Season",
@@ -307435,7 +308182,8 @@ anime_database = {
         "title": "Fukufuku no Chizu",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx206889-tFp183WYntKw.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "bousei-no-volicia-dai-ni-shou-gunjou": {
     "title": "Bousei no Volicia Dai Ni Shou: Gunjou",
@@ -307679,7 +308427,12 @@ anime_database = {
         "title": "Watame Did Borderline Nothing Wrong",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx146004-hH08KAB1yHlN.png"
       }
-    ]
+    ],
+    "next_episode": 44,
+    "next_episode_at": 1786014000,
+    "start_year": 2025,
+    "start_month": 10,
+    "start_day": 2
   },
   "charisma-pizza-party": {
     "title": "Charisma Pizza Party",
@@ -307862,7 +308615,12 @@ anime_database = {
         "title": "Shinya Ramen no Yuuwaku: SUNTORY Karada wo Omou All-Free CM",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx199371-gxvEDjfgJQQS.png"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1802271600,
+    "start_year": 2027,
+    "start_month": 2,
+    "start_day": 11
   },
   "honkaku-lemon-anime-196-ichikyuuroku": {
     "title": "Honkaku Lemon Anime: -196 (#ichikyuuroku)",
@@ -307984,7 +308742,9 @@ anime_database = {
         "title": "Sekai no Ouja: King Kong Taikai",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b208836-mQFIloR7mSkK.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "saishuu-gakushou-hibike-euphonium-kouhen": {
     "title": "Saishuu Gakushou Hibike! Euphonium - Kouhen",
@@ -308045,7 +308805,12 @@ anime_database = {
         "title": "Heaven's Memo Pad",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx10568-QZbLhgMAQC76.jpg"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1789052400,
+    "start_year": 2026,
+    "start_month": 9,
+    "start_day": 11
   },
   "dotori-munhwasenteo": {
     "title": "Dotori Munhwasenteo",
@@ -308167,7 +308932,9 @@ anime_database = {
         "title": "UniteUp!",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx154969-dEPbdET6V9Uk.jpg"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "foxing-kitsun-tsuki": {
     "title": "FOXING: Kitsuné-tsuki",
@@ -308350,7 +309117,10 @@ anime_database = {
         "title": "Blue Exorcist",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx9919-nXS7JOZrWHfS.jpg"
       }
-    ]
+    ],
+    "start_year": 2025,
+    "start_month": 7,
+    "start_day": 2
   },
   "fudanshi-shoukan-isekai-de-shinjuu-ni-hameraremashita-7th-season": {
     "title": "Fudanshi Shoukan: Isekai de Shinjuu ni Hameraremashita 7th Season",
@@ -308533,7 +309303,8 @@ anime_database = {
         "title": "The Eden of Grisaia",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21006-nJI2WD4PoUUL.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "s-rank-party-kara-kaikosareta-jugushi": {
     "title": "S-Rank Party Kara Kaikosareta [Jugushi]",
@@ -310302,7 +311073,8 @@ anime_database = {
         "title": "My Home Hero",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx151189-1oteiBRjwIzU.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "gowest-overworked": {
     "title": "GoWest: Overworked",
@@ -311095,7 +311867,8 @@ anime_database = {
         "title": "Hangyodon no Parallel Daisakusen",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx201851-eX2zNQyNKE7S.jpg"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "charisma-picnic": {
     "title": "Charisma Picnic",
@@ -311949,7 +312722,10 @@ anime_database = {
         "title": "Yi Ren Zhi Xia 4",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx122631-YLTfCEyYzQa5.jpg"
       }
-    ]
+    ],
+    "start_year": 2022,
+    "start_month": 1,
+    "start_day": 5
   },
   "yurukawa-mell-chan": {
     "title": "Yurukawa Mell-chan",
@@ -312864,7 +313640,8 @@ anime_database = {
         "title": "Moribito: Guardian of the Spirit",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx1827-snIp62SY7ZFK.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "sumikko-gurashi-koko-ga-ochitsukun-desu": {
     "title": "Sumikko Gurashi: Koko ga Ochitsukun Desu",
@@ -313962,7 +314739,12 @@ anime_database = {
         "title": "Rin-ne 3",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx97670-OeUijqB6qWns.jpg"
       }
-    ]
+    ],
+    "next_episode": 17,
+    "next_episode_at": 1788145200,
+    "start_year": 2025,
+    "start_month": 4,
+    "start_day": 30
   },
   "go-go-vehicle-zoo-norimono-star-hen": {
     "title": "Go! Go! Vehicle Zoo: Norimono Star-hen",
@@ -314328,7 +315110,12 @@ anime_database = {
         "title": "Beck: Mongolian Chop Squad",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx57-4wTOlaVSgKoy.png"
       }
-    ]
+    ],
+    "next_episode": 43,
+    "next_episode_at": 1785927600,
+    "start_year": 2025,
+    "start_month": 10,
+    "start_day": 15
   },
   "neo-atom-tanjou": {
     "title": "Neo Atom Tanjou",
@@ -316280,7 +317067,10 @@ anime_database = {
         "title": "MUZIK TIGER In the Forest 2",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx195383-v8nJ26HD0Lcd.png"
       }
-    ]
+    ],
+    "start_year": 2025,
+    "start_month": 3,
+    "start_day": 14
   },
   "oideyo-mahou-shoujo-mura-fuhou-senkyo": {
     "title": "Oideyo Mahou Shoujo-mura (Fuhou Senkyo)",
@@ -316402,7 +317192,8 @@ anime_database = {
         "title": "BAZUBI BAZAB",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx206059-UuZwkWRTqKCs.png"
       }
-    ]
+    ],
+    "start_year": 2026
   },
   "houkago-kitaku-biyori": {
     "title": "Houkago Kitaku Biyori",
@@ -318049,7 +318840,9 @@ anime_database = {
         "title": "Ahoy!! Warera Houshou Kaizoku-dan☆",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx126663-2pLabPEYeBQm.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "kimetsu-no-yaiba-x-mlb-tokyo-series-presented-by-guggenheim": {
     "title": "Kimetsu no Yaiba x MLB Tokyo Series presented by Guggenheim",
@@ -318232,7 +319025,9 @@ anime_database = {
         "title": "Girls' Last Tour",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx99420-k5Tel6yRMwA8.png"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 4
   },
   "as-one": {
     "title": "AS ONE",
@@ -318354,7 +319149,9 @@ anime_database = {
         "title": "Kyousougiga",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx19703-OpohqKDqXIp9.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "hypnosis-mic-division-rap-battle-movie": {
     "title": "Hypnosis Mic -Division Rap Battle- Movie",
@@ -320062,7 +320859,10 @@ anime_database = {
         "title": "Street Fighter II: The Animated Movie",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/nx1362-Z5U3WEbo0Q6H.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 4,
+    "start_day": 23
   },
   "juan-siliang-3rd-season": {
     "title": "Juan Siliang 3rd Season",
@@ -321038,7 +321838,12 @@ anime_database = {
         "title": "K-ON! Season 1 Shorts",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b7017-RSDr6q8vwKf1.png"
       }
-    ]
+    ],
+    "next_episode": 1,
+    "next_episode_at": 1791559800,
+    "start_year": 2026,
+    "start_month": 10,
+    "start_day": 10
   },
   "himekishi-sama-no-himo": {
     "title": "Himekishi-sama no Himo",
@@ -321099,7 +321904,9 @@ anime_database = {
         "title": "Raised by Demons: Panda Li",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx211220-fkWS8gCM2rA5.png"
       }
-    ]
+    ],
+    "start_year": 2027,
+    "start_month": 1
   },
   "kagaku-bouken-survival-2nd-season": {
     "title": "Kagaku×Bouken Survival! 2nd Season",
@@ -321526,7 +322333,9 @@ anime_database = {
         "title": "Samishii Anata",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx199796-W6loqhQGnFeE.png"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 10
   },
   "araiguma-calcal-dan": {
     "title": "Araiguma Calcal-dan",
@@ -322563,7 +323372,8 @@ anime_database = {
         "title": "The Richest Man in Game",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx156112-If6wtrHYjMu9.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "neet-kunoichi-to-naze-ka-dousei-hajimemashita-ovas": {
     "title": "NEET Kunoichi to Naze ka Dousei Hajimemashita OVAs",
@@ -326589,7 +327399,10 @@ anime_database = {
         "title": "Tunshi Xingkong Movie: Xueluo Dalu",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx185724-hXLbQZpEDQ9g.png"
       }
-    ]
+    ],
+    "start_year": 2024,
+    "start_month": 10,
+    "start_day": 2
   },
   "zhen-hun-jie-4": {
     "title": "Zhen Hun Jie 4",
@@ -326772,7 +327585,10 @@ anime_database = {
         "title": "Ragna Crimson",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx146493-bThyDJ4ZmbfV.jpg"
       }
-    ]
+    ],
+    "start_year": 2024,
+    "start_month": 11,
+    "start_day": 30
   },
   "sai-kyo-oh-zukan-the-ultimate-tournament": {
     "title": "Sai-Kyo-Oh! Zukan: The Ultimate Tournament",
@@ -329700,7 +330516,10 @@ anime_database = {
         "title": "Interstella 5555: The 5tory of the 5ecret 5tar 5ystem",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx731-aoWO30cMR4yO.jpg"
       }
-    ]
+    ],
+    "start_year": 2026,
+    "start_month": 4,
+    "start_day": 16
   },
   "white-drizzle-in-gloom": {
     "title": "white drizzle in gloom",
@@ -331835,7 +332654,8 @@ anime_database = {
         "title": "POP POP CITY",
         "image": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b185889-nAm6STtvG5aM.jpg"
       }
-    ]
+    ],
+    "start_year": 2027
   },
   "agent-blue": {
     "title": "Agent Blue",

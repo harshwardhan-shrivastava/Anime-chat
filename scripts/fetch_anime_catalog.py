@@ -35,6 +35,7 @@ API_URL = "https://graphql.anilist.co"
 RAW_CACHE = "anime_catalog_raw.json"
 OFFICIAL_CACHE = "anime_official_images.json"
 STREAMING_CACHE = "anime_streaming.json"
+SCHEDULE_CACHE = "anime_schedule.json"
 OUT_FILE = "anime_data.py"
 
 TARGET_NEW = 5000      # add this many NEW entries beyond the existing ones
@@ -89,6 +90,23 @@ query ($ids: [Int]) {
         title
         url
         site
+      }
+    }
+  }
+}
+"""
+
+SCHEDULE_QUERY = """
+query ($ids: [Int]) {
+  Page(page: 1, perPage: 50) {
+    media(id_in: $ids, type: ANIME) {
+      id
+      status
+      startDate { year month day }
+      nextAiringEpisode {
+        episode
+        airingAt
+        timeUntilAiring
       }
     }
   }
@@ -186,6 +204,20 @@ def fetch_page(page, sort):
     data = resp.json()
     if "errors" in data:
         raise RuntimeError(f"AniList error on page {page} ({sort}): {data['errors']}")
+    return data.get("data", {}).get("Page", {}).get("media", [])
+
+
+def fetch_schedule_batch(ids):
+    """Fetch startDate + nextAiringEpisode for a batch of media ids (max ~50)."""
+    resp = requests.post(
+        API_URL,
+        json={"query": SCHEDULE_QUERY, "variables": {"ids": ids}},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if "errors" in data:
+        raise RuntimeError(f"AniList schedule error: {data['errors']}")
     return data.get("data", {}).get("Page", {}).get("media", [])
 
 
@@ -340,6 +372,9 @@ def main():
                         metavar="N",
                         help="fetch legal streaming platforms for the top N titles "
                              "(resumable via the cache)")
+    parser.add_argument("--schedule", action="store_true",
+                        help="fetch airing schedule (next episode + start date) for "
+                             "all Ongoing/Upcoming titles (resumable via the cache)")
     args = parser.parse_args()
 
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -424,6 +459,47 @@ def main():
               flush=True)
         return
 
+    if args.schedule:
+        # Ongoing/Upcoming titles from the current catalog on disk.
+        ids = []
+        seen = set()
+        for entry in anime_data.anime_database.values():
+            if entry.get("status") not in ("Ongoing", "Upcoming"):
+                continue
+            aid = entry.get("anilist_id")
+            if aid and aid not in seen:
+                seen.add(aid)
+                ids.append(aid)
+        print(f"Schedule enrichment: {len(ids)} Ongoing/Upcoming titles", flush=True)
+
+        cache = load_json(SCHEDULE_CACHE)
+        pending = [i for i in ids if str(i) not in cache]
+        print(f"  {len(pending)} pending ({len(ids) - len(pending)} already cached)",
+              flush=True)
+
+        for i in range(0, len(pending), 50):
+            batch = pending[i:i + 50]
+            for attempt in range(3):
+                try:
+                    media = fetch_schedule_batch(batch)
+                    for m in media:
+                        cache[str(m["id"])] = {
+                            "status": m.get("status"),
+                            "startDate": m.get("startDate"),
+                            "nextAiringEpisode": m.get("nextAiringEpisode"),
+                        }
+                    save_json(SCHEDULE_CACHE, cache)
+                    print(f"  batch {i // 50 + 1}: {len(media)} titles", flush=True)
+                    break
+                except Exception as exc:
+                    print(f"  batch {i // 50 + 1} attempt {attempt + 1} failed: {exc}",
+                          flush=True)
+                    time.sleep(15 + attempt * 15)
+            time.sleep(SLEEP)
+        print(f"Schedule enrichment done. Cache covers {len(cache)} titles.",
+              flush=True)
+        return
+
     if args.build:
         existing_titles = {norm(e.get("title", "")) for e in existing.values()}
         existing_slugs = set(existing.keys())
@@ -504,6 +580,30 @@ def main():
             hit = official.get(slug)
             if isinstance(hit, dict) and hit.get("id"):
                 entry["anilist_id"] = hit["id"]
+
+        # Merge airing-schedule info (next episode airing + start date) for
+        # Ongoing/Upcoming titles so New/Upcoming pages show live info.
+        sched_cache = load_json(SCHEDULE_CACHE)
+        sched_merged = 0
+        for slug, entry in merged.items():
+            aid = entry.get("anilist_id")
+            info = sched_cache.get(str(aid)) if aid else None
+            if not info:
+                continue
+            nxt = info.get("nextAiringEpisode") or {}
+            if nxt.get("episode"):
+                entry["next_episode"] = nxt["episode"]
+            if nxt.get("airingAt"):
+                entry["next_episode_at"] = nxt["airingAt"]
+            sd = info.get("startDate") or {}
+            if sd.get("year"):
+                entry["start_year"] = sd.get("year")
+            if sd.get("month"):
+                entry["start_month"] = sd.get("month")
+            if sd.get("day"):
+                entry["start_day"] = sd.get("day")
+            sched_merged += 1
+        print(f"  entries with airing schedule: {sched_merged}", flush=True)
 
         # Merge legal streaming platforms (name + Sub/Dub + region note) for
         # any entry with a cached enrichment. Hand-curated streaming stays.

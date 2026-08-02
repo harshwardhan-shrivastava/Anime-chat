@@ -197,29 +197,11 @@ nav{
 
     font-weight:600;
 
-    transition:.35s;
+    transition:.3s;
 
-    position:relative;
+    padding:8px 14px;
 
-}
-
-.nav-links a::after{
-
-    content:"";
-
-    position:absolute;
-
-    left:0;
-
-    bottom:-8px;
-
-    width:0;
-
-    height:2px;
-
-    background:#8F5BFF;
-
-    transition:.35s;
+    border-radius:10px;
 
 }
 
@@ -227,11 +209,7 @@ nav{
 
     color:white;
 
-}
-
-.nav-links a:hover::after{
-
-    width:100%;
+    background:rgba(255,255,255,.06);
 
 }
 

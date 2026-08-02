@@ -1,5 +1,7 @@
+import calendar
 import functools
 import os
+import time
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -41,11 +43,13 @@ def anime_img(image):
 # scripts/fetch_anime_catalog.py). Helpers below build sorted/filtered views.
 
 SORT_TITLES = {
+    "new": "Airing Now",
     "latest": "Latest Releases",
     "popular": "Most Popular",
     "trending": "Trending Now",
     "critics": "Critics' Picks",
     "underrated": "Hidden Gems (Underrated)",
+    "upcoming": "Upcoming",
 }
 
 
@@ -94,7 +98,13 @@ def _sort_value(entry, sort):
 
 def _catalog_entries(sort="latest", genre=None, limit=None):
     """Return catalog entries enriched with live rating/votes, sorted and
-    optionally filtered by genre. Used by home + browse + category pages."""
+    optionally filtered by genre. Used by home + browse + category pages.
+
+    "new" shows anime AIRING NOW (next episode countdown, soonest first),
+    "upcoming" shows titles not yet released (expected start date, soonest
+    first), and "latest" excludes upcoming titles so the homepage never
+    mixes them with actual releases.
+    """
     all_stats = get_all_anime_stats()
 
     entries = []
@@ -103,6 +113,14 @@ def _catalog_entries(sort="latest", genre=None, limit=None):
             genres = entry.get("genre", "").lower()
             if genre.lower() not in genres:
                 continue
+
+        status = entry.get("status", "")
+        if sort == "new" and status != "Ongoing":
+            continue
+        if sort == "upcoming" and status != "Upcoming":
+            continue
+        if sort == "latest" and status == "Upcoming":
+            continue
 
         stats = all_stats.get(slug, {"votes": 0, "average": 0})
         live_rating = stats["average"] if stats["votes"] > 0 else entry.get("rating", "N/A")
@@ -116,14 +134,65 @@ def _catalog_entries(sort="latest", genre=None, limit=None):
             "rating": entry.get("rating", "N/A"),
             "release": entry.get("release", ""),
             "genre": entry.get("genre", ""),
-            "status": entry.get("status", ""),
+            "status": status,
+            "next_episode": entry.get("next_episode"),
+            "next_episode_at": entry.get("next_episode_at"),
+            "start_year": entry.get("start_year"),
+            "start_month": entry.get("start_month"),
         })
 
-    entries.sort(key=lambda e: _sort_value(e, sort), reverse=True)
+    if sort in ("new", "upcoming"):
+        # Airing now: soonest next episode first. Upcoming: soonest start.
+        if sort == "new":
+            entries.sort(key=lambda e: (0, e["next_episode_at"] or 0)
+                         if e["next_episode_at"] else (1, 0))
+        else:
+            entries.sort(key=lambda e: (0, e["start_year"] or 0, e["start_month"] or 0)
+                         if e["start_year"] else (1, 0, 0))
+    else:
+        entries.sort(key=lambda e: _sort_value(e, sort), reverse=True)
 
     if limit:
         entries = entries[:limit]
 
+    return entries
+
+
+def _episode_badge(entry):
+    """Humanized 'next episode' label for the Airing Now view."""
+    at = entry.get("next_episode_at")
+    n = entry.get("next_episode")
+    if not at or not n:
+        return "AIRING NOW"
+    delta = at - time.time()
+    if delta <= 0:
+        return f"EP {n} JUST AIRED"
+    days = delta / 86400
+    if days < 1:
+        return f"EP {n} TODAY"
+    if days < 2:
+        return f"EP {n} TOMORROW"
+    return f"EP {n} IN {int(days)}D"
+
+
+def _start_badge(entry):
+    """Humanized expected-start label for the Upcoming view."""
+    y = entry.get("start_year")
+    m = entry.get("start_month")
+    if y and m and 1 <= m <= 12:
+        return f"EXP {calendar.month_abbr[m].upper()} {y}"
+    if y:
+        return f"EXP {y}"
+    return "UPCOMING"
+
+
+def _decorate(entries, sort):
+    """Attach per-card badges for the Airing Now / Upcoming views."""
+    for entry in entries:
+        if sort == "new":
+            entry["badge_label"] = _episode_badge(entry)
+        elif sort == "upcoming":
+            entry["badge_label"] = _start_badge(entry)
     return entries
 
 
@@ -147,7 +216,7 @@ def browse():
     if sort not in SORT_TITLES:
         sort = "popular"
 
-    entries = _catalog_entries(sort=sort)
+    entries = _decorate(_catalog_entries(sort=sort), sort)
 
     return render_template(
         "browse.html",
@@ -161,7 +230,7 @@ def browse():
 
 @app.route("/category/<genre>")
 def category(genre):
-    entries = _catalog_entries(sort="popular", genre=genre)
+    entries = _decorate(_catalog_entries(sort="popular", genre=genre), "popular")
 
     return render_template(
         "browse.html",
@@ -207,7 +276,8 @@ def anime(anime_slug):
 
     return render_template(
         "anime.html",
-        anime=anime
+        anime=anime,
+        next_episode_label=_episode_badge(anime),
     )
 
 

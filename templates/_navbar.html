@@ -10,7 +10,9 @@
 
     <div class="nav-links">
 
-        <a href="{{ url_for('browse', sort='latest') }}">New</a>
+        <a href="{{ url_for('browse', sort='new') }}">New</a>
+
+        <a href="{{ url_for('browse', sort='upcoming') }}">Upcoming</a>
 
         <a href="{{ url_for('browse', sort='popular') }}">Popular</a>
 
@@ -28,9 +30,11 @@
 
                 <div class="cat-col cat-browse">
 
-                    <a href="{{ url_for('browse', sort='popular') }}">Browse All (A–Z)</a>
+                    <a href="{{ url_for('browse', sort='new') }}">Airing Now</a>
 
-                    <a href="{{ url_for('browse', sort='latest') }}">Release Calendar</a>
+                    <a href="{{ url_for('browse', sort='upcoming') }}">Upcoming</a>
+
+                    <a href="{{ url_for('browse', sort='popular') }}">Browse All (A–Z)</a>
 
                 </div>
 

@@ -52,6 +52,15 @@
     <p class="browse-sub">
         Every <strong>{{ active_genre }}</strong> anime in the library, ranked by popularity.
     </p>
+    {% elif active_sort == "new" %}
+    <p class="browse-sub">
+        Live airing schedule — the next episode countdown for every anime
+        releasing right now. New episodes land here the moment they air.
+    </p>
+    {% elif active_sort == "upcoming" %}
+    <p class="browse-sub">
+        Not out yet — soonest expected release dates first.
+    </p>
     {% else %}
     <p class="browse-sub">
         Browse the full {{ anime_list | length }}+ title catalog — ranked for you.
