@@ -262,6 +262,34 @@ def get_online_users(anime_slug, active_seconds=60):
     return rows
 
 
+def get_all_anime_stats():
+    """Returns {slug: {"votes": n, "average": x}} for every anime in one
+    query -- used by the home page so a 1000+ title catalog doesn't fire
+    thousands of separate SQLite queries."""
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT anime_slug, COUNT(*) AS votes, AVG(rating) AS avg_rating
+        FROM reviews
+        GROUP BY anime_slug
+        """
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return {
+        row["anime_slug"]: {
+            "votes": row["votes"],
+            "average": round(row["avg_rating"], 2) if row["avg_rating"] is not None else 0,
+        }
+        for row in rows
+    }
+
+
 def get_anime_stats(anime_slug):
     """Returns average rating, vote count, star breakdown, and all reviews
     for a given anime, computed live from the reviews table."""

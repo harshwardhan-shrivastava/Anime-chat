@@ -3,9 +3,9 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from flask import Flask, render_template, request, jsonify, g
+from flask import Flask, render_template, request, jsonify, g, url_for
 from anime_data import anime_database
-from database import create_tables, get_connection, get_anime_stats, add_review
+from database import create_tables, get_connection, get_anime_stats, get_all_anime_stats, add_review
 
 from auth import auth, load_logged_in_user
 from chat import chat_bp
@@ -26,64 +26,25 @@ def _attach_user():
 def _inject_user():
     return {"current_user": g.get("user")}
 
+
+@app.template_filter("anime_img")
+def anime_img(image):
+    """Templates call {{ image | anime_img }}. Local filenames resolve to
+    /static/images/anime/<name>; full URLs (AniList CDN) pass through."""
+    if image.startswith(("http://", "https://")):
+        return image
+    return url_for("static", filename="images/anime/" + image)
+
+
+# The full catalog lives in anime_data.py (now 1000+ titles, auto-generated
+# by scripts/fetch_anime_catalog.py). The home page grid is built from it.
 anime_list = [
-    {"title": "Demon Slayer", "image": "demon_slayer.jpg"},
-    {"title": "One Piece", "image": "one_piece.jpg"},
-    {"title": "Naruto", "image": "naruto.jpg"},
-    {"title": "Dragon Ball Z", "image": "dragon_ball_z.jpg"},
-    {"title": "Dragon Ball Super", "image": "dragon_ball_super.jpg"},
-    {"title": "Bleach", "image": "bleach.jpg"},
-    {"title": "Fairy Tail", "image": "fairy_tail.jpg"},
-    {"title": "Attack on Titan", "image": "attack_on_titan.jpg"},
-    {"title": "Death Note", "image": "death_note.jpg"},
-    {"title": "Fullmetal Alchemist Brotherhood", "image": "fullmetal_alchemist_brotherhood.jpg"},
-    {"title": "Code Geass", "image": "code_geass.jpg"},
-    {"title": "Sword Art Online", "image": "sword_art_online.jpg"},
-    {"title": "Hunter x Hunter", "image": "hunter_x_hunter.jpg"},
-    {"title": "Tokyo Ghoul", "image": "tokyo_ghoul.jpg"},
-    {"title": "Blue Exorcist", "image": "blue_ex.jpg"},
-    {"title": "Soul Eater", "image": "soul_eater.jpg"},
-    {"title": "Black Butler", "image": "black_butler.jpg"},
-    {"title": "Steins Gate", "image": "steins_gate.jpg"},
-    {"title": "Angel Beats", "image": "angel_beats.jpg"},
-    {"title": "Clannad", "image": "clannad.jpg"},
-    {"title": "Clannad After Story", "image": "clannad_after_story.jpg"},
-    {"title": "Toradora", "image": "toradora.jpg"},
-    {"title": "No Game No Life", "image": "no_game_no_life.jpg"},
-    {"title": "Akame ga Kill", "image": "akame_ga_kill.jpg"},
-    {"title": "Parasyte", "image": "parasyte.jpg"},
-    {"title": "Psycho Pass", "image": "psycho_pass.jpg"},
-    {"title": "Fate Zero", "image": "fate_zero.jpg"},
-    {"title": "Fate UBW", "image": "fate_stay_night.jpg"},
-    {"title": "Noragami", "image": "noragami.jpg"},
-    {"title": "Gintama", "image": "gintama.jpg"},
-    {"title": "Inuyasha", "image": "inuyasha.jpg"},
-    {"title": "Yu Yu Hakusho", "image": "yu_yu_hakusho.jpg"},
-    {"title": "Rurouni Kenshin", "image": "rurouni_kenshin.jpg"},
-    {"title": "Haruhi Suzumiya", "image": "haruhi_suzumiya.jpg"},
-    {"title": "Durarara", "image": "durarara.jpg"},
-    {"title": "Baccano", "image": "baccano.jpg"},
-    {"title": "Kuroko's Basketball", "image": "kurokos_basketball.jpg"},
-    {"title": "Haikyuu", "image": "haikyuu.jpg"},
-    {"title": "Initial D", "image": "initial_d.jpg"},
-    {"title": "Hajime no Ippo", "image": "hajime_no_ippo.jpg"},
-    {"title": "Beelzebub", "image": "beelzebub.jpg"},
-    {"title": "Hitman Reborn", "image": "hitman_reborn.jpg"},
-    {"title": "D.Gray-man", "image": "d_gray_man.jpg"},
-    {"title": "Magi", "image": "magi.jpg"},
-    {"title": "Seven Deadly Sins", "image": "seven_deadly_sins.jpg"},
-    {"title": "Highschool DxD", "image": "highschool_dxd.jpg"},
-    {"title": "Highschool of the Dead", "image": "highschool_of_the_dead.jpg"},
-    {"title": "Elfen Lied", "image": "elfen_lied.jpg"},
-    {"title": "Another", "image": "another.jpg"},
-    {"title": "Mirai Nikki", "image": "mirai_nikki.jpg"},
-    {"title": "Hellsing Ultimate", "image": "hellsing_ultimate.jpg"},
-    {"title": "Black Lagoon", "image": "black_lagoon.jpg"},
-    {"title": "Ergo Proxy", "image": "ergo_proxy.jpg"},
-    {"title": "Monster", "image": "monster.jpg"},
-    {"title": "Evangelion", "image": "evangelion.jpg"},
-    {"title": "Trigun", "image": "trigun.jpg"},
-    {"title": "Samurai Champloo", "image": "samurai_champloo.jpg"}
+    {
+        "slug": slug,
+        "title": entry.get("title", slug),
+        "image": entry.get("image", ""),
+    }
+    for slug, entry in anime_database.items()
 ]
 
 
@@ -99,22 +60,23 @@ def slugify(title):
 
 @app.route("/")
 def home():
-    anime_data = []
+    anime_data_list = []
+
+    all_stats = get_all_anime_stats()
 
     for anime in anime_list:
         anime_copy = anime.copy()
-        slug = slugify(anime["title"])
-        anime_copy["slug"] = slug
+        slug = anime["slug"]
 
-        stats = get_anime_stats(slug)
+        stats = all_stats.get(slug, {"votes": 0, "average": 0})
         anime_copy["live_rating"] = stats["average"] if stats["votes"] > 0 else anime_database.get(slug, {}).get("rating", "N/A")
         anime_copy["live_votes"] = stats["votes"]
 
-        anime_data.append(anime_copy)
+        anime_data_list.append(anime_copy)
 
     return render_template(
         "index.html",
-        anime_list=anime_data
+        anime_list=anime_data_list
     )
 
 
@@ -136,9 +98,7 @@ def community(anime_slug):
     anime = None
 
     for item in anime_list:
-        slug = slugify(item["title"])
-
-        if slug == anime_slug:
+        if item["slug"] == anime_slug:
             anime = item
             break
 

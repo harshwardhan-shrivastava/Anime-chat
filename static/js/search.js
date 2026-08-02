@@ -70,9 +70,13 @@ searchInput.addEventListener("input", () => {
 
         card.className="search-card";
 
+        const imgSrc = anime.image.startsWith("http")
+            ? anime.image
+            : `/static/images/anime/${anime.image}`;
+
         card.innerHTML=`
 
-            <img src="/static/images/anime/${anime.image}">
+            <img src="${imgSrc}" loading="lazy">
 
             <h4>${anime.title}</h4>
 

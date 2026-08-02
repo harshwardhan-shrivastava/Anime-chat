@@ -163,8 +163,9 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
     <div class="hero-banner">
 
         <img
-            src="{{ url_for('static', filename='images/anime/' + anime_image) }}"
-            alt="{{ anime_name }}">
+            src="{{ anime_image | anime_img }}"
+            alt="{{ anime_name }}"
+            loading="lazy">
 
         <div class="hero-overlay"></div>
 

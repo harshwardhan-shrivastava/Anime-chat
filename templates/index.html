@@ -174,8 +174,9 @@
     <a href="/anime/{{ anime.slug }}">
 
         <img
-        src="{{ url_for('static', filename='images/anime/' + anime.image) }}"
-        alt="{{ anime.title }}">
+        src="{{ anime.image | anime_img }}"
+        alt="{{ anime.title }}"
+        loading="lazy">
 
     </a>
 
@@ -248,7 +249,7 @@
 
     <div class="stat-card">
 
-        <h2>57+</h2>
+        <h2>1000+</h2>
 
         <p>Anime Communities</p>
 

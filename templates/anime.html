@@ -52,8 +52,9 @@
 
     <section class="hero">
 
-        <img src="{{ url_for('static', filename='images/anime/' + anime.banner) }}"
-            class="hero-image">
+        <img src="{{ anime.banner | anime_img }}"
+            class="hero-image"
+            loading="lazy">
 
         <div class="hero-overlay"></div>
 
@@ -61,7 +62,7 @@
 
             <div class="poster">
 
-                <img src="{{ url_for('static', filename='images/anime/' + anime.image) }}">
+                <img src="{{ anime.image | anime_img }}" loading="lazy">
 
             </div>
 
@@ -211,6 +212,7 @@
 
         <!-- Seasons -->
 
+    {% if anime.seasons %}
     <section class="content-section">
 
         <h2 class="section-title">
@@ -292,9 +294,11 @@
         </div>
 
     </section>
+    {% endif %}
 
-    <!-- Streaming -->
+        <!-- Streaming -->
 
+    {% if anime.streaming %}
     <section class="content-section">
 
         <h2 class="section-title">
@@ -346,9 +350,11 @@
         </div>
 
     </section>
+    {% endif %}
 
-    <!-- Languages -->
+        <!-- Languages -->
 
+    {% if anime.dub or anime.subtitles %}
     <section class="content-section">
 
         <h2 class="section-title">
@@ -404,6 +410,7 @@
         </div>
 
     </section>
+    {% endif %}
 
     <!-- Community Rating -->
 
@@ -519,8 +526,9 @@
 
     </section>
 
-    <!-- Watch Order -->
+        <!-- Watch Order -->
 
+    {% if anime.watch_order %}
     <section class="content-section">
 
         <h2 class="section-title">
@@ -560,6 +568,7 @@
         </div>
 
     </section>
+    {% endif %}
 
     <!-- Similar Anime -->
 
@@ -579,7 +588,7 @@
 
             <a href="/anime/{{ recommendation.slug }}" class="recommend-card">
 
-                <img src="{{ url_for('static', filename='images/anime/' + recommendation.image) }}">
+                <img src="{{ recommendation.image | anime_img }}" loading="lazy">
 
                 <h3>
 
