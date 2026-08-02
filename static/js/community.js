@@ -471,5 +471,5 @@ if (input) {
 pollMessages();
 refreshPresence();
 
-setInterval(pollMessages, 2500);
+setInterval(pollMessages, 1200);
 setInterval(refreshPresence, 8000);

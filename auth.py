@@ -107,6 +107,16 @@ def signup():
     from services.mailer import send_verification_email
     mail_result = send_verification_email(email, username, verify_url)
 
+    if not mail_result.get("sent"):
+        # No SMTP configured yet, so a verification link can't be delivered
+        # by email. Don't strand the account: verify it right away and log
+        # straight in, so new users (your brother, future members) can start
+        # chatting immediately instead of hitting the verification wall.
+        database.mark_user_verified(user_id)
+        session["user_id"] = user_id
+        flash(f"Welcome, {username}! Your account is ready to chat.", "success")
+        return redirect(url_for("home"))
+
     return render_template(
         "check_email.html",
         email=email,
@@ -172,8 +182,13 @@ def login():
         return render_template("login.html", identifier=identifier, next=next_url)
 
     if not user["is_verified"]:
-        flash("Please verify your email before logging in -- check your inbox.", "error")
-        return render_template("login.html", identifier=identifier, next=next_url, unverified_email=user["email"])
+        if os.environ.get("SMTP_HOST"):
+            flash("Please verify your email before logging in -- check your inbox.", "error")
+            return render_template("login.html", identifier=identifier, next=next_url, unverified_email=user["email"])
+
+        # Dev mode (no mail server): verification links can't be delivered,
+        # so let the user in and mark the account verified on the spot.
+        database.mark_user_verified(user["id"])
 
     session["user_id"] = user["id"]
     flash(f"Welcome back, {user['username']}!", "success")

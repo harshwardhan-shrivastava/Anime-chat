@@ -7,9 +7,13 @@ AVATAR_COLORS = ["#00c16a", "#3b82f6", "#f59e0b", "#ec4899", "#9333ea", "#06b6d4
 
 
 def get_connection():
-    conn = sqlite3.connect(DATABASE)
+    conn = sqlite3.connect(DATABASE, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    try:
+        conn.execute("PRAGMA journal_mode = WAL")
+    except sqlite3.OperationalError:
+        pass  # WAL not available on some filesystems -- busy timeout is enough
     return conn
 
 
@@ -189,15 +193,32 @@ def get_chat_messages(anime_slug, after_id=0, limit=200):
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        SELECT * FROM chat_messages
-        WHERE anime_slug = ? AND id > ?
-        ORDER BY id ASC
-        LIMIT ?
-        """,
-        (anime_slug, after_id, limit)
-    )
+    if after_id:
+        # Incremental: everything newer than the last id the client has.
+        cursor.execute(
+            """
+            SELECT * FROM chat_messages
+            WHERE anime_slug = ? AND id > ?
+            ORDER BY id ASC
+            LIMIT ?
+            """,
+            (anime_slug, after_id, limit)
+        )
+    else:
+        # Fresh page load: show the newest `limit` messages (the live
+        # conversation), not the oldest ones from the start of the chat.
+        cursor.execute(
+            """
+            SELECT * FROM (
+                SELECT * FROM chat_messages
+                WHERE anime_slug = ?
+                ORDER BY id DESC
+                LIMIT ?
+            )
+            ORDER BY id ASC
+            """,
+            (anime_slug, limit)
+        )
 
     rows = [dict(row) for row in cursor.fetchall()]
     conn.close()
