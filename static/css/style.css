@@ -117,7 +117,7 @@ body{
 
 nav{
 
-    width:92%;
+    width:94%;
 
     margin:25px auto;
 
@@ -127,7 +127,9 @@ nav{
 
     align-items:center;
 
-    padding:18px 40px;
+    gap:18px;
+
+    padding:14px 26px;
 
     background:rgba(255,255,255,.05);
 
@@ -156,9 +158,13 @@ nav{
 
     display:flex;
 
-    font-size:34px;
+    font-size:25px;
 
     font-weight:800;
+
+    white-space:nowrap;
+
+    flex-shrink:0;
 
 }
 
@@ -183,7 +189,15 @@ nav{
 
     display:flex;
 
-    gap:45px;
+    align-items:center;
+
+    justify-content:center;
+
+    gap:4px;
+
+    flex:1;
+
+    min-width:0;
 
 }
 
@@ -193,15 +207,17 @@ nav{
 
     color:#D8D8D8;
 
-    font-size:17px;
+    font-size:14.5px;
 
     font-weight:600;
 
     transition:.3s;
 
-    padding:8px 14px;
+    padding:8px 12px;
 
     border-radius:10px;
+
+    white-space:nowrap;
 
 }
 
@@ -210,6 +226,60 @@ nav{
     color:white;
 
     background:rgba(255,255,255,.06);
+
+}
+
+/* NAV RIGHT (auth + mood) */
+
+.nav-right{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    flex-shrink:0;
+
+    white-space:nowrap;
+
+}
+
+.mood-btn{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:8px;
+
+    color:#D8D8D8;
+
+    text-decoration:none;
+
+    font-size:14px;
+
+    font-weight:700;
+
+    padding:9px 16px;
+
+    border-radius:40px;
+
+    border:1px solid rgba(255,255,255,.12);
+
+    background:rgba(255,255,255,.04);
+
+    transition:.3s;
+
+}
+
+.mood-btn:hover{
+
+    color:white;
+
+    border-color:#8F5BFF;
+
+    background:rgba(143,91,255,.12);
 
 }
 
@@ -1058,4 +1128,47 @@ grid-template-columns:1fr;
     .cat-genre-cols{
         grid-template-columns:repeat(2,1fr);
     }
+}
+
+/* ============================
+        NAVBAR RESPONSIVE
+============================ */
+
+@media(max-width:1150px){
+
+    nav{
+        flex-wrap:wrap;
+        row-gap:10px;
+    }
+
+    .nav-links{
+        order:3;
+        flex-basis:100%;
+        justify-content:center;
+        flex-wrap:wrap;
+        row-gap:6px;
+    }
+
+    .nav-right{
+        margin-left:auto;
+    }
+
+}
+
+@media(max-width:640px){
+
+    nav{
+        padding:12px 18px;
+    }
+
+    .nav-right .mood-btn span,
+    .mood-btn{
+        font-size:13px;
+        padding:8px 12px;
+    }
+
+    .logo{
+        font-size:22px;
+    }
+
 }
