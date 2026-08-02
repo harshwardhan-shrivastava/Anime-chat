@@ -1,0 +1,68 @@
+<div class="anime-card"
+     data-title="{{ anime.title }}"
+     data-image="{{ anime.image }}"
+     data-slug="{{ anime.slug }}">
+
+    <!-- Anime Poster -->
+
+    <div class="image-box">
+
+    <a href="/anime/{{ anime.slug }}">
+
+        <img
+        src="{{ anime.image | anime_img }}"
+        alt="{{ anime.title }}"
+        loading="lazy">
+
+    </a>
+
+        <!-- Badge -->
+
+        <div class="anime-badge">
+
+            {{ badge_label | default("POPULAR") }}
+
+        </div>
+
+        <div class="anime-badge rating-badge">
+
+            <i class="fas fa-star"></i>
+            {{ anime.live_rating }}
+
+        </div>
+
+    </div>
+
+    <!-- Card Info -->
+
+    <div class="card-content">
+
+    <h3>
+        {{ anime.title }}
+    </h3>
+
+    <p class="anime-description">
+        {{ anime.genre | default("Join the community, discuss theories, memes, fights, endings and your favorite characters.") }}
+    </p>
+
+    <div class="card-bottom">
+
+        <span class="members">
+            <i class="fas fa-users"></i>
+            {{ anime.member_count | default(0) }} Members
+        </span>
+
+        <span class="heart">
+            <i class="far fa-heart"></i>
+        </span>
+
+        <a href="/community/{{ anime.slug }}" class="enter-chat">
+            Enter Chat
+            <i class="fas fa-arrow-right"></i>
+        </a>
+
+    </div>
+
+</div> <!-- card-content -->
+
+</div> <!-- anime-card -->

@@ -34,6 +34,7 @@ import requests
 API_URL = "https://graphql.anilist.co"
 RAW_CACHE = "anime_catalog_raw.json"
 OFFICIAL_CACHE = "anime_official_images.json"
+STREAMING_CACHE = "anime_streaming.json"
 OUT_FILE = "anime_data.py"
 
 TARGET_NEW = 5000      # add this many NEW entries beyond the existing ones
@@ -77,6 +78,38 @@ query ($q: String) {
   }
 }
 """
+
+STREAMING_QUERY = """
+query ($ids: [Int]) {
+  Page(page: 1, perPage: 50) {
+    media(id_in: $ids, type: ANIME) {
+      id
+      title { romaji english }
+      streamingEpisodes {
+        title
+        url
+        site
+      }
+    }
+  }
+}
+"""
+
+# Platforms we recognise as legitimate streaming services (sub/dub flags are
+# a reasonable generalisation: these services carry English dubs broadly).
+STREAM_SITES = {
+    "crunchyroll": ("Crunchyroll", True),
+    "netflix": ("Netflix", True),
+    "hulu": ("Hulu", True),
+    "hidive": ("HIDIVE", True),
+    "funimation": ("Funimation", True),
+    "amazon": ("Amazon Prime Video", True),
+    "primevideo": ("Amazon Prime Video", True),
+    "disneyplus": ("Disney+", True),
+    "disney+": ("Disney+", True),
+    "youtube": ("YouTube", False),
+    "bilibili": ("Bilibili", False),
+}
 
 TYPE_MAP = {
     "TV": "TV Anime",
@@ -156,6 +189,30 @@ def fetch_page(page, sort):
     return data.get("data", {}).get("Page", {}).get("media", [])
 
 
+def fetch_streaming_batch(ids):
+    """Fetch streamingEpisodes for a batch of media ids (max ~50)."""
+    resp = requests.post(
+        API_URL,
+        json={"query": STREAMING_QUERY, "variables": {"ids": ids}},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if "errors" in data:
+        raise RuntimeError(f"AniList streaming error: {data['errors']}")
+    return data.get("data", {}).get("Page", {}).get("media", [])
+
+
+def platform_info(site, url):
+    """Map a streaming episode to (platform_name, has_dub) using the site
+    field or the URL host. Returns (None, False) for unknown hosts."""
+    host = (site or url or "").lower()
+    for key, value in STREAM_SITES.items():
+        if key in host:
+            return value
+    return (None, False)
+
+
 def search_title(title):
     """Returns the top AniList media match for a title (for poster upgrades)."""
     resp = requests.post(
@@ -220,6 +277,7 @@ def build_entry(m):
         "member_count": m.get("favourites") or 0,
         "message_count": 0,
         "favorite_count": m.get("favourites") or 0,
+        "anilist_id": m.get("id"),
         "quote": quote,
         "quote_author": quote_author,
         "dub": [],
@@ -278,6 +336,10 @@ def main():
                         help="sort order for the --fetch window")
     parser.add_argument("--build", action="store_true",
                         help="build anime_data.py from the cached pages")
+    parser.add_argument("--streaming", nargs="?", type=int, const=500,
+                        metavar="N",
+                        help="fetch legal streaming platforms for the top N titles "
+                             "(resumable via the cache)")
     args = parser.parse_args()
 
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -314,6 +376,52 @@ def main():
                 print(f"  {sort} page {page}: giving up after retries", flush=True)
             time.sleep(SLEEP)
         print(f"Fetched pages {start}-{end} ({sort}). Cache now has {len(cache)} pages.", flush=True)
+        return
+
+    if args.streaming:
+        top_n = args.streaming
+        cache = load_json(RAW_CACHE)
+        # Top titles = popularity pages in order (already cached). Early runs
+        # stored them under plain numeric keys ("1".."100"); later runs use
+        # "POPULARITY_DESC:1..100".
+        ids = []
+        seen = set()
+        for page in range(1, 200):
+            items = cache.get(str(page), []) or cache.get(f"POPULARITY_DESC:{page}", [])
+            for m in items:
+                mid = m.get("id")
+                if mid and mid not in seen:
+                    seen.add(mid)
+                    ids.append(mid)
+            if len(ids) >= top_n:
+                break
+        ids = ids[:top_n]
+
+        stream_cache = load_json(STREAMING_CACHE)
+        pending = [i for i in ids if str(i) not in stream_cache]
+        print(f"Streaming enrichment: {len(ids)} top titles, "
+              f"{len(pending)} pending ({len(ids) - len(pending)} already cached)",
+              flush=True)
+
+        for i in range(0, len(pending), 50):
+            batch = pending[i:i + 50]
+            for attempt in range(3):
+                try:
+                    media = fetch_streaming_batch(batch)
+                    for m in media:
+                        # Cap episodes per title: we only need the platforms.
+                        stream_cache[str(m["id"])] = (m.get("streamingEpisodes") or [])[:5]
+                    save_json(STREAMING_CACHE, stream_cache)
+                    print(f"  batch {i // 50 + 1}: {len(media)} titles enriched",
+                          flush=True)
+                    break
+                except Exception as exc:
+                    print(f"  batch {i // 50 + 1} attempt {attempt + 1} failed: {exc}",
+                          flush=True)
+                    time.sleep(15 + attempt * 15)
+            time.sleep(SLEEP)
+        print(f"Streaming enrichment done. Cache covers {len(stream_cache)} titles.",
+              flush=True)
         return
 
     if args.build:
@@ -388,6 +496,38 @@ def main():
 
         merged = dict(existing)
         merged.update({e["slug"]: e for e in new_entries})
+
+        # Attach AniList ids to the hand-curated originals (from the
+        # official-image search cache) so streaming data can be matched.
+        official = load_json(OFFICIAL_CACHE)
+        for slug, entry in existing.items():
+            hit = official.get(slug)
+            if isinstance(hit, dict) and hit.get("id"):
+                entry["anilist_id"] = hit["id"]
+
+        # Merge legal streaming platforms (name + Sub/Dub + region note) for
+        # any entry with a cached enrichment. Hand-curated streaming stays.
+        stream_cache = load_json(STREAMING_CACHE)
+        for slug, entry in merged.items():
+            if entry.get("streaming"):
+                continue
+            aid = entry.get("anilist_id")
+            if not aid or str(aid) not in stream_cache:
+                continue
+            services = {}
+            for ep in stream_cache[str(aid)]:
+                name, has_dub = platform_info(ep.get("site"), ep.get("url"))
+                if not name or name in services:
+                    continue
+                services[name] = {
+                    "name": name,
+                    "status": "Sub • Dub" if has_dub else "Sub",
+                    "regions": ["Availability varies by region"],
+                }
+            if services:
+                entry["streaming"] = list(services.values())
+        enriched = sum(1 for e in merged.values() if e.get("streaming"))
+        print(f"  entries with streaming platforms: {enriched}", flush=True)
 
         with open(OUT_FILE, "w", encoding="utf-8") as f:
             f.write(

@@ -46,62 +46,7 @@
 
 <!-- ================= NAVBAR ================= -->
 
-<nav>
-
-    <div class="logo">
-
-        <span class="logo-anime">Anime</span>
-
-        <span class="logo-chat">Chat</span>
-
-    </div>
-
-    <div class="nav-links">
-
-        <a href="#">Popular</a>
-
-        <a href="#">Trending</a>
-
-        <a href="#">Critics</a>
-
-        <a href="#">Underrated</a>
-        <a href="#">Categories</a>
-        <a href="{{ url_for('find_mood') }}">Find Your Mood</a>
-    </div>
-
-    <div class="nav-right">
-
-        {% if current_user %}
-
-        <div class="nav-auth-widget">
-
-            <div class="nav-user-pill">
-
-                <span class="nav-user-avatar" style="background:{{ current_user.avatar_color }}">
-                    {{ current_user.username[:2]|upper }}
-                </span>
-
-                <span class="nav-user-name">{{ current_user.username }}</span>
-
-            </div>
-
-            <a href="{{ url_for('auth.logout') }}" class="nav-logout-btn">Logout</a>
-
-        </div>
-
-        {% else %}
-
-        <a href="{{ url_for('auth.login') }}" class="login-btn" style="text-decoration:none;display:inline-block;">
-
-            Login
-
-        </a>
-
-        {% endif %}
-
-    </div>
-
-</nav>
+{% include "_navbar.html" %}
 
 <!-- ================= HERO ================= -->
 
@@ -145,15 +90,22 @@
 
 </section>
 
-<!-- ================= CATEGORY ================= -->
+<!-- ================= LATEST RELEASES ================= -->
 
 <section class="section-title">
 
     <h2>
 
-        Most Popular Anime
+        Latest Releases
 
     </h2>
+
+    <p class="browse-sub">
+        Fresh from the calendar — explore the full library via
+        <a href="{{ url_for('browse', sort='popular') }}" style="color:#8F5BFF;">Popular</a>,
+        <a href="{{ url_for('browse', sort='critics') }}" style="color:#8F5BFF;">Critics</a> or
+        <a href="{{ url_for('browse') }}" style="color:#8F5BFF;">Categories</a>.
+    </p>
 
 </section>
 
@@ -161,85 +113,12 @@
 
 <section class="anime-grid">
 
+{% set badge_label = "NEW" %}
 {% for anime in anime_list %}
 
-<div class="anime-card"
-     data-title="{{ anime.title }}"
-     data-image="{{ anime.image }}">
-
-    <!-- Anime Poster -->
-
-    <div class="image-box">
-
-    <a href="/anime/{{ anime.slug }}">
-
-        <img
-        src="{{ anime.image | anime_img }}"
-        alt="{{ anime.title }}"
-        loading="lazy">
-
-    </a>
-
-        <!-- Popular Badge -->
-
-        <div class="anime-badge">
-
-            POPULAR
-
-        </div>
-
-        <div class="anime-badge rating-badge">
-
-            <i class="fas fa-star"></i>
-            {{ anime.live_rating }}
-
-        </div>
-
-        
-
-       
-
-    </div>
-
-    <!-- Card Info -->
-
-    <div class="card-content">
-
-    <h3>
-        {{ anime.title }}
-    </h3>
-
-    <p class="anime-description">
-        Join the community, discuss theories,
-        memes, fights, endings and your
-        favorite characters.
-    </p>
-
-    <div class="card-bottom">
-
-        <span class="members">
-            <i class="fas fa-users"></i>
-            0 Members
-        </span>
-
-        <span class="heart">
-            <i class="far fa-heart"></i>
-        </span>
-
-        <a href="/community/{{ anime.slug }}" class="enter-chat">
-            Enter Chat
-            <i class="fas fa-arrow-right"></i>
-        </a>
-
-    </div>
-
-</div> <!-- card-content -->
-
-</div> <!-- anime-card -->
+{% include "_anime_card.html" %}
 
 {% endfor %}
-
-
 
 </section>
 
@@ -376,15 +255,15 @@
 
     <div class="footer-links">
 
-        <a href="#">Home</a>
+        <a href="{{ url_for('home') }}">Home</a>
 
-        <a href="#">Popular</a>
+        <a href="{{ url_for('browse', sort='popular') }}">Popular</a>
 
-        <a href="#">Trending</a>
+        <a href="{{ url_for('browse', sort='trending') }}">Trending</a>
 
-        <a href="#">Critics</a>
+        <a href="{{ url_for('browse', sort='critics') }}">Critics</a>
 
-        <a href="#">Underrated</a>
+        <a href="{{ url_for('browse', sort='underrated') }}">Underrated</a>
 
     </div>
 

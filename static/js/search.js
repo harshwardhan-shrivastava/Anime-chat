@@ -1,122 +1,108 @@
 const searchInput = document.getElementById("animeSearch");
 const resultsBox = document.getElementById("searchResults");
 
-const cards = document.querySelectorAll(".anime-card");
+if (!searchInput || !resultsBox) {
+    // No search box on this page — nothing to wire up.
+} else {
 
-const animeList = [];
+    let debounceTimer = null;
 
-cards.forEach(card => {
+    searchInput.addEventListener("input", () => {
 
-    animeList.push({
+        clearTimeout(debounceTimer);
 
-        title: card.dataset.title,
-        image: card.dataset.image,
-        element: card
+        const value = searchInput.value.trim();
 
-    });
+        if (value === "") {
 
-});
+            resultsBox.innerHTML = "";
+            resultsBox.style.display = "none";
+            return;
 
-searchInput.addEventListener("input", () => {
+        }
 
-    const value = searchInput.value.toLowerCase().trim();
+        // Debounce so we hit the API once per keystroke burst.
+        debounceTimer = setTimeout(async () => {
 
-    resultsBox.innerHTML = "";
+            try {
 
-    if(value === ""){
+                const res = await fetch(
+                    `/api/search?q=${encodeURIComponent(value)}`
+                );
 
-        resultsBox.style.display = "none";
-        return;
+                const data = await res.json();
 
-    }
+                resultsBox.innerHTML = "";
 
-    const matches = animeList
-.map(anime => {
+                if (!data.success || !data.results || data.results.length === 0) {
 
-    const title = anime.title.toLowerCase();
-    const words = title.split(" ");
+                    resultsBox.style.display = "none";
+                    return;
 
-    let score = -1;
+                }
 
-    // First word starts with search
-    if(words[0].startsWith(value))
-        score = 3;
+                resultsBox.style.display = "grid";
 
-    // Any other word starts with search
-    else if(words.some(word => word.startsWith(value)))
-        score = 2;
+                data.results.slice(0, 8).forEach(anime => {
 
-    // Search appears anywhere
-    else if(title.includes(value))
-        score = 1;
+                    const card = document.createElement("div");
 
-    return {...anime, score};
+                    card.className = "search-card";
 
-})
-.filter(anime => anime.score > 0)
-.sort((a,b)=>b.score-a.score);
-    if(matches.length === 0){
+                    const imgSrc = anime.image.startsWith("http")
+                        ? anime.image
+                        : `/static/images/anime/${anime.image}`;
 
-        resultsBox.style.display = "none";
-        return;
+                    const meta = [
+                        anime.year ? anime.year : "",
+                        anime.rating && anime.rating !== "N/A"
+                            ? `★ ${anime.rating}`
+                            : ""
+                    ].filter(Boolean).join("  •  ");
 
-    }
+                    card.innerHTML = `
 
-    resultsBox.style.display = "grid";
+                        <img src="${imgSrc}" loading="lazy">
 
-    matches.slice(0,8).forEach(anime=>{
+                        <div class="search-info">
 
-        const card=document.createElement("div");
+                            <h4>${anime.title}</h4>
 
-        card.className="search-card";
+                            ${meta ? `<span class="search-meta">${meta}</span>` : ""}
 
-        const imgSrc = anime.image.startsWith("http")
-            ? anime.image
-            : `/static/images/anime/${anime.image}`;
+                        </div>
 
-        card.innerHTML=`
+                    `;
 
-            <img src="${imgSrc}" loading="lazy">
+                    // Clicking a result opens the anime page directly.
+                    card.onclick = () => {
 
-            <h4>${anime.title}</h4>
+                        window.location.href = `/anime/${anime.slug}`;
 
-        `;
+                    };
 
-        card.onclick=()=>{
+                    resultsBox.appendChild(card);
 
-            anime.element.scrollIntoView({
+                });
 
-                behavior:"smooth",
-                block:"center"
+            } catch (err) {
 
-            });
+                resultsBox.style.display = "none";
 
-            anime.element.style.boxShadow="0 0 35px #8F5BFF";
+            }
 
-            setTimeout(()=>{
-
-                anime.element.style.boxShadow="";
-
-            },1800);
-
-            searchInput.value=anime.title;
-
-            resultsBox.style.display="none";
-
-        };
-
-        resultsBox.appendChild(card);
+        }, 200);
 
     });
 
-});
+    document.addEventListener("click", (e) => {
 
-document.addEventListener("click",(e)=>{
+        if (!e.target.closest(".search-box")) {
 
-    if(!e.target.closest(".search-box")){
+            resultsBox.style.display = "none";
 
-        resultsBox.style.display="none";
+        }
 
-    }
+    });
 
-});
+}

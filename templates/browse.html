@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{{ page_title }} · AnimeChat</title>
+
+    <link rel="stylesheet"
+    href="{{ url_for('static', filename='css/style.css') }}">
+
+    <link rel="stylesheet"
+    href="{{ url_for('static', filename='css/auth.css') }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js"
+    crossorigin="anonymous"></script>
+
+</head>
+
+<body>
+
+<div class="background">
+    <div class="circle one"></div>
+    <div class="circle two"></div>
+    <div class="circle three"></div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-list" style="max-width:1300px;margin:20px auto 0;width:90%;">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+{% endwith %}
+
+{% include "_navbar.html" %}
+
+<!-- ================= BROWSE HEADER ================= -->
+
+<section class="browse-head">
+
+    <h1>{{ page_title }}</h1>
+
+    {% if active_genre %}
+    <p class="browse-sub">
+        Every <strong>{{ active_genre }}</strong> anime in the library, ranked by popularity.
+    </p>
+    {% else %}
+    <p class="browse-sub">
+        Browse the full {{ anime_list | length }}+ title catalog — ranked for you.
+    </p>
+    {% endif %}
+
+    <div class="sort-tabs">
+
+        {% for key, label in sort_titles.items() %}
+        <a href="{{ url_for('browse', sort=key) }}"
+           class="sort-tab {% if active_sort == key %}active{% endif %}">
+            {{ label }}
+        </a>
+        {% endfor %}
+
+    </div>
+
+    {% if active_genre %}
+    <div class="genre-chips">
+
+        {% for genre in genres %}
+        <a href="{{ url_for('category', genre=genre) }}"
+           class="genre-chip {% if active_genre == genre %}active{% endif %}">
+            {{ genre }}
+        </a>
+        {% endfor %}
+
+    </div>
+    {% endif %}
+
+</section>
+
+<!-- ================= GRID ================= -->
+
+<section class="anime-grid">
+
+{% for anime in anime_list %}
+
+{% include "_anime_card.html" %}
+
+{% endfor %}
+
+</section>
+
+<!-- ================= FOOTER ================= -->
+
+<footer>
+
+    <div class="footer-left">
+
+        <h2>
+            AnimeChat
+        </h2>
+
+        <p>
+            The place where every anime has its own community.
+        </p>
+
+    </div>
+
+    <div class="footer-links">
+
+        <a href="{{ url_for('home') }}">Home</a>
+
+        <a href="{{ url_for('browse', sort='popular') }}">Popular</a>
+
+        <a href="{{ url_for('browse', sort='trending') }}">Trending</a>
+
+        <a href="{{ url_for('browse', sort='critics') }}">Critics</a>
+
+        <a href="{{ url_for('browse', sort='underrated') }}">Underrated</a>
+
+    </div>
+
+    <div class="footer-social">
+
+        <a href="#"><i class="fab fa-discord"></i></a>
+
+        <a href="#"><i class="fab fa-github"></i></a>
+
+        <a href="#"><i class="fab fa-reddit"></i></a>
+
+        <a href="#"><i class="fab fa-instagram"></i></a>
+
+    </div>
+
+</footer>
+
+</body>
+
+</html>

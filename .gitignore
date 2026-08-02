@@ -6,3 +6,4 @@ instance/
 # Raw API cache from scripts/fetch_anime_catalog.py (regenerable)
 anime_catalog_raw.json
 anime_official_images.json
+anime_streaming.json
