@@ -38,15 +38,68 @@ STREAMING_CACHE = "anime_streaming.json"
 SCHEDULE_CACHE = "anime_schedule.json"
 OUT_FILE = "anime_data.py"
 
-TARGET_NEW = 5000      # add this many NEW entries beyond the existing ones
-MAX_RAW = 13000        # stop fetching once we have this many raw candidates
+TARGET_NEW = 15000     # add this many NEW entries beyond the existing ones
+MAX_RAW = 45000        # stop fetching once we have this many raw candidates
 PAGE_SIZE = 50
-SLEEP = 1.4            # seconds between API calls (rate limit is 90/min)
+SLEEP = 1.0            # seconds between API calls (rate limit is 90/min)
 
 QUERY = """
 query ($page: Int, $perPage: Int, $sort: [MediaSort]) {
   Page(page: $page, perPage: $perPage) {
     media(sort: $sort, type: ANIME, isAdult: false) {
+      id
+      title { romaji english }
+      coverImage { extraLarge large }
+      bannerImage
+      description
+      averageScore
+      episodes
+      duration
+      status
+      seasonYear
+      genres
+      studios(isMain: true) { nodes { name } }
+      source
+      format
+      favourites
+    }
+  }
+}
+"""
+
+# AniList caps plain Page() paging at 5000 entries total ("Page depth
+# exceeds maximum allowed"). To walk the ENTIRE database we paginate by
+# ID windows instead: each window is 100 pages x 50 titles (5000 entries,
+# under the cap), then we advance id_greater_than past the last ID seen.
+ID_QUERY = """
+query ($page: Int, $perPage: Int, $after: Int) {
+  Page(page: $page, perPage: $perPage) {
+    media(id_greater_than: $after, sort: ID_ASC, type: ANIME, isAdult: false) {
+      id
+      title { romaji english }
+      coverImage { extraLarge large }
+      bannerImage
+      description
+      averageScore
+      episodes
+      duration
+      status
+      seasonYear
+      genres
+      studios(isMain: true) { nodes { name } }
+      source
+      format
+      favourites
+    }
+  }
+}
+"""
+
+SEASON_QUERY = """
+query ($page: Int, $perPage: Int, $season: MediaSeason, $year: Int) {
+  Page(page: $page, perPage: $perPage) {
+    media(season: $season, seasonYear: $year, sort: POPULARITY_DESC,
+          type: ANIME, isAdult: false) {
       id
       title { romaji english }
       coverImage { extraLarge large }
@@ -245,6 +298,41 @@ def platform_info(site, url):
     return (None, False)
 
 
+def fetch_id_window_page(page, after):
+    """Fetch one page of anime with ids greater than `after` (ID_ASC)."""
+    resp = requests.post(
+        API_URL,
+        json={
+            "query": ID_QUERY,
+            "variables": {"page": page, "perPage": PAGE_SIZE, "after": after},
+        },
+        timeout=30,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if "errors" in data:
+        raise RuntimeError(f"AniList error (id> {after} p{page}): {data['errors']}")
+    return data.get("data", {}).get("Page", {}).get("media", [])
+
+
+def fetch_season_page(page, year, season):
+    """Fetch one page of anime from a specific season/year."""
+    resp = requests.post(
+        API_URL,
+        json={
+            "query": SEASON_QUERY,
+            "variables": {"page": page, "perPage": PAGE_SIZE,
+                          "season": season, "year": year},
+        },
+        timeout=30,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if "errors" in data:
+        raise RuntimeError(f"AniList error ({season} {year} p{page}): {data['errors']}")
+    return data.get("data", {}).get("Page", {}).get("media", [])
+
+
 def search_title(title):
     """Returns the top AniList media match for a title (for poster upgrades)."""
     resp = requests.post(
@@ -268,8 +356,12 @@ def load_json(path):
 
 
 def save_json(path, obj):
-    with open(path, "w", encoding="utf-8") as f:
+    # Atomic write: dump to a temp file then rename, so a process kill can
+    # never leave a truncated/poisoned cache behind.
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(obj, f, ensure_ascii=False)
+    os.replace(tmp, path)
 
 
 def build_entry(m):
@@ -328,6 +420,11 @@ def upgrade_original_images(existing):
     cache = load_json(OFFICIAL_CACHE)
     changed = 0
     for slug, entry in existing.items():
+        # Entries whose image is already a full URL came from AniList, so
+        # their poster is already official CDN -- nothing to upgrade. Only
+        # hand-crafted entries with local filenames need a title search.
+        if (entry.get("image") or "").startswith(("http://", "https://")):
+            continue
         title = entry.get("title", slug)
         if slug in cache:
             hit = cache[slug]
@@ -375,17 +472,24 @@ def main():
     parser.add_argument("--schedule", action="store_true",
                         help="fetch airing schedule (next episode + start date) for "
                              "all Ongoing/Upcoming titles (resumable via the cache)")
+    parser.add_argument("--seasons", nargs=2, type=int, metavar=("START_YEAR", "END_YEAR"),
+                        help="fetch EVERY anime season year-by-year (resumable via the "
+                             "cache); re-run until it prints DONE")
+    parser.add_argument("--idfetch", nargs=3, type=int, metavar=("AFTER", "START", "END"),
+                        help="fetch pages START..END of the id_greater_than=AFTER window "
+                             "(ID_ASC, 100-page windows of 5000 titles stay under the "
+                             "AniList page-depth cap); resumable via the cache")
     args = parser.parse_args()
 
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     import anime_data  # noqa: E402
 
-    # Only the hand-curated originals are "existing" (they have seasons/dub/
-    # streaming). Auto-generated entries from earlier runs have empty lists,
-    # so re-running never compounds on its own output.
-    existing = {
+    # The ENTIRE current catalog is the base to preserve; only the hand-
+    # curated originals (seasons/dub/streaming) get official-poster upgrades.
+    current = dict(anime_data.anime_database)
+    hand_curated = {
         k: v
-        for k, v in anime_data.anime_database.items()
+        for k, v in current.items()
         if v.get("seasons") or v.get("dub") or v.get("streaming")
     }
 
@@ -500,10 +604,73 @@ def main():
               flush=True)
         return
 
+    if args.idfetch:
+        after, start, end = args.idfetch
+        cache = load_json(RAW_CACHE)
+        for page in range(start, end + 1):
+            key = f"ID:{after}:{page}"
+            if key in cache:
+                continue
+            for attempt in range(3):
+                try:
+                    media = fetch_id_window_page(page, after)
+                    cache[key] = media
+                    save_json(RAW_CACHE, cache)
+                    print(f"  id>{after} page {page}: {len(media)} titles", flush=True)
+                    break
+                except Exception as exc:
+                    print(f"  id>{after} page {page} attempt {attempt + 1} failed: {exc}",
+                          flush=True)
+                    time.sleep(15 + attempt * 15)
+            else:
+                print(f"  id>{after} page {page}: giving up after retries", flush=True)
+            time.sleep(SLEEP)
+        print(f"Fetched id>{after} pages {start}-{end}. Cache now has {len(cache)} keys.",
+              flush=True)
+        return
+
+    if args.seasons:
+        start_year, end_year = args.seasons
+        seasons = ["WINTER", "SPRING", "SUMMER", "FALL"]
+        cache = load_json(RAW_CACHE)
+        for year in range(start_year, end_year + 1):
+            for season in seasons:
+                done_key = f"SEASON_DONE:{year}:{season}"
+                if cache.get(done_key):
+                    continue
+                for page in range(1, 16):
+                    key = f"SEASON:{year}:{season}:{page}"
+                    if key in cache:
+                        if len(cache[key]) < PAGE_SIZE:
+                            break  # season already fully fetched
+                        continue
+                    for attempt in range(3):
+                        try:
+                            media = fetch_season_page(page, year, season)
+                            cache[key] = media
+                            save_json(RAW_CACHE, cache)
+                            print(f"  {season} {year} p{page}: {len(media)}",
+                                  flush=True)
+                            break
+                        except Exception as exc:
+                            print(f"  {season} {year} p{page} attempt {attempt + 1} "
+                                  f"failed: {exc}", flush=True)
+                            time.sleep(15 + attempt * 15)
+                    else:
+                        print(f"  {season} {year} p{page}: giving up", flush=True)
+                    time.sleep(SLEEP)
+                    if len(cache.get(key, [])) < PAGE_SIZE:
+                        break
+                cache[done_key] = True
+                save_json(RAW_CACHE, cache)
+        print(f"Seasons {start_year}-{end_year} DONE. Cache has {len(cache)} keys.",
+              flush=True)
+        return
+
     if args.build:
-        existing_titles = {norm(e.get("title", "")) for e in existing.values()}
-        existing_slugs = set(existing.keys())
-        for e in existing.values():
+        existing_titles = {norm(e.get("title", "")) for e in current.values()}
+        existing_slugs = set(current.keys())
+        for e in current.values():
             if e.get("slug"):
                 existing_slugs.add(e["slug"])
 
@@ -511,22 +678,31 @@ def main():
         raw_items = []
         seen_ids = set()
         for key in cache:
-            for m in cache[key]:
+            items = cache[key]
+            if not isinstance(items, list):
+                continue  # marker keys like SEASON_DONE:...
+            for m in items:
                 if m.get("id") in seen_ids:
                     continue
                 seen_ids.add(m.get("id"))
                 raw_items.append(m)
 
-        print(f"Existing entries: {len(existing)} | raw candidates: {len(raw_items)}")
+        print(f"Existing entries: {len(current)} | raw candidates: {len(raw_items)}")
 
         # Official posters for the hand-curated originals.
         print("Upgrading original posters to official CDN images...")
-        changed = upgrade_original_images(existing)
-        print(f"  upgraded {changed}/{len(existing)} originals")
+        changed = upgrade_original_images(hand_curated)
+        print(f"  upgraded {changed}/{len(hand_curated)} originals")
 
-        # Dedupe new titles against existing + each other.
+        # Dedupe new titles against existing + each other: exact-title match
+        # only (bucketed by 3-char prefix so this stays O(N)). Franchise
+        # entries ("One Piece" vs "One Piece Film: Red") are distinct
+        # titles with their own community pages, so containment matches are
+        # intentionally NOT used -- they would wrongly drop them.
+        prefix_buckets = {}
+        for used in existing_titles:
+            prefix_buckets.setdefault(used[:3], set()).add(used)
         new_entries = []
-        used_norms = set(existing_titles)
         used_slugs = set(existing_slugs)
         for m in raw_items:
             if len(new_entries) >= TARGET_NEW:
@@ -538,22 +714,18 @@ def main():
             t_norm = norm(title)
             if not t_norm or len(t_norm) < 2:
                 continue
-            skip = False
-            for used in used_norms:
-                if len(used) >= 4 and len(t_norm) >= 4 and (used in t_norm or t_norm in used):
-                    skip = True
-                    break
-            if skip or slug in used_slugs:
+            bucket = prefix_buckets.setdefault(t_norm[:3], set())
+            if t_norm in bucket or slug in used_slugs:
                 continue
             entry = build_entry(m)
-            used_norms.add(t_norm)
+            bucket.add(t_norm)
             used_slugs.add(slug)
             new_entries.append(entry)
 
         print(f"New entries to add: {len(new_entries)}")
 
         # Efficient recommendations: shuffle the pool once, walk it per entry.
-        all_entries = list(existing.values()) + new_entries
+        all_entries = list(current.values()) + new_entries
         pool = [e for e in all_entries if e.get("image")]
         random.seed(42)
         random.shuffle(pool)
@@ -570,13 +742,13 @@ def main():
                 for e in picks
             ]
 
-        merged = dict(existing)
+        merged = dict(current)
         merged.update({e["slug"]: e for e in new_entries})
 
         # Attach AniList ids to the hand-curated originals (from the
         # official-image search cache) so streaming data can be matched.
         official = load_json(OFFICIAL_CACHE)
-        for slug, entry in existing.items():
+        for slug, entry in hand_curated.items():
             hit = official.get(slug)
             if isinstance(hit, dict) and hit.get("id"):
                 entry["anilist_id"] = hit["id"]
