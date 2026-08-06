@@ -577,6 +577,148 @@ nav{
 
 }
 
+.section-note{
+
+    color:#9aa7b5;
+
+    font-size:15px;
+
+    margin:-10px 0 25px;
+
+}
+
+.stream-link{
+
+    display:inline-block;
+
+    margin:4px 0 14px;
+
+    padding:9px 18px;
+
+    border-radius:999px;
+
+    background:rgba(0,193,106,.12);
+
+    color:#00c16a;
+
+    font-size:13px;
+
+    font-weight:600;
+
+    transition:.3s;
+
+}
+
+.stream-link:hover{
+
+    background:#00c16a;
+
+    color:#06121a;
+
+}
+
+.stream-badges{
+
+    display:flex;
+
+    justify-content:center;
+
+    flex-wrap:wrap;
+
+    gap:8px;
+
+    margin-bottom:14px;
+
+}
+
+.badge-meta{
+
+    padding:6px 12px;
+
+    border-radius:999px;
+
+    background:#0f141c;
+
+    color:#9aa7b5;
+
+    font-size:12px;
+
+}
+
+.badge-region{
+
+    padding:6px 12px;
+
+    border-radius:999px;
+
+    font-size:12px;
+
+    font-weight:700;
+
+}
+
+.badge-us{
+
+    background:rgba(60,130,246,.16);
+
+    color:#6ea8ff;
+
+}
+
+.badge-jp{
+
+    background:rgba(255,193,7,.14);
+
+    color:#ffd166;
+
+}
+
+.stream-status{
+
+    display:inline-block;
+
+    padding:7px 16px;
+
+    border-radius:999px;
+
+    background:rgba(0,193,106,.1);
+
+    color:#4ade80;
+
+    font-size:13px;
+
+    font-weight:600;
+
+    margin-bottom:16px;
+
+}
+
+.stream-langs{
+
+    display:flex;
+
+    justify-content:center;
+
+    flex-wrap:wrap;
+
+    gap:10px;
+
+}
+
+.stream-langs span{
+
+    padding:7px 13px;
+
+    border-radius:999px;
+
+    background:#0f141c;
+
+    color:#c5d0dc;
+
+    font-size:12px;
+
+}
+
 .region-list{
 
     display:flex;

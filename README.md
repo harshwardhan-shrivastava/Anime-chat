@@ -40,6 +40,22 @@ Anime discussion platform built with Flask
   shows); `--skip-fetch` applies details from the existing AniList cache
   without hitting the API. Hand-curated entries are never overwritten.
 
+### Real per-country streaming availability (US / Japan) from JustWatch
+- `python3 scripts/enrich_streaming.py --offset N --count M --cache FILE` looks
+  up each title on JustWatch (the same data Google shows in "Where to Watch"
+  boxes, no API key needed) and saves its real providers for the **US** and
+  **Japan**, including each service's audio (dub) and subtitle languages.
+  Each run writes its own cache file (`anime_streaming_jw_*.json`), so you can
+  run several offset windows in parallel; progress is saved every 25 titles so
+  a killed/time-limited run just needs to be re-run to continue.
+- `python3 scripts/enrich_streaming.py --apply` merges every
+  `anime_streaming_jw_*.json` cache into `anime_data.json`.
+- The anime detail page shows "Where to Watch": per-service 🇺🇸/🇯🇵 region
+  badges, watch links, monetization (Streaming / Free / Rent / Buy) and
+  Sub•Dub status derived from the service's real audio-language list.
+  JustWatch rate-limits aggressively (~2k requests before a 403 block), so the
+  full 14k-title catalog is meant to be enriched in chunks over time.
+
 To let two people test it together on different devices, run the app on a
 machine reachable from both (or deploy it somewhere), and have each person sign
 up their own account and open the same `/community/<anime>` page.

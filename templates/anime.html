@@ -330,9 +330,13 @@
 
             <i class="fas fa-tv"></i>
 
-            Streaming Platforms
+            Where to Watch
 
         </h2>
+
+        <p class="section-note">
+            Live streaming availability for <strong>United States</strong> and <strong>Japan</strong>.
+        </p>
 
         <div class="stream-grid">
 
@@ -348,25 +352,67 @@
 
                 </h3>
 
-                <p>
+                {% if service.url %}
+                <a class="stream-link" href="{{ service.url }}" target="_blank" rel="noopener">
+                    Watch now <i class="fas fa-external-link-alt"></i>
+                </a>
+                {% endif %}
+
+                <div class="stream-badges">
+
+                    {% if service.monetization %}
+                    <span class="badge-meta">
+                        {{ service.monetization }}
+                    </span>
+                    {% endif %}
+
+                    {% if "US" in service.regions %}
+                    <span class="badge-region badge-us">
+                        🇺🇸 US
+                    </span>
+                    {% endif %}
+
+                    {% if "JP" in service.regions %}
+                    <span class="badge-region badge-jp">
+                        🇯🇵 JP
+                    </span>
+                    {% endif %}
+
+                    {% for region in service.regions %}
+                    {% if region not in ["US", "JP"] %}
+                    <span class="badge-meta">
+                        {{ region }}
+                    </span>
+                    {% endif %}
+                    {% endfor %}
+
+                </div>
+
+                <p class="stream-status">
 
                     {{ service.status }}
 
                 </p>
 
-                <div class="region-list">
+                {% if service.audio or service.subtitles %}
+                <div class="stream-langs">
 
-                    {% for region in service.regions %}
-
-                    <span>
-
-                        {{ region }}
-
+                    {% if service.audio %}
+                    <span title="Audio languages">
+                        <i class="fas fa-microphone"></i>
+                        {{ service.audio | length }} dub
                     </span>
+                    {% endif %}
 
-                    {% endfor %}
+                    {% if service.subtitles %}
+                    <span title="Subtitle languages">
+                        <i class="fas fa-closed-captioning"></i>
+                        {{ service.subtitles | length }} sub langs
+                    </span>
+                    {% endif %}
 
                 </div>
+                {% endif %}
 
             </div>
 
