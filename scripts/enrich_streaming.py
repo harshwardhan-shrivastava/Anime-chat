@@ -284,6 +284,7 @@ def main():
 
     cache = load_json(args.cache) or {}
     done = 0
+    errors_in_row = 0
     for idx, (slug, entry) in enumerate(window, 1):
         if slug in cache:
             done += 1
@@ -292,8 +293,18 @@ def main():
         want_show = "Movie" not in (entry.get("type") or "")
         try:
             node = search_title(title, want_show)
+            errors_in_row = 0
         except Exception as exc:
-            print(f"  [{idx}] {title}: ERROR {exc}", flush=True)
+            errors_in_row += 1
+            print(f"  [{idx}] {title}: ERROR {str(exc)[:70]}", flush=True)
+            # JustWatch bans the IP after a burst: stop early and save so the
+            # next run can poll for the unblock instead of burning its budget
+            # on doomed requests.
+            if errors_in_row >= 3:
+                print("  3+ consecutive errors (rate limited?) - saving and stopping",
+                      flush=True)
+                save_json(args.cache, cache)
+                return
             time.sleep(2)
             continue
         if node is None:
@@ -311,9 +322,9 @@ def main():
             else:
                 print(f"  [{idx}] {title}: no streamable offers", flush=True)
         done += 1
-        if done % 25 == 0:
+        if done % 5 == 0:
             save_json(args.cache, cache)
-        time.sleep(0.1)
+        time.sleep(1.2)
 
     save_json(args.cache, cache)
     found = sum(1 for v in cache.values() if v)
