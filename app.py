@@ -255,6 +255,10 @@ def _catalog_entries(sort="latest", genre=None, limit=None):
             "next_episode_at": entry.get("next_episode_at"),
             "start_year": entry.get("start_year"),
             "start_month": entry.get("start_month"),
+            "total_episodes": entry.get("total_episodes", 0) or 0,
+            "has_dub": bool(entry.get("dub")),
+            "has_sub": bool(entry.get("subtitles")),
+            "arc_count": len(entry.get("watch_order") or []) or len(entry.get("seasons") or []),
         })
 
     if sort in ("new", "upcoming"):

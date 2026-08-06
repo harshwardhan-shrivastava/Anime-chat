@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Merge cached AniList airing-schedule data (produced by
-scripts/fetch_anime_catalog.py --schedule) into the current anime_data.py
-without regenerating the whole catalog.
+scripts/fetch_anime_catalog.py --schedule) into the current catalog
+(anime_data.json, loaded by anime_data.py) without regenerating the whole
+catalog.
 
 This is a fast fallback for when a full --build is too heavy for a
 short-lived sandbox shell. The same merge also runs inside --build.
@@ -33,12 +34,7 @@ for slug, entry in anime_data.anime_database.items():
         entry["start_day"] = sd.get("day")
     merged += 1
 
-with open("anime_data.py", "w", encoding="utf-8") as f:
-    f.write(
-        "# Auto-generated anime database -- %d titles (script: scripts/fetch_anime_catalog.py).\n"
-        "anime_database = " % len(anime_data.anime_database)
-    )
-    json.dump(anime_data.anime_database, f, ensure_ascii=False, indent=2)
-    f.write("\n")
+with open("anime_data.json", "w", encoding="utf-8") as f:
+    json.dump(anime_data.anime_database, f, ensure_ascii=False, separators=(",", ":"))
 
-print(f"Merged schedule data into {merged} entries. Wrote anime_data.py.")
+print(f"Merged schedule data into {merged} entries. Wrote anime_data.json.")

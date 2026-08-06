@@ -53,6 +53,38 @@
         {{ anime.genre | default("Join the community, discuss theories, memes, fights, endings and your favorite characters.") }}
     </p>
 
+    <div class="card-meta">
+
+        {% if anime.total_episodes %}
+        <span class="chip chip-episodes">
+            <i class="fas fa-clapperboard"></i>
+            {{ anime.total_episodes }} Eps
+        </span>
+        {% endif %}
+
+        {% if anime.has_sub %}
+        <span class="chip chip-sub">
+            <i class="fas fa-closed-captioning"></i>
+            SUB
+        </span>
+        {% endif %}
+
+        {% if anime.has_dub %}
+        <span class="chip chip-dub">
+            <i class="fas fa-microphone"></i>
+            DUB
+        </span>
+        {% endif %}
+
+        {% if anime.arc_count %}
+        <span class="chip chip-arcs">
+            <i class="fas fa-book-open"></i>
+            {{ anime.arc_count }} Arcs
+        </span>
+        {% endif %}
+
+    </div>
+
     <div class="card-bottom">
 
         <span class="members">

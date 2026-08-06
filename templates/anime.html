@@ -9,6 +9,9 @@
 
     <title>{{ anime.title }} | AnimeChat</title>
 
+    <link rel="icon" type="image/svg+xml"
+    href="{{ url_for('static', filename='favicon.svg') }}">
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/anime.css') }}">
 
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -164,6 +167,16 @@
 
                 </div>
 
+                {% if anime.total_episodes %}
+                <div class="info-row">
+
+                    <span>Episodes</span>
+
+                    <strong>{{ anime.total_episodes }}</strong>
+
+                </div>
+                {% endif %}
+
                 {% if anime.next_episode_at %}
                 <div class="info-row next-ep-row">
 
@@ -279,17 +292,19 @@
 
                             <p>
 
-                                {{ episode.title }}
+                                {{ episode.title | default('Episode ' ~ episode.number) }}
 
                             </p>
 
                         </div>
 
+                        {% if episode.rating %}
                         <div class="episode-rating">
 
                             ⭐ {{ episode.rating }}
 
                         </div>
+                        {% endif %}
 
                     </div>
 

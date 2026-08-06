@@ -36,7 +36,9 @@ RAW_CACHE = "anime_catalog_raw.json"
 OFFICIAL_CACHE = "anime_official_images.json"
 STREAMING_CACHE = "anime_streaming.json"
 SCHEDULE_CACHE = "anime_schedule.json"
-OUT_FILE = "anime_data.py"
+# anime_data.py is now a thin loader over this JSON file (a giant Python
+# literal was OOM-killing the app in low-memory containers).
+OUT_FILE = "anime_data.json"
 
 TARGET_NEW = 15000     # add this many NEW entries beyond the existing ones
 MAX_RAW = 45000        # stop fetching once we have this many raw candidates
@@ -469,6 +471,9 @@ def main():
                         metavar="N",
                         help="fetch legal streaming platforms for the top N titles "
                              "(resumable via the cache)")
+    parser.add_argument("--streaming-all", action="store_true",
+                        help="fetch legal streaming platforms for EVERY title in the "
+                             "catalog (walks all anilist_ids, resumable via the cache)")
     parser.add_argument("--schedule", action="store_true",
                         help="fetch airing schedule (next episode + start date) for "
                              "all Ongoing/Upcoming titles (resumable via the cache)")
@@ -515,6 +520,43 @@ def main():
                 print(f"  {sort} page {page}: giving up after retries", flush=True)
             time.sleep(SLEEP)
         print(f"Fetched pages {start}-{end} ({sort}). Cache now has {len(cache)} pages.", flush=True)
+        return
+
+    if args.streaming_all:
+        # Walk the ENTIRE catalog: every title with an anilist_id, not just
+        # the top popularity pages. Resumable -- batches save per run.
+        ids = []
+        seen = set()
+        for entry in anime_data.anime_database.values():
+            aid = entry.get("anilist_id")
+            if aid and aid not in seen:
+                seen.add(aid)
+                ids.append(aid)
+        print(f"Streaming-all: {len(ids)} unique catalog ids", flush=True)
+
+        stream_cache = load_json(STREAMING_CACHE)
+        pending = [i for i in ids if str(i) not in stream_cache]
+        print(f"  {len(ids) - len(pending)} already cached, "
+              f"{len(pending)} pending", flush=True)
+
+        for i in range(0, len(pending), 50):
+            batch = pending[i:i + 50]
+            for attempt in range(3):
+                try:
+                    media = fetch_streaming_batch(batch)
+                    for m in media:
+                        stream_cache[str(m["id"])] = (m.get("streamingEpisodes") or [])[:5]
+                    save_json(STREAMING_CACHE, stream_cache)
+                    print(f"  batch {i // 50 + 1}: {len(media)} titles enriched",
+                          flush=True)
+                    break
+                except Exception as exc:
+                    print(f"  batch {i // 50 + 1} attempt {attempt + 1} failed: {exc}",
+                          flush=True)
+                    time.sleep(15 + attempt * 15)
+            time.sleep(SLEEP)
+        print(f"Streaming-all done. Cache covers {len(stream_cache)} titles.",
+              flush=True)
         return
 
     if args.streaming:
@@ -802,12 +844,7 @@ def main():
         print(f"  entries with streaming platforms: {enriched}", flush=True)
 
         with open(OUT_FILE, "w", encoding="utf-8") as f:
-            f.write(
-                "# Auto-generated anime database -- %d titles (script: scripts/fetch_anime_catalog.py).\n"
-                "anime_database = " % len(merged)
-            )
-            json.dump(merged, f, ensure_ascii=False, indent=2)
-            f.write("\n")
+            json.dump(merged, f, ensure_ascii=False, separators=(",", ":"))
 
         print(f"WROTE {OUT_FILE} with {len(merged)} total entries.")
 

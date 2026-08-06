@@ -28,6 +28,18 @@ Anime discussion platform built with Flask
   every 2.5s and for the online member list every 8s.
 - New tables in `animechat.db`: `users`, `chat_messages`, `chat_presence`.
 
+### Catalog data & adding Sub/Dub/Episodes/Arcs in parts
+- The 13,994-title catalog lives in `anime_data.json`, loaded at import by
+  `anime_data.py` (which is now just a tiny loader — a giant Python literal
+  was OOM-killing the app in the low-memory container).
+- `python3 scripts/enrich_details.py --details 5000` enriches the top 5,000
+  titles (by popularity) that still lack Sub/Dub / episode lists / arcs, then
+  rewrites `anime_data.json`. Re-running the same command continues with the
+  *next* 5,000 — it's resumable and saves progress per API batch.
+- `--upgrade` also deepens existing episode-title lists (slow for very long
+  shows); `--skip-fetch` applies details from the existing AniList cache
+  without hitting the API. Hand-curated entries are never overwritten.
+
 To let two people test it together on different devices, run the app on a
 machine reachable from both (or deploy it somewhere), and have each person sign
 up their own account and open the same `/community/<anime>` page.

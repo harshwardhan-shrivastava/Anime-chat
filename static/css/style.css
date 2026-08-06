@@ -712,6 +712,90 @@ nav{
 
 }
 
+/* ============================
+        SUB / DUB / EPISODE / ARC CHIPS
+============================ */
+
+.card-meta{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:8px;
+
+    margin:0 0 16px;
+
+}
+
+.chip{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:6px;
+
+    padding:5px 12px;
+
+    border-radius:30px;
+
+    font-size:11px;
+
+    font-weight:700;
+
+    letter-spacing:.4px;
+
+    transition:.25s;
+
+}
+
+.chip-episodes{
+
+    background:rgba(123,46,255,.14);
+
+    color:#b78cff;
+
+    border:1px solid rgba(123,46,255,.35);
+
+}
+
+.chip-sub{
+
+    background:rgba(255,213,74,.1);
+
+    color:#ffd54a;
+
+    border:1px solid rgba(255,213,74,.35);
+
+}
+
+.chip-dub{
+
+    background:rgba(255,59,107,.12);
+
+    color:#ff8fae;
+
+    border:1px solid rgba(255,59,107,.4);
+
+}
+
+.chip-arcs{
+
+    background:rgba(56,189,248,.1);
+
+    color:#7dd3fc;
+
+    border:1px solid rgba(56,189,248,.35);
+
+}
+
+.anime-card:hover .chip{
+
+    transform:translateY(-2px);
+
+}
+
 .card-bottom{
 
     display:flex;
