@@ -43,6 +43,77 @@ def anime_img(image):
 
 
 # ---------------------------------------------------------------------------
+# Streaming provider branding + helpers
+# ---------------------------------------------------------------------------
+# provider_brand maps a service name (e.g. "Crunchyroll Amazon Channel") to a
+# monogram chip: css class, short mark and brand color used by the
+# Where to Watch list on anime pages.
+
+_PROVIDER_BRANDS = [
+    ("crunchyroll", "crunch", "Cr", "#f47521"),
+    ("netflix", "netflix", "N", "#e50914"),
+    ("prime video", "prime", "P", "#00a8e1"),
+    ("disney", "disney", "D+", "#113ccf"),
+    ("u-next", "unext", "U", "#6a3ab2"),
+    ("danime", "danime", "dA", "#ff4d9d"),
+    ("anime times", "animetimes", "AT", "#9b4dca"),
+    ("toei", "toei", "T", "#e8562a"),
+    ("hidive", "hidive", "HD", "#9b4dca"),
+    ("fod", "fod", "FOD", "#1d6fd6"),
+    ("hulu", "hulu", "H", "#1ce783"),
+    ("tubi", "tubi", "T", "#ff6a00"),
+    ("pluto", "pluto", "P", "#d81f26"),
+    ("youtube", "youtube", "YT", "#ff0000"),
+    ("hbo", "hbo", "M", "#7a4ff0"),
+    ("peacock", "peacock", "P", "#fdb913"),
+    ("paramount", "paramount", "P+", "#0064ff"),
+    ("viki", "viki", "V", "#e50914"),
+    ("retrocrush", "retrocrush", "RC", "#ff7a00"),
+    ("philo", "philo", "PH", "#e21b1b"),
+    ("fubo", "fubo", "f", "#c8102e"),
+    ("spectrum", "spectrum", "S", "#ff0000"),
+    ("kanopy", "kanopy", "K", "#1a73e8"),
+    ("adult swim", "adultswim", "AS", "#ffd100"),
+    ("the cw", "cw", "CW", "#00a0d8"),
+    ("amc", "amc", "AMC", "#e50914"),
+    ("cineverse", "cineverse", "C", "#d62828"),
+    ("midnight pulp", "midnightpulp", "MP", "#2b2b2b"),
+    ("amasian", "amasian", "A", "#e50914"),
+    ("fawesome", "fawesome", "F", "#ff8c00"),
+    ("apple", "apple", "TV", "#0a0a0a"),
+    ("amazon", "amazon", "a", "#ff9900"),
+]
+
+
+@app.template_filter("provider_brand")
+def provider_brand(name):
+    """Map a provider name to a {cls, mark, color} logo-chip descriptor."""
+    n = (name or "").lower()
+    for key, cls, mark, color in _PROVIDER_BRANDS:
+        if key in n:
+            return {"cls": cls, "mark": mark, "color": color}
+    return {"cls": "generic", "mark": (name or "TV")[:2].upper(), "color": "#5a6a7a"}
+
+
+@app.template_filter("sort_streaming")
+def sort_streaming(services):
+    """Order streaming services: Streaming first, then Free, then the rest,
+    alphabetical by name within each tier."""
+    order = {"Streaming": 0, "Free": 1, "Free with Ads": 2, "Rent": 3, "Buy": 4}
+    return sorted(
+        services or [],
+        key=lambda s: (order.get(s.get("monetization"), 5), (s.get("name") or "").lower()),
+    )
+
+
+@app.template_filter("real_dubs")
+def real_dubs(dubs):
+    """A show's original language (Japanese) is subtitled content, not a dub.
+    Strip it so 'Dub Available' only lists actual alternate-language dubs."""
+    return [d for d in (dubs or []) if str(d).strip().lower() not in ("japanese", "ja", "japanese (original)")]
+
+
+# ---------------------------------------------------------------------------
 # Live airing-schedule refresher
 # ---------------------------------------------------------------------------
 # The catalog's next-episode timestamps are baked in at build time. To keep
@@ -256,7 +327,12 @@ def _catalog_entries(sort="latest", genre=None, limit=None):
             "start_year": entry.get("start_year"),
             "start_month": entry.get("start_month"),
             "total_episodes": entry.get("total_episodes", 0) or 0,
-            "has_dub": bool(entry.get("dub")),
+            # A dub only counts when an English dub is available; Japanese
+            # audio is the original (sub) track, not a dub.
+            "has_dub": any(
+                str(d).strip().lower() == "english"
+                for d in (entry.get("dub") or [])
+            ),
             "has_sub": bool(entry.get("subtitles")),
             "arc_count": len(entry.get("watch_order") or []) or len(entry.get("seasons") or []),
         })

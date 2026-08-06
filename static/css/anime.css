@@ -519,64 +519,6 @@ nav{
    STREAMING
 ========================================== */
 
-.stream-grid{
-
-    display:grid;
-
-    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-
-    gap:25px;
-
-}
-
-.stream-card{
-
-    background:#171f29;
-
-    border-radius:22px;
-
-    padding:30px;
-
-    text-align:center;
-
-    transition:.35s;
-
-    border:1px solid rgba(255,255,255,.06);
-
-}
-
-.stream-card:hover{
-
-    transform:translateY(-8px);
-
-    border-color:#00c16a;
-
-}
-
-.stream-card i{
-
-    font-size:42px;
-
-    margin-bottom:20px;
-
-    color:#00c16a;
-
-}
-
-.stream-card h3{
-
-    margin-bottom:12px;
-
-}
-
-.stream-card p{
-
-    color:#c5d0dc;
-
-    margin-bottom:20px;
-
-}
-
 .section-note{
 
     color:#9aa7b5;
@@ -587,53 +529,135 @@ nav{
 
 }
 
-.stream-link{
+/* Where to Watch — compact provider list */
 
-    display:inline-block;
-
-    margin:4px 0 14px;
-
-    padding:9px 18px;
-
-    border-radius:999px;
-
-    background:rgba(0,193,106,.12);
-
-    color:#00c16a;
-
-    font-size:13px;
-
-    font-weight:600;
-
-    transition:.3s;
-
-}
-
-.stream-link:hover{
-
-    background:#00c16a;
-
-    color:#06121a;
-
-}
-
-.stream-badges{
+.stream-list{
 
     display:flex;
 
+    flex-direction:column;
+
+    gap:12px;
+
+}
+
+.stream-row{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:16px;
+
+    background:#171f29;
+
+    border:1px solid rgba(255,255,255,.06);
+
+    border-radius:16px;
+
+    padding:14px 18px;
+
+    text-decoration:none;
+
+    transition:.25s;
+
+}
+
+.stream-row:hover{
+
+    border-color:#00c16a;
+
+    transform:translateX(4px);
+
+    background:#1b2430;
+
+}
+
+.stream-logo{
+
+    flex:none;
+
+    width:44px;
+
+    height:44px;
+
+    border-radius:12px;
+
+    display:flex;
+
+    align-items:center;
+
     justify-content:center;
 
-    flex-wrap:wrap;
+    font-weight:800;
+
+    font-size:15px;
+
+    color:#fff;
+
+    background:var(--brand, #5a6a7a);
+
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);
+
+    letter-spacing:.5px;
+
+}
+
+.stream-row-main{
+
+    flex:1;
+
+    min-width:0;
+
+    display:flex;
+
+    flex-direction:column;
 
     gap:8px;
 
-    margin-bottom:14px;
+}
+
+.stream-row-name{
+
+    font-weight:700;
+
+    font-size:15px;
+
+    color:#eef3f8;
+
+    white-space:nowrap;
+
+    overflow:hidden;
+
+    text-overflow:ellipsis;
+
+}
+
+.stream-row-badges{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:6px;
+
+}
+
+.stream-row-side{
+
+    flex:none;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
 
 }
 
 .badge-meta{
 
-    padding:6px 12px;
+    padding:5px 11px;
 
     border-radius:999px;
 
@@ -641,17 +665,19 @@ nav{
 
     color:#9aa7b5;
 
-    font-size:12px;
+    font-size:11px;
+
+    font-weight:600;
 
 }
 
 .badge-region{
 
-    padding:6px 12px;
+    padding:5px 11px;
 
     border-radius:999px;
 
-    font-size:12px;
+    font-size:11px;
 
     font-weight:700;
 
@@ -677,7 +703,7 @@ nav{
 
     display:inline-block;
 
-    padding:7px 16px;
+    padding:7px 14px;
 
     border-radius:999px;
 
@@ -685,37 +711,37 @@ nav{
 
     color:#4ade80;
 
-    font-size:13px;
+    font-size:12px;
 
     font-weight:600;
 
-    margin-bottom:16px;
-
 }
 
-.stream-langs{
+.stream-link{
 
-    display:flex;
+    display:inline-block;
 
-    justify-content:center;
-
-    flex-wrap:wrap;
-
-    gap:10px;
-
-}
-
-.stream-langs span{
-
-    padding:7px 13px;
+    padding:8px 16px;
 
     border-radius:999px;
 
-    background:#0f141c;
+    background:rgba(0,193,106,.12);
 
-    color:#c5d0dc;
+    color:#00c16a;
 
     font-size:12px;
+
+    font-weight:700;
+
+    transition:.3s;
+
+}
+
+.stream-link:hover{
+
+    background:#00c16a;
+
+    color:#06121a;
 
 }
 
@@ -1402,12 +1428,27 @@ footer p{
     }
 
     .season-grid,
-    .stream-grid,
     .recommendation-grid,
     .stats-grid,
     .reviews{
 
         grid-template-columns:1fr;
+
+    }
+
+    .stream-row{
+
+        flex-wrap:wrap;
+
+        gap:12px;
+
+    }
+
+    .stream-row-side{
+
+        width:100%;
+
+        justify-content:space-between;
 
     }
 

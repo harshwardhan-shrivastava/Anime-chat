@@ -338,83 +338,73 @@
             Live streaming availability for <strong>United States</strong> and <strong>Japan</strong>.
         </p>
 
-        <div class="stream-grid">
+        <div class="stream-list">
 
-            {% for service in anime.streaming %}
+            {% for service in anime.streaming | sort_streaming %}
 
-            <div class="stream-card">
+            {% set brand = service.name | provider_brand %}
 
-                <i class="fas fa-play-circle"></i>
+            <a class="stream-row" href="{{ service.url or '#' }}" {% if service.url %}target="_blank" rel="noopener"{% endif %}>
 
-                <h3>
+                <span class="stream-logo {{ brand.cls }}" style="--brand: {{ brand.color }}">
+                    {{ brand.mark }}
+                </span>
 
-                    {{ service.name }}
+                <div class="stream-row-main">
 
-                </h3>
-
-                {% if service.url %}
-                <a class="stream-link" href="{{ service.url }}" target="_blank" rel="noopener">
-                    Watch now <i class="fas fa-external-link-alt"></i>
-                </a>
-                {% endif %}
-
-                <div class="stream-badges">
-
-                    {% if service.monetization %}
-                    <span class="badge-meta">
-                        {{ service.monetization }}
+                    <span class="stream-row-name">
+                        {{ service.name }}
                     </span>
-                    {% endif %}
 
-                    {% if "US" in service.regions %}
-                    <span class="badge-region badge-us">
-                        🇺🇸 US
-                    </span>
-                    {% endif %}
+                    <div class="stream-row-badges">
 
-                    {% if "JP" in service.regions %}
-                    <span class="badge-region badge-jp">
-                        🇯🇵 JP
-                    </span>
-                    {% endif %}
+                        {% if "US" in service.regions or "USA" in service.regions %}
+                        <span class="badge-region badge-us">
+                            🇺🇸 US
+                        </span>
+                        {% endif %}
 
-                    {% for region in service.regions %}
-                    {% if region not in ["US", "JP"] %}
-                    <span class="badge-meta">
-                        {{ region }}
-                    </span>
-                    {% endif %}
-                    {% endfor %}
+                        {% if "JP" in service.regions %}
+                        <span class="badge-region badge-jp">
+                            🇯🇵 JP
+                        </span>
+                        {% endif %}
+
+                        {% if service.monetization %}
+                        <span class="badge-meta">
+                            {{ service.monetization }}
+                        </span>
+                        {% endif %}
+
+                        {% for region in service.regions %}
+                        {% if region not in ["US", "JP", "USA"] %}
+                        <span class="badge-meta">
+                            {{ region }}
+                        </span>
+                        {% endif %}
+                        {% endfor %}
+
+                    </div>
 
                 </div>
 
-                <p class="stream-status">
+                <div class="stream-row-side">
 
-                    {{ service.status }}
-
-                </p>
-
-                {% if service.audio or service.subtitles %}
-                <div class="stream-langs">
-
-                    {% if service.audio %}
-                    <span title="Audio languages">
-                        <i class="fas fa-microphone"></i>
-                        {{ service.audio | length }} dub
+                    {% if service.status %}
+                    <span class="stream-status">
+                        {{ service.status }}
                     </span>
                     {% endif %}
 
-                    {% if service.subtitles %}
-                    <span title="Subtitle languages">
-                        <i class="fas fa-closed-captioning"></i>
-                        {{ service.subtitles | length }} sub langs
+                    {% if service.url %}
+                    <span class="stream-link">
+                        Watch <i class="fas fa-external-link-alt"></i>
                     </span>
                     {% endif %}
 
                 </div>
-                {% endif %}
 
-            </div>
+            </a>
 
             {% endfor %}
 
@@ -425,7 +415,9 @@
 
         <!-- Languages -->
 
-    {% if anime.dub or anime.subtitles %}
+    {% set real_dub_list = anime.dub | real_dubs %}
+
+    {% if real_dub_list or anime.subtitles %}
     <section class="content-section">
 
         <h2 class="section-title">
@@ -438,6 +430,7 @@
 
         <div class="language-grid">
 
+            {% if real_dub_list %}
             <div class="glass-card">
 
                 <h3>
@@ -448,7 +441,7 @@
 
                 <ul>
 
-                    {% for dub in anime.dub %}
+                    {% for dub in real_dub_list %}
 
                     <li>{{ dub }}</li>
 
@@ -457,7 +450,9 @@
                 </ul>
 
             </div>
+            {% endif %}
 
+            {% if anime.subtitles %}
             <div class="glass-card">
 
                 <h3>
@@ -477,6 +472,7 @@
                 </ul>
 
             </div>
+            {% endif %}
 
         </div>
 
