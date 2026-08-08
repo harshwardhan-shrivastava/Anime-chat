@@ -8,3 +8,5 @@ anime_catalog_raw.json
 anime_official_images.json
 anime_streaming.json
 anime_schedule.json
+# Transient MAL episode-fetch worker caches (resume state lives in the base cache + todo)
+anime_mal_episodes_w*.json
