@@ -238,3 +238,19 @@ function postReview() {
 }
 
 postReviewBtn.addEventListener("click", postReview);
+
+// ===============================
+// SEASON EPISODE EXPAND / COLLAPSE
+// ===============================
+
+document.querySelectorAll(".expand-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const card = btn.closest(".season-card");
+        const list = card ? card.querySelector(".episode-list") : btn.nextElementSibling;
+        if (!list) return;
+
+        const isOpen = list.classList.toggle("show");
+        btn.classList.toggle("active", isOpen);
+        btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    });
+});

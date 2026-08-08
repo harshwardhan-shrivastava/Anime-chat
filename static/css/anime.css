@@ -467,6 +467,44 @@ nav{
 
 }
 
+.episode-list.show{
+
+    display:block;
+
+    animation:episodeFade .4s ease;
+
+}
+
+@keyframes episodeFade{
+
+    from{opacity:0; transform:translateY(-8px);}
+
+    to{opacity:1; transform:translateY(0);}
+
+}
+
+.expand-btn i{
+
+    transition:transform .3s ease;
+
+    display:inline-block;
+
+    margin-left:8px;
+
+}
+
+.expand-btn.active{
+
+    background:#00c16a;
+
+}
+
+.expand-btn.active i{
+
+    transform:rotate(180deg);
+
+}
+
 .episode{
 
     display:flex;
