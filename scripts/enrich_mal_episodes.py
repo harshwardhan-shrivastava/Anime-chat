@@ -279,6 +279,40 @@ def fetch_episode_titles(chunk, offset=0, cache_file=None):
     print(f"DONE episode cache: {len(eps_cache)} entries, {good} with real titles", flush=True)
 
 
+SINGLE_TYPES = {"Movie", "OVA", "Special", "Music", "ONA"}
+
+
+def fill_singles():
+    """Single-episode Movie/OVA/Special/Music/ONA entries have no MAL episode
+    list, so instead of showing 'Episode 1' in the UI, use the entry's own
+    title as the episode title (e.g. 'A Silent Voice'). Multi-episode entries
+    are left alone so the MAL fetch can still fill real names."""
+    data = load_json(DATA_FILE)
+    filled = 0
+    skipped_series = 0
+    for slug, e in data.items():
+        if e.get("type") not in SINGLE_TYPES:
+            continue
+        seasons = e.get("seasons") or []
+        total = sum(len(s.get("episodes") or []) for s in seasons)
+        if total != 1:
+            continue
+        title = (e.get("title") or "").strip()
+        if not title:
+            continue
+        changed = False
+        for s in seasons:
+            for ep in s.get("episodes") or []:
+                if not title_is_real(ep.get("title")):
+                    ep["title"] = title
+                    filled += 1
+                    changed = True
+        if changed:
+            skipped_series += 1
+    save_json(DATA_FILE, data)
+    print(f"FILLED: {filled} episode titles for {skipped_series} single-episode entries", flush=True)
+
+
 def apply_titles():
     data = load_json(DATA_FILE)
 
@@ -337,18 +371,21 @@ def main():
     ap.add_argument("--offset", type=int, default=0, help="start index into the todo list (parallel workers)")
     ap.add_argument("--cache", default=None, help="cache file to write (unique per parallel run)")
     ap.add_argument("--apply", action="store_true", help="merge all caches into anime_data.json")
+    ap.add_argument("--fill-singles", action="store_true", help="title single-episode Movie/OVA/Special/Music/ONA entries with their own title")
     args = ap.parse_args()
 
     if args.apply:
         apply_titles()
         return
+    if args.fill_singles:
+        fill_singles()
     if args.malids:
         build_mal_ids(args.malids)
     if args.plan:
         plan_todo()
     if args.fetch:
         fetch_episode_titles(args.fetch, offset=args.offset, cache_file=args.cache)
-    if not (args.apply or args.malids or args.plan or args.fetch):
+    if not (args.apply or args.fill_singles or args.malids or args.plan or args.fetch):
         ap.print_help()
 
 
