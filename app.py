@@ -9,9 +9,19 @@ import requests
 from dotenv import load_dotenv
 load_dotenv()
 
-from flask import Flask, render_template, request, jsonify, g, url_for
+from flask import Flask, render_template, request, jsonify, g, url_for, flash, redirect
 from anime_data import anime_database
-from database import create_tables, get_connection, get_anime_stats, get_all_anime_stats, add_review
+from database import (
+    create_tables,
+    get_connection,
+    get_anime_stats,
+    get_all_anime_stats,
+    add_review,
+    add_episode_review,
+    get_episode_stats,
+    get_user_episode_review,
+    get_all_episode_stats,
+)
 
 from auth import auth, load_logged_in_user
 from chat import chat_bp
@@ -474,6 +484,91 @@ def anime(anime_slug):
         "anime.html",
         anime=anime,
         next_episode_label=_episode_badge(anime),
+        episode_stats=get_all_episode_stats(anime_slug),
+    )
+
+
+def _find_episode(anime_slug, season_idx, episode_number):
+    """Resolve (anime, season, episode) or raise a 404."""
+    anime = anime_database.get(anime_slug)
+    if anime is None:
+        return None, None, None, None, None
+
+    seasons = anime.get("seasons") or []
+    if season_idx < 1 or season_idx > len(seasons):
+        return anime, None, None, None, None
+    season = seasons[season_idx - 1]
+
+    episode = next(
+        (e for e in (season.get("episodes") or []) if e.get("number") == episode_number),
+        None,
+    )
+    if episode is None:
+        return anime, season, None, None, None
+
+    season_name = season.get("name", f"Season {season_idx}")
+    episode_title = episode.get("title") or f"Episode {episode_number}"
+    return anime, season, episode, season_name, episode_title
+
+
+@app.route("/anime/<anime_slug>/episode/<int:season_idx>/<int:episode_number>", methods=["GET", "POST"])
+def episode_rate(anime_slug, season_idx, episode_number):
+    """Rate a single episode out of 10. Only logged-in users can submit a
+    review; everyone can view the aggregate score and the review list."""
+    anime, season, episode, season_name, episode_title = _find_episode(
+        anime_slug, season_idx, episode_number
+    )
+    if anime is None:
+        return "Anime not found", 404
+    if season is None:
+        return "Season not found", 404
+    if episode is None:
+        return "Episode not found", 404
+
+    if request.method == "POST":
+        user = g.get("user")
+        if user is None:
+            flash("Log in to rate this episode.", "error")
+            return redirect(url_for("auth.login", next=request.path))
+
+        try:
+            rating = int(request.form.get("rating") or 0)
+        except (TypeError, ValueError):
+            rating = 0
+        if rating < 1 or rating > 10:
+            flash("Please pick a star rating between 1 and 10.", "error")
+            return redirect(url_for("episode_rate", anime_slug=anime_slug,
+                                    season_idx=season_idx,
+                                    episode_number=episode_number))
+
+        comment = (request.form.get("comment") or "").strip()[:1000]
+        add_episode_review(
+            anime_slug, season_name, episode_number,
+            user["id"], user["username"], user["avatar_color"],
+            rating, comment,
+        )
+        flash(f"Thanks for rating {episode_title}!", "success")
+        return redirect(url_for("episode_rate", anime_slug=anime_slug,
+                                season_idx=season_idx,
+                                episode_number=episode_number))
+
+    stats = get_episode_stats(anime_slug, season_name, episode_number)
+    user = g.get("user")
+    my_review = get_user_episode_review(
+        anime_slug, season_name, episode_number, user["id"] if user else None
+    )
+
+    return render_template(
+        "episode_rate.html",
+        anime=anime,
+        season=season,
+        season_idx=season_idx,
+        season_name=season_name,
+        episode=episode,
+        episode_number=episode_number,
+        episode_title=episode_title,
+        stats=stats,
+        my_review=my_review,
     )
 
 

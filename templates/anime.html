@@ -37,17 +37,33 @@
 
         <a href="/" class="logo">
 
-            AnimeChat
+            <span class="logo-anime">Anime</span><span class="logo-chat">Chat</span>
 
         </a>
 
-        <a href="/" class="back-btn">
+        <div class="nav-right">
 
-            <i class="fas fa-arrow-left"></i>
+            {% if current_user %}
+            <div class="nav-user-pill">
+                <span class="nav-user-avatar" style="background:{{ current_user.avatar_color }}">
+                    {{ current_user.username[:2]|upper }}
+                </span>
+                <span class="nav-user-name">{{ current_user.username }}</span>
+            </div>
+            <a href="{{ url_for('auth.logout') }}" class="nav-logout-btn">Logout</a>
+            {% else %}
+            <a href="{{ url_for('auth.login', next=request.path) }}" class="login-btn"
+               style="text-decoration:none;display:inline-block;">
+                Login
+            </a>
+            {% endif %}
 
-            Back
+            <a href="/" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                Back
+            </a>
 
-        </a>
+        </div>
 
     </nav>
 
@@ -250,6 +266,8 @@
 
             {% for season in anime.seasons %}
 
+            {% set outer_loop = loop %}
+
             <div class="season-card">
 
                 <div class="season-top">
@@ -280,9 +298,12 @@
 
                     {% for episode in season.episodes %}
 
-                    <div class="episode">
+                    {% set ep_stats = (episode_stats.get(season.name, {}) or {}).get(episode.number) %}
 
-                        <div>
+                    <a class="episode episode-link"
+                       href="{{ url_for('episode_rate', anime_slug=anime.slug, season_idx=outer_loop.index, episode_number=episode.number) }}">
+
+                        <div class="episode-main">
 
                             <h4>
 
@@ -298,15 +319,21 @@
 
                         </div>
 
-                        {% if episode.rating %}
-                        <div class="episode-rating">
+                        <div class="episode-side">
 
-                            ⭐ {{ episode.rating }}
+                            {% if ep_stats and ep_stats.votes > 0 %}
+                            <span class="episode-rating" title="{{ ep_stats.votes }} rating{{ 's' if ep_stats.votes != 1 else '' }}">
+                                <i class="fas fa-star"></i> {{ ep_stats.average }}
+                            </span>
+                            {% endif %}
+
+                            <span class="episode-rate-btn">
+                                Rate <i class="fas fa-star"></i>
+                            </span>
 
                         </div>
-                        {% endif %}
 
-                    </div>
+                    </a>
 
                     {% endfor %}
 

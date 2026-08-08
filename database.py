@@ -55,8 +55,23 @@ def create_tables():
     )
     """)
 
-    # Real accounts -- one row per registered person. is_verified flips to 1
-    # once they click the link we email them.
+    # Per-episode reviews: one row per user per episode (1-10 stars).
+    # A user re-rating the same episode updates their row in place.
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS episode_reviews(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        anime_slug TEXT NOT NULL,
+        season_name TEXT NOT NULL,
+        episode_number INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        username TEXT NOT NULL,
+        avatar_color TEXT NOT NULL DEFAULT '#00c16a',
+        rating INTEGER NOT NULL,
+        comment TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (user_id, anime_slug, season_name, episode_number)
+    )
+    """)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -357,3 +372,128 @@ def add_review(anime_slug, username, rating, comment):
 
     conn.commit()
     conn.close()
+
+
+# ===============================================================
+# EPISODE REVIEWS (1-10 star, per-episode)
+# ===============================================================
+
+def add_episode_review(anime_slug, season_name, episode_number, user_id,
+                       username, avatar_color, rating, comment):
+    """Insert or update a logged-in user's rating for one episode.
+    One row per user per episode; re-rating overwrites the earlier one."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO episode_reviews
+            (anime_slug, season_name, episode_number, user_id, username,
+             avatar_color, rating, comment)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, anime_slug, season_name, episode_number)
+        DO UPDATE SET
+            rating = excluded.rating,
+            comment = excluded.comment,
+            created_at = CURRENT_TIMESTAMP
+        """,
+        (anime_slug, season_name, episode_number, user_id,
+         username or "Anonymous", avatar_color or "#00c16a",
+         rating, comment or "")
+    )
+
+    conn.commit()
+    conn.close()
+
+
+def get_episode_stats(anime_slug, season_name, episode_number):
+    """Average (rounded), vote count, 1-10 breakdown and the review list
+    for a single episode."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """SELECT rating, COUNT(*) as count FROM episode_reviews
+           WHERE anime_slug=? AND season_name=? AND episode_number=?
+           GROUP BY rating""",
+        (anime_slug, season_name, episode_number)
+    )
+    breakdown = {str(n): 0 for n in range(1, 11)}
+    for row in cursor.fetchall():
+        breakdown[str(row["rating"])] = row["count"]
+
+    total_votes = sum(breakdown.values())
+
+    cursor.execute(
+        """SELECT AVG(rating) as avg_rating FROM episode_reviews
+           WHERE anime_slug=? AND season_name=? AND episode_number=?""",
+        (anime_slug, season_name, episode_number)
+    )
+    avg_row = cursor.fetchone()
+    average = round(avg_row["avg_rating"], 1) if avg_row["avg_rating"] is not None else 0
+
+    cursor.execute(
+        """SELECT username, avatar_color, rating, comment, created_at
+           FROM episode_reviews
+           WHERE anime_slug=? AND season_name=? AND episode_number=?
+           ORDER BY id DESC""",
+        (anime_slug, season_name, episode_number)
+    )
+    reviews = [
+        {
+            "username": row["username"],
+            "avatar_color": row["avatar_color"],
+            "rating": row["rating"],
+            "comment": row["comment"] or "",
+            "created_at": row["created_at"],
+        }
+        for row in cursor.fetchall()
+    ]
+
+    conn.close()
+    return {
+        "average": average,
+        "votes": total_votes,
+        "breakdown": breakdown,
+        "reviews": reviews,
+    }
+
+
+def get_user_episode_review(anime_slug, season_name, episode_number, user_id):
+    """The logged-in user's own rating for an episode (or None)."""
+    if not user_id:
+        return None
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT rating, comment FROM episode_reviews
+           WHERE anime_slug=? AND season_name=? AND episode_number=? AND user_id=?""",
+        (anime_slug, season_name, episode_number, user_id)
+    )
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_all_episode_stats(anime_slug):
+    """{season_name: {episode_number: {average, votes}}} for every rated
+    episode of one anime -- used to show rating chips in the episode list
+    without firing one query per episode."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT season_name, episode_number, AVG(rating) as avg_rating,
+                  COUNT(*) as votes
+           FROM episode_reviews WHERE anime_slug=?
+           GROUP BY season_name, episode_number""",
+        (anime_slug,)
+    )
+    out = {}
+    for row in cursor.fetchall():
+        season = out.setdefault(row["season_name"], {})
+        season[row["episode_number"]] = {
+            "average": round(row["avg_rating"], 1) if row["avg_rating"] is not None else 0,
+            "votes": row["votes"],
+        }
+    conn.close()
+    return out
