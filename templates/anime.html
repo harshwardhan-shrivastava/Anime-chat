@@ -270,17 +270,19 @@
 
             <div class="season-card">
 
+                {% set is_movie = anime.type == 'Movie' %}
+
                 <div class="season-top">
 
                     <h3>
 
-                        {{ season.name }}
+                        {{ 'Movie' if is_movie else 'Episodes' }}
 
                     </h3>
 
                     <span>
 
-                        {{ season.episodes|length }} Episodes
+                        {{ season.episodes|length }} {{ 'Movie' if is_movie else 'Episodes' }}
 
                     </span>
 
@@ -302,6 +304,10 @@
 
                     <a class="episode episode-link"
                        href="{{ url_for('episode_rate', anime_slug=anime.slug, season_idx=outer_loop.index, episode_number=episode.number) }}">
+
+                        {% if episode.thumb %}
+                        <img class="episode-thumb" src="{{ episode.thumb }}" alt="" loading="lazy">
+                        {% endif %}
 
                         <div class="episode-main">
 

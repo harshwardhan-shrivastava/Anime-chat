@@ -59,3 +59,18 @@ Anime discussion platform built with Flask
 To let two people test it together on different devices, run the app on a
 machine reachable from both (or deploy it somewhere), and have each person sign
 up their own account and open the same `/community/<anime>` page.
+
+### Per-episode thumbnails from TheTVDB
+- `scripts/enrich_ep_thumbnails.py` fills `episode["thumb"]` with a real
+  thumbnail image (from TheTVDB's public artwork CDN, the same source Plex /
+  Jellyfin use for anime episode art) for every episode that has one. The
+  episode list on anime pages and the episode rating page show the thumbnail
+  instead of the official poster when it exists.
+- Free tier needs a key: create a free account at https://thetvdb.com →
+  **API Keys**, then set `THE_TVDB_API_KEY` (and once, `THE_TVDB_PIN`) in the
+  project's Keys/API keys UI. The bearer token is exchanged automatically and
+  cached (`anime_tvdb_token.json`, valid ~1 month).
+- Usage (same resumable pattern as the MAL grind):
+  `THE_TVDB_API_KEY=... python3 scripts/enrich_ep_thumbnails.py --plan`, then
+  parallel `--fetch N --offset O --cache anime_ep_thumbs_wK.json` workers, then
+  `--apply` to merge into `anime_data.json`.

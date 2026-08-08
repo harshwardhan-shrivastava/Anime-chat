@@ -76,15 +76,19 @@
 
     <section class="ep-hero">
 
-        <div class="ep-poster">
+        <div class="ep-poster{% if episode.thumb %} has-thumb{% endif %}">
 
+            {% if episode.thumb %}
+            <img src="{{ episode.thumb }}" loading="lazy">
+            {% else %}
             <img src="{{ anime.image | anime_img }}" loading="lazy">
+            {% endif %}
 
         </div>
 
         <div class="ep-hero-text">
 
-            <span class="anime-type">{{ season_name }}</span>
+            <span class="anime-type">Ep {{ episode_number }}</span>
 
             <h1>
                 {% if episode.title %}{{ episode.title }}
