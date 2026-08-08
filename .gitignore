@@ -10,3 +10,5 @@ anime_streaming.json
 anime_schedule.json
 # Transient MAL episode-fetch worker caches (resume state lives in the base cache + todo)
 anime_mal_episodes_w*.json
+# Transient TVmaze thumbnail-fetch worker caches (resume state lives in the base cache + todo)
+anime_ep_thumbs_w*.json

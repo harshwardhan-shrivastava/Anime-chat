@@ -60,17 +60,19 @@ To let two people test it together on different devices, run the app on a
 machine reachable from both (or deploy it somewhere), and have each person sign
 up their own account and open the same `/community/<anime>` page.
 
-### Per-episode thumbnails from TheTVDB
+### Per-episode thumbnails from TVmaze (no key needed)
 - `scripts/enrich_ep_thumbnails.py` fills `episode["thumb"]` with a real
-  thumbnail image (from TheTVDB's public artwork CDN, the same source Plex /
-  Jellyfin use for anime episode art) for every episode that has one. The
-  episode list on anime pages and the episode rating page show the thumbnail
-  instead of the official poster when it exists.
-- Free tier needs a key: create a free account at https://thetvdb.com →
-  **API Keys**, then set `THE_TVDB_API_KEY` (and once, `THE_TVDB_PIN`) in the
-  project's Keys/API keys UI. The bearer token is exchanged automatically and
-  cached (`anime_tvdb_token.json`, valid ~1 month).
+  16:9 thumbnail image (from TVmaze's public image CDN, `static.tvmaze.com`)
+  for every episode that has one. The episode list on anime pages and the
+  episode rating page show the thumbnail instead of the official poster when
+  it exists.
+- **No account, no API key, no subscription** — it just works. (IMDb blocks
+  datacenter IPs; TheTVDB now requires a paid PIN; TMDB needs an account. TVmaze
+  needs none of that.)
 - Usage (same resumable pattern as the MAL grind):
-  `THE_TVDB_API_KEY=... python3 scripts/enrich_ep_thumbnails.py --plan`, then
-  parallel `--fetch N --offset O --cache anime_ep_thumbs_wK.json` workers, then
+  `python3 scripts/enrich_ep_thumbnails.py --plan`, then parallel
+  `--fetch N --offset O --cache anime_ep_thumbs_wK.json` workers, then
   `--apply` to merge into `anime_data.json`.
+- Coverage note: TVmaze has episode stills mostly for mainstream/popular
+  anime; older/obscure titles often have none, and those episodes keep falling
+  back to the official poster.
