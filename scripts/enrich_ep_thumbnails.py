@@ -106,16 +106,44 @@ def _get_json(url, params=None, retries=5):
     return None
 
 
+def _search_anims(query):
+    """Return Animation-typed TVmaze shows matching a query (relevance order)."""
+    data = _get_json(f"{API}/search/shows", params={"q": query})
+    out = []
+    if data:
+        for item in data:
+            s = item.get("show") or {}
+            if (s.get("type") or "").lower() == "animation":
+                out.append(s)
+    return out
+
+
 def search_series(title, year):
-    """Find the best TVmaze show id for a title (+year). Returns (id, score)."""
-    data = _get_json(f"{API}/search/shows", params={"q": title})
-    if not data:
+    """Find the best TVmaze show id for a title (+year). Returns (id, score).
+
+    TVmaze lists many anime under their Japanese titles ('Your Lie in April'
+    lives there as 'Shigatsu wa Kimi no Uso') and full English titles often
+    fail its search ('KONOSUBA -God's blessing...' needs just 'KONOSUBA'), so
+    we (1) try the full title, (2) retry with the first two distinctive words,
+    and (3) always accept the best-scoring Animation-typed result — the
+    catalog is 100% anime, so an Animation hit for an anime-title query is the
+    right show (or a same-franchise entry)."""
+    anims = _search_anims(title)
+    if not anims:
+        short = re.sub(r"[\[\(].*?[\]\)]", " ", title)
+        short = re.sub(r"[^A-Za-z0-9 ]+", " ", short)
+        words = [w for w in short.split() if len(w) >= 3]
+        for retry in ([" ".join(words[:2])] if len(words) >= 2 else []) + (words[:1] if words else []):
+            if retry.lower() == title.lower():
+                continue
+            anims = _search_anims(retry)
+            if anims:
+                break
+    if not anims:
         return None, 0.0
     best, best_score = None, 0.0
-    for item in data:
-        s = item.get("show") or {}
-        name = s.get("name") or ""
-        score = SequenceMatcher(None, _norm(title), _norm(name)).ratio()
+    for s in anims:
+        score = SequenceMatcher(None, _norm(title), _norm(s.get("name") or "")).ratio()
         p = (s.get("premiered") or "")[:4]
         if year and p and str(p) == str(year):
             score += 0.2
@@ -138,7 +166,14 @@ def fetch_thumbs_for(slug, title, year):
     for ep in eps:
         season = ep.get("season")
         num = ep.get("number")
-        img = (ep.get("image") or {}).get("medium")
+        # TVmaze exposes 'medium_landscape' (~640px) in its API; the true HD
+        # master (often 1920x1080) lives at the SAME folder/filename under
+        # 'original_untouched' on their CDN, so we rewrite the URL in place.
+        img = (ep.get("image") or {}).get("medium_landscape") or \
+              (ep.get("image") or {}).get("original") or \
+              (ep.get("image") or {}).get("medium")
+        if img and isinstance(img, str) and "medium_landscape" in img:
+            img = img.replace("/medium_landscape/", "/original_untouched/")
         if season and num and img and isinstance(img, str):
             out[f"{season}:{num}"] = img
     return out or {"__error__": "no_episodes"}
