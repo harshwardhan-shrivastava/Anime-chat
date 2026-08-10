@@ -231,7 +231,7 @@ def _search_tvmaze(title, year):
     try:
         r = requests.get(
             "%s/singlesearch/shows?q=%s" % (TVM_API, base),
-            timeout=15,
+            timeout=6,
         )
         if r.status_code == 200:
             show = r.json() or {}
@@ -247,7 +247,7 @@ def _search_tvmaze(title, year):
 
 def _tvmaze_episodes(sid):
     try:
-        r = requests.get("%s/shows/%s/episodes" % (TVM_API, sid), timeout=20)
+        r = requests.get("%s/shows/%s/episodes" % (TVM_API, sid), timeout=8)
         if r.status_code != 200:
             return []
         return r.json() or []
@@ -255,14 +255,32 @@ def _tvmaze_episodes(sid):
         return []
 
 
-def _pick_tvmaze_season(eps_by_season, slug, named_hits):
+# Verified alternate-name aliases: TVmaze lists some shows under a different
+# title (e.g. 'Chainsmoker Cat' -> 'Yani Neko'). Each entry is hand-verified so
+# no fuzzy matching is involved and wrong-anime thumbs can't sneak in.
+TVMAZE_ALIASES = {
+    "chainsmoker-cat": 92274,  # Yani Neko
+}
+
+
+def _pick_tvmaze_season(eps_by_season, slug, named_hits, our_seasons=0):
     """Choose the TVmaze season matching this card."""
     if named_hits:
         counts = {}
         for s in named_hits:
             counts[s] = counts.get(s, 0) + 1
         return max(counts, key=counts.get)
-    return _season_suffix(slug)
+    s = _season_suffix(slug)
+    if s is not None:
+        return s
+    # No season suffix in the slug: fall back to the first TVmaze season only
+    # for single-season cards (e.g. 'From Overshadowed to Overpowered'). For
+    # multi-season cards (One Piece, Conan, long-runners) the season mapping is
+    # ambiguous, so skip -- positional fills there could land on the wrong
+    # season's stills.
+    if our_seasons == 1 and eps_by_season:
+        return min(eps_by_season)
+    return None
 
 
 def _backfill_one(entry, aired):
@@ -276,6 +294,9 @@ def _backfill_one(entry, aired):
         y = int(m.group(1))
 
     sid = _search_tvmaze(title, y)
+    if not sid:
+        # Hand-verified alternate-name alias (see TVMAZE_ALIASES).
+        sid = TVMAZE_ALIASES.get(slug)
     if not sid:
         return 0, 0
     eps = _tvmaze_episodes(sid)
@@ -301,7 +322,9 @@ def _backfill_one(entry, aired):
                         named_hits.append(tseason)
                         break
 
-    tseason = _pick_tvmaze_season(by_season, slug, named_hits)
+    tseason = _pick_tvmaze_season(
+        by_season, slug, named_hits, our_seasons=len(entry.get("seasons") or [])
+    )
     tvm = by_season.get(tseason) or []
     if not tvm:
         return 0, 0

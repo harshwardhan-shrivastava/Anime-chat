@@ -251,26 +251,45 @@ _enrich_lock = threading.Lock()
 
 def _full_enrich_worker():
     """Run the full enrichment pipeline: airing apply, TVmaze backfill, HD
-    upgrade, then reload the database in memory."""
+    upgrade, then reload the database in memory. Each stage is isolated so a
+    slow/failed stage (e.g. TVmaze being unreachable) never blocks the
+    database reload -- the site always serves the freshest data on disk."""
     from anime_data import reload_database
 
     try:
         # Step 1: Airing apply (AniList data -> TBC markers, statuses)
         from scripts.enrich_airing import apply_airing, tvmaze_backfill
-        apply_airing()
+        try:
+            apply_airing()
+        except Exception as exc:
+            print(f"[auto-enrich] apply_airing failed (continuing): {exc}", flush=True)
 
-        # Step 2: TVmaze backfill for newest aired episodes
-        tvmaze_backfill(
-            count=0,
-            todo_path="anime_airing_todo.json",
-            cross_path="anime_ep_thumbs_crosstodo.json",
-        )
+        # Step 2: Reload so released/TBC changes show immediately, even if
+        # the TVmaze backfill below hangs on the network.
+        try:
+            reload_database()
+        except Exception as exc:
+            print(f"[auto-enrich] reload after apply failed: {exc}", flush=True)
 
-        # Step 3: HD thumbnail upgrade
-        from scripts.upgrade_thumbs_to_hd import main as hd_upgrade
-        hd_upgrade()
+        # Step 3: TVmaze backfill for newest aired episodes (network-bound;
+        # failures here are non-fatal).
+        try:
+            tvmaze_backfill(
+                count=0,
+                todo_path="anime_airing_todo.json",
+                cross_path="anime_ep_thumbs_crosstodo.json",
+            )
+        except Exception as exc:
+            print(f"[auto-enrich] tvmaze_backfill failed (continuing): {exc}", flush=True)
 
-        # Step 4: Reload the database so the running app sees the changes
+        # Step 4: HD thumbnail upgrade
+        try:
+            from scripts.upgrade_thumbs_to_hd import main as hd_upgrade
+            hd_upgrade()
+        except Exception as exc:
+            print(f"[auto-enrich] hd_upgrade failed (continuing): {exc}", flush=True)
+
+        # Step 5: Reload the database so the running app sees the changes
         reload_database()
 
         # Rebuild the anilist_id index used by the live schedule refresher
