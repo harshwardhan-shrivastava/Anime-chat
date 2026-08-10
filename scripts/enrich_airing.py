@@ -15,16 +15,23 @@ schedule), then:
   * backfill real episode titles for aired episodes from the MAL cache
   * create a season structure for Ongoing shows that had none yet (new cours
     such as 100 Girlfriends S3 / That Time I Got Reincarnated as a Slime S4)
+  * --tvmaze: fill REAL titles + HD thumbnails for the newest aired episodes
+    straight from TVmaze. The name-based matcher only fills episodes that
+    already have a title, so a just-aired episode (no title cached yet) would
+    stay blank; this step gives it its official TVmaze name + HD still. Also
+    re-fills the stripped cross-contamination pairs (--cross).
 
 Usage:
     python3 scripts/enrich_airing.py --plan --todo anime_airing_todo.json
     python3 scripts/enrich_airing.py --fetch 300 --offset 0 --cache anime_airing_a0.json --todo anime_airing_todo.json
     python3 scripts/enrich_airing.py --apply
+    python3 scripts/enrich_airing.py --tvmaze 200 --offset 0 --todo anime_airing_todo.json
 """
 
 import argparse
 import json
 import os
+import re
 import sys
 import time
 
@@ -36,6 +43,7 @@ MAL_FILE = os.path.join(ROOT, "anime_mal_episodes.json")
 CACHE_PATTERNS = ("anime_airing_a*.json",)
 
 API = "https://graphql.anilist.co"
+TVM_API = "https://api.tvmaze.com"
 
 STATUS_MAP = {
     "FINISHED": "Completed",
@@ -59,6 +67,21 @@ query ($ids: [Int]) {
   }
 }
 """
+
+# TVmaze HD flavors
+_TVMAZE_OLD_FLAVORS = (
+    "/uploads/images/medium_landscape/",
+    "/uploads/images/medium/",
+    "/uploads/images/original/",
+)
+_HD_FLAVOR = "/uploads/images/original_untouched/"
+
+_PH_RE = re.compile(
+    r"(?:^|[-\s])(?:Season|S)\s*\d+\s*-\s*Episode\s*\d+$|^Episode\s*\d+$",
+    re.I,
+)
+
+_SEASON_SUFFIX_RE = re.compile(r"[-\s]?(?:season|part|cour|s)\s*(\d+)$", re.I)
 
 
 def load_json(path):
@@ -140,11 +163,7 @@ def glob_files(pattern):
 
 
 def _global_number(seasons, si, ep_number):
-    """Map (season idx, ep number) to the show-global episode number.
-
-    Cards that restart numbering each season (S2 starts at 1) accumulate an
-    offset; cards that already use global numbering pass the number through.
-    """
+    """Map (season idx, ep number) to the show-global episode number."""
     offset = 0
     for i, s in enumerate(seasons):
         eps = s.get("episodes") or []
@@ -155,6 +174,212 @@ def _global_number(seasons, si, ep_number):
             return ep_number or 0
         offset += len(eps)
     return ep_number or 0
+
+
+# ---------------------------------------------------------------------------
+# TVmaze name + HD-thumb backfill for newest aired episodes
+# ---------------------------------------------------------------------------
+
+def _hd_url(url):
+    """Return the true-HD (original_untouched) flavor of a TVmaze image URL."""
+    if not isinstance(url, str):
+        return url
+    for old in _TVMAZE_OLD_FLAVORS:
+        if old in url:
+            return url.replace(old, _HD_FLAVOR)
+    return url
+
+
+def _norm(s):
+    return re.sub(r"[^a-z0-9]+", "", (s or "").lower())
+
+
+def _is_placeholder(title):
+    return bool(title) and bool(_PH_RE.search(title))
+
+
+def _season_suffix(slug):
+    m = _SEASON_SUFFIX_RE.search(slug or "")
+    return int(m.group(1)) if m else None
+
+
+def _tvmaze_ep_image(ep):
+    img = (
+        (ep.get("image") or {}).get("original_untouched")
+        or (ep.get("image") or {}).get("medium_landscape")
+        or (ep.get("image") or {}).get("original")
+        or (ep.get("image") or {}).get("medium")
+    )
+    return _hd_url(img) if isinstance(img, str) else None
+
+
+def _search_tvmaze(title, year):
+    """Best TVmaze show id for a title."""
+    from difflib import SequenceMatcher
+
+    base = re.sub(r"[-\s]?(?:season|part|cour|s)\s*\d+$", "", title or "", flags=re.I)
+    if not base:
+        return None
+    try:
+        r = requests.get(
+            "%s/singlesearch/shows?q=%s" % (TVM_API, base),
+            timeout=15,
+        )
+        if r.status_code == 200:
+            show = r.json() or {}
+            nm = _norm(show.get("name") or "")
+            bn = _norm(base)
+            if nm and bn and (bn == nm or bn in nm or nm in bn
+                              or SequenceMatcher(None, bn, nm).ratio() >= 0.55):
+                return show.get("id")
+        return None
+    except Exception:
+        return None
+
+
+def _tvmaze_episodes(sid):
+    try:
+        r = requests.get("%s/shows/%s/episodes" % (TVM_API, sid), timeout=20)
+        if r.status_code != 200:
+            return []
+        return r.json() or []
+    except Exception:
+        return []
+
+
+def _pick_tvmaze_season(eps_by_season, slug, named_hits):
+    """Choose the TVmaze season matching this card."""
+    if named_hits:
+        counts = {}
+        for s in named_hits:
+            counts[s] = counts.get(s, 0) + 1
+        return max(counts, key=counts.get)
+    return _season_suffix(slug)
+
+
+def _backfill_one(entry, aired):
+    """Fill real titles + HD thumbs for aired-but-missing episodes of a card."""
+    slug = entry.get("slug") or ""
+    title = entry.get("title") or slug
+    year = entry.get("release") or ""
+    y = None
+    m = re.search(r"(\d{4})", str(year))
+    if m:
+        y = int(m.group(1))
+
+    sid = _search_tvmaze(title, y)
+    if not sid:
+        return 0, 0
+    eps = _tvmaze_episodes(sid)
+    if not eps:
+        return 0, 0
+
+    by_season = {}
+    for e in eps:
+        by_season.setdefault(e.get("season"), []).append(e)
+
+    named_hits = []
+    for s in entry.get("seasons") or []:
+        for ep in s.get("episodes") or []:
+            t = ep.get("title")
+            if not t or _is_placeholder(t):
+                continue
+            nt = _norm(t)
+            if not nt:
+                continue
+            for tseason, teps in by_season.items():
+                for te in teps:
+                    if nt == _norm(te.get("name") or ""):
+                        named_hits.append(tseason)
+                        break
+
+    tseason = _pick_tvmaze_season(by_season, slug, named_hits)
+    tvm = by_season.get(tseason) or []
+    if not tvm:
+        return 0, 0
+    by_num = {}
+    for e in tvm:
+        by_num[e.get("number")] = e
+
+    titles = 0
+    thumbs = 0
+    for si, s in enumerate(entry.get("seasons") or []):
+        for ep in s.get("episodes") or []:
+            if _global_number(entry.get("seasons") or [], si, ep.get("number") or 0) > aired:
+                continue
+            te = by_num.get(ep.get("number"))
+            if not te:
+                continue
+            tname = te.get("name") or ""
+            if (not ep.get("title") or _is_placeholder(ep.get("title"))) and tname and not _is_placeholder(tname):
+                ep["title"] = tname
+                titles += 1
+            if not ep.get("thumb"):
+                img = _tvmaze_ep_image(te)
+                if img:
+                    ep["thumb"] = img
+                    thumbs += 1
+    return titles, thumbs
+
+
+def _needs_backfill(entry, aired):
+    """True when some aired episode of the card lacks a title or a thumb."""
+    for si, s in enumerate(entry.get("seasons") or []):
+        for ep in s.get("episodes") or []:
+            if _global_number(entry.get("seasons") or [], si, ep.get("number") or 0) > aired:
+                continue
+            if not ep.get("title") or not ep.get("thumb"):
+                return True
+    return False
+
+
+def tvmaze_backfill(count=0, offset=0, todo_path=None, cross_path=None):
+    """Fill TVmaze titles + HD thumbs for aired episodes missing them."""
+    data = load_json(DATA_FILE)
+
+    jobs = []
+    todo = load_json(todo_path) if todo_path else []
+    for row in todo[offset:offset + count] if count else todo[offset:]:
+        slug = row[0] if isinstance(row, (list, tuple)) else row
+        entry = data.get(slug)
+        if not entry or entry.get("status") != "Ongoing":
+            continue
+        aired = entry.get("total_episodes") or 0
+        nxt = entry.get("next_episode")
+        if nxt:
+            aired = nxt - 1
+        if aired > 0 and _needs_backfill(entry, aired):
+            jobs.append((slug, aired))
+
+    cross = load_json(cross_path) if cross_path else []
+    for slug in cross:
+        entry = data.get(slug)
+        if not entry:
+            continue
+        total = 0
+        for s in entry.get("seasons") or []:
+            total += len(s.get("episodes") or [])
+        if total > 0 and _needs_backfill(entry, total):
+            jobs.append((slug, total))
+
+    if not jobs:
+        print("Nothing to backfill.")
+        return
+    print("TVMAZE backfill jobs:", len(jobs), flush=True)
+
+    total_t = 0
+    total_th = 0
+    for i, (slug, aired) in enumerate(jobs, 1):
+        t, th = _backfill_one(data[slug], aired)
+        total_t += t
+        total_th += th
+        if i % 10 == 0 or i == len(jobs):
+            save_json(DATA_FILE, data)
+            print(f"  {i}/{len(jobs)} | titles={total_t} thumbs={total_th}", flush=True)
+        time.sleep(0.2)
+
+    save_json(DATA_FILE, data)
+    print(f"DONE TVMAZE backfill: {total_t} titles, {total_th} thumbs")
 
 
 def apply_airing():
@@ -264,9 +489,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--plan", action="store_true")
     ap.add_argument("--fetch", type=int, default=0)
+    ap.add_argument("--tvmaze", type=int, default=0)
     ap.add_argument("--offset", type=int, default=0)
     ap.add_argument("--cache", default=None)
     ap.add_argument("--todo", default=None)
+    ap.add_argument("--cross", default=None)
     ap.add_argument("--apply", action="store_true")
     args = ap.parse_args()
 
@@ -278,7 +505,11 @@ def main():
     if args.fetch:
         fetch_window(args.fetch, offset=args.offset, cache_file=args.cache,
                      todo_path=args.todo or "anime_airing_todo.json")
-    if not (args.apply or args.plan or args.fetch):
+    if args.tvmaze:
+        tvmaze_backfill(args.tvmaze, offset=args.offset,
+                        todo_path=args.todo or "anime_airing_todo.json",
+                        cross_path=args.cross or "anime_ep_thumbs_crosstodo.json")
+    if not (args.apply or args.plan or args.fetch or args.tvmaze):
         ap.print_help()
 
 
