@@ -243,7 +243,7 @@ def _schedule_loop():
 # TBC markers, new episode titles, and HD thumbnails to anime_data.json and
 # reloads it so the app sees the changes.
 
-_ENRICH_TTL = 21600  # 6 hours
+_ENRICH_TTL = 1800  # 30 minutes
 
 _enrich_state = {"last": 0.0, "running": False}
 _enrich_lock = threading.Lock()
