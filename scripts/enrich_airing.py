@@ -195,7 +195,15 @@ def _norm(s):
 
 
 def _is_placeholder(title):
-    return bool(title) and bool(_PH_RE.search(title))
+    """True when a title is a generated/placeholder label that should be
+    replaced with the real episode name (e.g. 'Season 1 - Episode 1',
+    'Episode 5', or the airing marker 'TBC')."""
+    if not title:
+        return True
+    t = title.strip().lower()
+    if t in ("tbc", "tba", "tbd", "to be released", "untitled"):
+        return True
+    return bool(_PH_RE.search(title))
 
 
 def _season_suffix(slug):
