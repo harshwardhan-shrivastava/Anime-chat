@@ -1845,6 +1845,79 @@ footer p{
 }
 
 /* ==========================================
+   TBC (NOT YET RELEASED) EPISODES
+========================================== */
+
+.episode-tbc{
+
+    opacity:.75;
+    cursor:default;
+    gap:14px;
+
+}
+
+.episode-tbc:hover{
+
+    background:#0f141c;
+
+}
+
+.episode-thumb-tbc{
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:.4rem;
+    background:linear-gradient(135deg,#141a26,#1c2331);
+    color:#8b93a7;
+    border:1px dashed #39425a;
+
+}
+
+.episode-thumb-tbc i{
+
+    font-size:1.1rem;
+    opacity:.85;
+
+}
+
+.tbc-chip{
+
+    background:rgba(139,147,167,.14);
+    border:1px solid rgba(139,147,167,.35);
+    color:#aab2c4;
+    font-size:.6rem;
+    font-weight:700;
+    letter-spacing:.1em;
+    padding:.18rem .55rem;
+    border-radius:999px;
+
+}
+
+.episode-tbc .tbc-title{
+
+    color:#8b93a7;
+    font-style:italic;
+
+}
+
+.episode-tbc-note{
+
+    display:inline-flex;
+    align-items:center;
+    font-size:.72rem;
+    font-weight:600;
+    letter-spacing:.04em;
+    color:#7d8699;
+    background:rgba(139,147,167,.08);
+    padding:7px 13px;
+    border-radius:999px;
+    white-space:nowrap;
+
+}
+
+/* ==========================================
    EPISODE RATE PAGE
 ========================================== */
 

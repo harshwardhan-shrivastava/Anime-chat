@@ -302,6 +302,42 @@
 
                     {% set ep_stats = (episode_stats.get(season.name, {}) or {}).get(episode.number) %}
 
+                    {% set is_tbc = episode.released is sameas false or episode.title == 'TBC' %}
+
+                    {% if is_tbc %}
+                    <div class="episode episode-tbc">
+
+                        <div class="episode-thumb episode-thumb-tbc">
+                            <i class="fas fa-hourglass-half"></i>
+                            <span class="tbc-chip">TBC</span>
+                        </div>
+
+                        <div class="episode-main">
+
+                            <h4>
+
+                                Episode {{ episode.number }}
+
+                            </h4>
+
+                            <p>
+
+                                <span class="tbc-title">To be released</span>
+
+                            </p>
+
+                        </div>
+
+                        <div class="episode-side">
+
+                            <span class="episode-tbc-note">
+                                Not aired yet
+                            </span>
+
+                        </div>
+
+                    </div>
+                    {% else %}
                     <a class="episode episode-link"
                        href="{{ url_for('episode_rate', anime_slug=anime.slug, season_idx=outer_loop.index, episode_number=episode.number) }}">
 
@@ -340,6 +376,7 @@
                         </div>
 
                     </a>
+                    {% endif %}
 
                     {% endfor %}
 
