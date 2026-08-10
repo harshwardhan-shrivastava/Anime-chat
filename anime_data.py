@@ -8,7 +8,26 @@
 # containers.
 import json
 import os
+import threading
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
-with open(os.path.join(_DIR, "anime_data.json"), "r", encoding="utf-8") as _f:
+
+_DATA_PATH = os.path.join(_DIR, "anime_data.json")
+
+with open(_DATA_PATH, "r", encoding="utf-8") as _f:
     anime_database = json.load(_f)
+
+_reload_lock = threading.Lock()
+
+
+def reload_database():
+    """Reload anime_data.json into the global anime_database dict.
+
+    Called by the auto-enrichment background thread so the running app
+    picks up new episode thumbnails, airing changes, and TBC updates
+    without requiring a restart.
+    """
+    global anime_database
+    with _reload_lock:
+        with open(_DATA_PATH, "r", encoding="utf-8") as _f:
+            anime_database = json.load(_f)
