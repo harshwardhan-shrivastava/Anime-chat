@@ -1810,25 +1810,6 @@ footer p{
 
 }
 
-.episode-thumb-poster .poster-chip{
-
-    position:absolute;
-    left:6px;
-    bottom:6px;
-    background:rgba(4,9,15,.78);
-    backdrop-filter:blur(6px);
-    color:#c6cfdb;
-    font-size:.55rem;
-    font-weight:700;
-    letter-spacing:.08em;
-    text-transform:uppercase;
-    padding:.18rem .5rem;
-    border-radius:999px;
-    border:1px solid rgba(255,255,255,.16);
-    pointer-events:none;
-
-}
-
 .episode-main{
 
     min-width:0;
