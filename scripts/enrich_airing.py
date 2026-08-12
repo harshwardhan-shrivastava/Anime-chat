@@ -345,9 +345,16 @@ def _backfill_one(entry, aired):
             if (not ep.get("title") or _is_placeholder(ep.get("title"))) and tname and not _is_placeholder(tname):
                 ep["title"] = tname
                 titles += 1
-            if not ep.get("thumb"):
-                img = _tvmaze_ep_image(te)
-                if img:
+            img = _tvmaze_ep_image(te)
+            if img:
+                if not ep.get("thumb"):
+                    ep["thumb"] = img
+                    thumbs += 1
+                elif _hd_url(ep.get("thumb")) != img:
+                    # The card carries a still from a different show/season
+                    # (old pipeline contamination). We only reach this code
+                    # with a confident show+season match (title search + exact
+                    # episode-name matches), so swap in the correct still.
                     ep["thumb"] = img
                     thumbs += 1
     return titles, thumbs
