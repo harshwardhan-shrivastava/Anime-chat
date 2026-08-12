@@ -433,6 +433,7 @@ def apply_airing():
         "next_fixed": 0,
         "total_fixed": 0,
         "tbc_marked": 0,
+        "tbc_cleared": 0,
         "thumbs_removed": 0,
         "titles_backfilled": 0,
         "seasons_created": 0,
@@ -462,12 +463,20 @@ def apply_airing():
 
             nodes = (info.get("airingSchedule") or {}).get("nodes") or []
             aired = None
-            if nxt.get("episode"):
+            # Two independent signals, take the larger:
+            #  * every scheduled episode whose airing time has already passed
+            #    has aired -- robust to a stale nextAiringEpisode, so a
+            #    just-aired episode flips to released as soon as its timestamp
+            #    passes, even before the cache refreshes;
+            #  * nextAiringEpisode.episode - 1 -- robust to partial schedules
+            #    (AniList only lists the current cour's airing times for
+            #    long multi-cour shows like Renegade Immortal).
+            done = [nd["episode"] for nd in nodes
+                    if nd.get("airingAt") and nd["airingAt"] <= now]
+            if done:
+                aired = max(done)
+            if nxt.get("episode") and (aired is None or nxt["episode"] - 1 > aired):
                 aired = nxt["episode"] - 1
-            else:
-                done = [nd["episode"] for nd in nodes if nd.get("airingAt") and nd["airingAt"] <= now]
-                if done:
-                    aired = max(done)
 
             total = info.get("episodes") or 0
             if not total and nodes:
@@ -476,7 +485,27 @@ def apply_airing():
                 e["total_episodes"] = total
                 stats["total_fixed"] += 1
 
-            if st != "Ongoing" or not aired:
+            mal_titles = mal.get(slug) or {}
+
+            if st != "Ongoing":
+                # The show stopped airing (finished / cancelled): any episode
+                # at or before the final count really aired, so clear the
+                # stale TBC markers left behind by the airing run.
+                if total and st in ("Completed", "Cancelled"):
+                    seasons = e.get("seasons") or []
+                    for si, s in enumerate(seasons):
+                        for ep in s.get("episodes") or []:
+                            gnum = _global_number(seasons, si, ep.get("number") or 0)
+                            if gnum <= total and (ep.get("released") is False
+                                                  or ep.get("title") == "TBC"):
+                                ep.pop("released", None)
+                                if (not ep.get("title")
+                                        and str(ep.get("number")) in mal_titles):
+                                    ep["title"] = mal_titles[str(ep["number"])]
+                                stats["tbc_cleared"] += 1
+                continue
+
+            if not aired:
                 continue
 
             seasons = e.get("seasons") or []
@@ -492,7 +521,6 @@ def apply_airing():
                     e["watch_order"] = ["Season 1"]
                 stats["seasons_created"] += 1
 
-            mal_titles = mal.get(slug) or {}
             for si, s in enumerate(seasons):
                 for ep in s.get("episodes") or []:
                     gnum = _global_number(seasons, si, ep.get("number") or 0)
@@ -506,6 +534,12 @@ def apply_airing():
                         stats["tbc_marked"] += 1
                     else:
                         ep.pop("released", None)
+                        # This episode has officially aired. If a previous run
+                        # left a placeholder title behind ("TBC" etc.) while it
+                        # was still upcoming, drop it so it no longer renders
+                        # as "To be released" and can pick up the real name.
+                        if _is_placeholder(ep.get("title")):
+                            ep.pop("title", None)
                         if not ep.get("title") and str(ep.get("number")) in mal_titles:
                             ep["title"] = mal_titles[str(ep["number"])]
                             stats["titles_backfilled"] += 1

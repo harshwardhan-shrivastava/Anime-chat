@@ -165,6 +165,37 @@ _BY_AID = {
 }
 
 
+def _save_fresh_airing_cache(fresh):
+    """Persist freshly-fetched AniList airing info into the on-disk airing
+    cache (anime_airing_a*.json) so the next apply_airing() run sees fresh
+    status / next-episode data and flips newly-aired episodes to released
+    without anyone re-running the fetch step by hand."""
+    from scripts.enrich_airing import load_json, save_json, _cache_files
+
+    cache = {}
+    for fname in _cache_files():
+        cache.update(load_json(fname) or {})
+    changed = False
+    for aid_s, rec in fresh.items():
+        old = cache.get(aid_s) or {}
+        merged = dict(old)
+        for key in ("status", "episodes", "startDate", "nextAiringEpisode"):
+            if key in rec:
+                merged[key] = rec[key]
+        if merged != old:
+            cache[aid_s] = merged
+            changed = True
+    if changed:
+        try:
+            save_json(
+                os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "anime_airing_a0.json"),
+                cache,
+            )
+        except Exception as exc:
+            print(f"[schedule] failed to persist airing cache: {exc}", flush=True)
+
+
 def _refresh_airing_schedule_worker():
     """Fetch fresh airing info for every Ongoing/Upcoming title and patch the
     in-memory catalog, so the site always points at the real next episode."""
@@ -176,6 +207,7 @@ def _refresh_airing_schedule_worker():
                 seen.add(aid)
                 ids.append(aid)
 
+    fresh = {}
     for i in range(0, len(ids), 50):
         batch = ids[i:i + 50]
         try:
@@ -191,6 +223,11 @@ def _refresh_airing_schedule_worker():
                 if not hit:
                     continue
                 _, entry = hit
+                fresh[str(m.get("id"))] = {
+                    "status": m.get("status"),
+                    "startDate": m.get("startDate") or {},
+                    "nextAiringEpisode": m.get("nextAiringEpisode") or {},
+                }
                 st = _SCHEDULE_STATUS_MAP.get(m.get("status"))
                 if st:
                     entry["status"] = st
@@ -210,6 +247,9 @@ def _refresh_airing_schedule_worker():
         except Exception:
             continue
         time.sleep(1.0)  # stay well under AniList's 90 req/min limit
+
+    if fresh:
+        _save_fresh_airing_cache(fresh)
 
     with _schedule_lock:
         _schedule_state["last"] = time.time()
@@ -236,7 +276,7 @@ def _schedule_loop():
 
 
 # ---------------------------------------------------------------------------
-# Full auto-enrichment (airing + TVmaze + HD upgrade) every 6 hours
+# Full auto-enrichment (airing + TVmaze + HD upgrade) every 10 minutes
 # ---------------------------------------------------------------------------
 # The live schedule refresh above only updates the in-memory next_episode_at
 # fields. This thread runs the full enrichment pipeline that actually writes
@@ -313,7 +353,7 @@ def _full_enrich_loop():
     """Background loop that runs the full enrichment pipeline on a timer.
 
     Runs once at startup (after a short delay) and then every _ENRICH_TTL
-    seconds (6 hours) for the life of the app.
+    seconds (10 minutes) for the life of the app.
     """
     time.sleep(120)  # wait 2 minutes for the app to finish starting
     while True:

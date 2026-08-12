@@ -342,7 +342,19 @@
                        href="{{ url_for('episode_rate', anime_slug=anime.slug, season_idx=outer_loop.index, episode_number=episode.number) }}">
 
                         {% if episode.thumb %}
+
                         <img class="episode-thumb" src="{{ episode.thumb }}" alt="" loading="lazy">
+
+                        {% else %}
+
+                        <div class="episode-thumb episode-thumb-poster">
+
+                            <img src="{{ anime.image | anime_img }}" alt="" loading="lazy">
+
+                            <span class="poster-chip">Official Poster</span>
+
+                        </div>
+
                         {% endif %}
 
                         <div class="episode-main">
