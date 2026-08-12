@@ -221,28 +221,75 @@ def _tvmaze_ep_image(ep):
     return _hd_url(img) if isinstance(img, str) else None
 
 
+_TRAILING_TAG_RE = re.compile(r"[-\s]?(?:season|part|cour|s)\s*\d+$", re.I)
+_SEASON_TAG_RE = re.compile(r"\s*(?:season|part|cour|s)\s*\d+\s*[:,-]?\s*", re.I)
+
+
 def _search_tvmaze(title, year):
-    """Best TVmaze show id for a title."""
+    """Best TVmaze show id for a title.
+
+    Handles titles with season markers anywhere (e.g. 'JUJUTSU KAISEN Season 3:
+    The Culling Game Part 1') by trying successively simpler candidate names:
+    full title, season tags stripped everywhere, then the segment before the
+    first colon/dash, then the first few words.
+    """
     from difflib import SequenceMatcher
 
-    base = re.sub(r"[-\s]?(?:season|part|cour|s)\s*\d+$", "", title or "", flags=re.I)
-    if not base:
+    def _ok(show):
+        nm = _norm((show or {}).get("name") or "")
+        return nm
+
+    def _try(q):
+        q = q.strip()
+        if len(q) < 4:
+            return None
+        try:
+            r = requests.get("%s/singlesearch/shows?q=%s" % (TVM_API, q), timeout=6)
+        except Exception:
+            return None
+        if r.status_code != 200:
+            return None
+        show = r.json() or {}
+        nm = _ok(show)
+        if not nm:
+            return None
+        bn = _norm(q)
+        if (bn == nm or bn in nm or nm in bn
+                or SequenceMatcher(None, bn, nm).ratio() >= 0.55):
+            return show.get("id")
         return None
-    try:
-        r = requests.get(
-            "%s/singlesearch/shows?q=%s" % (TVM_API, base),
-            timeout=6,
-        )
-        if r.status_code == 200:
-            show = r.json() or {}
-            nm = _norm(show.get("name") or "")
-            bn = _norm(base)
-            if nm and bn and (bn == nm or bn in nm or nm in bn
-                              or SequenceMatcher(None, bn, nm).ratio() >= 0.55):
-                return show.get("id")
-        return None
-    except Exception:
-        return None
+
+    title = title or ""
+    candidates = [title]
+    base = _TRAILING_TAG_RE.sub("", title).strip()
+    if base and base != title:
+        candidates.append(base)
+    stripped = _SEASON_TAG_RE.sub("", title).strip()
+    if stripped and stripped != base:
+        candidates.append(stripped)
+    # Segment before the first colon or dash separator (the main show name).
+    for sep in (":", " - ", " – ", "-", "–"):
+        head = title.split(sep)[0].strip()
+        if head and len(head) >= 4 and head not in candidates:
+            candidates.append(head)
+    # First two/three words as a last resort for very long names.
+    words = re.sub(r"[^\w ]", " ", stripped).split()
+    for n in (3, 2):
+        if len(words) > n:
+            cand = " ".join(words[:n])
+            if cand not in candidates:
+                candidates.append(cand)
+
+    seen = set()
+    for cand in candidates:
+        key = _norm(cand)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        sid = _try(cand)
+        if sid:
+            return sid
+    return None
 
 
 def _tvmaze_episodes(sid):
@@ -260,6 +307,10 @@ def _tvmaze_episodes(sid):
 # no fuzzy matching is involved and wrong-anime thumbs can't sneak in.
 TVMAZE_ALIASES = {
     "chainsmoker-cat": 92274,  # Yani Neko
+    # JJK cards (verified against TVmaze show 48450; S3 eps live in season 3)
+    "jujutsu-kaisen": 48450,
+    "jujutsu-kaisen-season-2": 48450,
+    "jujutsu-kaisen-season-3-the-culling-game-part-1": 48450,
 }
 
 
