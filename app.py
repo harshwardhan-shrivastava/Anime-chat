@@ -1,6 +1,7 @@
 import calendar
 import functools
 import os
+import re
 import threading
 import time
 
@@ -589,15 +590,31 @@ def api_search():
 
     results = []
 
+    # Normalize a title/query so punctuation and spacing don't block a
+    # match: lowercase, drop apostrophes, and collapse separators (spaces,
+    # hyphens, dashes, colons, dots, slashes, parens) to single spaces.
+    # "one-piece", "ONE PIECE", and "One Piece" all normalize to
+    # "one piece"; "Bleach: Thousand-Year Blood War" normalizes to
+    # "bleach thousand year blood war".
+    _APOS = str.maketrans({"'": "", "\u2019": "", "\u2018": ""})
+    _SEP_RE = re.compile(r"[\s\-\u2013\u2014:;,.!?/\\()\[\]\"]+")
+
+    def _norm(s):
+        return _SEP_RE.sub(" ", s.translate(_APOS).lower()).strip()
+
+    qn = _norm(q)
+    words = [w for w in qn.split() if w]
+
     def _matches(title):
-        tl = title.lower()
-        if q in tl:
+        tn = _norm(title)
+        if not qn:
+            return False
+        if qn in tn:
             return True
         # Fallback: every query word must appear in the title. This lets
         # "dragon ball kai" find "Dragon Ball Z Kai" (a plain substring
         # check fails because of the "Z").
-        words = [w for w in q.split() if w]
-        return len(words) > 1 and all(w in tl for w in words)
+        return len(words) > 1 and all(w in tn for w in words)
 
     for slug, entry in anime_database.items():
         title = entry.get("title", "")
