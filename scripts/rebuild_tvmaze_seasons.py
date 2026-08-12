@@ -46,6 +46,21 @@ BUILD = {
         ("named", ["Liko and Roy's Departure", "The Search for Laqua",
                    "Rising Hope", "Wonder Voyage"]),
     ),
+    # Dragon Ball Kai shares a TVmaze entry with its Final Chapters; the
+    # "ranges" strategy slices absolute global indices out of the flat list.
+    "dragon-ball-z-kai": (
+        1676,
+        ("ranges", [
+            ("Saiyan Saga", 1, 17),
+            ("Namek Saga", 18, 38),
+            ("Frieza Saga", 39, 54),
+            ("Cell Saga", 55, 98),
+        ]),
+    ),
+    "dragon-ball-z-kai-the-final-chapters": (
+        1676,
+        ("ranges", [("Majin Buu Saga", 99, 167)]),
+    ),
 }
 
 PLACEHOLDER = {"", "tbc", "tba", "tbd", "to be released", "untitled"}
@@ -113,26 +128,44 @@ def main():
                     card_thumbs[seg] = ep["thumb"]
 
         meta = _tvmaze_season_meta(sid)
-        chunks = {}
-        for te in flat:
-            sn = te.get("season")
-            chunks.setdefault(sn, []).append(te)
 
-        new_seasons = []
-        for sn in sorted(chunks):
-            eps = []
-            for i, te in enumerate(chunks[sn], 1):
-                ep = {"number": i}
-                tname = (te.get("name") or "").strip()
-                if tname and tname.lower() not in PLACEHOLDER and \
-                        not tname.lower().startswith("episode "):
-                    ep["title"] = tname
-                thumb = _tvmaze_ep_image(te) or card_thumbs.get(_seg(tname))
-                if thumb:
-                    ep["thumb"] = thumb
-                eps.append(ep)
-            name = _season_name(slug, strategy, sn, meta)
-            new_seasons.append({"name": name, "episodes": eps})
+        if isinstance(strategy, tuple) and strategy[0] == "ranges":
+            # Slice absolute global ranges out of the flat list.
+            new_seasons = []
+            for name, start, end in strategy[1]:
+                eps = []
+                for i, te in enumerate(flat[start - 1:end], 1):
+                    ep = {"number": i}
+                    tname = (te.get("name") or "").strip()
+                    if tname and tname.lower() not in PLACEHOLDER and \
+                            not tname.lower().startswith("episode "):
+                        ep["title"] = tname
+                    thumb = _tvmaze_ep_image(te) or card_thumbs.get(_seg(tname))
+                    if thumb:
+                        ep["thumb"] = thumb
+                    eps.append(ep)
+                new_seasons.append({"name": name, "episodes": eps})
+        else:
+            chunks = {}
+            for te in flat:
+                sn = te.get("season")
+                chunks.setdefault(sn, []).append(te)
+
+            new_seasons = []
+            for sn in sorted(chunks):
+                eps = []
+                for i, te in enumerate(chunks[sn], 1):
+                    ep = {"number": i}
+                    tname = (te.get("name") or "").strip()
+                    if tname and tname.lower() not in PLACEHOLDER and \
+                            not tname.lower().startswith("episode "):
+                        ep["title"] = tname
+                    thumb = _tvmaze_ep_image(te) or card_thumbs.get(_seg(tname))
+                    if thumb:
+                        ep["thumb"] = thumb
+                    eps.append(ep)
+                name = _season_name(slug, strategy, sn, meta)
+                new_seasons.append({"name": name, "episodes": eps})
 
         entry["seasons"] = new_seasons
         entry["watch_order"] = [s["name"] for s in new_seasons]

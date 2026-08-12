@@ -588,9 +588,20 @@ def api_search():
         return jsonify({"success": True, "results": []})
 
     results = []
+
+    def _matches(title):
+        tl = title.lower()
+        if q in tl:
+            return True
+        # Fallback: every query word must appear in the title. This lets
+        # "dragon ball kai" find "Dragon Ball Z Kai" (a plain substring
+        # check fails because of the "Z").
+        words = [w for w in q.split() if w]
+        return len(words) > 1 and all(w in tl for w in words)
+
     for slug, entry in anime_database.items():
         title = entry.get("title", "")
-        if q in title.lower():
+        if _matches(title):
             results.append({
                 "slug": slug,
                 "title": title,
