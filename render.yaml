@@ -1,0 +1,17 @@
+# Render Blueprint — deploys Anime-chat (Flask) as a persistent web service.
+# The app already honors the $PORT env var and binds 0.0.0.0, so no code
+# changes are needed. Background threads (auto-enrichment, schedule refresh)
+# run inside the long-lived process.
+services:
+  - type: web
+    name: anime-chat
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SECRET_KEY
+        generateValue: true
