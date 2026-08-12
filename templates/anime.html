@@ -276,7 +276,7 @@
 
                     <h3>
 
-                        {{ 'Movie' if is_movie else 'Episodes' }}
+                        {{ season.name | default('Episodes') }}
 
                     </h3>
 
