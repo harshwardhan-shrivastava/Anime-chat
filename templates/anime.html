@@ -272,11 +272,15 @@
 
                 {% set is_movie = anime.type == 'Movie' %}
 
+                {% set raw_name = (season.name or '').strip() %}
+
+                {% set season_label = 'Episodes' if raw_name.startswith('Season ') and raw_name.split(' ')[-1].isdigit() else (raw_name | default('Episodes')) %}
+
                 <div class="season-top">
 
                     <h3>
 
-                        {{ season.name | default('Episodes') }}
+                        {{ season_label }}
 
                     </h3>
 
