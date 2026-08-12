@@ -332,13 +332,27 @@ def _backfill_one(entry, aired):
     for e in tvm:
         by_num[e.get("number")] = e
 
+    # Card episode numbering can be per-season (every season starts at 1) or
+    # continuous (each season continues the count, e.g. arc-split cards where
+    # Namek Saga starts at ep 36). Detect which scheme this card uses so the
+    # TVmaze lookup below resolves the right episode either way.
+    seasons = entry.get("seasons") or []
+    continuous = any(
+        (s.get("episodes") or []) and ((s.get("episodes") or [])[0].get("number") or 1) != 1
+        for s in seasons
+    )
+
     titles = 0
     thumbs = 0
-    for si, s in enumerate(entry.get("seasons") or []):
+    for si, s in enumerate(seasons):
         for ep in s.get("episodes") or []:
-            if _global_number(entry.get("seasons") or [], si, ep.get("number") or 0) > aired:
+            gnum = _global_number(seasons, si, ep.get("number") or 0)
+            if gnum > aired:
                 continue
-            te = by_num.get(ep.get("number"))
+            if continuous:
+                te = eps[gnum - 1] if 1 <= gnum <= len(eps) else None
+            else:
+                te = by_num.get(ep.get("number"))
             if not te:
                 continue
             tname = te.get("name") or ""
