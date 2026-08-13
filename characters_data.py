@@ -10,6 +10,7 @@ import json
 import os
 import re
 import threading
+import time
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
 _INDEX_PATH = os.path.join(_DIR, "anime_characters_index.json")
@@ -42,18 +43,47 @@ def _load():
     characters_index = data
 
 
+def _file_mtime():
+    try:
+        return os.path.getmtime(_INDEX_PATH)
+    except OSError:
+        return 0
+
+
 _load()
 
 _reload_lock = threading.Lock()
+
+# mtime of the index file when we last loaded it, plus a throttle so the
+# freshness check is cheap (one stat call per request at most, reload at
+# most every 30s).
+_INDEX_MTIME = _file_mtime()
+_last_check = [0.0]
 
 
 def reload_characters():
     """Reload the index file into memory. Called by the background
     collection loop so newly-fetched characters / voice actors show up
     without restarting the app."""
-    global characters_index
+    global characters_index, _INDEX_MTIME
     with _reload_lock:
         _load()
+        _INDEX_MTIME = _file_mtime()
+
+
+def ensure_fresh():
+    """Reload the index if the file changed on disk since we loaded it.
+
+    Called on every search so a long-running app always serves the latest
+    character/voice-actor data within ~30s of the collection loop writing
+    it, instead of only after a restart or the 10-minute enrich cycle.
+    """
+    now = time.time()
+    if now - _last_check[0] < 30:
+        return
+    _last_check[0] = now
+    if _file_mtime() != _INDEX_MTIME:
+        reload_characters()
 
 
 def _score(e, qn, words):
@@ -92,6 +122,8 @@ def search_characters(q, offset=0, limit=60):
     "naruto" surfaces Naruto's cast). Same punctuation-tolerant matching
     as the main /api/search. Empty query returns the most-popular entries.
     """
+    ensure_fresh()
+
     q = (q or "").strip()
     if not q:
         return characters_index[offset:offset + limit]
