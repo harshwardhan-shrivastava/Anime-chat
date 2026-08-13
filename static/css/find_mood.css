@@ -317,6 +317,30 @@
     justify-content:center;
 }
 
+.modal-x{
+    position:relative;
+    width:16px;
+    height:16px;
+    display:block;
+}
+
+.modal-x::before,
+.modal-x::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:16px;
+    height:2px;
+    border-radius:2px;
+    background:currentColor;
+    transform:translate(-50%,-50%) rotate(45deg);
+}
+
+.modal-x::after{
+    transform:translate(-50%,-50%) rotate(-45deg);
+}
+
 .modal-close:hover{
     background:#ff3b6b;
     border-color:#ff3b6b;
