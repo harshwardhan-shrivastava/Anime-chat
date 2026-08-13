@@ -20,6 +20,7 @@
     const searchInput = document.getElementById("charSearch");
     const searchClear = document.getElementById("charSearchClear");
     const searchHint = document.getElementById("charSearchHint");
+    const suggestBox = document.getElementById("charSuggestBox");
 
     const modal = document.getElementById("charModal");
     const modalClose = document.getElementById("charModalClose");
@@ -121,6 +122,43 @@
         loadingEl.hidden = !on;
     }
 
+    // ---- live suggestion dropdown (like the homepage search) ----
+
+    function renderSuggestions(list) {
+        if (!list || !list.length) {
+            suggestBox.hidden = true;
+            return;
+        }
+        const top = list.slice(0, 8);
+        let html = "";
+        top.forEach(function (e) {
+            CACHE[keyFor(e)] = e;
+            const role = e.role === "MAIN" ? "Main" : "Supporting";
+            const jp = e.jp && e.jp[0];
+            const en = e.en && e.en[0];
+            let va = "";
+            if (jp || en) {
+                va =
+                    '<div class="char-suggest-va">' +
+                    (jp ? '<span class="va-chip va-jp">🇯🇵 ' + esc(jp) + "</span>" : "") +
+                    (en ? '<span class="va-chip va-en">🇺🇸 ' + esc(en) + "</span>" : "") +
+                    "</div>";
+            }
+            html +=
+                '<div class="char-suggest-item" data-key="' + esc(keyFor(e)) + '">' +
+                    '<img src="' + esc(e.image || "") + '" alt="' + esc(e.name) + '" loading="lazy">' +
+                    '<div class="char-suggest-info">' +
+                        '<span class="char-suggest-name">' + esc(e.name) +
+                            '<span class="char-suggest-role">' + role + "</span></span>" +
+                        '<span class="char-suggest-anime">' + esc(e.title) + "</span>" +
+                        va +
+                    "</div>" +
+                "</div>";
+        });
+        suggestBox.innerHTML = html;
+        suggestBox.hidden = false;
+    }
+
     // ---- search -----------------------------------------
 
     function doSearch(reset) {
@@ -146,6 +184,7 @@
                 if (reset) {
                     offset = 0;
                     renderCards(results);
+                    renderSuggestions(results);
                 } else {
                     // append for load-more
                     results.forEach(function (e) {
@@ -164,6 +203,7 @@
                     emptyEl.hidden = false;
                     emptyEl.querySelector("p").textContent =
                         "Something went wrong while searching \u2014 try again in a moment.";
+                    suggestBox.hidden = true;
                 }
             })
             .finally(function () {
@@ -177,6 +217,7 @@
         offset = 0;
         grid.innerHTML = "";
         emptyEl.hidden = true;
+        suggestBox.hidden = true;
         // Re-render from the initial payload so no request is needed.
         (DATA.initial || []).forEach(function (e) {
             grid.insertAdjacentHTML("beforeend", cardHTML(e));
@@ -289,8 +330,27 @@
         if (e.target === modal) closeModal();
     });
 
+    // Clicking a suggestion opens the character modal directly.
+    suggestBox.addEventListener("click", function (ev) {
+        const item = ev.target.closest(".char-suggest-item");
+        if (!item) return;
+        const entry = CACHE[item.dataset.key];
+        if (entry) openModal(entry);
+        suggestBox.hidden = true;
+    });
+
+    // Clicking anywhere outside the search box dismisses the dropdown.
+    document.addEventListener("click", function (e) {
+        if (!e.target.closest(".char-search-box")) {
+            suggestBox.hidden = true;
+        }
+    });
+
     document.addEventListener("keydown", function (e) {
-        if (e.key === "Escape" && !modal.hidden) closeModal();
+        if (e.key === "Escape") {
+            suggestBox.hidden = true;
+            if (!modal.hidden) closeModal();
+        }
     });
 
     // ---- init --------------------------------------------
