@@ -66,7 +66,8 @@
             <div class="pick-card">
                 <div class="pick-poster">
                     <a href="/anime/{{ pick.slug }}">
-                        <img src="{{ pick.image | anime_img }}" alt="{{ pick.title }}" loading="lazy" decoding="async">
+                        <img src="{{ pick.image | anime_img }}" alt="{{ pick.title }}" loading="lazy" decoding="async"
+                            onerror="this.onerror=null;this.src=this.src.replace('/cover/large/','/cover/medium/');">
                     </a>
                     {% if pick.total_episodes %}
                     <span class="pick-eps">

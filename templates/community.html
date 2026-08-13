@@ -177,7 +177,8 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
             src="{{ anime_image | anime_img }}"
             alt="{{ anime_name }}"
             loading="lazy"
-            decoding="async">
+            decoding="async"
+            onerror="this.onerror=null;this.src=this.src.replace('/cover/large/','/cover/medium/');">
 
         <div class="hero-overlay"></div>
 

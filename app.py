@@ -62,7 +62,10 @@ def anime_img(image):
     """Templates call {{ image | anime_img }}. Local filenames resolve to
     /static/images/anime/<name>; full URLs pass through, with AniList cover
     URLs upgraded from medium to large so every poster renders in HD — even
-    when the catalog data holds the lighter medium flavor."""
+    when the catalog data holds the lighter medium flavor. (The templates add
+    an onerror fallback that swaps back to medium if the large flavor 404s.)"""
+    if not isinstance(image, str) or not image:
+        return ""
     if image.startswith(("http://", "https://")):
         return _hd_anilist_url(image)
     return url_for("static", filename="images/anime/" + image)

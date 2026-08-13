@@ -13,7 +13,8 @@
         src="{{ anime.image | anime_img }}"
         alt="{{ anime.title }}"
         loading="lazy"
-        decoding="async">
+        decoding="async"
+        onerror="this.onerror=null;this.src=this.src.replace('/cover/large/','/cover/medium/');">
 
     </a>
 

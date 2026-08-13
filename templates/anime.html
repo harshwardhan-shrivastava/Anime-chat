@@ -93,7 +93,8 @@
 
                 <img src="{{ anime.image | anime_img_large }}"
                     alt="{{ anime.title }}"
-                    decoding="async">
+                    decoding="async"
+                    onerror="this.onerror=null;this.src=this.src.replace('/cover/large/','/cover/medium/');">
 
             </div>
 
@@ -365,7 +366,8 @@
 
                         <div class="episode-thumb episode-thumb-poster">
 
-                            <img src="{{ anime.image | anime_img }}" alt="" loading="lazy" decoding="async">
+                            <img src="{{ anime.image | anime_img }}" alt="" loading="lazy" decoding="async"
+                                onerror="this.onerror=null;this.src=this.src.replace('/cover/large/','/cover/medium/');">
 
                         </div>
 
@@ -751,7 +753,8 @@
 
             <a href="/anime/{{ recommendation.slug }}" class="recommend-card">
 
-                <img src="{{ recommendation.image | anime_img }}" loading="lazy" decoding="async">
+                <img src="{{ recommendation.image | anime_img }}" loading="lazy" decoding="async"
+                    onerror="this.onerror=null;this.src=this.src.replace('/cover/large/','/cover/medium/');">
 
                 <h3>
 

@@ -81,7 +81,8 @@
             {% if episode.thumb %}
             <img src="{{ episode.thumb }}" loading="lazy" decoding="async">
             {% else %}
-            <img src="{{ anime.image | anime_img }}" loading="lazy" decoding="async">
+            <img src="{{ anime.image | anime_img }}" loading="lazy" decoding="async"
+                onerror="this.onerror=null;this.src=this.src.replace('/cover/large/','/cover/medium/');">
             {% endif %}
 
         </div>
