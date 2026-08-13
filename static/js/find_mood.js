@@ -1,350 +1,156 @@
 /* ======================================================
-                FIND YOUR MOOD
-                PART 1
+   FIND YOUR MOOD
+   Single mood select -> one random pick from the real
+   catalog, shown in a modal popup. Surprise Me picks
+   from the whole library.
 ====================================================== */
 
-const moodCards = document.querySelectorAll(".mood-card");
+(function () {
+    "use strict";
 
-const recommendationGrid =
-    document.getElementById("recommendationGrid");
+    const moodCards = document.querySelectorAll(".mood-card");
+    const pickBtn = document.getElementById("pickBtn");
+    const surpriseBtn = document.getElementById("surpriseBtn");
+    const modal = document.getElementById("resultModal");
+    const modalClose = document.getElementById("modalClose");
+    const modalAgain = document.getElementById("modalAgain");
+    const modalPoster = document.getElementById("modalPoster");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalTag = document.getElementById("modalTag");
+    const modalMeta = document.getElementById("modalMeta");
+    const modalSynopsis = document.getElementById("modalSynopsis");
+    const modalView = document.getElementById("modalView");
 
-const emptyState =
-    document.getElementById("emptyState");
+    // Data injected by the server (built from the real catalog).
+    const dataEl = document.getElementById("mood-data");
+    const DATA = JSON.parse(dataEl.textContent || "{}");
+    const pools = DATA.pools || {};
+    const surprise = DATA.surprise || [];
+    const labels = DATA.labels || {};
 
+    let selectedMood = null;
+    let lastPicked = null; // avoid showing the same show twice in a row
+    let lastSource = null; // "mood" or "surprise" for Try Another
 
-const moodDatabase = {
-
-    happy: [
-
-        {
-            title: "Spy x Family",
-            genre: "Comedy",
-            episodes: "25 Episodes",
-            image: "/static/images/anime/spy_x_family.jpg",
-            description:
-            "A wholesome family adventure packed with comedy and heartwarming moments."
-        },
-
-        {
-            title: "K-On!",
-            genre: "Slice of Life",
-            episodes: "39 Episodes",
-            image: "/static/images/anime/k_on.jpg",
-            description:
-            "Relaxing music, friendship and smiles from beginning to end."
+    function pickRandom(list) {
+        if (!list || !list.length) return null;
+        let item = list[Math.floor(Math.random() * list.length)];
+        // If there's more than one option, avoid an immediate repeat.
+        if (list.length > 1 && item.slug === lastPicked) {
+            item = list[Math.floor(Math.random() * list.length)];
         }
-
-    ],
-
-    sad: [
-
-        {
-
-            title:"Your Lie in April",
-
-            genre:"Drama",
-
-            episodes:"22 Episodes",
-
-            image:"/static/images/anime/your_lie_in_april.jpg",
-
-            description:
-            "An emotional masterpiece that will stay with you forever."
-
-        },
-
-        {
-
-            title:"Clannad After Story",
-
-            genre:"Drama",
-
-            episodes:"24 Episodes",
-
-            image:"/static/images/anime/clannad_after_story.jpg",
-
-            description:
-            "One of the most emotional anime ever created."
-
-        }
-
-    ],
-
-    action:[
-
-        {
-
-            title:"Attack on Titan",
-
-            genre:"Action",
-
-            episodes:"89 Episodes",
-
-            image:"/static/images/anime/attack_on_titan.jpg",
-
-            description:
-            "Epic battles, incredible animation and unforgettable twists."
-
-        },
-
-        {
-
-            title:"Demon Slayer",
-
-            genre:"Action",
-
-            episodes:"55 Episodes",
-
-            image:"/static/images/anime/demon_slayer.jpg",
-
-            description:
-            "Beautiful visuals mixed with breathtaking sword fights."
-
-        }
-
-    ],
-
-    romance:[
-
-        {
-
-            title:"Horimiya",
-
-            genre:"Romance",
-
-            episodes:"13 Episodes",
-
-            image:"/static/images/anime/horimiya.jpg",
-
-            description:
-            "A sweet romance filled with lovable characters."
-
-        },
-
-        {
-
-            title:"Toradora!",
-
-            genre:"Romance",
-
-            episodes:"25 Episodes",
-
-            image:"/static/images/anime/toradora.jpg",
-
-            description:
-            "A classic romantic comedy with emotional depth."
-
-        }
-
-    ],
-
-    horror:[
-
-        {
-
-            title:"Another",
-
-            genre:"Horror",
-
-            episodes:"12 Episodes",
-
-            image:"/static/images/anime/another.jpg",
-
-            description:
-            "A suspenseful mystery where nobody is truly safe."
-
-        },
-
-        {
-
-            title:"Tokyo Ghoul",
-
-            genre:"Dark Fantasy",
-
-            episodes:"48 Episodes",
-
-            image:"/static/images/anime/tokyo_ghoul.jpg",
-
-            description:
-            "A dark journey through monsters, survival and identity."
-
-        }
-
-    ],
-
-    fantasy:[
-
-        {
-
-            title:"Frieren",
-
-            genre:"Fantasy",
-
-            episodes:"28 Episodes",
-
-            image:"/static/images/anime/frieren.jpg",
-
-            description:
-            "A breathtaking fantasy adventure with emotional storytelling."
-
-        },
-
-        {
-
-            title:"Mushoku Tensei",
-
-            genre:"Fantasy",
-
-            episodes:"48 Episodes",
-
-            image:"/static/images/anime/mushoku_tensei.jpg",
-
-            description:
-            "One of the best modern fantasy anime."
-
-        }
-
-    ]
-
-};
-
-/* ======================================================
-                FIND YOUR MOOD
-                PART 2
-====================================================== */
-
-function createAnimeCard(anime){
-
-    return `
-
-        <div class="recommend-card">
-
-            <img src="${anime.image}"
-                 alt="${anime.title}">
-
-            <div class="recommend-content">
-
-                <h3>
-
-                    ${anime.title}
-
-                </h3>
-
-                <div class="recommend-meta">
-
-                    <span>
-
-                        ${anime.genre}
-
-                    </span>
-
-                    <span>
-
-                        ${anime.episodes}
-
-                    </span>
-
-                </div>
-
-                <p>
-
-                    ${anime.description}
-
-                </p>
-
-                <button class="recommend-btn">
-
-                    View Anime
-
-                </button>
-
-            </div>
-
-        </div>
-
-    `;
-
-}
-
-
-
-function showRecommendations(mood){
-
-    recommendationGrid.innerHTML = "";
-
-    const animeList = moodDatabase[mood];
-
-    if(!animeList){
-
-        recommendationGrid.innerHTML = `
-
-            <div class="empty-state">
-
-                <div class="empty-icon">
-
-                    😢
-
-                </div>
-
-                <h3>
-
-                    No recommendations found.
-
-                </h3>
-
-                <p>
-
-                    We'll add recommendations for this mood soon.
-
-                </p>
-
-            </div>
-
-        `;
-
-        return;
-
+        lastPicked = item.slug;
+        return item;
     }
 
+    function esc(text) {
+        const div = document.createElement("div");
+        div.textContent = text == null ? "" : String(text);
+        return div.innerHTML;
+    }
 
+    function openModal(item, source) {
+        if (!item) {
+            alert("No anime found for that pick — try another mood!");
+            return;
+        }
+        lastSource = source;
 
-    animeList.forEach(anime=>{
+        modalPoster.src = item.image || "";
+        modalPoster.alt = item.title || "";
+        modalTitle.textContent = item.title || "";
 
-        recommendationGrid.innerHTML +=
-            createAnimeCard(anime);
+        if (source === "surprise") {
+            modalTag.textContent = "🎲 Surprise pick from the catalog";
+        } else {
+            const label = labels[selectedMood] || "Your Mood";
+            modalTag.textContent = "✨ Picked for: " + label;
+        }
 
-    });
+        let meta = "";
+        if (item.year) {
+            meta += '<span><i class="fas fa-calendar-alt"></i>' + esc(item.year) + "</span>";
+        }
+        if (item.rating && item.rating !== "N/A") {
+            meta += '<span class="meta-rating"><i class="fas fa-star"></i>' + esc(item.rating) + "</span>";
+        }
+        if (item.genre) {
+            meta += "<span>" + esc(item.genre) + "</span>";
+        }
+        modalMeta.innerHTML = meta;
 
+        modalSynopsis.textContent =
+            item.synopsis && item.synopsis !== "N/A"
+                ? item.synopsis
+                : "A great pick from the AnimeChat catalog — open it to see episodes, chat and more.";
 
+        modalView.href = "/anime/" + encodeURIComponent(item.slug || "");
+        modal.hidden = false;
+        document.body.style.overflow = "hidden";
+    }
 
-    recommendationGrid.scrollIntoView({
+    function closeModal() {
+        modal.hidden = true;
+        document.body.style.overflow = "";
+    }
 
-        behavior:"smooth",
+    // ---- Mood cards: single select only -------------------
 
-        block:"start"
+    moodCards.forEach(function (card) {
+        card.addEventListener("click", function () {
+            const mood = card.dataset.mood;
 
-    });
+            if (card.classList.contains("selected")) {
+                // Tapping the selected card again deselects it.
+                card.classList.remove("selected");
+                selectedMood = null;
+            } else {
+                moodCards.forEach(function (c) { c.classList.remove("selected"); });
+                card.classList.add("selected");
+                selectedMood = mood;
+            }
 
-}
-
-
-
-moodCards.forEach(card=>{
-
-    card.addEventListener("click",()=>{
-
-        moodCards.forEach(c=>{
-
-            c.classList.remove("selected");
-
+            pickBtn.disabled = !selectedMood;
         });
-
-        card.classList.add("selected");
-
-        const mood = card.dataset.mood;
-
-        showRecommendations(mood);
-
     });
 
-});
+    // ---- Get My Pick ---------------------------------------
+
+    function getMoodPick() {
+        if (!selectedMood) return;
+        openModal(pickRandom(pools[selectedMood] || []), "mood");
+    }
+
+    pickBtn.addEventListener("click", getMoodPick);
+
+    // ---- Surprise Me ---------------------------------------
+
+    surpriseBtn.addEventListener("click", function () {
+        selectedMood = null;
+        moodCards.forEach(function (c) { c.classList.remove("selected"); });
+        pickBtn.disabled = true;
+        openModal(pickRandom(surprise), "surprise");
+    });
+
+    // ---- Modal controls ------------------------------------
+
+    modalClose.addEventListener("click", closeModal);
+
+    modalAgain.addEventListener("click", function () {
+        if (lastSource === "surprise") {
+            openModal(pickRandom(surprise), "surprise");
+        } else if (selectedMood) {
+            openModal(pickRandom(pools[selectedMood] || []), "mood");
+        } else {
+            openModal(pickRandom(surprise), "surprise");
+        }
+    });
+
+    modal.addEventListener("click", function (e) {
+        if (e.target === modal) closeModal();
+    });
+
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && !modal.hidden) closeModal();
+    });
+})();

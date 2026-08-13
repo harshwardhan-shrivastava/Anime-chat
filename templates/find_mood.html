@@ -1,659 +1,343 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Find Your Mood | Anime Chat</title>
+    <title>Find Your Mood | AnimeChat</title>
 
     <link rel="icon" type="image/svg+xml"
-          href="{{ url_for('static', filename='favicon.svg') }}">
-
-    <link rel="preconnect"
-          href="https://fonts.googleapis.com">
-
-    <link rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossorigin>
-
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap"
-          rel="stylesheet">
+    href="{{ url_for('static', filename='favicon.svg') }}">
 
     <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/find_mood.css') }}">
+    href="{{ url_for('static', filename='css/style.css') }}">
+
+    <link rel="stylesheet"
+    href="{{ url_for('static', filename='css/auth.css') }}">
+
+    <link rel="stylesheet"
+    href="{{ url_for('static', filename='css/find_mood.css') }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js"
+    crossorigin="anonymous"></script>
 
 </head>
 
 <body>
 
-
 <div class="background">
-
-    <div class="gradient gradient1"></div>
-    <div class="gradient gradient2"></div>
-    <div class="gradient gradient3"></div>
-
+    <div class="circle one"></div>
+    <div class="circle two"></div>
+    <div class="circle three"></div>
 </div>
 
-
-<nav class="navbar">
-
-    <div class="logo">
-
-        <span class="logo-icon">✦</span>
-
-        <span class="logo-text">
-
-    Anime Chat
-
-</span>
-
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-list" style="max-width:1300px;margin:20px auto 0;width:90%;">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
     </div>
+    {% endif %}
+{% endwith %}
 
-    <ul class="nav-links">
+<!-- ================= NAVBAR ================= -->
 
-        <li>
+{% include "_navbar.html" %}
 
-            <a href="{{ url_for('home') }}">
+<!-- ================= HERO ================= -->
 
-                Home
+<section class="hero mood-hero">
 
-            </a>
+    <span class="hero-badge">🎭 Pick a vibe, get a show</span>
 
-        </li>
+    <h1>
 
-        <li>
+        Find Your
 
-            <a class="active">
+        <span>Mood</span>
 
-                Find Your Mood
+    </h1>
 
-            </a>
+    <p>
 
-        </li>
+        Tell us how you're feeling — or let fate decide —
 
-        <li>
+        and we'll pull one anime from the full catalog
 
-            <a href="#">
+        that fits the moment. A different pick every time.
 
-                Community
+    </p>
 
-            </a>
+    <div class="mood-hero-actions">
 
-        </li>
+        <button id="surpriseBtn" class="surprise-btn">
 
-        <li>
+            <i class="fas fa-dice"></i>
 
-            <a href="#">
+            Surprise Me
 
-                Browse
+        </button>
 
-            </a>
+        <a href="#moods" class="mood-scroll-btn">
 
-        </li>
+            Pick My Mood
 
-    </ul>
-
-</nav>
-
-
-
-<section class="hero">
-
-
-    <div class="hero-left">
-
-
-        <span class="hero-badge">
-
-            ✨ Anime Chat Mood Finder
-
-        </span>
-
-
-        <h1>
-
-            Find Your
-
-            <span>
-
-                Perfect Mood
-
-            </span>
-
-            Anime
-
-        </h1>
-
-
-        <p>
-
-            Whether you're feeling happy, heartbroken,
-            excited, lonely, or ready for an adventure,
-            discover anime that perfectly matches your mood.
-
-        </p>
-
-
-        <div class="hero-buttons">
-
-            <button class="primary-btn">
-
-                Discover Now
-
-            </button>
-
-            <button class="secondary-btn">
-
-                Explore Genres
-
-            </button>
-
-        </div>
-
-
-    </div>
-
-
-
-    <div class="hero-right">
-
-        <div class="hero-card">
-
-
-            <div class="hero-card-top">
-
-                <span>
-
-                    Today's Recommendation
-
-                </span>
-
-            </div>
-
-
-            <img src="{{ url_for('static',
-            filename='images/find_mood/hero.png') }}"
-                 alt="">
-
-
-            <div class="hero-info">
-
-                <h3>
-
-                    Violet Evergarden
-
-                </h3>
-
-                <p>
-
-                    Perfect for emotional evenings.
-
-                </p>
-
-            </div>
-
-        </div>
+        </a>
 
     </div>
 
 </section>
 
+<!-- ================= MOOD GRID ================= -->
 
+<section class="mood-section" id="moods">
 
-<section class="mood-section">
+    <div class="mood-section-head">
 
-    <div class="section-title">
+        <span class="mood-section-tag">Choose one</span>
 
-        <span>
-
-            Choose Your Mood
-
-        </span>
-
-        <h2>
-
-            How Are You Feeling Today?
-
-        </h2>
+        <h2>How Are You Feeling Today?</h2>
 
         <p>
 
-            Select one mood below and we'll recommend anime
-            that perfectly fits your current vibe.
+            Select a single mood — we'll recommend one anime
+
+            from the catalog that fits it.
 
         </p>
 
     </div>
-
 
     <div class="mood-grid">
 
-        <div class="mood-card happy" data-mood="happy">
-
+        <div class="mood-card" data-mood="happy">
             <div class="mood-icon">😊</div>
-
             <h3>Happy</h3>
-
-            <p>
-                Feel-good adventures, wholesome friendships,
-                comedy and uplifting stories.
-            </p>
-
-            <button>Select Mood</button>
-
+            <p>Feel-good adventures, wholesome friendship and uplifting stories.</p>
         </div>
 
-
-
-        <div class="mood-card sad" data-mood="sad">
-
+        <div class="mood-card" data-mood="sad">
             <div class="mood-icon">😢</div>
-
             <h3>Sad</h3>
-
-            <p>
-                Emotional journeys,
-                touching romances and unforgettable endings.
-            </p>
-
-            <button>Select Mood</button>
-
+            <p>Emotional journeys, touching romance and unforgettable endings.</p>
         </div>
 
-
-
-        <div class="mood-card action" data-mood="action">
-
+        <div class="mood-card" data-mood="action">
             <div class="mood-icon">⚔️</div>
-
             <h3>Action</h3>
-
-            <p>
-                Epic battles,
-                powerful heroes,
-                nonstop excitement.
-            </p>
-
-            <button>Select Mood</button>
-
+            <p>Epic battles, powerful heroes and nonstop excitement.</p>
         </div>
 
-
-
-        <div class="mood-card romance" data-mood="romance">
-
+        <div class="mood-card" data-mood="romance">
             <div class="mood-icon">💕</div>
-
             <h3>Romance</h3>
-
-            <p>
-                Sweet love stories,
-                unforgettable couples
-                and emotional moments.
-            </p>
-
-            <button>Select Mood</button>
-
+            <p>Sweet love stories, unforgettable couples and heartfelt moments.</p>
         </div>
 
-
-
-        <div class="mood-card horror" data-mood="horror">
-
+        <div class="mood-card" data-mood="horror">
             <div class="mood-icon">👻</div>
-
             <h3>Horror</h3>
-
-            <p>
-                Psychological thrillers,
-                monsters,
-                mysteries and dark worlds.
-            </p>
-
-            <button>Select Mood</button>
-
+            <p>Psychological thrillers, dark worlds and edge-of-your-seat scares.</p>
         </div>
 
-
-
-        <div class="mood-card fantasy" data-mood="fantasy">
-
+        <div class="mood-card" data-mood="fantasy">
             <div class="mood-icon">🐉</div>
-
             <h3>Fantasy</h3>
-
-            <p>
-                Magic,
-                dragons,
-                kingdoms
-                and unforgettable adventures.
-            </p>
-
-            <button>Select Mood</button>
-
+            <p>Magic, dragons, kingdoms and unforgettable adventures.</p>
         </div>
 
-
-
-        <div class="mood-card chill" data-mood="chill">
-
+        <div class="mood-card" data-mood="chill">
             <div class="mood-icon">☕</div>
-
             <h3>Relax</h3>
-
-            <p>
-                Slice of life,
-                peaceful scenery
-                and comforting stories.
-            </p>
-
-            <button>Select Mood</button>
-
+            <p>Slice of life, peaceful scenery and comforting stories.</p>
         </div>
 
-
-
-        <div class="mood-card mystery" data-mood="mystery">
-
+        <div class="mood-card" data-mood="mystery">
             <div class="mood-icon">🕵️</div>
-
             <h3>Mystery</h3>
-
-            <p>
-                Investigations,
-                secrets,
-                puzzles
-                and clever plot twists.
-            </p>
-
-            <button>Select Mood</button>
-
+            <p>Investigations, secrets, puzzles and clever plot twists.</p>
         </div>
 
-
-
-        <div class="mood-card comedy" data-mood="comedy">
-
+        <div class="mood-card" data-mood="comedy">
             <div class="mood-icon">😂</div>
-
             <h3>Comedy</h3>
-
-            <p>
-                Laugh out loud with hilarious characters
-                and unforgettable moments.
-            </p>
-
-            <button>Select Mood</button>
-
+            <p>Laugh-out-loud characters and unforgettable funny moments.</p>
         </div>
 
-
-
-        <div class="mood-card scifi" data-mood="scifi">
-
+        <div class="mood-card" data-mood="scifi">
             <div class="mood-icon">🚀</div>
-
             <h3>Sci-Fi</h3>
-
-            <p>
-                Time travel,
-                futuristic cities,
-                AI and space adventures.
-            </p>
-
-            <button>Select Mood</button>
-
+            <p>Time travel, futuristic cities and space adventures.</p>
         </div>
 
-
-
-        <div class="mood-card sports" data-mood="sports">
-
+        <div class="mood-card" data-mood="sports">
             <div class="mood-icon">🏐</div>
-
             <h3>Sports</h3>
-
-            <p>
-                Competition,
-                teamwork,
-                determination
-                and inspiring victories.
-            </p>
-
-            <button>Select Mood</button>
-
+            <p>Competition, teamwork, determination and inspiring victories.</p>
         </div>
 
-
-
-        <div class="mood-card mind" data-mood="mind">
-
+        <div class="mood-card" data-mood="mind">
             <div class="mood-icon">🧠</div>
-
             <h3>Mind-Bending</h3>
+            <p>Complex stories, psychological themes and unforgettable twists.</p>
+        </div>
 
-            <p>
-                Complex stories,
-                psychological themes
-                and unforgettable twists.
-            </p>
+    </div>
 
-            <button>Select Mood</button>
+    <div class="mood-pick-bar">
 
+        <button id="pickBtn" class="pick-btn" disabled>
+
+            <i class="fas fa-wand-magic-sparkles"></i>
+
+            Get My Pick
+
+        </button>
+
+        <span class="pick-hint">Pick one mood above, or just Surprise Me.</span>
+
+    </div>
+
+</section>
+
+<!-- ================= MODAL RESULT ================= -->
+
+<div class="modal-overlay" id="resultModal" hidden>
+
+    <div class="modal-card">
+
+        <button class="modal-close" id="modalClose" aria-label="Close">
+
+            <i class="fas fa-times"></i>
+
+        </button>
+
+        <div class="modal-card-inner">
+
+            <div class="modal-poster">
+
+                <img id="modalPoster" alt="Anime poster" loading="lazy">
+
+            </div>
+
+            <div class="modal-info">
+
+                <span class="modal-tag" id="modalTag">Recommended for you</span>
+
+                <h3 id="modalTitle"></h3>
+
+                <div class="modal-meta" id="modalMeta"></div>
+
+                <p id="modalSynopsis"></p>
+
+                <div class="modal-actions">
+
+                    <a id="modalView" href="#" class="modal-view-btn" target="_blank">
+
+                        View Anime
+
+                        <i class="fas fa-arrow-right"></i>
+
+                    </a>
+
+                    <button id="modalAgain" class="modal-again-btn">
+
+                        <i class="fas fa-dice"></i>
+
+                        Try Another
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ================= WHY ================= -->
+
+<section class="why-section">
+
+    <h2>Why Mood Picks?</h2>
+
+    <div class="why-grid">
+
+        <div class="why-card">
+            <i class="fas fa-dice"></i>
+            <h3>Fresh Every Time</h3>
+            <p>Every pick is random, so you'll rarely see the same show twice.</p>
+        </div>
+
+        <div class="why-card">
+            <i class="fas fa-film"></i>
+            <h3>Real Catalog</h3>
+            <p>Recommendations come from the full AnimeChat library — every show links straight to its page.</p>
+        </div>
+
+        <div class="why-card">
+            <i class="fas fa-bolt"></i>
+            <h3>One Tap</h3>
+            <p>Choose a mood or hit Surprise Me — the result pops up instantly.</p>
         </div>
 
     </div>
 
 </section>
 
-
-
-<section class="recommendation-section">
-
-    <div class="section-title">
-
-        <span>
-
-            Personalized Picks
-
-        </span>
-
-        <h2>
-
-            Recommended Anime
-
-        </h2>
-
-        <p>
-
-            Your selected mood will generate recommendations below.
-
-        </p>
-
-    </div>
-
-
-    <div id="recommendationGrid"
-         class="recommendation-grid">
-
-
-        <div class="empty-state" id="emptyState">
-
-            <div class="empty-icon">
-                🌙
-            </div>
-
-            <h3>
-
-                Your recommendations will appear here
-
-            </h3>
-
-            <p>
-
-                Choose a mood above and we'll recommend anime
-                that perfectly matches how you're feeling.
-
-            </p>
-
-        </div>
-
-    </div>
-
-</section>
-
-
-
-<section class="features-section">
-
-    <div class="section-title">
-
-        <span>
-
-            Why Use Mood Finder?
-
-        </span>
-
-        <h2>
-
-            Personalized Anime Discovery
-
-        </h2>
-
-    </div>
-
-    <div class="features-grid">
-
-        <div class="feature-card">
-
-            <div class="feature-icon">
-                🎭
-            </div>
-
-            <h3>
-
-                Mood Based
-
-            </h3>
-
-            <p>
-
-                Recommendations based on your emotions instead
-                of random popularity lists.
-
-            </p>
-
-        </div>
-
-
-
-        <div class="feature-card">
-
-            <div class="feature-icon">
-                ⭐
-            </div>
-
-            <h3>
-
-                Community Ratings
-
-            </h3>
-
-            <p>
-
-                Uses ratings from Animechat users to help
-                surface quality recommendations.
-
-            </p>
-
-        </div>
-
-
-
-        <div class="feature-card">
-
-            <div class="feature-icon">
-                ⚡
-            </div>
-
-            <h3>
-
-                Instant Results
-
-            </h3>
-
-            <p>
-
-                Discover your next favorite anime in just a
-                few clicks.
-
-            </p>
-
-        </div>
-
-    </div>
-
-</section>
-
-
+<!-- ================= FOOTER ================= -->
 
 <footer>
 
-    <div class="footer-content">
+    <div class="footer-left">
 
-        <h2>
+        <h2>AnimeChat</h2>
 
-            Animechat
+        <p>The place where every anime has its own community.</p>
 
-        </h2>
+    </div>
 
-        <p>
+    <div class="footer-links">
 
-            Find your next favorite anime,
-            connect with fans,
-            and discover stories you'll never forget.
+        <a href="{{ url_for('home') }}">Home</a>
 
-        </p>
+        <a href="{{ url_for('browse', sort='popular') }}">Popular</a>
 
-        <div class="footer-links">
+        <a href="{{ url_for('browse', sort='trending') }}">Trending</a>
 
-            <a href="{{ url_for('home') }}">
+        <a href="{{ url_for('browse', sort='critics') }}">Critics</a>
 
-                Home
+        <a href="{{ url_for('browse', sort='underrated') }}">Underrated</a>
 
-            </a>
+    </div>
 
-            <a href="#">
+    <div class="footer-social">
 
-                Community
+        <a href="#"><i class="fab fa-discord"></i></a>
 
-            </a>
+        <a href="#"><i class="fab fa-github"></i></a>
 
-            <a href="#">
+        <a href="#"><i class="fab fa-reddit"></i></a>
 
-                Browse
-
-            </a>
-
-            <a href="#">
-
-                About
-
-            </a>
-
-        </div>
+        <a href="#"><i class="fab fa-instagram"></i></a>
 
     </div>
 
 </footer>
 
+<script id="mood-data" type="application/json">{{ mood_data_json | safe }}</script>
 
-<script src="{{ url_for('static',
-filename='js/find_mood.js') }}"></script>
+<script src="{{ url_for('static', filename='js/find_mood.js') }}"></script>
 
 </body>
 </html>

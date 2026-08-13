@@ -1,6 +1,8 @@
 import calendar
 import functools
+import json
 import os
+import random
 import re
 import threading
 import time
@@ -802,9 +804,108 @@ def rate_anime():
     })
 
 
+# ---------------------------------------------------------------------------
+# Mood Finder: real-catalog recommendation pools
+# ---------------------------------------------------------------------------
+# Each mood maps to genre keywords from the catalog, and the pools below are
+# built from the actual anime_database so every pick is a real show that
+# exists on the site (poster + anime page included).
+
+_MOOD_GENRES = {
+    "happy": ("Comedy", "Slice of Life"),
+    "sad": ("Drama",),
+    "action": ("Action", "Mecha"),
+    "romance": ("Romance",),
+    "horror": ("Horror", "Psychological", "Thriller", "Mystery"),
+    "fantasy": ("Fantasy", "Supernatural"),
+    "chill": ("Slice of Life",),
+    "mystery": ("Mystery", "Psychological", "Thriller"),
+    "comedy": ("Comedy",),
+    "scifi": ("Sci-Fi", "Mecha"),
+    "sports": ("Sports",),
+    "mind": ("Psychological", "Thriller", "Mystery"),
+}
+
+_MOOD_LABELS = {
+    "happy": "Happy",
+    "sad": "Sad",
+    "action": "Action",
+    "romance": "Romance",
+    "horror": "Horror",
+    "fantasy": "Fantasy",
+    "chill": "Relax",
+    "mystery": "Mystery",
+    "comedy": "Comedy",
+    "scifi": "Sci-Fi",
+    "sports": "Sports",
+    "mind": "Mind-Bending",
+}
+
+
+def _mood_anime_snapshot(slug, entry):
+    """Compact view of one catalog entry for the mood-finder client."""
+    image = entry.get("image") or ""
+    if not image.startswith(("http://", "https://")):
+        image = "/static/images/anime/" + image
+    synopsis = (entry.get("synopsis") or "").strip()
+    if len(synopsis) > 160:
+        synopsis = synopsis[:160].rsplit(" ", 1)[0] + "…"
+    return {
+        "slug": slug,
+        "title": entry.get("title") or slug,
+        "image": image,
+        "rating": entry.get("rating") or "N/A",
+        "year": entry.get("release") or "",
+        "genre": entry.get("genre") or "",
+        "synopsis": synopsis,
+    }
+
+
+def _mood_pool(genres, limit=40):
+    """Top (by members, then rating) shows whose genre list overlaps the
+    mood's keywords. Only shows with a poster make the pool."""
+    scored = []
+    for slug, entry in anime_database.items():
+        genre = entry.get("genre") or ""
+        if not any(tok in genre for tok in genres):
+            continue
+        if not entry.get("image"):
+            continue
+        try:
+            rating = float(entry.get("rating"))
+        except (TypeError, ValueError):
+            rating = 0.0
+        scored.append((entry.get("member_count", 0) or 0, rating, slug, entry))
+    scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    return [_mood_anime_snapshot(s, e) for _, _, s, e in scored[:limit]]
+
+
+def _surprise_pool(limit=300):
+    """Random sample of the full catalog (with posters) for Surprise Me."""
+    pool = [
+        _mood_anime_snapshot(slug, entry)
+        for slug, entry in anime_database.items()
+        if entry.get("image")
+    ]
+    random.shuffle(pool)
+    return pool[:limit]
+
+
 @app.route("/find-mood")
 def find_mood():
-    return render_template("find_mood.html")
+    mood_pools = {m: _mood_pool(g) for m, g in _MOOD_GENRES.items()}
+    surprise_pool = _surprise_pool()
+    return render_template(
+        "find_mood.html",
+        mood_pools=mood_pools,
+        surprise_pool=surprise_pool,
+        genres=_genre_list(),
+        mood_data_json=json.dumps({
+            "pools": mood_pools,
+            "surprise": surprise_pool,
+            "labels": _MOOD_LABELS,
+        }),
+    )
 
 if __name__ == "__main__":
     create_tables()
