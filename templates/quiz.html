@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personality Quiz | AnimeChat</title>
+    <title>New to Anime Quiz | AnimeChat</title>
     <link rel="icon" type="image/svg+xml"
           href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet"
@@ -36,12 +36,13 @@
     {% include "_navbar.html" %}
 
     <section class="foryou-hero quiz-hero">
-        <span class="hero-badge">🧠 Personality Quiz</span>
-        <h1>Build Your <span>Anime Profile</span></h1>
+        <span class="hero-badge">✨ New to Anime</span>
+        <h1>Find Your <span>First Anime</span></h1>
         <p>
-            Answer six quick questions and we'll match you with anime from the
-            real AnimeChat catalog — not a fixed list. Your picks are saved and
-            shown on the <strong>For You</strong> tab.
+            No anime knowledge needed. Answer six simple questions about shows
+            you already like — superheroes, sitcoms, movies — and we'll match
+            you with anime you'll actually enjoy. Picks land on the
+            <strong>New to Anime</strong> tab.
         </p>
     </section>
 
@@ -83,7 +84,7 @@
                     Next <i class="fas fa-arrow-right"></i>
                 </button>
                 <button type="submit" class="quiz-btn quiz-btn-primary" id="submitBtn" hidden>
-                    <i class="fas fa-wand-magic-sparkles"></i> Get My Picks
+                    <i class="fas fa-wand-magic-sparkles"></i> Get My Anime
                 </button>
             </div>
         </form>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>For You | AnimeChat</title>
+    <title>New to Anime | AnimeChat</title>
     <link rel="icon" type="image/svg+xml"
           href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet"
@@ -36,25 +36,25 @@
     {% include "_navbar.html" %}
 
     <section class="foryou-hero">
-        <span class="hero-badge">⭐ Your personal corner</span>
-        <h1>Made <span>For You</span></h1>
+        <span class="hero-badge">✨ Your first anime, picked for you</span>
+        <h1>New to <span>Anime?</span></h1>
         <p>
-            Picks built from your personality quiz, plus watch parties,
-            leaderboards, badges and community polls — all in one place.
+            Tell us what shows you already like and we'll match you with anime
+            you'll love — no anime knowledge needed.
         </p>
     </section>
 
     {% if picks %}
     <section class="foryou-section" id="quiz-picks">
         <div class="foryou-section-head">
-            <span class="foryou-section-tag">🎯 Based on your quiz</span>
-            <h2>Because of Your Quiz</h2>
+            <span class="foryou-section-tag">🎯 Based on your answers</span>
+            <h2>Anime Matched to Your Taste</h2>
             <p>
                 {% if top_genres %}
                 Matched on
                 {% for genre in top_genres %}<span class="genre-chip-mini">{{ genre }}</span>{% endfor %}
                 {% else %}
-                Your answers, scored against the real catalog.
+                Your answers, matched against the real catalog.
                 {% endif %}
             </p>
             <a href="{{ url_for('quiz') }}" class="foryou-retake-btn">
@@ -105,11 +105,11 @@
     {% else %}
     <section class="foryou-section foryou-empty">
         <div class="empty-card">
-            <div class="empty-icon">🧠</div>
+            <div class="empty-icon">🎬</div>
             <h2>No picks yet</h2>
             <p>
-                Take the 6-question personality quiz and we'll match you with
-                anime that actually fits your mood, pacing and taste.
+                Answer six simple questions about the shows you already like
+                and we'll match you with anime you'll actually enjoy.
             </p>
             <a href="{{ url_for('quiz') }}" class="pick-btn-solid empty-cta">
                 <i class="fas fa-wand-magic-sparkles"></i> Take the Quiz
@@ -121,8 +121,8 @@
     <section class="foryou-section">
         <div class="foryou-section-head">
             <span class="foryou-section-tag">🚧 On the way</span>
-            <h2>Coming Next to For You</h2>
-            <p>More personal features are being added to this tab.</p>
+            <h2>Coming Next</h2>
+            <p>More ways to discover anime you'll love are on the way.</p>
         </div>
         <div class="coming-grid">
             <div class="coming-card">

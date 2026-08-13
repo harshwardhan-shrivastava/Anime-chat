@@ -714,86 +714,6 @@ def rate_anime():
     })
 
 
-# ---------------------------------------------------------------------------
-# Mood Finder: real-catalog recommendation pools
-# ---------------------------------------------------------------------------
-
-_MOOD_GENRES = {
-    "happy": ("Comedy", "Slice of Life"),
-    "sad": ("Drama",),
-    "action": ("Action", "Mecha"),
-    "romance": ("Romance",),
-    "horror": ("Horror", "Psychological", "Thriller", "Mystery"),
-    "fantasy": ("Fantasy", "Supernatural"),
-    "chill": ("Slice of Life",),
-    "mystery": ("Mystery", "Psychological", "Thriller"),
-    "comedy": ("Comedy",),
-    "scifi": ("Sci-Fi", "Mecha"),
-    "sports": ("Sports",),
-    "mind": ("Psychological", "Thriller", "Mystery"),
-}
-
-_MOOD_LABELS = {
-    "happy": "Happy",
-    "sad": "Sad",
-    "action": "Action",
-    "romance": "Romance",
-    "horror": "Horror",
-    "fantasy": "Fantasy",
-    "chill": "Relax",
-    "mystery": "Mystery",
-    "comedy": "Comedy",
-    "scifi": "Sci-Fi",
-    "sports": "Sports",
-    "mind": "Mind-Bending",
-}
-
-
-def _mood_anime_snapshot(slug, entry):
-    image = entry.get("image") or ""
-    if not image.startswith(("http://", "https://")):
-        image = "/static/images/anime/" + image
-    synopsis = (entry.get("synopsis") or "").strip()
-    if len(synopsis) > 160:
-        synopsis = synopsis[:160].rsplit(" ", 1)[0] + "\u2026"
-    return {
-        "slug": slug,
-        "title": entry.get("title") or slug,
-        "image": image,
-        "rating": entry.get("rating") or "N/A",
-        "year": entry.get("release") or "",
-        "genre": entry.get("genre") or "",
-        "synopsis": synopsis,
-    }
-
-
-def _mood_pool(genres, limit=40):
-    scored = []
-    for slug, entry in anime_database.items():
-        genre = entry.get("genre") or ""
-        if not any(tok in genre for tok in genres):
-            continue
-        if not entry.get("image"):
-            continue
-        try:
-            rating = float(entry.get("rating"))
-        except (TypeError, ValueError):
-            rating = 0.0
-        scored.append((entry.get("member_count", 0) or 0, rating, slug, entry))
-    scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
-    return [_mood_anime_snapshot(s, e) for _, _, s, e in scored[:limit]]
-
-
-def _surprise_pool(limit=300):
-    pool = [
-        _mood_anime_snapshot(slug, entry)
-        for slug, entry in anime_database.items()
-        if entry.get("image")
-    ]
-    random.shuffle(pool)
-    return pool[:limit]
-
-
 def _char_public(entries):
     return [
         {k: v for k, v in e.items() if not k.startswith("_")}
@@ -852,41 +772,37 @@ def api_characters_search():
     })
 
 
-@app.route("/find-mood")
-def find_mood():
-    mood_pools = {m: _mood_pool(g) for m, g in _MOOD_GENRES.items()}
-    surprise_pool = _surprise_pool()
-    return render_template(
-        "find_mood.html",
-        mood_pools=mood_pools,
-        surprise_pool=surprise_pool,
-        genres=_genre_list(),
-        mood_data_json=json.dumps({
-            "pools": mood_pools,
-            "surprise": surprise_pool,
-            "labels": _MOOD_LABELS,
-        }),
-    )
-
-
 # ---------------------------------------------------------------------------
-# "For You" Feature 1 -- Personality Quiz
+# "New to Anime" -- Beginner Quiz
 # ---------------------------------------------------------------------------
 
 def _quiz_questions():
-    genre_options = [
-        {"value": g, "emoji": "🎯", "label": g, "weights": {g: 4}}
-        for g in _genre_list()[:14]
-    ]
-    genre_options.append({"value": "any", "emoji": "🎲", "label": "No favorite — surprise me", "weights": {}})
+    """Six beginner-friendly questions. Asked in plain English so someone who
+    has never watched anime can answer — we translate their taste in
+    Hollywood/superhero/cartoon shows into anime genres under the hood."""
     return [
         {
+            "key": "taste",
+            "question": "What kinda shows have you watched before?",
+            "hint": "No anime knowledge needed — just what you already like.",
+            "options": [
+                {"value": "hollywood", "emoji": "🍿", "label": "Hollywood movies & series", "weights": {"Action": 2, "Drama": 2, "Sci-Fi": 1}},
+                {"value": "superhero", "emoji": "🦸", "label": "Superhero stuff", "weights": {"Action": 3, "Supernatural": 2}},
+                {"value": "cartoons", "emoji": "🎨", "label": "Cartoons & animation", "weights": {"Adventure": 2, "Fantasy": 2, "Comedy": 1}},
+                {"value": "sitcom", "emoji": "😄", "label": "Sitcoms & comedy shows", "weights": {"Comedy": 3, "Slice of Life": 1}},
+                {"value": "drama", "emoji": "🎭", "label": "Soap operas & dramas", "weights": {"Drama": 3, "Romance": 2}},
+                {"value": "sports", "emoji": "🏀", "label": "Sports shows", "weights": {"Sports": 3, "Action": 1}},
+                {"value": "scifi", "emoji": "🚀", "label": "Sci-fi & fantasy", "weights": {"Sci-Fi": 3, "Fantasy": 2}},
+                {"value": "any", "emoji": "🎲", "label": "A bit of everything", "weights": {}},
+            ],
+        },
+        {
             "key": "mood",
-            "question": "What kind of night is it?",
-            "hint": "Pick the mood your next show should hit.",
+            "question": "What's your mood right now?",
+            "hint": "We'll match the show to how you're feeling.",
             "options": [
                 {"value": "laugh", "emoji": "😂", "label": "Make me laugh", "weights": {"Comedy": 3, "Slice of Life": 1}},
-                {"value": "pumped", "emoji": "⚔️", "label": "Pump me up", "weights": {"Action": 3, "Mecha": 1, "Sports": 1}},
+                {"value": "pumped", "emoji": "⚡", "label": "Pump me up", "weights": {"Action": 3, "Sports": 1}},
                 {"value": "feel", "emoji": "💔", "label": "Let me feel things", "weights": {"Drama": 3, "Romance": 1}},
                 {"value": "chill", "emoji": "🧘", "label": "Keep it chill", "weights": {"Slice of Life": 3}},
                 {"value": "mind", "emoji": "🧠", "label": "Blow my mind", "weights": {"Psychological": 3, "Thriller": 2, "Mystery": 1}},
@@ -894,53 +810,49 @@ def _quiz_questions():
             ],
         },
         {
-            "key": "pacing",
-            "question": "How fast do you like your stories?",
-            "hint": "Fast fights, slow burns, or somewhere in between.",
+            "key": "world",
+            "question": "Which world sounds more fun to escape into?",
+            "hint": "Pick the setting that gives you wanderlust.",
             "options": [
-                {"value": "fast", "emoji": "⚡", "label": "Fast-paced", "weights": {"Action": 2, "Sports": 1, "Mecha": 1}},
-                {"value": "slow", "emoji": "🐢", "label": "Slow burn", "weights": {"Drama": 2, "Slice of Life": 1}},
-                {"value": "balanced", "emoji": "⚖️", "label": "Balanced mix", "weights": {}},
+                {"value": "real", "emoji": "🏙️", "label": "Everyday life, like ours", "weights": {"Slice of Life": 3, "Comedy": 1, "Drama": 1}},
+                {"value": "magic", "emoji": "🧙", "label": "Magic & monsters", "weights": {"Fantasy": 3, "Adventure": 2, "Supernatural": 1}},
+                {"value": "future", "emoji": "🤖", "label": "Futuristic / robots", "weights": {"Sci-Fi": 3, "Mecha": 2}},
+                {"value": "fight", "emoji": "🥋", "label": "Battles & tournaments", "weights": {"Action": 3, "Sports": 1}},
+                {"value": "highschool", "emoji": "🏫", "label": "High school life", "weights": {"Romance": 2, "Comedy": 2, "Slice of Life": 2}},
+                {"value": "mystery", "emoji": "🕵️", "label": "Mysteries & crimes", "weights": {"Mystery": 3, "Psychological": 2, "Thriller": 2}},
             ],
-        },
-        {
-            "key": "tone",
-            "question": "What vibe should the story have?",
-            "hint": "Pick the overall atmosphere you're in the mood for.",
-            "options": [
-                {"value": "dark", "emoji": "🌑", "label": "Dark & intense", "weights": {"Psychological": 2, "Thriller": 2, "Horror": 1}},
-                {"value": "light", "emoji": "☀️", "label": "Light & wholesome", "weights": {"Comedy": 2, "Slice of Life": 2}},
-                {"value": "epic", "emoji": "🏰", "label": "Epic & adventurous", "weights": {"Action": 2, "Fantasy": 2, "Supernatural": 1}},
-                {"value": "sweet", "emoji": "💘", "label": "Sweet & romantic", "weights": {"Romance": 2, "Drama": 1}},
-                {"value": "clever", "emoji": "🕵️", "label": "Mysterious & clever", "weights": {"Mystery": 2, "Psychological": 1, "Thriller": 1}},
-            ],
-        },
-        {
-            "key": "genre",
-            "question": "Pick your favorite genre",
-            "hint": "We'll weight your picks heavily toward it.",
-            "options": genre_options,
         },
         {
             "key": "length",
-            "question": "How many episodes are you up for?",
-            "hint": "We'll filter the recommendations to match.",
+            "question": "How much time are you willing to commit?",
+            "hint": "We'll only suggest shows that fit your schedule.",
             "options": [
                 {"value": "short", "emoji": "🍜", "label": "Short & sweet (≤ 12 eps)", "weights": {}},
-                {"value": "cour", "emoji": "📺", "label": "One cour (13–26 eps)", "weights": {}},
+                {"value": "cour", "emoji": "📺", "label": "One season (13–26 eps)", "weights": {}},
                 {"value": "long", "emoji": "🐉", "label": "Long haul (27–100 eps)", "weights": {}},
                 {"value": "marathon", "emoji": "♾️", "label": "Marathon (100+ eps)", "weights": {}},
                 {"value": "any", "emoji": "🤷", "label": "No preference", "weights": {}},
             ],
         },
         {
-            "key": "avoid",
-            "question": "Anything you want to skip?",
-            "hint": "We'll push those titles down the list.",
+            "key": "love",
+            "question": "How do you feel about love stories?",
+            "hint": "Romance is a big part of anime — let us know.",
             "options": [
-                {"value": "no_horror", "emoji": "😱", "label": "No horror / gore", "weights": {"Horror": -4, "Psychological": -2}},
-                {"value": "no_romance", "emoji": "💔", "label": "No romance", "weights": {"Romance": -4}},
-                {"value": "no_heavy", "emoji": "🌤️", "label": "Nothing too heavy", "weights": {"Horror": -2, "Psychological": -2, "Thriller": -1}},
+                {"value": "love", "emoji": "💘", "label": "I'm a hopeless romantic", "weights": {"Romance": 4, "Drama": 2}},
+                {"value": "sometimes", "emoji": "💞", "label": "Only if it's not the whole plot", "weights": {"Romance": 1, "Comedy": 1}},
+                {"value": "nope", "emoji": "🙅", "label": "Skip the romance", "weights": {"Romance": -4}},
+                {"value": "fine", "emoji": "😌", "label": "Don't mind either way", "weights": {}},
+            ],
+        },
+        {
+            "key": "avoid",
+            "question": "Anything you'd rather not see?",
+            "hint": "We'll keep those shows out of your picks.",
+            "options": [
+                {"value": "no_horror", "emoji": "😱", "label": "No scary / gory stuff", "weights": {"Horror": -4, "Psychological": -2}},
+                {"value": "no_heavy", "emoji": "🌤️", "label": "Nothing too depressing", "weights": {"Horror": -2, "Psychological": -2, "Thriller": -1, "Drama": -1}},
+                {"value": "no_fan_service", "emoji": "🙈", "label": "Nothing too awkward", "weights": {"Ecchi": -4}},
                 {"value": "nothing", "emoji": "🚀", "label": "I'll watch anything", "weights": {}},
             ],
         },
@@ -1031,7 +943,7 @@ def _run_quiz(answers):
 def quiz():
     user = g.get("user")
     if user is None:
-        flash("Log in to take the personality quiz.", "error")
+        flash("Log in to find anime made for you.", "error")
         return redirect(url_for("auth.login", next=request.path))
 
     if request.method == "POST":
@@ -1041,7 +953,7 @@ def quiz():
         }
         top_genres, slugs = _run_quiz(answers)
         save_quiz_result(user["id"], answers, top_genres, slugs)
-        flash("Quiz saved — your picks are ready on For You!", "success")
+        flash("Quiz saved — your anime picks are ready!", "success")
         return redirect(url_for("for_you"))
 
     return render_template(
@@ -1055,7 +967,7 @@ def quiz():
 def for_you():
     user = g.get("user")
     if user is None:
-        flash("Log in to see your For You page.", "error")
+        flash("Log in to see your New to Anime picks.", "error")
         return redirect(url_for("auth.login", next=request.path))
 
     quiz_result = get_latest_quiz_result(user["id"])
