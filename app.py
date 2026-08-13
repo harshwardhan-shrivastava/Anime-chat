@@ -58,6 +58,16 @@ def anime_img(image):
     return url_for("static", filename="images/anime/" + image)
 
 
+@app.template_filter("anime_img_large")
+def anime_img_large(image):
+    """Like anime_img, but upgrades AniList cover URLs from the light medium
+    flavor to the large (HD) flavor. Used only on the anime detail page hero,
+    where a single image per page is worth the extra bytes."""
+    if image.startswith(("http://", "https://")):
+        return image.replace("/cover/medium/", "/cover/large/")
+    return url_for("static", filename="images/anime/" + image)
+
+
 # ---------------------------------------------------------------------------
 # Streaming provider branding + helpers
 # ---------------------------------------------------------------------------

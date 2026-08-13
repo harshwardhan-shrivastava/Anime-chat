@@ -127,8 +127,10 @@ nav{
 
 .hero-image{
 
+    position:absolute;
+    inset:0;
     width:100%;
-    height:500px;
+    height:100%;
     object-fit:cover;
     display:block;
 
@@ -148,12 +150,13 @@ nav{
 
 .hero-content{
 
-    position:absolute;
-    left:60px;
-    bottom:50px;
+    position:relative;
     display:flex;
     gap:40px;
     align-items:flex-end;
+    min-height:500px;
+    padding:60px;
+    box-sizing:border-box;
 
 }
 
@@ -1452,9 +1455,10 @@ footer p{
 
     }
 
-    .hero-image{
+    .hero-content{
 
-        height:320px;
+        min-height:320px;
+        padding:40px 20px;
 
     }
 
