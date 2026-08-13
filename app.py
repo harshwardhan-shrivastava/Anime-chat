@@ -49,23 +49,31 @@ def _inject_user():
     return {"current_user": g.get("user")}
 
 
+def _hd_anilist_url(image):
+    """Upgrade AniList cover URLs from the light medium (~230px) flavor to
+    the large (~460px) HD flavor. Pure URL rewrite — the image file is the
+    same, only the flavor folder differs. TVmaze/Kitsu URLs pass through
+    untouched (they have their own flavors, handled by the data layer)."""
+    return image.replace("/cover/medium/", "/cover/large/")
+
+
 @app.template_filter("anime_img")
 def anime_img(image):
     """Templates call {{ image | anime_img }}. Local filenames resolve to
-    /static/images/anime/<name>; full URLs (AniList CDN) pass through."""
+    /static/images/anime/<name>; full URLs pass through, with AniList cover
+    URLs upgraded from medium to large so every poster renders in HD — even
+    when the catalog data holds the lighter medium flavor."""
     if image.startswith(("http://", "https://")):
-        return image
+        return _hd_anilist_url(image)
     return url_for("static", filename="images/anime/" + image)
 
 
 @app.template_filter("anime_img_large")
 def anime_img_large(image):
-    """Like anime_img, but upgrades AniList cover URLs from the light medium
-    flavor to the large (HD) flavor. Used only on the anime detail page hero,
-    where a single image per page is worth the extra bytes."""
-    if image.startswith(("http://", "https://")):
-        return image.replace("/cover/medium/", "/cover/large/")
-    return url_for("static", filename="images/anime/" + image)
+    """Like anime_img — AniList cover URLs are served in the large (HD)
+    flavor. Kept as a separate filter so the detail-page hero stays explicit
+    about serving HD where it matters most."""
+    return anime_img(image)
 
 
 # ---------------------------------------------------------------------------

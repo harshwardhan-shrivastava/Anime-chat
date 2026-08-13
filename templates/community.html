@@ -176,7 +176,8 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
         <img
             src="{{ anime_image | anime_img }}"
             alt="{{ anime_name }}"
-            loading="lazy">
+            loading="lazy"
+            decoding="async">
 
         <div class="hero-overlay"></div>
 

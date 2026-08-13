@@ -79,9 +79,9 @@
         <div class="ep-poster{% if episode.thumb %} has-thumb{% endif %}">
 
             {% if episode.thumb %}
-            <img src="{{ episode.thumb }}" loading="lazy">
+            <img src="{{ episode.thumb }}" loading="lazy" decoding="async">
             {% else %}
-            <img src="{{ anime.image | anime_img }}" loading="lazy">
+            <img src="{{ anime.image | anime_img }}" loading="lazy" decoding="async">
             {% endif %}
 
         </div>
