@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For You | AnimeChat</title>
+    <link rel="icon" type="image/svg+xml"
+          href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/auth.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/for_you.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet">
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="background">
+        <div class="circle one"></div>
+        <div class="circle two"></div>
+        <div class="circle three"></div>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-list" style="max-width:1300px;margin:20px auto 0;width:90%;">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% include "_navbar.html" %}
+
+    <section class="foryou-hero">
+        <span class="hero-badge">⭐ Your personal corner</span>
+        <h1>Made <span>For You</span></h1>
+        <p>
+            Picks built from your personality quiz, plus watch parties,
+            leaderboards, badges and community polls — all in one place.
+        </p>
+    </section>
+
+    {% if picks %}
+    <section class="foryou-section" id="quiz-picks">
+        <div class="foryou-section-head">
+            <span class="foryou-section-tag">🎯 Based on your quiz</span>
+            <h2>Because of Your Quiz</h2>
+            <p>
+                {% if top_genres %}
+                Matched on
+                {% for genre in top_genres %}<span class="genre-chip-mini">{{ genre }}</span>{% endfor %}
+                {% else %}
+                Your answers, scored against the real catalog.
+                {% endif %}
+            </p>
+            <a href="{{ url_for('quiz') }}" class="foryou-retake-btn">
+                <i class="fas fa-redo"></i> Retake Quiz
+            </a>
+        </div>
+        <div class="pick-grid">
+            {% for pick in picks %}
+            <div class="pick-card">
+                <div class="pick-poster">
+                    <a href="/anime/{{ pick.slug }}">
+                        <img src="{{ pick.image | anime_img }}" alt="{{ pick.title }}" loading="lazy">
+                    </a>
+                    {% if pick.total_episodes %}
+                    <span class="pick-eps">
+                        <i class="fas fa-clapperboard"></i> {{ pick.total_episodes }} eps
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="pick-info">
+                    <h3>
+                        <a href="/anime/{{ pick.slug }}">{{ pick.title }}</a>
+                    </h3>
+                    <div class="pick-meta">
+                        {% if pick.year %}
+                        <span><i class="fas fa-calendar-alt"></i> {{ pick.year }}</span>
+                        {% endif %}
+                        {% if pick.rating and pick.rating != "N/A" %}
+                        <span class="pick-rating"><i class="fas fa-star"></i> {{ pick.rating }}</span>
+                        {% endif %}
+                    </div>
+                    {% if pick.genre %}
+                    <p class="pick-genres">{{ pick.genre }}</p>
+                    {% endif %}
+                    <div class="pick-actions">
+                        <a href="/anime/{{ pick.slug }}" class="pick-btn-solid">
+                            <i class="fas fa-eye"></i> View Anime
+                        </a>
+                        <a href="/community/{{ pick.slug }}" class="pick-btn-ghost">
+                            <i class="fas fa-comments"></i> Chat
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% else %}
+    <section class="foryou-section foryou-empty">
+        <div class="empty-card">
+            <div class="empty-icon">🧠</div>
+            <h2>No picks yet</h2>
+            <p>
+                Take the 6-question personality quiz and we'll match you with
+                anime that actually fits your mood, pacing and taste.
+            </p>
+            <a href="{{ url_for('quiz') }}" class="pick-btn-solid empty-cta">
+                <i class="fas fa-wand-magic-sparkles"></i> Take the Quiz
+            </a>
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="foryou-section">
+        <div class="foryou-section-head">
+            <span class="foryou-section-tag">🚧 On the way</span>
+            <h2>Coming Next to For You</h2>
+            <p>More personal features are being added to this tab.</p>
+        </div>
+        <div class="coming-grid">
+            <div class="coming-card">
+                <div class="coming-icon">🍿</div>
+                <h3>Watch Parties</h3>
+                <p>Host a watch party on any anime's community page and invite friends to join at a set time.</p>
+                <span class="coming-badge">Soon</span>
+            </div>
+            <div class="coming-card">
+                <div class="coming-icon">🏆</div>
+                <h3>Leaderboards</h3>
+                <p>Episodes watched this month, most active in chat, and the hottest communities — ranked.</p>
+                <span class="coming-badge">Soon</span>
+            </div>
+            <div class="coming-card">
+                <div class="coming-icon">🎖️</div>
+                <h3>Badges &amp; Achievements</h3>
+                <p>Earn badges for watching 50 shows, chatting in 5 communities, finishing the quiz and more.</p>
+                <span class="coming-badge">Soon</span>
+            </div>
+            <div class="coming-card">
+                <div class="coming-icon">📊</div>
+                <h3>Community Polls</h3>
+                <p>Vote on polls right inside community chat — best girl, best arc, who wins the fight.</p>
+                <span class="coming-badge">Soon</span>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-left">
+            <h2>AnimeChat</h2>
+            <p>The place where every anime has its own community.</p>
+        </div>
+        <div class="footer-links">
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('browse', sort='popular') }}">Popular</a>
+            <a href="{{ url_for('browse', sort='trending') }}">Trending</a>
+            <a href="{{ url_for('browse', sort='critics') }}">Critics</a>
+            <a href="{{ url_for('browse', sort='underrated') }}">Underrated</a>
+        </div>
+        <div class="footer-social">
+            <a href="#"><i class="fab fa-discord"></i></a>
+            <a href="#"><i class="fab fa-github"></i></a>
+            <a href="#"><i class="fab fa-reddit"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+        </div>
+    </footer>
+</body>
+</html>

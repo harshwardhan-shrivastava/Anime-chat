@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from flask import Flask, render_template, request, jsonify, g, url_for, flash, redirect
+
 from anime_data import anime_database
 from characters_data import characters_index, search_characters, reload_characters
 from database import (
@@ -25,8 +26,9 @@ from database import (
     get_episode_stats,
     get_user_episode_review,
     get_all_episode_stats,
+    save_quiz_result,
+    get_latest_quiz_result,
 )
-
 from auth import auth, load_logged_in_user
 from chat import chat_bp
 
@@ -59,9 +61,6 @@ def anime_img(image):
 # ---------------------------------------------------------------------------
 # Streaming provider branding + helpers
 # ---------------------------------------------------------------------------
-# provider_brand maps a service name (e.g. "Crunchyroll Amazon Channel") to a
-# monogram chip: css class, short mark and brand color used by the
-# Where to Watch list on anime pages.
 
 _PROVIDER_BRANDS = [
     ("crunchyroll", "crunch", "Cr", "#f47521"),
@@ -101,7 +100,6 @@ _PROVIDER_BRANDS = [
 
 @app.template_filter("provider_brand")
 def provider_brand(name):
-    """Map a provider name to a {cls, mark, color} logo-chip descriptor."""
     n = (name or "").lower()
     for key, cls, mark, color in _PROVIDER_BRANDS:
         if key in n:
@@ -111,8 +109,6 @@ def provider_brand(name):
 
 @app.template_filter("sort_streaming")
 def sort_streaming(services):
-    """Order streaming services: Streaming first, then Free, then the rest,
-    alphabetical by name within each tier."""
     order = {"Streaming": 0, "Free": 1, "Free with Ads": 2, "Rent": 3, "Buy": 4}
     return sorted(
         services or [],
@@ -122,21 +118,14 @@ def sort_streaming(services):
 
 @app.template_filter("real_dubs")
 def real_dubs(dubs):
-    """A show's original language (Japanese) is subtitled content, not a dub.
-    Strip it so 'Dub Available' only lists actual alternate-language dubs."""
     return [d for d in (dubs or []) if str(d).strip().lower() not in ("japanese", "ja", "japanese (original)")]
 
 
 # ---------------------------------------------------------------------------
 # Live airing-schedule refresher
 # ---------------------------------------------------------------------------
-# The catalog's next-episode timestamps are baked in at build time. To keep
-# the Airing Now / Upcoming views honest (tomorrow's episode shows up on its
-# own), a background thread re-fetches nextAiringEpisode from AniList every
-# SCHEDULE_TTL seconds and patches the in-memory entries. Page loads never
-# block: they kick off a refresh only if one isn't already running.
 
-_SCHEDULE_TTL = 1800  # refresh at most every 30 minutes
+_SCHEDULE_TTL = 1800
 _SCHEDULE_QUERY = """
 query ($ids: [Int]) {
   Page(page: 1, perPage: 50) {
@@ -149,7 +138,6 @@ query ($ids: [Int]) {
   }
 }
 """
-
 _SCHEDULE_STATUS_MAP = {
     "FINISHED": "Completed",
     "RELEASING": "Ongoing",
@@ -161,7 +149,6 @@ _SCHEDULE_STATUS_MAP = {
 _schedule_state = {"last": 0.0, "running": False}
 _schedule_lock = threading.Lock()
 
-# anilist_id -> (slug, entry) index used to patch entries after a refresh.
 _BY_AID = {
     e["anilist_id"]: (slug, e)
     for slug, e in anime_database.items()
@@ -170,15 +157,12 @@ _BY_AID = {
 
 
 def _save_fresh_airing_cache(fresh):
-    """Persist freshly-fetched AniList airing info into the on-disk airing
-    cache (anime_airing_a*.json) so the next apply_airing() run sees fresh
-    status / next-episode data and flips newly-aired episodes to released
-    without anyone re-running the fetch step by hand."""
     from scripts.enrich_airing import load_json, save_json, _cache_files
 
     cache = {}
     for fname in _cache_files():
         cache.update(load_json(fname) or {})
+
     changed = False
     for aid_s, rec in fresh.items():
         old = cache.get(aid_s) or {}
@@ -189,6 +173,7 @@ def _save_fresh_airing_cache(fresh):
         if merged != old:
             cache[aid_s] = merged
             changed = True
+
     if changed:
         try:
             save_json(
@@ -201,8 +186,6 @@ def _save_fresh_airing_cache(fresh):
 
 
 def _refresh_airing_schedule_worker():
-    """Fetch fresh airing info for every Ongoing/Upcoming title and patch the
-    in-memory catalog, so the site always points at the real next episode."""
     ids, seen = [], set()
     for entry in anime_database.values():
         if entry.get("status") in ("Ongoing", "Upcoming"):
@@ -240,8 +223,6 @@ def _refresh_airing_schedule_worker():
                     entry["next_episode_at"] = nxt["airingAt"]
                     entry["next_episode"] = nxt.get("episode") or entry.get("next_episode")
                 else:
-                    # No next episode scheduled (finished airing): drop the
-                    # stale timestamp so it leaves the "airing soon" group.
                     entry["next_episode_at"] = None
                 sd = m.get("startDate") or {}
                 if sd.get("year"):
@@ -250,7 +231,7 @@ def _refresh_airing_schedule_worker():
                     entry["start_month"] = sd["month"]
         except Exception:
             continue
-        time.sleep(1.0)  # stay well under AniList's 90 req/min limit
+        time.sleep(1.0)
 
     if fresh:
         _save_fresh_airing_cache(fresh)
@@ -261,8 +242,6 @@ def _refresh_airing_schedule_worker():
 
 
 def _ensure_airing_schedule():
-    """Non-blocking: start a background refresh if the cached schedule is
-    stale and no refresh is already in flight."""
     with _schedule_lock:
         stale = time.time() - _schedule_state["last"] > _SCHEDULE_TTL
         if stale and not _schedule_state["running"]:
@@ -273,7 +252,6 @@ def _ensure_airing_schedule():
 
 
 def _schedule_loop():
-    """Background loop that keeps the schedule fresh for the app's lifetime."""
     while True:
         _ensure_airing_schedule()
         time.sleep(_SCHEDULE_TTL)
@@ -282,41 +260,28 @@ def _schedule_loop():
 # ---------------------------------------------------------------------------
 # Full auto-enrichment (airing + TVmaze + HD upgrade) every 10 minutes
 # ---------------------------------------------------------------------------
-# The live schedule refresh above only updates the in-memory next_episode_at
-# fields. This thread runs the full enrichment pipeline that actually writes
-# TBC markers, new episode titles, and HD thumbnails to anime_data.json and
-# reloads it so the app sees the changes.
 
-_ENRICH_TTL = 600  # 10 minutes
-
+_ENRICH_TTL = 600
 _enrich_state = {"last": 0.0, "running": False}
 _enrich_lock = threading.Lock()
 
 
 def _full_enrich_worker():
-    """Run the full enrichment pipeline: airing apply, TVmaze backfill, HD
-    upgrade, then reload the database in memory. Each stage is isolated so a
-    slow/failed stage (e.g. TVmaze being unreachable) never blocks the
-    database reload -- the site always serves the freshest data on disk."""
     from anime_data import reload_database
 
     try:
-        # Step 1: Airing apply (AniList data -> TBC markers, statuses)
         from scripts.enrich_airing import apply_airing, tvmaze_backfill
+
         try:
             apply_airing()
         except Exception as exc:
             print(f"[auto-enrich] apply_airing failed (continuing): {exc}", flush=True)
 
-        # Step 2: Reload so released/TBC changes show immediately, even if
-        # the TVmaze backfill below hangs on the network.
         try:
             reload_database()
         except Exception as exc:
             print(f"[auto-enrich] reload after apply failed: {exc}", flush=True)
 
-        # Step 3: TVmaze backfill for newest aired episodes (network-bound;
-        # failures here are non-fatal).
         try:
             tvmaze_backfill(
                 count=0,
@@ -326,34 +291,27 @@ def _full_enrich_worker():
         except Exception as exc:
             print(f"[auto-enrich] tvmaze_backfill failed (continuing): {exc}", flush=True)
 
-        # Step 4: HD thumbnail upgrade
         try:
             from scripts.upgrade_thumbs_to_hd import main as hd_upgrade
             hd_upgrade()
         except Exception as exc:
             print(f"[auto-enrich] hd_upgrade failed (continuing): {exc}", flush=True)
 
-        # Step 5: Character + voice-actor collection slice (bounded). Keeps
-        # the Know Your Characters page growing without hammering AniList.
         try:
             from scripts.fetch_characters import run_slice
             run_slice(budget_seconds=150)
         except Exception as exc:
             print(f"[auto-enrich] character slice failed (continuing): {exc}", flush=True)
 
-        # Step 6: Reload the database + character index so the running app
-        # sees the changes
         reload_database()
         reload_characters()
 
-        # Rebuild the anilist_id index used by the live schedule refresher
         _BY_AID.clear()
         _BY_AID.update({
             e["anilist_id"]: (slug, e)
             for slug, e in anime_database.items()
             if e.get("anilist_id")
         })
-
         print("[auto-enrich] Full enrichment completed successfully", flush=True)
     except Exception as exc:
         print(f"[auto-enrich] Error during enrichment: {exc}", flush=True)
@@ -364,12 +322,7 @@ def _full_enrich_worker():
 
 
 def _full_enrich_loop():
-    """Background loop that runs the full enrichment pipeline on a timer.
-
-    Runs once at startup (after a short delay) and then every _ENRICH_TTL
-    seconds (10 minutes) for the life of the app.
-    """
-    time.sleep(120)  # wait 2 minutes for the app to finish starting
+    time.sleep(120)
     while True:
         with _enrich_lock:
             if not _enrich_state["running"]:
@@ -379,9 +332,6 @@ def _full_enrich_loop():
                 ).start()
         time.sleep(_ENRICH_TTL)
 
-
-# The full catalog lives in anime_data.py (auto-generated by
-# scripts/fetch_anime_catalog.py). Helpers below build sorted/filtered views.
 
 SORT_TITLES = {
     "new": "Airing Now",
@@ -396,12 +346,11 @@ SORT_TITLES = {
 
 @functools.lru_cache(maxsize=1)
 def _cached_genres():
-    """Derive the genre list from the catalog, most common first."""
     from collections import Counter
 
     counter = Counter()
     for entry in anime_database.values():
-        for genre in entry.get("genre", "").split(" \u2022 "):
+        for genre in entry.get("genre", "").split(" • "):
             genre = genre.strip()
             if genre and genre.lower() != "anime":
                 counter[genre] += 1
@@ -430,22 +379,13 @@ def _sort_value(entry, sort):
     if sort == "critics":
         return (rating, popularity)
     if sort == "underrated":
-        # High rating but low popularity = hidden gems.
         return (rating, -popularity)
     if sort == "trending":
         return (year, popularity)
-    return (year, popularity)  # latest
+    return (year, popularity)
 
 
 def _catalog_entries(sort="latest", genre=None, limit=None):
-    """Return catalog entries enriched with live rating/votes, sorted and
-    optionally filtered by genre. Used by home + browse + category pages.
-
-    "new" shows anime AIRING NOW (next episode countdown, soonest first),
-    "upcoming" shows titles not yet released (expected start date, soonest
-    first), and "latest" excludes upcoming titles so the homepage never
-    mixes them with actual releases.
-    """
     all_stats = get_all_anime_stats()
     _ensure_airing_schedule()
 
@@ -466,6 +406,7 @@ def _catalog_entries(sort="latest", genre=None, limit=None):
 
         stats = all_stats.get(slug, {"votes": 0, "average": 0})
         live_rating = stats["average"] if stats["votes"] > 0 else entry.get("rating", "N/A")
+
         entries.append({
             "slug": slug,
             "title": entry.get("title", slug),
@@ -482,8 +423,6 @@ def _catalog_entries(sort="latest", genre=None, limit=None):
             "start_year": entry.get("start_year"),
             "start_month": entry.get("start_month"),
             "total_episodes": entry.get("total_episodes", 0) or 0,
-            # A dub only counts when an English dub is available; Japanese
-            # audio is the original (sub) track, not a dub.
             "has_dub": any(
                 str(d).strip().lower() == "english"
                 for d in (entry.get("dub") or [])
@@ -493,7 +432,6 @@ def _catalog_entries(sort="latest", genre=None, limit=None):
         })
 
     if sort in ("new", "upcoming"):
-        # Airing now: soonest next episode first. Upcoming: soonest start.
         if sort == "new":
             entries.sort(key=lambda e: (0, e["next_episode_at"] or 0)
                          if e["next_episode_at"] else (1, 0))
@@ -505,12 +443,10 @@ def _catalog_entries(sort="latest", genre=None, limit=None):
 
     if limit:
         entries = entries[:limit]
-
     return entries
 
 
 def _episode_badge(entry):
-    """Humanized 'next episode' label for the Airing Now view."""
     at = entry.get("next_episode_at")
     n = entry.get("next_episode")
     if not at or not n:
@@ -527,7 +463,6 @@ def _episode_badge(entry):
 
 
 def _start_badge(entry):
-    """Humanized expected-start label for the Upcoming view."""
     y = entry.get("start_year")
     m = entry.get("start_month")
     if y and m and 1 <= m <= 12:
@@ -538,7 +473,6 @@ def _start_badge(entry):
 
 
 def _decorate(entries, sort):
-    """Attach per-card badges for the Airing Now / Upcoming views."""
     for entry in entries:
         if sort == "new":
             entry["badge_label"] = _episode_badge(entry)
@@ -549,10 +483,7 @@ def _decorate(entries, sort):
 
 @app.route("/")
 def home():
-    """Homepage shows the LATEST releases (most recent first) -- the full
-    catalog lives behind the Browse links in the navbar."""
     latest = _catalog_entries(sort="latest", limit=48)
-
     return render_template(
         "index.html",
         anime_list=latest,
@@ -566,9 +497,7 @@ def browse():
     sort = request.args.get("sort", "popular")
     if sort not in SORT_TITLES:
         sort = "popular"
-
     entries = _decorate(_catalog_entries(sort=sort), sort)
-
     return render_template(
         "browse.html",
         anime_list=entries,
@@ -582,7 +511,6 @@ def browse():
 @app.route("/category/<genre>")
 def category(genre):
     entries = _decorate(_catalog_entries(sort="popular", genre=genre), "popular")
-
     return render_template(
         "browse.html",
         anime_list=entries,
@@ -595,20 +523,11 @@ def category(genre):
 
 @app.route("/api/search")
 def api_search():
-    """Search the FULL catalog (not just the home page grid). Returns JSON so
-    the navbar search can open an anime page directly."""
     q = (request.args.get("q") or "").strip().lower()
     if not q:
         return jsonify({"success": True, "results": []})
 
     results = []
-
-    # Normalize a title/query so punctuation and spacing don't block a
-    # match: lowercase, drop apostrophes, and collapse separators (spaces,
-    # hyphens, dashes, colons, dots, slashes, parens) to single spaces.
-    # "one-piece", "ONE PIECE", and "One Piece" all normalize to
-    # "one piece"; "Bleach: Thousand-Year Blood War" normalizes to
-    # "bleach thousand year blood war".
     _APOS = str.maketrans({"'": "", "\u2019": "", "\u2018": ""})
     _SEP_RE = re.compile(r"[\s\-\u2013\u2014:;,.!?/\\()\[\]\"]+")
 
@@ -624,9 +543,6 @@ def api_search():
             return False
         if qn in tn:
             return True
-        # Fallback: every query word must appear in the title. This lets
-        # "dragon ball kai" find "Dragon Ball Z Kai" (a plain substring
-        # check fails because of the "Z").
         return len(words) > 1 and all(w in tn for w in words)
 
     for slug, entry in anime_database.items():
@@ -648,10 +564,8 @@ def api_search():
 @app.route("/anime/<anime_slug>")
 def anime(anime_slug):
     anime = anime_database.get(anime_slug)
-
     if anime is None:
         return "Anime not found", 404
-
     return render_template(
         "anime.html",
         anime=anime,
@@ -661,23 +575,19 @@ def anime(anime_slug):
 
 
 def _find_episode(anime_slug, season_idx, episode_number):
-    """Resolve (anime, season, episode) or raise a 404."""
     anime = anime_database.get(anime_slug)
     if anime is None:
         return None, None, None, None, None
-
     seasons = anime.get("seasons") or []
     if season_idx < 1 or season_idx > len(seasons):
         return anime, None, None, None, None
     season = seasons[season_idx - 1]
-
     episode = next(
         (e for e in (season.get("episodes") or []) if e.get("number") == episode_number),
         None,
     )
     if episode is None:
         return anime, season, None, None, None
-
     season_name = season.get("name", f"Season {season_idx}")
     episode_title = episode.get("title") or f"Episode {episode_number}"
     return anime, season, episode, season_name, episode_title
@@ -685,8 +595,6 @@ def _find_episode(anime_slug, season_idx, episode_number):
 
 @app.route("/anime/<anime_slug>/episode/<int:season_idx>/<int:episode_number>", methods=["GET", "POST"])
 def episode_rate(anime_slug, season_idx, episode_number):
-    """Rate a single episode out of 10. Only logged-in users can submit a
-    review; everyone can view the aggregate score and the review list."""
     anime, season, episode, season_name, episode_title = _find_episode(
         anime_slug, season_idx, episode_number
     )
@@ -702,7 +610,6 @@ def episode_rate(anime_slug, season_idx, episode_number):
         if user is None:
             flash("Log in to rate this episode.", "error")
             return redirect(url_for("auth.login", next=request.path))
-
         try:
             rating = int(request.form.get("rating") or 0)
         except (TypeError, ValueError):
@@ -712,7 +619,6 @@ def episode_rate(anime_slug, season_idx, episode_number):
             return redirect(url_for("episode_rate", anime_slug=anime_slug,
                                     season_idx=season_idx,
                                     episode_number=episode_number))
-
         comment = (request.form.get("comment") or "").strip()[:1000]
         add_episode_review(
             anime_slug, season_name, episode_number,
@@ -729,7 +635,6 @@ def episode_rate(anime_slug, season_idx, episode_number):
     my_review = get_user_episode_review(
         anime_slug, season_name, episode_number, user["id"] if user else None
     )
-
     return render_template(
         "episode_rate.html",
         anime=anime,
@@ -747,10 +652,8 @@ def episode_rate(anime_slug, season_idx, episode_number):
 @app.route("/community/<anime_slug>")
 def community(anime_slug):
     entry = anime_database.get(anime_slug)
-
     if entry is None:
         return "Anime not found", 404
-
     return render_template(
         "community.html",
         anime_name=entry.get("title", anime_slug),
@@ -761,14 +664,9 @@ def community(anime_slug):
 
 @app.route("/anime-reviews/<anime_slug>", methods=["GET"])
 def anime_reviews(anime_slug):
-    """Returns the live average rating, vote breakdown, and every review
-    written for this anime, computed straight from the database."""
-
     if anime_slug not in anime_database:
         return jsonify({"success": False, "error": "Anime not found"}), 404
-
     stats = get_anime_stats(anime_slug)
-
     return jsonify({
         "success": True,
         "average": stats["average"],
@@ -780,12 +678,7 @@ def anime_reviews(anime_slug):
 
 @app.route("/rate-anime", methods=["POST"])
 def rate_anime():
-    """Accepts a star rating (1-5) plus an optional username and review
-    text, stores it, and returns the freshly recalculated average across
-    every rating submitted so far."""
-
     data = request.get_json(silent=True) or {}
-
     anime_slug = data.get("anime_slug")
     rating = data.get("rating")
     username = (data.get("username") or "Anonymous").strip()[:40] or "Anonymous"
@@ -793,19 +686,15 @@ def rate_anime():
 
     if not anime_slug or anime_slug not in anime_database:
         return jsonify({"success": False, "error": "Unknown anime"}), 404
-
     try:
         rating = int(rating)
     except (TypeError, ValueError):
         return jsonify({"success": False, "error": "Rating must be a number"}), 400
-
     if rating < 1 or rating > 5:
         return jsonify({"success": False, "error": "Rating must be between 1 and 5"}), 400
 
     add_review(anime_slug, username, rating, comment)
-
     stats = get_anime_stats(anime_slug)
-
     return jsonify({
         "success": True,
         "average": stats["average"],
@@ -818,9 +707,6 @@ def rate_anime():
 # ---------------------------------------------------------------------------
 # Mood Finder: real-catalog recommendation pools
 # ---------------------------------------------------------------------------
-# Each mood maps to genre keywords from the catalog, and the pools below are
-# built from the actual anime_database so every pick is a real show that
-# exists on the site (poster + anime page included).
 
 _MOOD_GENRES = {
     "happy": ("Comedy", "Slice of Life"),
@@ -854,13 +740,12 @@ _MOOD_LABELS = {
 
 
 def _mood_anime_snapshot(slug, entry):
-    """Compact view of one catalog entry for the mood-finder client."""
     image = entry.get("image") or ""
     if not image.startswith(("http://", "https://")):
         image = "/static/images/anime/" + image
     synopsis = (entry.get("synopsis") or "").strip()
     if len(synopsis) > 160:
-        synopsis = synopsis[:160].rsplit(" ", 1)[0] + "…"
+        synopsis = synopsis[:160].rsplit(" ", 1)[0] + "\u2026"
     return {
         "slug": slug,
         "title": entry.get("title") or slug,
@@ -873,8 +758,6 @@ def _mood_anime_snapshot(slug, entry):
 
 
 def _mood_pool(genres, limit=40):
-    """Top (by members, then rating) shows whose genre list overlaps the
-    mood's keywords. Only shows with a poster make the pool."""
     scored = []
     for slug, entry in anime_database.items():
         genre = entry.get("genre") or ""
@@ -892,7 +775,6 @@ def _mood_pool(genres, limit=40):
 
 
 def _surprise_pool(limit=300):
-    """Random sample of the full catalog (with posters) for Surprise Me."""
     pool = [
         _mood_anime_snapshot(slug, entry)
         for slug, entry in anime_database.items()
@@ -903,7 +785,6 @@ def _surprise_pool(limit=300):
 
 
 def _char_public(entries):
-    """Strip the internal normalized-search fields from index entries."""
     return [
         {k: v for k, v in e.items() if not k.startswith("_")}
         for e in entries
@@ -912,8 +793,6 @@ def _char_public(entries):
 
 @app.route("/characters")
 def characters():
-    """Know Your Characters: search every character in the catalog and see
-    their Japanese (sub) and English (dub) voice actors."""
     initial = search_characters("", 0, 60)
     total = len(characters_index)
     covered = len({e["slug"] for e in characters_index})
@@ -934,7 +813,6 @@ def characters():
         total_fmt=_fmt(total),
         covered_fmt=_fmt(covered),
         with_va_fmt=_fmt(with_va),
-        # Escape "</" so a description can never close the script tag.
         characters_data_json=json.dumps(payload, ensure_ascii=False).replace("</", "<\\/"),
         genres=_genre_list(),
     )
@@ -942,8 +820,6 @@ def characters():
 
 @app.route("/api/characters/search")
 def api_characters_search():
-    """Search the character index (name or anime title). Returns JSON so
-    the Know Your Characters page can live-search and load more."""
     q = (request.args.get("q") or "").strip()
     try:
         offset = max(0, int(request.args.get("offset", 0)))
@@ -953,8 +829,8 @@ def api_characters_search():
         limit = min(120, max(1, int(request.args.get("limit", 60))))
     except (TypeError, ValueError):
         limit = 60
+
     results = search_characters(q, offset, limit)
-    # Drop the internal normalized-search fields from the payload.
     results = _char_public(results)
     return jsonify({
         "success": True,
@@ -982,17 +858,229 @@ def find_mood():
         }),
     )
 
+
+# ---------------------------------------------------------------------------
+# "For You" Feature 1 -- Personality Quiz
+# ---------------------------------------------------------------------------
+
+def _quiz_questions():
+    genre_options = [
+        {"value": g, "emoji": "🎯", "label": g, "weights": {g: 4}}
+        for g in _genre_list()[:14]
+    ]
+    genre_options.append({"value": "any", "emoji": "🎲", "label": "No favorite — surprise me", "weights": {}})
+    return [
+        {
+            "key": "mood",
+            "question": "What kind of night is it?",
+            "hint": "Pick the mood your next show should hit.",
+            "options": [
+                {"value": "laugh", "emoji": "😂", "label": "Make me laugh", "weights": {"Comedy": 3, "Slice of Life": 1}},
+                {"value": "pumped", "emoji": "⚔️", "label": "Pump me up", "weights": {"Action": 3, "Mecha": 1, "Sports": 1}},
+                {"value": "feel", "emoji": "💔", "label": "Let me feel things", "weights": {"Drama": 3, "Romance": 1}},
+                {"value": "chill", "emoji": "🧘", "label": "Keep it chill", "weights": {"Slice of Life": 3}},
+                {"value": "mind", "emoji": "🧠", "label": "Blow my mind", "weights": {"Psychological": 3, "Thriller": 2, "Mystery": 1}},
+                {"value": "spook", "emoji": "👻", "label": "Spook me", "weights": {"Horror": 3, "Supernatural": 1}},
+            ],
+        },
+        {
+            "key": "pacing",
+            "question": "How fast do you like your stories?",
+            "hint": "Fast fights, slow burns, or somewhere in between.",
+            "options": [
+                {"value": "fast", "emoji": "⚡", "label": "Fast-paced", "weights": {"Action": 2, "Sports": 1, "Mecha": 1}},
+                {"value": "slow", "emoji": "🐢", "label": "Slow burn", "weights": {"Drama": 2, "Slice of Life": 1}},
+                {"value": "balanced", "emoji": "⚖️", "label": "Balanced mix", "weights": {}},
+            ],
+        },
+        {
+            "key": "tone",
+            "question": "What vibe should the story have?",
+            "hint": "Pick the overall atmosphere you're in the mood for.",
+            "options": [
+                {"value": "dark", "emoji": "🌑", "label": "Dark & intense", "weights": {"Psychological": 2, "Thriller": 2, "Horror": 1}},
+                {"value": "light", "emoji": "☀️", "label": "Light & wholesome", "weights": {"Comedy": 2, "Slice of Life": 2}},
+                {"value": "epic", "emoji": "🏰", "label": "Epic & adventurous", "weights": {"Action": 2, "Fantasy": 2, "Supernatural": 1}},
+                {"value": "sweet", "emoji": "💘", "label": "Sweet & romantic", "weights": {"Romance": 2, "Drama": 1}},
+                {"value": "clever", "emoji": "🕵️", "label": "Mysterious & clever", "weights": {"Mystery": 2, "Psychological": 1, "Thriller": 1}},
+            ],
+        },
+        {
+            "key": "genre",
+            "question": "Pick your favorite genre",
+            "hint": "We'll weight your picks heavily toward it.",
+            "options": genre_options,
+        },
+        {
+            "key": "length",
+            "question": "How many episodes are you up for?",
+            "hint": "We'll filter the recommendations to match.",
+            "options": [
+                {"value": "short", "emoji": "🍜", "label": "Short & sweet (≤ 12 eps)", "weights": {}},
+                {"value": "cour", "emoji": "📺", "label": "One cour (13–26 eps)", "weights": {}},
+                {"value": "long", "emoji": "🐉", "label": "Long haul (27–100 eps)", "weights": {}},
+                {"value": "marathon", "emoji": "♾️", "label": "Marathon (100+ eps)", "weights": {}},
+                {"value": "any", "emoji": "🤷", "label": "No preference", "weights": {}},
+            ],
+        },
+        {
+            "key": "avoid",
+            "question": "Anything you want to skip?",
+            "hint": "We'll push those titles down the list.",
+            "options": [
+                {"value": "no_horror", "emoji": "😱", "label": "No horror / gore", "weights": {"Horror": -4, "Psychological": -2}},
+                {"value": "no_romance", "emoji": "💔", "label": "No romance", "weights": {"Romance": -4}},
+                {"value": "no_heavy", "emoji": "🌤️", "label": "Nothing too heavy", "weights": {"Horror": -2, "Psychological": -2, "Thriller": -1}},
+                {"value": "nothing", "emoji": "🚀", "label": "I'll watch anything", "weights": {}},
+            ],
+        },
+    ]
+
+
+def _quiz_score_entry(entry, weights):
+    genres = {g.strip() for g in (entry.get("genre") or "").split(" • ") if g.strip()}
+    positive = {g: w for g, w in weights.items() if w > 0}
+
+    total = 0
+    if positive:
+        matched = sum(w for g, w in positive.items() if g in genres)
+        if matched <= 0:
+            return None
+        total += matched * 100
+    else:
+        total += 50
+
+    for g, w in weights.items():
+        if w < 0 and g in genres:
+            total += w * 60
+
+    try:
+        rating = float(entry.get("rating") or 0)
+    except (TypeError, ValueError):
+        rating = 0.0
+    popularity = entry.get("member_count", 0) or 0
+    total += rating * 3 + min(popularity / 100000.0, 10)
+    return total
+
+
+def _quiz_length_filter(value):
+    def pred(entry):
+        try:
+            eps = int(entry.get("total_episodes") or 0)
+        except (TypeError, ValueError):
+            return True
+        if value == "short":
+            return eps <= 12
+        if value == "cour":
+            return 13 <= eps <= 26
+        if value == "long":
+            return 27 <= eps <= 100
+        if value == "marathon":
+            return eps > 100
+        return True
+
+    return pred
+
+
+def _run_quiz(answers):
+    weights = {}
+    for q in _quiz_questions():
+        value = answers.get(q["key"], "")
+        if not value:
+            continue
+        for opt in q["options"]:
+            if opt["value"] == value:
+                for genre, w in opt["weights"].items():
+                    weights[genre] = weights.get(genre, 0) + w
+
+    pool = []
+    for slug, entry in anime_database.items():
+        if not entry.get("image"):
+            continue
+        scored = _quiz_score_entry(entry, weights)
+        if scored is None:
+            continue
+        pool.append((scored, slug))
+    pool.sort(key=lambda x: x[0], reverse=True)
+
+    length = answers.get("length", "")
+    if length and length != "any":
+        pred = _quiz_length_filter(length)
+        filtered = [x for x in pool if pred(anime_database[x[1]])]
+        if len(filtered) >= 3:
+            pool = filtered
+
+    top = [slug for _, slug in pool[:15]]
+    random.shuffle(top)
+
+    top_genres = [g for g, w in sorted(weights.items(), key=lambda kv: -kv[1]) if w > 0][:5]
+    return top_genres, top[:5]
+
+
+@app.route("/quiz", methods=["GET", "POST"])
+def quiz():
+    user = g.get("user")
+    if user is None:
+        flash("Log in to take the personality quiz.", "error")
+        return redirect(url_for("auth.login", next=request.path))
+
+    if request.method == "POST":
+        answers = {
+            q["key"]: (request.form.get(q["key"]) or "").strip()
+            for q in _quiz_questions()
+        }
+        top_genres, slugs = _run_quiz(answers)
+        save_quiz_result(user["id"], answers, top_genres, slugs)
+        flash("Quiz saved — your picks are ready on For You!", "success")
+        return redirect(url_for("for_you"))
+
+    return render_template(
+        "quiz.html",
+        questions=_quiz_questions(),
+        genres=_genre_list(),
+    )
+
+
+@app.route("/for-you")
+def for_you():
+    user = g.get("user")
+    if user is None:
+        flash("Log in to see your For You page.", "error")
+        return redirect(url_for("auth.login", next=request.path))
+
+    quiz_result = get_latest_quiz_result(user["id"])
+    picks = []
+    if quiz_result:
+        for slug in quiz_result["result_slugs"]:
+            entry = anime_database.get(slug)
+            if entry is None:
+                continue
+            picks.append({
+                "slug": slug,
+                "title": entry.get("title") or slug,
+                "image": entry.get("image") or "",
+                "rating": entry.get("rating") or "N/A",
+                "year": entry.get("release") or "",
+                "genre": entry.get("genre") or "",
+                "total_episodes": entry.get("total_episodes", 0) or 0,
+            })
+
+    return render_template(
+        "for_you.html",
+        picks=picks,
+        quiz_result=quiz_result,
+        top_genres=(quiz_result or {}).get("top_genres") or [],
+        genres=_genre_list(),
+    )
+
+
 if __name__ == "__main__":
     create_tables()
-    # Keep the airing schedule fresh for the life of the app.
+
     threading.Thread(target=_schedule_loop, daemon=True).start()
-    # Full auto-enrichment: runs the airing apply + TVmaze backfill + HD
-    # upgrade every 6 hours so the catalog stays current without manual
-    # intervention. The daemon thread is safe to ignore on import.
+
     threading.Thread(target=_full_enrich_loop, daemon=True).start()
-    # Bind to 0.0.0.0 and honor the PORT env var so the managed preview can
-    # reach the dev server. The reloader subprocess is disabled because the
-    # platform manages the process lifecycle.
+
     app.run(
         host="0.0.0.0",
         port=int(os.environ.get("PORT", "5000")),

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personality Quiz | AnimeChat</title>
+    <link rel="icon" type="image/svg+xml"
+          href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/auth.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/for_you.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet">
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="background">
+        <div class="circle one"></div>
+        <div class="circle two"></div>
+        <div class="circle three"></div>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-list" style="max-width:1300px;margin:20px auto 0;width:90%;">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% include "_navbar.html" %}
+
+    <section class="foryou-hero quiz-hero">
+        <span class="hero-badge">🧠 Personality Quiz</span>
+        <h1>Build Your <span>Anime Profile</span></h1>
+        <p>
+            Answer six quick questions and we'll match you with anime from the
+            real AnimeChat catalog — not a fixed list. Your picks are saved and
+            shown on the <strong>For You</strong> tab.
+        </p>
+    </section>
+
+    <section class="quiz-shell">
+        <div class="quiz-progress-wrap">
+            <div class="quiz-progress-track">
+                <div class="quiz-progress-fill" id="progressFill"></div>
+            </div>
+            <span class="quiz-step-count" id="stepCount">1 / {{ questions | length }}</span>
+        </div>
+
+        <form method="post" action="{{ url_for('quiz') }}" class="quiz-form" id="quizForm">
+            {% for q in questions %}
+            <div class="quiz-step {% if loop.first %}active{% endif %}" data-step="{{ loop.index }}">
+                <div class="quiz-q-head">
+                    <span class="quiz-q-tag">Question {{ loop.index }}</span>
+                    <h2>{{ q.question }}</h2>
+                    <p>{{ q.hint }}</p>
+                </div>
+                <div class="quiz-options {% if q.key == 'genre' %}quiz-options-genres{% endif %}">
+                    {% for opt in q.options %}
+                    <label class="quiz-opt">
+                        <input type="radio" name="{{ q.key }}" value="{{ opt.value }}">
+                        <span class="quiz-opt-card">
+                            <span class="quiz-opt-emoji">{{ opt.emoji }}</span>
+                            <span class="quiz-opt-label">{{ opt.label }}</span>
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="quiz-nav">
+                <button type="button" class="quiz-btn quiz-btn-ghost" id="backBtn">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+                <button type="button" class="quiz-btn quiz-btn-primary" id="nextBtn" disabled>
+                    Next <i class="fas fa-arrow-right"></i>
+                </button>
+                <button type="submit" class="quiz-btn quiz-btn-primary" id="submitBtn" hidden>
+                    <i class="fas fa-wand-magic-sparkles"></i> Get My Picks
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <footer>
+        <div class="footer-left">
+            <h2>AnimeChat</h2>
+            <p>The place where every anime has its own community.</p>
+        </div>
+        <div class="footer-links">
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('browse', sort='popular') }}">Popular</a>
+            <a href="{{ url_for('browse', sort='trending') }}">Trending</a>
+            <a href="{{ url_for('browse', sort='critics') }}">Critics</a>
+            <a href="{{ url_for('browse', sort='underrated') }}">Underrated</a>
+        </div>
+        <div class="footer-social">
+            <a href="#"><i class="fab fa-discord"></i></a>
+            <a href="#"><i class="fab fa-github"></i></a>
+            <a href="#"><i class="fab fa-reddit"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+        </div>
+    </footer>
+
+    <script>
+        (function () {
+            "use strict";
+            var steps = Array.prototype.slice.call(document.querySelectorAll(".quiz-step"));
+            var total = steps.length;
+            var current = 0;
+            var fill = document.getElementById("progressFill");
+            var count = document.getElementById("stepCount");
+            var nextBtn = document.getElementById("nextBtn");
+            var backBtn = document.getElementById("backBtn");
+            var submitBtn = document.getElementById("submitBtn");
+
+            function hasAnswer(step) {
+                return !!step.querySelector("input[type=radio]:checked");
+            }
+
+            function render() {
+                steps.forEach(function (step, i) {
+                    step.classList.toggle("active", i === current);
+                });
+                fill.style.width = ((current + 1) / total * 100) + "%";
+                count.textContent = (current + 1) + " / " + total;
+                backBtn.style.visibility = current === 0 ? "hidden" : "visible";
+                nextBtn.hidden = current === total - 1;
+                submitBtn.hidden = current !== total - 1;
+                if (current === total - 1) {
+                    submitBtn.disabled = !hasAnswer(steps[current]);
+                } else {
+                    nextBtn.disabled = !hasAnswer(steps[current]);
+                }
+            }
+
+            nextBtn.addEventListener("click", function () {
+                if (hasAnswer(steps[current]) && current < total - 1) {
+                    current += 1;
+                    render();
+                }
+            });
+
+            backBtn.addEventListener("click", function () {
+                if (current > 0) {
+                    current -= 1;
+                    render();
+                }
+            });
+
+            steps.forEach(function (step) {
+                step.addEventListener("change", function () {
+                    if (current === total - 1) {
+                        submitBtn.disabled = !hasAnswer(steps[current]);
+                    } else {
+                        nextBtn.disabled = !hasAnswer(steps[current]);
+                    }
+                });
+            });
+
+            render();
+        })();
+    </script>
+</body>
+</html>

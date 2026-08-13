@@ -2,7 +2,6 @@ import sqlite3
 import random
 
 DATABASE = "animechat.db"
-
 AVATAR_COLORS = ["#00c16a", "#3b82f6", "#f59e0b", "#ec4899", "#9333ea", "#06b6d4", "#ef4444"]
 
 
@@ -13,7 +12,7 @@ def get_connection():
     try:
         conn.execute("PRAGMA journal_mode = WAL")
     except sqlite3.OperationalError:
-        pass  # WAL not available on some filesystems -- busy timeout is enough
+        pass
     return conn
 
 
@@ -21,115 +20,109 @@ def create_tables():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Kept for backward compatibility with any older data, no longer
-    # written to directly -- all rating math is now derived from `reviews`.
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS anime_ratings(
-        anime_slug TEXT PRIMARY KEY,
-        total_rating INTEGER DEFAULT 0,
-        total_votes INTEGER DEFAULT 0
-    )
-    """)
-
-    # Single source of truth: every submission is one row here.
-    # rating (1-5) is required, comment is optional.
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS reviews(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        anime_slug TEXT NOT NULL,
-        username TEXT NOT NULL DEFAULT 'Anonymous',
-        rating INTEGER NOT NULL,
-        comment TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )
+        CREATE TABLE IF NOT EXISTS anime_ratings(
+            anime_slug TEXT PRIMARY KEY,
+            total_rating INTEGER DEFAULT 0,
+            total_votes INTEGER DEFAULT 0
+        )
     """)
 
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS episode_ratings(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        anime_slug TEXT,
-        season_name TEXT,
-        episode_number INTEGER,
-        total_rating INTEGER DEFAULT 0,
-        total_votes INTEGER DEFAULT 0
-    )
+        CREATE TABLE IF NOT EXISTS reviews(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            anime_slug TEXT NOT NULL,
+            username TEXT NOT NULL DEFAULT 'Anonymous',
+            rating INTEGER NOT NULL,
+            comment TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
     """)
 
-    # Per-episode reviews: one row per user per episode (1-10 stars).
-    # A user re-rating the same episode updates their row in place.
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS episode_reviews(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        anime_slug TEXT NOT NULL,
-        season_name TEXT NOT NULL,
-        episode_number INTEGER NOT NULL,
-        user_id INTEGER NOT NULL,
-        username TEXT NOT NULL,
-        avatar_color TEXT NOT NULL DEFAULT '#00c16a',
-        rating INTEGER NOT NULL,
-        comment TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE (user_id, anime_slug, season_name, episode_number)
-    )
-    """)
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS users(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL UNIQUE,
-        email TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        avatar_color TEXT NOT NULL,
-        is_verified INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )
+        CREATE TABLE IF NOT EXISTS episode_ratings(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            anime_slug TEXT,
+            season_name TEXT,
+            episode_number INTEGER,
+            total_rating INTEGER DEFAULT 0,
+            total_votes INTEGER DEFAULT 0
+        )
     """)
 
-    # Every chat bubble sent in a community, tied to a real logged-in user.
-    # This is what makes two different accounts (e.g. you + your brother)
-    # actually see each other's messages -- it's shared, persisted state,
-    # not something rendered only in one browser tab.
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS chat_messages(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        anime_slug TEXT NOT NULL,
-        user_id INTEGER NOT NULL,
-        username TEXT NOT NULL,
-        avatar_color TEXT NOT NULL,
-        kind TEXT NOT NULL DEFAULT 'text',
-        content TEXT NOT NULL,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(id)
-    )
+        CREATE TABLE IF NOT EXISTS episode_reviews(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            anime_slug TEXT NOT NULL,
+            season_name TEXT NOT NULL,
+            episode_number INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            username TEXT NOT NULL,
+            avatar_color TEXT NOT NULL DEFAULT '#00c16a',
+            rating INTEGER NOT NULL,
+            comment TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (user_id, anime_slug, season_name, episode_number)
+        )
     """)
 
-    # Lightweight "who's online" tracking -- updated every time a logged-in
-    # user's browser polls a community. A user counts as online if their
-    # last_seen is within the last 60 seconds.
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS chat_presence(
-        anime_slug TEXT NOT NULL,
-        user_id INTEGER NOT NULL,
-        username TEXT NOT NULL,
-        avatar_color TEXT NOT NULL,
-        last_seen TEXT DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (anime_slug, user_id)
-    )
+        CREATE TABLE IF NOT EXISTS users(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            avatar_color TEXT NOT NULL,
+            is_verified INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS chat_messages(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            anime_slug TEXT NOT NULL,
+            user_id INTEGER NOT NULL,
+            username TEXT NOT NULL,
+            avatar_color TEXT NOT NULL,
+            kind TEXT NOT NULL DEFAULT 'text',
+            content TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS chat_presence(
+            anime_slug TEXT NOT NULL,
+            user_id INTEGER NOT NULL,
+            username TEXT NOT NULL,
+            avatar_color TEXT NOT NULL,
+            last_seen TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (anime_slug, user_id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS quiz_results(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            answers TEXT NOT NULL,
+            top_genres TEXT NOT NULL,
+            result_slugs TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
     """)
 
     conn.commit()
     conn.close()
 
 
-# ===============================================================
-# USERS / AUTH
-# ===============================================================
-
 def create_user(username, email, password_hash):
     conn = get_connection()
     cursor = conn.cursor()
-
     avatar_color = random.choice(AVATAR_COLORS)
-
     cursor.execute(
         """
         INSERT INTO users (username, email, password_hash, avatar_color, is_verified)
@@ -137,7 +130,6 @@ def create_user(username, email, password_hash):
         """,
         (username, email, password_hash, avatar_color)
     )
-
     conn.commit()
     user_id = cursor.lastrowid
     conn.close()
@@ -179,14 +171,9 @@ def mark_user_verified(user_id):
     conn.close()
 
 
-# ===============================================================
-# COMMUNITY CHAT
-# ===============================================================
-
 def add_chat_message(anime_slug, user_id, username, avatar_color, kind, content):
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute(
         """
         INSERT INTO chat_messages (anime_slug, user_id, username, avatar_color, kind, content)
@@ -194,10 +181,8 @@ def add_chat_message(anime_slug, user_id, username, avatar_color, kind, content)
         """,
         (anime_slug, user_id, username, avatar_color, kind, content)
     )
-
     conn.commit()
     message_id = cursor.lastrowid
-
     cursor.execute("SELECT * FROM chat_messages WHERE id = ?", (message_id,))
     row = cursor.fetchone()
     conn.close()
@@ -207,9 +192,7 @@ def add_chat_message(anime_slug, user_id, username, avatar_color, kind, content)
 def get_chat_messages(anime_slug, after_id=0, limit=200):
     conn = get_connection()
     cursor = conn.cursor()
-
     if after_id:
-        # Incremental: everything newer than the last id the client has.
         cursor.execute(
             """
             SELECT * FROM chat_messages
@@ -220,8 +203,6 @@ def get_chat_messages(anime_slug, after_id=0, limit=200):
             (anime_slug, after_id, limit)
         )
     else:
-        # Fresh page load: show the newest `limit` messages (the live
-        # conversation), not the oldest ones from the start of the chat.
         cursor.execute(
             """
             SELECT * FROM (
@@ -234,7 +215,6 @@ def get_chat_messages(anime_slug, after_id=0, limit=200):
             """,
             (anime_slug, limit)
         )
-
     rows = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return rows
@@ -243,7 +223,6 @@ def get_chat_messages(anime_slug, after_id=0, limit=200):
 def touch_presence(anime_slug, user_id, username, avatar_color):
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute(
         """
         INSERT INTO chat_presence (anime_slug, user_id, username, avatar_color, last_seen)
@@ -253,7 +232,6 @@ def touch_presence(anime_slug, user_id, username, avatar_color):
         """,
         (anime_slug, user_id, username, avatar_color)
     )
-
     conn.commit()
     conn.close()
 
@@ -261,7 +239,6 @@ def touch_presence(anime_slug, user_id, username, avatar_color):
 def get_online_users(anime_slug, active_seconds=60):
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute(
         """
         SELECT username, avatar_color FROM chat_presence
@@ -271,20 +248,14 @@ def get_online_users(anime_slug, active_seconds=60):
         """,
         (anime_slug, f"-{active_seconds} seconds")
     )
-
     rows = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return rows
 
 
 def get_all_anime_stats():
-    """Returns {slug: {"votes": n, "average": x}} for every anime in one
-    query -- used by the home page so a 1000+ title catalog doesn't fire
-    thousands of separate SQLite queries."""
-
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute(
         """
         SELECT anime_slug, COUNT(*) AS votes, AVG(rating) AS avg_rating
@@ -292,10 +263,8 @@ def get_all_anime_stats():
         GROUP BY anime_slug
         """
     )
-
     rows = cursor.fetchall()
     conn.close()
-
     return {
         row["anime_slug"]: {
             "votes": row["votes"],
@@ -306,12 +275,8 @@ def get_all_anime_stats():
 
 
 def get_anime_stats(anime_slug):
-    """Returns average rating, vote count, star breakdown, and all reviews
-    for a given anime, computed live from the reviews table."""
-
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute(
         "SELECT rating, COUNT(*) as count FROM reviews WHERE anime_slug=? GROUP BY rating",
         (anime_slug,)
@@ -321,7 +286,6 @@ def get_anime_stats(anime_slug):
         breakdown[str(row["rating"])] = row["count"]
 
     total_votes = sum(breakdown.values())
-
     cursor.execute(
         "SELECT AVG(rating) as avg_rating FROM reviews WHERE anime_slug=?",
         (anime_slug,)
@@ -347,9 +311,7 @@ def get_anime_stats(anime_slug):
         }
         for row in cursor.fetchall()
     ]
-
     conn.close()
-
     return {
         "average": average,
         "votes": total_votes,
@@ -361,7 +323,6 @@ def get_anime_stats(anime_slug):
 def add_review(anime_slug, username, rating, comment):
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute(
         """
         INSERT INTO reviews (anime_slug, username, rating, comment)
@@ -369,27 +330,19 @@ def add_review(anime_slug, username, rating, comment):
         """,
         (anime_slug, username or "Anonymous", rating, comment or "")
     )
-
     conn.commit()
     conn.close()
 
 
-# ===============================================================
-# EPISODE REVIEWS (1-10 star, per-episode)
-# ===============================================================
-
 def add_episode_review(anime_slug, season_name, episode_number, user_id,
                        username, avatar_color, rating, comment):
-    """Insert or update a logged-in user's rating for one episode.
-    One row per user per episode; re-rating overwrites the earlier one."""
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute(
         """
         INSERT INTO episode_reviews
-            (anime_slug, season_name, episode_number, user_id, username,
-             avatar_color, rating, comment)
+        (anime_slug, season_name, episode_number, user_id, username,
+         avatar_color, rating, comment)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(user_id, anime_slug, season_name, episode_number)
         DO UPDATE SET
@@ -401,21 +354,17 @@ def add_episode_review(anime_slug, season_name, episode_number, user_id,
          username or "Anonymous", avatar_color or "#00c16a",
          rating, comment or "")
     )
-
     conn.commit()
     conn.close()
 
 
 def get_episode_stats(anime_slug, season_name, episode_number):
-    """Average (rounded), vote count, 1-10 breakdown and the review list
-    for a single episode."""
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute(
         """SELECT rating, COUNT(*) as count FROM episode_reviews
-           WHERE anime_slug=? AND season_name=? AND episode_number=?
-           GROUP BY rating""",
+        WHERE anime_slug=? AND season_name=? AND episode_number=?
+        GROUP BY rating""",
         (anime_slug, season_name, episode_number)
     )
     breakdown = {str(n): 0 for n in range(1, 11)}
@@ -423,10 +372,9 @@ def get_episode_stats(anime_slug, season_name, episode_number):
         breakdown[str(row["rating"])] = row["count"]
 
     total_votes = sum(breakdown.values())
-
     cursor.execute(
         """SELECT AVG(rating) as avg_rating FROM episode_reviews
-           WHERE anime_slug=? AND season_name=? AND episode_number=?""",
+        WHERE anime_slug=? AND season_name=? AND episode_number=?""",
         (anime_slug, season_name, episode_number)
     )
     avg_row = cursor.fetchone()
@@ -434,9 +382,9 @@ def get_episode_stats(anime_slug, season_name, episode_number):
 
     cursor.execute(
         """SELECT username, avatar_color, rating, comment, created_at
-           FROM episode_reviews
-           WHERE anime_slug=? AND season_name=? AND episode_number=?
-           ORDER BY id DESC""",
+        FROM episode_reviews
+        WHERE anime_slug=? AND season_name=? AND episode_number=?
+        ORDER BY id DESC""",
         (anime_slug, season_name, episode_number)
     )
     reviews = [
@@ -449,7 +397,6 @@ def get_episode_stats(anime_slug, season_name, episode_number):
         }
         for row in cursor.fetchall()
     ]
-
     conn.close()
     return {
         "average": average,
@@ -460,14 +407,13 @@ def get_episode_stats(anime_slug, season_name, episode_number):
 
 
 def get_user_episode_review(anime_slug, season_name, episode_number, user_id):
-    """The logged-in user's own rating for an episode (or None)."""
     if not user_id:
         return None
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
         """SELECT rating, comment FROM episode_reviews
-           WHERE anime_slug=? AND season_name=? AND episode_number=? AND user_id=?""",
+        WHERE anime_slug=? AND season_name=? AND episode_number=? AND user_id=?""",
         (anime_slug, season_name, episode_number, user_id)
     )
     row = cursor.fetchone()
@@ -476,16 +422,13 @@ def get_user_episode_review(anime_slug, season_name, episode_number, user_id):
 
 
 def get_all_episode_stats(anime_slug):
-    """{season_name: {episode_number: {average, votes}}} for every rated
-    episode of one anime -- used to show rating chips in the episode list
-    without firing one query per episode."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
         """SELECT season_name, episode_number, AVG(rating) as avg_rating,
-                  COUNT(*) as votes
-           FROM episode_reviews WHERE anime_slug=?
-           GROUP BY season_name, episode_number""",
+        COUNT(*) as votes
+        FROM episode_reviews WHERE anime_slug=?
+        GROUP BY season_name, episode_number""",
         (anime_slug,)
     )
     out = {}
@@ -497,3 +440,49 @@ def get_all_episode_stats(anime_slug):
         }
     conn.close()
     return out
+
+
+def save_quiz_result(user_id, answers, top_genres, result_slugs):
+    import json
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO quiz_results (user_id, answers, top_genres, result_slugs)
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            json.dumps(answers),
+            json.dumps(top_genres),
+            json.dumps(result_slugs),
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_latest_quiz_result(user_id):
+    import json
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT * FROM quiz_results
+        WHERE user_id = ?
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (user_id,),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return None
+    result = dict(row)
+    result["answers"] = json.loads(result["answers"])
+    result["top_genres"] = json.loads(result["top_genres"])
+    result["result_slugs"] = json.loads(result["result_slugs"])
+    return result
