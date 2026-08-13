@@ -81,7 +81,8 @@
 
         <img src="{{ anime.banner | anime_img_large }}"
             class="hero-image"
-            loading="lazy">
+            alt=""
+            fetchpriority="high">
 
         <div class="hero-overlay"></div>
 
@@ -89,7 +90,8 @@
 
             <div class="poster">
 
-                <img src="{{ anime.image | anime_img_large }}" loading="lazy">
+                <img src="{{ anime.image | anime_img_large }}"
+                    alt="{{ anime.title }}">
 
             </div>
 
