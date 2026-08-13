@@ -637,8 +637,8 @@
 .va-person{
     display:flex;
     align-items:center;
-    gap:11px;
-    padding:7px 12px 7px 7px;
+    gap:13px;
+    padding:9px 14px 9px 9px;
     border-radius:12px;
     background:rgba(255,255,255,.05);
     border:1px solid rgba(255,255,255,.08);
@@ -651,9 +651,9 @@
 }
 
 .va-person-img{
-    width:42px;
-    height:42px;
-    border-radius:10px;
+    width:56px;
+    height:56px;
+    border-radius:8px;
     object-fit:cover;
     flex-shrink:0;
     background:#0d1120;
@@ -664,11 +664,11 @@
     align-items:center;
     justify-content:center;
     color:#5a6078;
-    font-size:16px;
+    font-size:20px;
 }
 
 .va-person-name{
-    font-size:13px;
+    font-size:14px;
     font-weight:700;
     color:#e6e9f4;
     line-height:1.3;
