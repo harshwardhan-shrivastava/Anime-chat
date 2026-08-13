@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Know Your Characters | AnimeChat</title>
+
+    <link rel="icon" type="image/svg+xml"
+    href="{{ url_for('static', filename='favicon.svg') }}">
+
+    <link rel="stylesheet"
+    href="{{ url_for('static', filename='css/style.css') }}">
+
+    <link rel="stylesheet"
+    href="{{ url_for('static', filename='css/auth.css') }}">
+
+    <link rel="stylesheet"
+    href="{{ url_for('static', filename='css/find_mood.css') }}">
+
+    <link rel="stylesheet"
+    href="{{ url_for('static', filename='css/characters.css') }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js"
+    crossorigin="anonymous"></script>
+
+</head>
+
+<body>
+
+<div class="background">
+    <div class="circle one"></div>
+    <div class="circle two"></div>
+    <div class="circle three"></div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-list" style="max-width:1300px;margin:20px auto 0;width:90%;">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+{% endwith %}
+
+<!-- ================= NAVBAR ================= -->
+
+{% include "_navbar.html" %}
+
+<!-- ================= HERO ================= -->
+
+<section class="hero char-hero">
+
+    <span class="hero-badge">🎭 Meet the voices behind the anime</span>
+
+    <h1>
+
+        Know Your
+
+        <span>Characters</span>
+
+    </h1>
+
+    <p>
+
+        Search any character or anime in the library — from the biggest
+
+        shonen icons to hidden gems — and see who voices them in Japanese
+
+        (sub) and English (dub). Tap any card for the full cast list.
+
+    </p>
+
+    <div class="char-stats">
+
+        <div class="char-stat">
+            <span class="char-stat-num">{{ total_fmt }}</span>
+            <span class="char-stat-label">character entries</span>
+        </div>
+
+        <div class="char-stat">
+            <span class="char-stat-num">{{ covered_fmt }}</span>
+            <span class="char-stat-label">anime covered</span>
+        </div>
+
+        <div class="char-stat">
+            <span class="char-stat-num">{{ with_va_fmt }}</span>
+            <span class="char-stat-label">with voice actors</span>
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ================= SEARCH ================= -->
+
+<section class="char-search-section">
+
+    <div class="char-search-box">
+
+        <i class="fas fa-search"></i>
+
+        <input type="text" id="charSearch" autocomplete="off"
+        placeholder="Search a character or anime — try “Goku”, “Levi” or “Demon Slayer”…">
+
+        <button id="charSearchClear" class="char-search-clear" aria-label="Clear" hidden>
+            <span class="modal-x" aria-hidden="true"></span>
+        </button>
+
+    </div>
+
+    <p class="char-search-hint" id="charSearchHint">
+        Characters appear as they're indexed — the most popular shows land first.
+    </p>
+
+    <div class="char-suggestions">
+        <span>Try:</span>
+        <button class="char-suggest" data-q="Goku">Goku</button>
+        <button class="char-suggest" data-q="Luffy">Luffy</button>
+        <button class="char-suggest" data-q="Levi">Levi</button>
+        <button class="char-suggest" data-q="Tanjiro">Tanjiro</button>
+        <button class="char-suggest" data-q="Light Yagami">Light Yagami</button>
+        <button class="char-suggest" data-q="Gojo">Gojo</button>
+    </div>
+
+</section>
+
+<!-- ================= CHARACTER GRID ================= -->
+
+<section class="char-grid-section">
+
+    <div class="char-grid-head">
+        <h2 id="charGridTitle">Most Popular Casts</h2>
+        <span class="char-grid-count" id="charGridCount"></span>
+    </div>
+
+    <div class="char-grid" id="charGrid">
+
+        {% for entry in initial %}
+        <article class="char-card" data-key="{{ entry.slug }}|{{ entry.id }}">
+            <div class="char-card-img">
+                <img src="{{ entry.image }}" alt="{{ entry.name }}" loading="lazy">
+                <span class="char-role char-role-{{ entry.role|lower }}">
+                    {{ 'Main' if entry.role == 'MAIN' else 'Supporting' }}
+                </span>
+            </div>
+            <div class="char-card-body">
+                <h3 class="char-name">{{ entry.name }}</h3>
+                <p class="char-anime">{{ entry.title }}</p>
+                {% if entry.jp or entry.en %}
+                <div class="char-va-chips">
+                    {% for va in entry.jp[:2] %}
+                    <span class="va-chip va-jp" title="Japanese voice actor">🇯🇵 {{ va }}</span>
+                    {% endfor %}
+                    {% for va in entry.en[:2] %}
+                    <span class="va-chip va-en" title="English voice actor">🇺🇸 {{ va }}</span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <span class="va-soon">Voice actor data arriving soon</span>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+
+    </div>
+
+    <div class="char-grid-loading" id="charGridLoading" hidden>
+        <span class="spinner"></span>
+        Searching the library…
+    </div>
+
+    <div class="char-grid-empty" id="charGridEmpty" hidden>
+        <i class="fas fa-user-slash"></i>
+        <h3>No characters found</h3>
+        <p>Try a different name, or search by an anime title instead.</p>
+    </div>
+
+    <div class="char-grid-more">
+        <button id="charLoadMore" class="char-more-btn" hidden>
+            <i class="fas fa-angles-down"></i>
+            Load More
+        </button>
+    </div>
+
+</section>
+
+<!-- ================= CHARACTER MODAL ================= -->
+
+<div class="modal-overlay" id="charModal" hidden>
+
+    <div class="modal-card char-modal-card">
+
+        <button class="modal-close" id="charModalClose" aria-label="Close">
+            <span class="modal-x" aria-hidden="true"></span>
+        </button>
+
+        <div class="modal-card-inner char-modal-inner">
+
+            <div class="modal-poster char-modal-poster">
+
+                <img id="charModalImage" alt="Character" loading="lazy">
+
+            </div>
+
+            <div class="modal-info char-modal-info">
+
+                <span class="modal-tag" id="charModalRole">Main Character</span>
+
+                <h3 id="charModalName"></h3>
+
+                <a class="char-modal-anime" id="charModalAnime" href="#">
+                    <i class="fas fa-film"></i>
+                    <span id="charModalAnimeText"></span>
+                </a>
+
+                <p id="charModalDesc"></p>
+
+                <div class="char-va-block">
+
+                    <div class="char-va-col">
+                        <h4><span class="va-flag">🇯🇵</span> Japanese <span class="va-lang">(Sub)</span></h4>
+                        <div class="va-chip-wrap" id="charModalJp"></div>
+                    </div>
+
+                    <div class="char-va-col">
+                        <h4><span class="va-flag">🇺🇸</span> English <span class="va-lang">(Dub)</span></h4>
+                        <div class="va-chip-wrap" id="charModalEn"></div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ================= WHY ================= -->
+
+<section class="why-section">
+
+    <h2>Why Characters?</h2>
+
+    <div class="why-grid">
+
+        <div class="why-card">
+            <i class="fas fa-microphone-lines"></i>
+            <h3>Voices You Know</h3>
+            <p>Spot your favourite voice actors across the whole library — the same voice behind dozens of characters you love.</p>
+        </div>
+
+        <div class="why-card">
+            <i class="fas fa-earth-asia"></i>
+            <h3>Sub + Dub</h3>
+            <p>See the original Japanese cast and the English dub cast side by side, so you always know who's actually talking.</p>
+        </div>
+
+        <div class="why-card">
+            <i class="fas fa-circle-plus"></i>
+            <h3>Always Growing</h3>
+            <p>New characters and voice actors are indexed automatically — popular shows first, all 13,000+ titles eventually.</p>
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ================= FOOTER ================= -->
+
+<footer>
+
+    <div class="footer-left">
+
+        <h2>AnimeChat</h2>
+
+        <p>The place where every anime has its own community.</p>
+
+    </div>
+
+    <div class="footer-links">
+
+        <a href="{{ url_for('home') }}">Home</a>
+
+        <a href="{{ url_for('browse', sort='popular') }}">Popular</a>
+
+        <a href="{{ url_for('browse', sort='trending') }}">Trending</a>
+
+        <a href="{{ url_for('browse', sort='critics') }}">Critics</a>
+
+        <a href="{{ url_for('characters') }}">Characters</a>
+
+    </div>
+
+    <div class="footer-social">
+
+        <a href="#"><i class="fab fa-discord"></i></a>
+
+        <a href="#"><i class="fab fa-github"></i></a>
+
+        <a href="#"><i class="fab fa-reddit"></i></a>
+
+        <a href="#"><i class="fab fa-instagram"></i></a>
+
+    </div>
+
+</footer>
+
+<script id="characters-data" type="application/json">{{ characters_data_json | safe }}</script>
+
+<script src="{{ url_for('static', filename='js/characters.js') }}"></script>
+
+</body>
+</html>

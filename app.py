@@ -14,6 +14,7 @@ load_dotenv()
 
 from flask import Flask, render_template, request, jsonify, g, url_for, flash, redirect
 from anime_data import anime_database
+from characters_data import characters_index, search_characters, reload_characters
 from database import (
     create_tables,
     get_connection,
@@ -332,8 +333,18 @@ def _full_enrich_worker():
         except Exception as exc:
             print(f"[auto-enrich] hd_upgrade failed (continuing): {exc}", flush=True)
 
-        # Step 5: Reload the database so the running app sees the changes
+        # Step 5: Character + voice-actor collection slice (bounded). Keeps
+        # the Know Your Characters page growing without hammering AniList.
+        try:
+            from scripts.fetch_characters import run_slice
+            run_slice(budget_seconds=150)
+        except Exception as exc:
+            print(f"[auto-enrich] character slice failed (continuing): {exc}", flush=True)
+
+        # Step 6: Reload the database + character index so the running app
+        # sees the changes
         reload_database()
+        reload_characters()
 
         # Rebuild the anilist_id index used by the live schedule refresher
         _BY_AID.clear()
@@ -889,6 +900,70 @@ def _surprise_pool(limit=300):
     ]
     random.shuffle(pool)
     return pool[:limit]
+
+
+def _char_public(entries):
+    """Strip the internal normalized-search fields from index entries."""
+    return [
+        {k: v for k, v in e.items() if not k.startswith("_")}
+        for e in entries
+    ]
+
+
+@app.route("/characters")
+def characters():
+    """Know Your Characters: search every character in the catalog and see
+    their Japanese (sub) and English (dub) voice actors."""
+    initial = search_characters("", 0, 60)
+    total = len(characters_index)
+    covered = len({e["slug"] for e in characters_index})
+    with_va = sum(1 for e in characters_index if e.get("jp") or e.get("en"))
+
+    def _fmt(n):
+        return f"{n:,}" if n >= 1000 else str(n)
+
+    payload = {
+        "initial": _char_public(initial),
+        "total": total,
+        "covered": covered,
+        "with_va": with_va,
+    }
+    return render_template(
+        "characters.html",
+        initial=initial,
+        total_fmt=_fmt(total),
+        covered_fmt=_fmt(covered),
+        with_va_fmt=_fmt(with_va),
+        # Escape "</" so a description can never close the script tag.
+        characters_data_json=json.dumps(payload, ensure_ascii=False).replace("</", "<\\/"),
+        genres=_genre_list(),
+    )
+
+
+@app.route("/api/characters/search")
+def api_characters_search():
+    """Search the character index (name or anime title). Returns JSON so
+    the Know Your Characters page can live-search and load more."""
+    q = (request.args.get("q") or "").strip()
+    try:
+        offset = max(0, int(request.args.get("offset", 0)))
+    except (TypeError, ValueError):
+        offset = 0
+    try:
+        limit = min(120, max(1, int(request.args.get("limit", 60))))
+    except (TypeError, ValueError):
+        limit = 60
+    results = search_characters(q, offset, limit)
+    # Drop the internal normalized-search fields from the payload.
+    results = _char_public(results)
+    return jsonify({
+        "success": True,
+        "q": q,
+        "offset": offset,
+        "limit": limit,
+        "total": len(characters_index),
+        "results": results,
+    })
 
 
 @app.route("/find-mood")
