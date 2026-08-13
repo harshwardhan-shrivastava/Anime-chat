@@ -231,6 +231,11 @@
     padding:3px 8px;
 }
 
+.char-suggest-va .va-avatar{
+    width:14px;
+    height:14px;
+}
+
 .char-search-hint{
     margin-top:16px;
     color:#7c82a0;
@@ -425,6 +430,16 @@
     text-overflow:ellipsis;
 }
 
+.va-avatar{
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    object-fit:cover;
+    flex-shrink:0;
+    background:#0d1120;
+    border:1px solid rgba(255,255,255,.15);
+}
+
 .va-jp{
     background:rgba(255,120,120,.1);
     border:1px solid rgba(255,120,120,.28);
@@ -612,13 +627,58 @@
     gap:8px;
 }
 
-.va-chip-wrap .va-chip{
-    font-size:12px;
-    padding:7px 13px;
+.va-chip-wrap{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:8px;
 }
 
-.va-chip-wrap .va-chip.va-full{
-    flex:1 1 100%;
+.va-person{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:7px 12px 7px 7px;
+    border-radius:12px;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);
+    transition:.25s;
+}
+
+.va-person:hover{
+    background:rgba(143,91,255,.12);
+    border-color:rgba(143,91,255,.4);
+}
+
+.va-person-img{
+    width:42px;
+    height:42px;
+    border-radius:10px;
+    object-fit:cover;
+    flex-shrink:0;
+    background:#0d1120;
+}
+
+.va-person-img-empty{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#5a6078;
+    font-size:16px;
+}
+
+.va-person-name{
+    font-size:13px;
+    font-weight:700;
+    color:#e6e9f4;
+    line-height:1.3;
+}
+
+.va-person-more{
+    justify-content:center;
+    color:#8f94b0;
+    font-weight:700;
+    font-size:12.5px;
 }
 
 .va-none{

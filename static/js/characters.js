@@ -57,6 +57,13 @@
         return (e.slug || "") + "|" + (e.id || "");
     }
 
+    function chipHTML(v, cls, title) {
+        const img = v && v.image
+            ? '<img class="va-avatar" src="' + esc(v.image) + '" alt="" loading="lazy">'
+            : "";
+        return '<span class="va-chip ' + cls + '" title="' + title + '">' + img + esc(v && v.name) + "</span>";
+    }
+
     function cardHTML(e) {
         const role = e.role === "MAIN" ? "Main" : "Supporting";
         const roleCls = e.role === "MAIN" ? "char-role-main" : "char-role-supporting";
@@ -64,14 +71,14 @@
         if ((e.jp && e.jp.length) || (e.en && e.en.length)) {
             let chips = "";
             (e.jp || []).slice(0, 2).forEach(function (v) {
-                chips += '<span class="va-chip va-jp" title="Japanese voice actor">🇯🇵 ' + esc(v) + "</span>";
+                chips += chipHTML(v, "va-jp", "Japanese voice actor");
             });
             (e.en || []).slice(0, 2).forEach(function (v) {
-                chips += '<span class="va-chip va-en" title="English voice actor">🇺🇸 ' + esc(v) + "</span>";
+                chips += chipHTML(v, "va-en", "English voice actor");
             });
             va = '<div class="char-va-chips">' + chips + "</div>";
         } else {
-            va = '<span class="va-soon">Voice actor data arriving soon</span>';
+            va = '<span class="va-soon">No voice actor listed yet</span>';
         }
         return (
             '<article class="char-card" data-key="' + esc(keyFor(e)) + '">' +
@@ -140,8 +147,8 @@
             if (jp || en) {
                 va =
                     '<div class="char-suggest-va">' +
-                    (jp ? '<span class="va-chip va-jp">🇯🇵 ' + esc(jp) + "</span>" : "") +
-                    (en ? '<span class="va-chip va-en">🇺🇸 ' + esc(en) + "</span>" : "") +
+                    (jp ? '<span class="va-chip va-jp">🇯🇵 ' + (jp.image ? '<img class="va-avatar" src="' + esc(jp.image) + '" alt="" loading="lazy">' : "") + esc(jp.name) + "</span>" : "") +
+                    (en ? '<span class="va-chip va-en">🇺🇸 ' + (en.image ? '<img class="va-avatar" src="' + esc(en.image) + '" alt="" loading="lazy">' : "") + esc(en.name) + "</span>" : "") +
                     "</div>";
             }
             html +=
@@ -268,18 +275,22 @@
 
     // ---- modal -------------------------------------------
 
-    function vaChips(list, cls, emptyText, container) {
+    function vaPeople(list, emptyText, container) {
         if (!list || !list.length) {
             container.innerHTML = '<span class="va-none">' + esc(emptyText) + "</span>";
             return;
         }
-        const shown = list.slice(0, 6);
+        const shown = list.slice(0, 8);
         const extra = list.length - shown.length;
         let html = shown.map(function (v) {
-            return '<span class="va-chip ' + cls + '">' + esc(v) + "</span>";
+            const img = v.image
+                ? '<img class="va-person-img" src="' + esc(v.image) + '" alt="" loading="lazy">'
+                : '<span class="va-person-img va-person-img-empty"><i class="fas fa-user"></i></span>';
+            return '<div class="va-person">' + img +
+                '<span class="va-person-name">' + esc(v.name) + "</span></div>";
         }).join("");
         if (extra > 0) {
-            html += '<span class="va-chip ' + cls + ' va-full">+ ' + extra + " more</span>";
+            html += '<div class="va-person va-person-more">+ ' + extra + " more</div>";
         }
         container.innerHTML = html;
     }
@@ -296,13 +307,13 @@
                 ? e.desc
                 : "No character description available yet — but you can still meet the voice behind them.";
 
-        vaChips(
-            e.jp || [], "va-jp",
+        vaPeople(
+            e.jp || [],
             "No Japanese voice actor listed for this character yet.",
             modalJp
         );
-        vaChips(
-            e.en || [], "va-en",
+        vaPeople(
+            e.en || [],
             "No English dub cast listed — this one may only be available subbed.",
             modalEn
         );

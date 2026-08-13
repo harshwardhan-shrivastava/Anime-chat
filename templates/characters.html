@@ -159,14 +159,14 @@
                 {% if entry.jp or entry.en %}
                 <div class="char-va-chips">
                     {% for va in entry.jp[:2] %}
-                    <span class="va-chip va-jp" title="Japanese voice actor">🇯🇵 {{ va }}</span>
+                    <span class="va-chip va-jp" title="Japanese voice actor">🇯🇵 {% if va.image %}<img class="va-avatar" src="{{ va.image }}" alt="" loading="lazy">{% endif %}{{ va.name }}</span>
                     {% endfor %}
                     {% for va in entry.en[:2] %}
-                    <span class="va-chip va-en" title="English voice actor">🇺🇸 {{ va }}</span>
+                    <span class="va-chip va-en" title="English voice actor">🇺🇸 {% if va.image %}<img class="va-avatar" src="{{ va.image }}" alt="" loading="lazy">{% endif %}{{ va.name }}</span>
                     {% endfor %}
                 </div>
                 {% else %}
-                <span class="va-soon">Voice actor data arriving soon</span>
+                <span class="va-soon">No voice actor listed yet</span>
                 {% endif %}
             </div>
         </article>
