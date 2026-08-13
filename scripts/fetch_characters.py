@@ -400,6 +400,52 @@ def phase_c():
     print(f"[C] DONE: {len(index)} (anime, character) entries", flush=True)
 
 
+POP_QUERY = """
+query ($ids: [Int]) {
+  Page(perPage: 50) {
+    media(id_in: $ids, type: ANIME) {
+      id
+      popularity
+    }
+  }
+}
+"""
+
+
+def phase_p():
+    """Backfill member_count (AniList popularity) for catalog entries that
+    are missing it. Many top shows (One Piece, Naruto, Haikyuu...) have 0,
+    which breaks every popularity ordering: the VA fetch queue, the
+    character page's "Most Popular Casts" grid, and the Popular browse
+    view. Runs once because the patched values stop being missing.
+    """
+    anime = load_json(ANIME_DATA, {})
+    todo = [
+        (slug, entry["anilist_id"])
+        for slug, entry in anime.items()
+        if not (entry.get("member_count") or 0) and entry.get("anilist_id")
+    ]
+    print(f"[P] {len(todo)} anime missing member_count", flush=True)
+    if not todo:
+        return
+    patched = 0
+    for i in range(0, len(todo), BATCH):
+        batch = todo[i:i + BATCH]
+        d = post(POP_QUERY, {"ids": [aid for _, aid in batch]}, sleep_after=0.4)
+        for media in d["data"]["Page"]["media"] or []:
+            if not media or not media.get("popularity"):
+                continue
+            slug = next((s for s, a in batch if a == media["id"]), None)
+            if slug and slug in anime:
+                anime[slug]["member_count"] = media["popularity"]
+                patched += 1
+        if (i // BATCH) % 2 == 0 or i + BATCH >= len(todo):
+            save_json(ANIME_DATA, anime)
+            print(f"[P] patched {patched} after batch {i // BATCH + 1}", flush=True)
+    save_json(ANIME_DATA, anime)
+    print(f"[P] DONE: {patched} anime member_count backfilled", flush=True)
+
+
 def run_slice(budget_seconds):
     """Alternate phase A + phase B batches (in parallel) until the time
     budget runs out, then rebuild the index. Used by the app's background
@@ -407,6 +453,15 @@ def run_slice(budget_seconds):
     deadline = time.time() + max(10, budget_seconds)
 
     anime = load_json(ANIME_DATA, {})
+    # Popularity drives the character/VA priority order, so backfill it
+    # first if the catalog is missing it for top shows.
+    missing = sum(
+        1 for e in anime.values()
+        if not (e.get("member_count") or 0) and e.get("anilist_id")
+    )
+    if missing:
+        phase_p()
+        anime = load_json(ANIME_DATA, {})
     chars = load_json(CHARS, {})
     a_progress = load_json(CHAR_PROGRESS, [])
     va = load_json(VA, {})
@@ -487,6 +542,8 @@ if __name__ == "__main__":
         phase_b()
     elif phase == "c":
         phase_c()
+    elif phase == "p":
+        phase_p()
     elif phase == "slice":
         budget = int(args[1]) if len(args) > 1 else 150
         run_slice(budget)
