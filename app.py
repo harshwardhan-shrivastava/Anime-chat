@@ -36,6 +36,334 @@ app.register_blueprint(auth)
 app.register_blueprint(chat_bp)
 
 
+# ---------------------------------------------------------------------------
+#  FIND YOUR MOOD — live AniList edition (new page: /find-mood)
+#  Queries the AniList GraphQL API at request time for real, non-hardcoded
+#  recommendations. Falls back to scoring your own catalog if AniList is
+#  unreachable. Local catalog images are resolved through _resolve_image().
+# ---------------------------------------------------------------------------
+
+import json as _json
+import re as _re
+from datetime import date as _date
+from urllib.error import HTTPError as _HTTPError
+from urllib.error import URLError as _URLError
+from urllib.request import Request as _UrlRequest
+from urllib.request import urlopen as _urlopen
+
+ANILIST_API_URL = "https://graphql.anilist.co"
+ANILIST_TIMEOUT = 9  # seconds
+
+# Mood -> AniList genre(s) to query live. Each genre gets its own query
+# (AniList genre_in is AND semantics) and results are merged + deduped.
+MOOD_GENRES = {
+    "happy": ["Comedy", "Music"],
+    "sad": ["Drama"],
+    "action": ["Action"],
+    "romance": ["Romance"],
+    "horror": ["Horror"],
+    "fantasy": ["Fantasy"],
+    "chill": ["Slice of Life"],
+    "mystery": ["Mystery"],
+    "comedy": ["Comedy"],
+    "scifi": ["Sci-Fi"],
+    "sports": ["Sports"],
+    "mind": ["Psychological", "Thriller"],
+}
+
+# Mood -> keywords used to relevance-score results (also used for the
+# offline fallback that scores your own catalog).
+MOOD_KEYWORDS = {
+    "happy": ["Comedy", "Slice of Life", "Music"],
+    "sad": ["Drama"],
+    "action": ["Action", "Martial Arts"],
+    "romance": ["Romance"],
+    "horror": ["Horror", "Psychological", "Thriller"],
+    "fantasy": ["Fantasy", "Mahou Shoujo", "Adventure"],
+    "chill": ["Slice of Life", "Music"],
+    "mystery": ["Mystery", "Thriller", "Psychological"],
+    "comedy": ["Comedy"],
+    "scifi": ["Sci-Fi", "Mecha"],
+    "sports": ["Sports", "Racing"],
+    "mind": ["Psychological", "Thriller", "Supernatural"],
+}
+
+ANILIST_MOOD_QUERY = """query ($genre: [String], $minScore: Int, $sort: [MediaSort], $perPage: Int, $page: Int) {
+  Page(page: $page, perPage: $perPage) {
+    media(
+      type: ANIME
+      format_in: [TV, MOVIE, OVA, ONA, SPECIAL]
+      genre_in: $genre
+      averageScore_greater: $minScore
+      sort: $sort
+      isAdult: false
+    ) {
+      id
+      title { romaji english }
+      coverImage { large }
+      averageScore
+      genres
+      episodes
+      seasonYear
+      description(asHtml: false)
+    }
+  }
+}"""
+
+ANILIST_TRENDING_QUERY = """query ($sort: [MediaSort], $perPage: Int, $page: Int) {
+  Page(page: $page, perPage: $perPage) {
+    media(type: ANIME, format_in: [TV, MOVIE], sort: $sort, isAdult: false) {
+      id
+      title { romaji english }
+      coverImage { large }
+      averageScore
+      genres
+      episodes
+      seasonYear
+      description(asHtml: false)
+    }
+  }
+}"""
+
+_CATALOG_INDEX = None
+
+
+def _anilist_post(query, variables):
+    """POST a GraphQL query to AniList. Returns parsed JSON or None."""
+    payload = _json.dumps({"query": query, "variables": variables}).encode("utf-8")
+    req = _UrlRequest(
+        ANILIST_API_URL,
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "AnimeChat-MoodFinder/1.0",
+        },
+    )
+    try:
+        with _urlopen(req, timeout=ANILIST_TIMEOUT) as resp:
+            return _json.loads(resp.read().decode("utf-8"))
+    except (_URLError, _HTTPError, OSError, ValueError):
+        return None
+
+
+def _norm_key(text):
+    """'My Hero Academia!' -> 'myheroacademia' (for catalog title matching)."""
+    return _re.sub(r"[^a-z0-9]+", "", (text or "").lower())
+
+
+def _safe_float(value, default=0.0):
+    """float() that never throws — catalog ratings can be "N/A"."""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _get_catalog_index():
+    """slug -> normalized-title map of your live catalog, built once."""
+    global _CATALOG_INDEX
+    if _CATALOG_INDEX is None:
+        _CATALOG_INDEX = {
+            _norm_key(entry.get("title", "")): slug
+            for slug, entry in anime_database.items()
+        }
+    return _CATALOG_INDEX
+
+
+def _synopsis(media):
+    text = _re.sub(r"<[^>]+>", " ", media.get("description") or "")
+    text = _re.sub(r"\s+", " ", text).strip()
+    return text[:220].rstrip() + ("…" if len(text) > 220 else "")
+
+
+def _pick_from_anilist(media, catalog_index):
+    """Convert an AniList media object into a pick dict the page can render.
+
+    If the title also exists in your own catalog, `src` becomes "catalog"
+    (so the button links to YOUR /anime/<slug> page). Otherwise `src` is
+    "anilist" and the button links to the AniList page.
+    """
+    title = (media.get("title") or {}).get("english") or (media.get("title") or {}).get("romaji") or ""
+    if not title:
+        return None
+    genres = media.get("genres") or []
+    score = (media.get("averageScore") or 0) / 20.0
+    slug = _re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-") or "anime"
+    local_slug = catalog_index.get(_norm_key(title))
+    return {
+        "t": title,
+        "s": local_slug or (slug + "-" + str(media.get("id"))),
+        "g": " • ".join(genres),
+        "r": f"{score:.1f}",
+        "e": media.get("episodes") or 0,
+        "y": str(media.get("seasonYear") or ""),
+        "i": (media.get("coverImage") or {}).get("large") or "",
+        "d": _synopsis(media),
+        "id": media.get("id"),
+        "src": "catalog" if local_slug else "anilist",
+    }
+
+
+def _mood_relevance(pick, keywords):
+    g = (pick.get("g") or "").lower()
+    score = 0
+    for kw in keywords:
+        if kw.lower() in g:
+            score += 2
+    rating = _safe_float(pick.get("r"))
+    if rating >= 4.4:
+        score += 1
+    elif rating >= 4.0:
+        score += 0.5
+    return score
+
+
+def _live_picks(moods, catalog_index):
+    """Fetch REAL anime live from AniList for the selected moods.
+
+    Returns a list of picks, or None if AniList is unreachable
+    (caller then falls back to scoring your own catalog).
+    """
+    seen = {}  # anilist id -> {"pick": ..., "score": ...}
+    for mood in moods:
+        keywords = MOOD_KEYWORDS.get(mood, [])
+        for genre in MOOD_GENRES.get(mood, []):
+            data = _anilist_post(
+                ANILIST_MOOD_QUERY,
+                {
+                    "genre": [genre],
+                    "minScore": 65,
+                    "sort": ["SCORE_DESC"],
+                    "perPage": 25,
+                    "page": 1,
+                },
+            )
+            if not data:
+                continue
+            for media in ((data.get("data") or {}).get("Page") or {}).get("media") or []:
+                pick = _pick_from_anilist(media, catalog_index)
+                if not pick:
+                    continue
+                score = _mood_relevance(pick, keywords)
+                cur = seen.get(pick["id"])
+                if cur is None or score > cur["score"]:
+                    seen[pick["id"]] = {"pick": pick, "score": score}
+    if not seen:
+        return None
+    ranked = sorted(
+        seen.values(),
+        key=lambda x: (x["score"], _safe_float(x["pick"].get("r"))),
+        reverse=True,
+    )
+    return [item["pick"] for item in ranked][:24]
+
+
+def _catalog_picks(moods):
+    """Offline fallback: score YOUR live catalog (anime_database) per mood.
+
+    Used only when AniList is unreachable — still computed at request
+    time, never a hardcoded list.
+    """
+    by_slug = {}
+    for mood in moods:
+        keywords = MOOD_KEYWORDS.get(mood, [])
+        scored = []
+        for slug, entry in anime_database.items():
+            pick = {
+                "t": entry.get("title", ""),
+                "s": slug,
+                "g": entry.get("genre", ""),
+                "r": str(entry.get("rating", "")),
+                "e": entry.get("total_episodes", 0),
+                "y": str(entry.get("release", "")),
+                "i": _resolve_image(entry.get("image", "")),
+                "d": (entry.get("synopsis") or "")[:220],
+                "id": None,
+                "src": "catalog",
+            }
+            score = _mood_relevance(pick, keywords)
+            if score > 0:
+                scored.append((score, pick))
+        scored.sort(key=lambda x: (-x[0], -_safe_float(x[1]["r"])))
+        for score, pick in scored[:40]:
+            cur = by_slug.get(pick["s"])
+            if cur is None or score > cur[0]:
+                by_slug[pick["s"]] = (score, pick)
+    ranked = sorted(by_slug.values(), key=lambda x: (-x[0], -_safe_float(x[1]["r"])))
+    return [pick for _, pick in ranked][:8]
+
+
+def _live_hero(catalog_index):
+    """Today's pick: the top trending show on AniList right now."""
+    data = _anilist_post(
+        ANILIST_TRENDING_QUERY,
+        {"sort": ["TRENDING_DESC", "SCORE_DESC"], "perPage": 1, "page": 1},
+    )
+    if not data:
+        return None
+    media = ((data.get("data") or {}).get("Page") or {}).get("media") or []
+    return _pick_from_anilist(media[0], catalog_index) if media else None
+
+
+def _daily_catalog_pick():
+    """Fallback hero when AniList is down: top-rated catalog show, rotating daily."""
+    rated = sorted(
+        anime_database.items(),
+        key=lambda kv: _safe_float(kv[1].get("rating")),
+        reverse=True,
+    )[:40]
+    if not rated:
+        return None
+    slug, entry = rated[_date.today().toordinal() % len(rated)]
+    return {
+        "t": entry.get("title", ""),
+        "s": slug,
+        "g": entry.get("genre", ""),
+        "r": str(entry.get("rating", "")),
+        "e": entry.get("total_episodes", 0),
+        "y": str(entry.get("release", "")),
+        "i": _resolve_image(entry.get("image", "")),
+        "d": (entry.get("synopsis") or "")[:220],
+        "id": None,
+        "src": "catalog",
+    }
+
+
+@app.route("/api/mood-picks")
+def api_mood_picks():
+    """JSON endpoint the page calls whenever the user changes moods."""
+    moods = [
+        m.strip()
+        for m in request.args.get("moods", "").split(",")
+        if m.strip() in MOOD_GENRES
+    ]
+    moods = list(dict.fromkeys(moods))  # dedupe, keep order
+
+    catalog_index = _get_catalog_index()
+    picks, source, note = [], "idle", ""
+    if moods:
+        picks = _live_picks(moods, catalog_index)
+        if picks is None:
+            picks = _catalog_picks(moods)
+            source = "catalog"
+            note = "Offline picks from your catalog (AniList unreachable)"
+        else:
+            source = "live"
+            note = "Real picks fetched live from AniList"
+    try:
+        hero = _live_hero(catalog_index) or _daily_catalog_pick()
+    except Exception as exc:
+        print(f"[find-mood] hero fallback failed: {exc}", flush=True)
+        hero = None
+    return jsonify({"picks": picks, "hero": hero, "source": source, "note": note})
+
+
+@app.route("/find-mood")
+def find_mood():
+    return render_template("find_mood.html")
+
+
 @app.before_request
 def _attach_user():
     load_logged_in_user()
