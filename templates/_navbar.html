@@ -79,28 +79,49 @@
 (function () {
     "use strict";
     var wrap = document.querySelector(".nav-user-wrap");
-    if (!wrap) return;
-    var trigger = wrap.querySelector(".nav-user-trigger");
-    var menu = wrap.querySelector(".nav-user-menu");
-    if (!trigger || !menu) return;
+    var catWrap = document.querySelector(".nav-cat");
+    var trigger = wrap ? wrap.querySelector(".nav-user-trigger") : null;
+    var menu = wrap ? wrap.querySelector(".nav-user-menu") : null;
+    var catToggle = catWrap ? catWrap.querySelector(".cat-toggle") : null;
+
     function closeMenu() {
-        menu.hidden = true;
-        trigger.setAttribute("aria-expanded", "false");
-    }
-    trigger.addEventListener("click", function (e) {
-        e.stopPropagation();
-        if (menu.hidden) {
-            menu.hidden = false;
-            trigger.setAttribute("aria-expanded", "true");
-        } else {
-            closeMenu();
+        if (menu) {
+            menu.hidden = true;
+            trigger.setAttribute("aria-expanded", "false");
         }
-    });
+    }
+    function closeCat() {
+        if (catWrap) catWrap.classList.remove("open");
+    }
+
+    if (trigger && menu) {
+        trigger.addEventListener("click", function (e) {
+            e.stopPropagation();
+            if (menu.hidden) {
+                menu.hidden = false;
+                trigger.setAttribute("aria-expanded", "true");
+            } else {
+                closeMenu();
+            }
+        });
+    }
+    if (catToggle) {
+        catToggle.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            catWrap.classList.toggle("open");
+        });
+    }
+
     document.addEventListener("click", function (e) {
-        if (!wrap.contains(e.target)) closeMenu();
+        if (wrap && !wrap.contains(e.target)) closeMenu();
+        if (catWrap && !catWrap.contains(e.target)) closeCat();
     });
     document.addEventListener("keydown", function (e) {
-        if (e.key === "Escape") closeMenu();
+        if (e.key === "Escape") {
+            closeMenu();
+            closeCat();
+        }
     });
 })();
 </script>

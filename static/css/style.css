@@ -147,7 +147,7 @@ nav{
 
     top:20px;
 
-    z-index:999;
+    z-index:1500;
 
 }
 
@@ -1044,14 +1044,12 @@ grid-template-columns:1fr;
     box-shadow:0 26px 70px rgba(0,0,0,.6),0 0 30px rgba(123,46,255,.15);
 }
 
-.nav-cat:hover .category-menu,
-.nav-cat:focus-within .category-menu{
+.nav-cat.open .category-menu{
     display:flex;
     gap:34px;
     animation:catIn .25s ease;
 }
-.nav-cat:hover .cat-toggle,
-.nav-cat:focus-within .cat-toggle{
+.nav-cat.open .cat-toggle{
     color:white;
     background:rgba(143,91,255,.14);
     box-shadow:0 0 14px rgba(143,91,255,.35);
