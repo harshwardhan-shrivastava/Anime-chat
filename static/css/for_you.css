@@ -403,16 +403,54 @@ cards #151A2D with 20px radius, Montserrat.
     animation: fadeIn .25s ease;
 }
 .quiz-modal {
-    width: min(880px, 100%);
+    width: min(940px, 100%);
     max-height: 92vh;
     overflow: auto;
     background: #12172a;
     border: 1px solid rgba(143, 91, 255, .35);
     border-radius: 24px;
-    padding: 34px 40px 30px;
+    padding: 28px 36px 24px;
     position: relative;
     box-shadow: 0 30px 90px rgba(0, 0, 0, .7), 0 0 60px rgba(123, 46, 255, .25);
     animation: modalUp .35s ease;
+}
+
+/* Question modal: grow to fit the viewport so the Next / Get My Anime
+   buttons always stay on screen without scrolling. The options area is
+   the only part that can scroll, and only if it truly can't fit. */
+.quiz-question-modal {
+    height: min(660px, 94vh);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.quiz-question-modal .quiz-progress-wrap {
+    flex-shrink: 0;
+    margin-bottom: 22px;
+}
+.quiz-question-modal .quiz-q-head {
+    flex-shrink: 0;
+    margin-bottom: 18px;
+}
+.quiz-question-modal .quiz-q-tag {
+    margin-bottom: 12px;
+}
+.quiz-question-modal .quiz-q-head h2 {
+    font-size: 26px;
+    margin-bottom: 8px;
+}
+.quiz-question-modal .quiz-q-head p {
+    font-size: 14px;
+}
+.quiz-question-modal .quiz-options {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    align-content: start;
+}
+.quiz-question-modal .quiz-nav {
+    flex-shrink: 0;
+    margin-top: 22px;
 }
 .quiz-modal.shake {
     animation: quizShake .4s ease;
@@ -581,7 +619,7 @@ cards #151A2D with 20px radius, Montserrat.
     box-shadow: 0 0 15px rgba(123, 46, 255, .7);
 }
 .quiz-opt-emoji {
-    font-size: 32px;
+    font-size: 26px;
 }
 .quiz-opt-label {
     color: #D8D8D8;
@@ -597,9 +635,9 @@ cards #151A2D with 20px radius, Montserrat.
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    padding: 24px 14px;
-    border-radius: 18px;
+    gap: 8px;
+    padding: 16px 12px;
+    border-radius: 16px;
     background: rgba(255, 255, 255, .04);
     border: 2px solid rgba(255, 255, 255, .1);
     cursor: pointer;
