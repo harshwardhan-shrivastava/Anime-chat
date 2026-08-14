@@ -83,7 +83,8 @@
             class="hero-image"
             alt=""
             fetchpriority="high"
-            decoding="async">
+            decoding="async"
+            onerror="this.onerror=null;var u=this.src.replace('/cover/large/','/cover/medium/');if(u!==this.src){this.src=u;}else{this.src='{{ anime.image | anime_img_large }}';}">
 
         <div class="hero-overlay"></div>
 

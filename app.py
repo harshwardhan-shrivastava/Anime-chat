@@ -324,6 +324,13 @@ def _full_enrich_worker():
         except Exception as exc:
             print(f"[auto-enrich] character slice failed (continuing): {exc}", flush=True)
 
+        try:
+            from scripts.upgrade_posters_kitsu import main as kitsu_posters
+            kitsu_posters(["--budget", "150"])
+            kitsu_posters(["--apply"])
+        except Exception as exc:
+            print(f"[auto-enrich] kitsu poster slice failed (continuing): {exc}", flush=True)
+
         reload_database()
         reload_characters()
 
