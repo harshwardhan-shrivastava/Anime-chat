@@ -550,6 +550,25 @@ def create_user_list(user_id, name):
     return row
 
 
+def ensure_default_lists(user_id):
+    """First time a user has any list access, seed the 10 default lists
+    ("List 1" .. "List 10") so the add-to-list picker always has somewhere
+    to put an anime. Users rename them into their own lists later."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) AS n FROM user_lists WHERE user_id = ?", (user_id,))
+    if cursor.fetchone()["n"] > 0:
+        conn.close()
+        return
+    for i in range(1, MAX_USER_LISTS + 1):
+        cursor.execute(
+            "INSERT INTO user_lists (user_id, name) VALUES (?, ?)",
+            (user_id, f"List {i}"),
+        )
+    conn.commit()
+    conn.close()
+
+
 def get_user_lists(user_id):
     """All of a user's lists with their anime slugs attached."""
     conn = get_connection()
@@ -558,7 +577,7 @@ def get_user_lists(user_id):
         """
         SELECT * FROM user_lists
         WHERE user_id = ?
-        ORDER BY updated_at DESC, id DESC
+        ORDER BY updated_at DESC, id ASC
         """,
         (user_id,),
     )

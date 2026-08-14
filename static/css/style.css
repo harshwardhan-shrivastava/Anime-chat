@@ -1261,6 +1261,10 @@ grid-template-columns:1fr;
     from{opacity:0;transform:translateY(20px) scale(.98);}
     to{opacity:1;transform:translateY(0) scale(1);}
 }
+@keyframes fadeIn{
+    from{opacity:0;}
+    to{opacity:1;}
+}
 
 /* ================= Anime card "Add to list" button ================= */
 
@@ -1285,7 +1289,7 @@ grid-template-columns:1fr;
     transform:scale(1.2);
 }
 
-/* ================= "Add to list" picker popover ================= */
+/* ================= "Add to list" picker popover / modal ================= */
 
 .list-picker-popover{
     position:fixed;
@@ -1298,6 +1302,26 @@ grid-template-columns:1fr;
     font-family:'Montserrat',sans-serif;
     animation:modalUp .25s ease;
     box-sizing:border-box;
+}
+.list-picker-overlay{
+    position:fixed;
+    inset:0;
+    z-index:4000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    background:rgba(4,6,12,.72);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    animation:fadeIn .25s ease;
+}
+.list-picker-overlay .list-picker-popover{
+    position:static;
+    width:min(480px,100%);
+    max-height:82vh;
+    display:flex;
+    flex-direction:column;
 }
 .list-picker-head{
     display:flex;
@@ -1370,20 +1394,45 @@ grid-template-columns:1fr;
     text-transform:uppercase;
     margin-bottom:8px;
 }
+.list-picker-toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:8px;
+    padding-bottom:8px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+}
+.list-picker-toolbar .list-picker-counter{
+    margin-bottom:0;
+}
+.list-picker-manage{
+    color:#ff8c42;
+    font-size:11.5px;
+    font-weight:700;
+    letter-spacing:1px;
+    text-decoration:none;
+    text-transform:uppercase;
+    transition:.2s;
+}
+.list-picker-manage:hover{
+    color:#ffab66;
+}
 .list-picker-rows{
-    max-height:240px;
+    max-height:300px;
     overflow-y:auto;
     display:flex;
     flex-direction:column;
     gap:6px;
     margin-bottom:10px;
+    flex:1 1 auto;
 }
 .list-picker-row{
     display:flex;
     align-items:center;
-    gap:10px;
+    gap:12px;
     width:100%;
-    padding:9px 10px;
+    padding:10px 12px;
     border-radius:10px;
     border:1px solid rgba(255,255,255,.08);
     background:rgba(255,255,255,.03);
@@ -1399,28 +1448,6 @@ grid-template-columns:1fr;
     background:rgba(143,91,255,.12);
     border-color:rgba(143,91,255,.4);
 }
-.list-picker-row.checked{
-    border-color:rgba(143,91,255,.55);
-    background:rgba(143,91,255,.1);
-}
-.list-picker-check{
-    width:20px;
-    height:20px;
-    border-radius:50%;
-    border:2px solid rgba(255,255,255,.25);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:10px;
-    color:transparent;
-    flex-shrink:0;
-    transition:.2s;
-}
-.list-picker-row.checked .list-picker-check{
-    background:linear-gradient(135deg,#7B2EFF,#3F8CFF);
-    border-color:transparent;
-    color:white;
-}
 .list-picker-name{
     flex:1;
     white-space:nowrap;
@@ -1431,6 +1458,25 @@ grid-template-columns:1fr;
     color:#8f94b0;
     font-size:11.5px;
     white-space:nowrap;
+}
+.list-picker-plus{
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+    flex-shrink:0;
+    background:#ff8c42;
+    color:white;
+    transition:.2s;
+}
+.list-picker-row:hover .list-picker-plus{
+    box-shadow:0 0 14px rgba(255,140,66,.6);
+}
+.list-picker-row.checked .list-picker-plus{
+    background:linear-gradient(135deg,#00c16a,#00e08a);
 }
 .list-picker-empty{
     color:#8f94b0;

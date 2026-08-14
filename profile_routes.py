@@ -5,6 +5,7 @@ from database import (
     get_anime_stats,
     create_user_list,
     get_user_lists,
+    ensure_default_lists,
     get_user_list,
     rename_user_list,
     delete_user_list,
@@ -52,6 +53,12 @@ def _require_user_json():
     return user, None
 
 
+def _user_lists(user_id):
+    """Seed the default List 1-10 on first access, then return the lists."""
+    ensure_default_lists(user_id)
+    return get_user_lists(user_id)
+
+
 def _list_pub(lst):
     """Public shape of a list for JSON/templates."""
     return {
@@ -84,7 +91,7 @@ def profile():
             pick["visited_at"] = row["viewed_at"]
             history.append(pick)
 
-    lists = [_list_pub(lst) for lst in get_user_lists(user["id"])]
+    lists = [_list_pub(lst) for lst in _user_lists(user["id"])]
 
     return render_template(
         "profile.html",
@@ -133,7 +140,7 @@ def api_lists():
     if request.method == "GET":
         slug = (request.args.get("slug") or "").strip()
         lists = []
-        for lst in get_user_lists(user["id"]):
+        for lst in _user_lists(user["id"]):
             pub = _list_pub(lst)
             if slug:
                 pub["contains"] = slug in lst["slugs"]
@@ -153,7 +160,7 @@ def api_lists():
     if len(name) > 50:
         return jsonify({"success": False, "error": "too_long"}), 400
 
-    existing = get_user_lists(user["id"])
+    existing = _user_lists(user["id"])
     if len(existing) >= MAX_USER_LISTS:
         return jsonify({"success": False, "error": "limit"}), 400
 

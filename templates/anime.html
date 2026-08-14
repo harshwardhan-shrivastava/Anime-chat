@@ -141,13 +141,27 @@
 
                 </div>
 
-                <a href="/community/{{ anime.slug }}" class="join-btn">
+                <div class="hero-actions">
 
-                    <i class="fas fa-comments"></i>
+                    <a href="/community/{{ anime.slug }}" class="join-btn">
 
-                    Join Community
+                        <i class="fas fa-comments"></i>
 
-                </a>
+                        Join Community
+
+                    </a>
+
+                    <button type="button" class="anime-add-list-btn"
+                            data-slug="{{ anime.slug }}"
+                            data-title="{{ anime.title }}">
+
+                        <i class="fas fa-bookmark"></i>
+
+                        Add to List
+
+                    </button>
+
+                </div>
 
             </div>
 
@@ -896,6 +910,7 @@
     </footer>
 
     <script src="{{ url_for('static', filename='js/anime.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/list_picker.js') }}"></script>
 
 </body>
 
