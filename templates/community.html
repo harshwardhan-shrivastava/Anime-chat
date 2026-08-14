@@ -333,7 +333,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
             <nav class="sidebar-menu">
 
-                <button class="sidebar-item active">
+                <button class="sidebar-item active" data-tab="discussion">
 
                     <i class="fas fa-comments"></i>
 
@@ -341,7 +341,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
                 </button>
 
-                <button class="sidebar-item">
+                <button class="sidebar-item" data-tab="trending">
 
                     <i class="fas fa-fire"></i>
 
@@ -349,7 +349,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
                 </button>
 
-                <button class="sidebar-item">
+                <button class="sidebar-item" data-tab="gallery">
 
                     <i class="fas fa-images"></i>
 
@@ -357,7 +357,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
                 </button>
 
-                <button class="sidebar-item">
+                <button class="sidebar-item" data-tab="guides">
 
                     <i class="fas fa-book"></i>
 
@@ -397,6 +397,8 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
     <!-- ================= CHAT ================= -->
 
     <main class="chat-area">
+
+        <div class="tab-panel" id="panel-discussion">
 
         <div class="chat-container">
 
@@ -548,6 +550,26 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
             {% if current_user %}
 
+            <div class="reply-preview" id="replyPreview" hidden>
+
+                <span class="reply-preview-label">
+
+                    <i class="fas fa-reply"></i>
+
+                    Replying to <strong id="replyPreviewName"></strong>
+
+                </span>
+
+                <span class="reply-preview-text" id="replyPreviewText"></span>
+
+                <button type="button" class="reply-preview-cancel" id="replyCancelBtn" aria-label="Cancel reply">
+
+                    <span class="modal-x"></span>
+
+                </button>
+
+            </div>
+
             <div class="composer">
 
                 <div class="composer-tools">
@@ -631,6 +653,62 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
             </div>
 
             {% endif %}
+
+        </div>
+
+        </div><!-- /panel-discussion -->
+
+        <!-- ================= GIF GALLERY PANEL ================= -->
+
+        <div class="tab-panel gallery-panel" id="panel-gallery" hidden>
+
+            <div class="gallery-head">
+
+                <h2>
+
+                    GIF Gallery
+
+                </h2>
+
+                <span>
+
+                    Every GIF shared in this community
+
+                </span>
+
+            </div>
+
+            <div class="gallery-grid" id="galleryGrid"></div>
+
+        </div>
+
+        <!-- ================= TRENDING / GUIDES PLACEHOLDERS ================= -->
+
+        <div class="tab-panel" id="panel-trending" hidden>
+
+            <div class="panel-placeholder">
+
+                <i class="fas fa-fire"></i>
+
+                <h2>Trending</h2>
+
+                <p>The most talked-about moments in this community are coming soon.</p>
+
+            </div>
+
+        </div>
+
+        <div class="tab-panel" id="panel-guides" hidden>
+
+            <div class="panel-placeholder">
+
+                <i class="fas fa-book"></i>
+
+                <h2>Guides</h2>
+
+                <p>Community guides and watch-order resources are coming soon.</p>
+
+            </div>
 
         </div>
 

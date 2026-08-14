@@ -148,6 +148,23 @@ def create_tables():
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS chat_reactions(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            message_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            emoji TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (message_id, user_id, emoji),
+            FOREIGN KEY(message_id) REFERENCES chat_messages(id) ON DELETE CASCADE
+        )
+    """)
+
+    # Migration: replies need a reply_to column on chat_messages.
+    cols = [row[1] for row in cursor.execute("PRAGMA table_info(chat_messages)").fetchall()]
+    if "reply_to" not in cols:
+        cursor.execute("ALTER TABLE chat_messages ADD COLUMN reply_to INTEGER")
+
     conn.commit()
     conn.close()
 
@@ -204,33 +221,123 @@ def mark_user_verified(user_id):
     conn.close()
 
 
-def add_chat_message(anime_slug, user_id, username, avatar_color, kind, content):
+def _attach_reply_info(messages):
+    """Add reply_to_username / reply_to_content / reply_to_kind to messages."""
+    if not messages:
+        return messages
     conn = get_connection()
     cursor = conn.cursor()
+    for m in messages:
+        m["reply_to_username"] = None
+        m["reply_to_content"] = None
+        m["reply_to_kind"] = None
+        if m.get("reply_to"):
+            cursor.execute(
+                "SELECT username, content, kind FROM chat_messages WHERE id = ?",
+                (m["reply_to"],)
+            )
+            row = cursor.fetchone()
+            if row:
+                content = row["content"]
+                if len(content) > 180:
+                    content = content[:180] + "…"
+                m["reply_to_username"] = row["username"]
+                m["reply_to_content"] = content
+                m["reply_to_kind"] = row["kind"]
+    conn.close()
+    return messages
+
+
+def _attach_reactions(messages, user_id=None):
+    """Attach reaction counts + the requesting user's reactions to messages."""
+    if not messages:
+        return messages
+    conn = get_connection()
+    cursor = conn.cursor()
+    ids = [m["id"] for m in messages]
+    marks = ",".join("?" * len(ids))
+
+    cursor.execute(
+        f"""
+        SELECT message_id, emoji, COUNT(*) AS cnt
+        FROM chat_reactions
+        WHERE message_id IN ({marks})
+        GROUP BY message_id, emoji
+        ORDER BY cnt DESC
+        """,
+        ids,
+    )
+    grouped = {}
+    for row in cursor.fetchall():
+        grouped.setdefault(row["message_id"], []).append(
+            {"emoji": row["emoji"], "count": row["cnt"]}
+        )
+
+    my = {}
+    if user_id:
+        cursor.execute(
+            f"""
+            SELECT message_id, emoji
+            FROM chat_reactions
+            WHERE message_id IN ({marks}) AND user_id = ?
+            """,
+            ids + [user_id],
+        )
+        for row in cursor.fetchall():
+            my.setdefault(row["message_id"], []).append(row["emoji"])
+    conn.close()
+
+    for m in messages:
+        m["reactions"] = grouped.get(m["id"], [])
+        m["my_reactions"] = my.get(m["id"], [])
+    return messages
+
+
+def add_chat_message(anime_slug, user_id, username, avatar_color, kind, content, reply_to=None):
+    conn = get_connection()
+    cursor = conn.cursor()
+    if reply_to:
+        cursor.execute("SELECT id FROM chat_messages WHERE id = ?", (reply_to,))
+        if cursor.fetchone() is None:
+            reply_to = None
     cursor.execute(
         """
-        INSERT INTO chat_messages (anime_slug, user_id, username, avatar_color, kind, content)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO chat_messages (anime_slug, user_id, username, avatar_color, kind, content, reply_to)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (anime_slug, user_id, username, avatar_color, kind, content)
+        (anime_slug, user_id, username, avatar_color, kind, content, reply_to)
     )
     conn.commit()
     message_id = cursor.lastrowid
     cursor.execute("SELECT * FROM chat_messages WHERE id = ?", (message_id,))
     row = cursor.fetchone()
     conn.close()
-    return dict(row)
+    msg = dict(row)
+    _attach_reply_info([msg])
+    _attach_reactions([msg], user_id)
+    return msg
 
 
-def get_chat_messages(anime_slug, after_id=0, limit=200):
+def get_chat_message(message_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM chat_messages WHERE id = ?", (message_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_chat_messages(anime_slug, after_id=0, limit=200, user_id=None):
     conn = get_connection()
     cursor = conn.cursor()
     if after_id:
         cursor.execute(
             """
-            SELECT * FROM chat_messages
-            WHERE anime_slug = ? AND id > ?
-            ORDER BY id ASC
+            SELECT m.*, r.username AS reply_username, r.content AS reply_content, r.kind AS reply_kind
+            FROM chat_messages m
+            LEFT JOIN chat_messages r ON r.id = m.reply_to
+            WHERE m.anime_slug = ? AND m.id > ?
+            ORDER BY m.id ASC
             LIMIT ?
             """,
             (anime_slug, after_id, limit)
@@ -239,9 +346,11 @@ def get_chat_messages(anime_slug, after_id=0, limit=200):
         cursor.execute(
             """
             SELECT * FROM (
-                SELECT * FROM chat_messages
-                WHERE anime_slug = ?
-                ORDER BY id DESC
+                SELECT m.*, r.username AS reply_username, r.content AS reply_content, r.kind AS reply_kind
+                FROM chat_messages m
+                LEFT JOIN chat_messages r ON r.id = m.reply_to
+                WHERE m.anime_slug = ?
+                ORDER BY m.id DESC
                 LIMIT ?
             )
             ORDER BY id ASC
@@ -249,6 +358,112 @@ def get_chat_messages(anime_slug, after_id=0, limit=200):
             (anime_slug, limit)
         )
     rows = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    for m in rows:
+        if m.get("reply_username"):
+            content = m.get("reply_content") or ""
+            if len(content) > 180:
+                content = content[:180] + "…"
+            m["reply_to_username"] = m.pop("reply_username")
+            m["reply_to_content"] = content
+            m["reply_to_kind"] = m.pop("reply_kind")
+        else:
+            m["reply_to_username"] = None
+            m["reply_to_content"] = None
+            m["reply_to_kind"] = None
+    _attach_reactions(rows, user_id)
+    return rows
+
+
+def toggle_reaction(message_id, user_id, emoji):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id FROM chat_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?",
+        (message_id, user_id, emoji),
+    )
+    existing = cursor.fetchone()
+    reaction_id = None
+    if existing:
+        cursor.execute("DELETE FROM chat_reactions WHERE id = ?", (existing["id"],))
+        added = False
+    else:
+        cursor.execute(
+            "INSERT INTO chat_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)",
+            (message_id, user_id, emoji),
+        )
+        reaction_id = cursor.lastrowid
+        added = True
+    conn.commit()
+    conn.close()
+    return {"added": added, "reaction_id": reaction_id}
+
+
+def get_message_reactions(message_id, user_id=None):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT emoji, COUNT(*) AS cnt
+        FROM chat_reactions
+        WHERE message_id = ?
+        GROUP BY emoji
+        ORDER BY cnt DESC
+        """,
+        (message_id,),
+    )
+    reactions = [{"emoji": r["emoji"], "count": r["cnt"]} for r in cursor.fetchall()]
+    my = []
+    if user_id:
+        cursor.execute(
+            "SELECT emoji FROM chat_reactions WHERE message_id = ? AND user_id = ?",
+            (message_id, user_id),
+        )
+        my = [r["emoji"] for r in cursor.fetchall()]
+    conn.close()
+    return reactions, my
+
+
+def get_reactions_since(after_id, limit=100, user_id=None):
+    """Reactions inserted after a given id, with current counts (idempotent)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, message_id, user_id, emoji FROM chat_reactions WHERE id > ? ORDER BY id ASC LIMIT ?",
+        (after_id, limit),
+    )
+    rows = [dict(r) for r in cursor.fetchall()]
+    latest = max((r["id"] for r in rows), default=after_id)
+    updates = []
+    for r in rows:
+        cursor.execute(
+            "SELECT COUNT(*) AS cnt FROM chat_reactions WHERE message_id = ? AND emoji = ?",
+            (r["message_id"], r["emoji"]),
+        )
+        updates.append({
+            "message_id": r["message_id"],
+            "emoji": r["emoji"],
+            "count": cursor.fetchone()["cnt"],
+            "mine": user_id is not None and r["user_id"] == user_id,
+        })
+    conn.close()
+    return {"latest_id": latest, "updates": updates}
+
+
+def get_chat_gifs(anime_slug, limit=150):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT id, username, content AS url, created_at
+        FROM chat_messages
+        WHERE anime_slug = ? AND kind = 'gif'
+        ORDER BY id DESC
+        LIMIT ?
+        """,
+        (anime_slug, limit),
+    )
+    rows = [dict(r) for r in cursor.fetchall()]
     conn.close()
     return rows
 

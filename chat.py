@@ -11,7 +11,11 @@ MAX_MESSAGE_LENGTH = 800
 @chat_bp.route("/community/<anime_slug>/messages", methods=["GET"])
 def get_messages(anime_slug):
     after_id = request.args.get("after_id", 0, type=int)
-    messages = database.get_chat_messages(anime_slug, after_id=after_id)
+    messages = database.get_chat_messages(
+        anime_slug,
+        after_id=after_id,
+        user_id=g.user["id"] if g.get("user") else None,
+    )
 
     # Anyone polling for messages while logged in counts as "present" here --
     # this is what powers the real online-count/member list.
@@ -36,6 +40,12 @@ def post_message(anime_slug):
     data = request.get_json(silent=True) or {}
     kind = data.get("kind", "text")
     content = (data.get("content") or "").strip()
+    try:
+        reply_to = int(data.get("reply_to")) if data.get("reply_to") not in (None, "") else None
+    except (TypeError, ValueError):
+        reply_to = None
+    if reply_to is not None and reply_to <= 0:
+        reply_to = None
 
     if kind not in ("text", "gif"):
         return jsonify({"success": False, "error": "Invalid message type."}), 400
@@ -56,6 +66,7 @@ def post_message(anime_slug):
         g.user["avatar_color"],
         kind,
         content,
+        reply_to=reply_to,
     )
 
     database.touch_presence(anime_slug, g.user["id"], g.user["username"], g.user["avatar_color"])
@@ -70,6 +81,48 @@ def presence(anime_slug):
 
     online = database.get_online_users(anime_slug)
     return jsonify({"success": True, "count": len(online), "members": online})
+
+
+@chat_bp.route("/community/<anime_slug>/messages/<int:message_id>/react", methods=["POST"])
+def react_message(anime_slug, message_id):
+    if not g.get("user"):
+        return jsonify({"success": False, "error": "You need to log in to react."}), 401
+
+    data = request.get_json(silent=True) or {}
+    emoji = (data.get("emoji") or "").strip()
+    if not emoji or len(emoji) > 8:
+        return jsonify({"success": False, "error": "Invalid emoji."}), 400
+
+    message = database.get_chat_message(message_id)
+    if message is None or message["anime_slug"] != anime_slug:
+        return jsonify({"success": False, "error": "Message not found."}), 404
+
+    result = database.toggle_reaction(message_id, g.user["id"], emoji)
+    reactions, my_reactions = database.get_message_reactions(message_id, g.user["id"])
+
+    return jsonify({
+        "success": True,
+        "added": result["added"],
+        "reaction_id": result["reaction_id"],
+        "reactions": reactions,
+        "my_reactions": my_reactions,
+    })
+
+
+@chat_bp.route("/community/<anime_slug>/reactions", methods=["GET"])
+def reaction_updates(anime_slug):
+    after_id = request.args.get("after_id", 0, type=int)
+    data = database.get_reactions_since(
+        after_id,
+        user_id=g.user["id"] if g.get("user") else None,
+    )
+    return jsonify({"success": True, **data})
+
+
+@chat_bp.route("/community/<anime_slug>/gifs", methods=["GET"])
+def chat_gifs(anime_slug):
+    gifs = database.get_chat_gifs(anime_slug)
+    return jsonify({"success": True, "gifs": gifs})
 
 
 @chat_bp.route("/api/gif-search", methods=["GET"])

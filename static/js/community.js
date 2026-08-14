@@ -29,6 +29,8 @@ let lastSender = null;
 let lastGroupEl = null;
 let lastMessageTime = null;
 let lastMessageId = 0;
+let lastReactionId = 0;
+let replyTarget = null;
 const renderedIds = new Set();
 
 // ===============================
@@ -106,6 +108,8 @@ const EMOJIS = [
     "😱","🎉","😴","🤔","💀","👀","⚔️","🩸",
     "😤","🥲","👏","✨"
 ];
+
+const QUICK_REACT = ["😂", "❤️", "🔥", "😭", "👏"];
 
 if (emojiGrid) {
     EMOJIS.forEach(function (emoji) {
@@ -255,22 +259,192 @@ function maybeInsertDateDivider(messageDate) {
     lastMessageTime = messageDate;
 }
 
-function attachVoteRow(container) {
-    const row = document.createElement("div");
-    row.className = "vote-row";
-    row.innerHTML = `
-        <span class="vote-pill"><i class="fas fa-arrow-up"></i> 0</span>
-        <span class="add-reaction-pill">+ react</span>
+// ===============================
+// TOAST
+// ===============================
+
+let toastTimer = null;
+
+function showToast(text) {
+    let toast = document.getElementById("communityToast");
+    if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "communityToast";
+        toast.className = "community-toast";
+        document.body.appendChild(toast);
+    }
+    toast.textContent = text;
+    toast.classList.remove("out");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.classList.add("out"); }, 2400);
+}
+
+// ===============================
+// MESSAGE CONTENT (spoilers, gifs, newlines)
+// ===============================
+
+function buildBodyHtml(message) {
+    if (message.kind === "gif") {
+        return `<div class="gif-attachment"><img src="${message.content}" alt="sent gif" loading="lazy"></div>`;
+    }
+
+    let html = escapeHtml(message.content);
+
+    // Spoiler tags: [spoiler]text[/spoiler] -> blurred until clicked
+    html = html.replace(
+        /\[spoiler\]((?:.|\n)*?)\[\/spoiler\]/gi,
+        '<span class="spoiler" tabindex="0">$1</span>'
+    );
+
+    html = html.replace(/\n/g, "<br>");
+
+    return `<p class="msg-text">${html}</p>`;
+}
+
+function replyQuoteHtml(message) {
+    const text = message.reply_to_kind === "gif" ? "sent a GIF" : (message.reply_to_content || "");
+    return `
+        <button type="button" class="reply-quote" title="Jump to original message">
+            <span class="rq-icon"><i class="fas fa-reply"></i></span>
+            <span class="rq-body">
+                <strong>@${escapeHtml(message.reply_to_username)}</strong>
+                ${escapeHtml(text)}
+            </span>
+        </button>
     `;
+}
 
-    row.querySelector(".vote-pill").addEventListener("click", function () {
-        const pill = this;
-        const count = parseInt(pill.textContent.match(/\d+/)[0], 10);
-        const upvoted = pill.classList.toggle("upvoted");
-        pill.innerHTML = `<i class="fas fa-arrow-up"></i> ${upvoted ? count + 1 : count - 1}`;
+// ===============================
+// REACTIONS
+// ===============================
+
+function renderChips(line, reactions, myReactions) {
+    const chipsEl = line.querySelector(".reaction-chips");
+    if (!chipsEl) return;
+    chipsEl.innerHTML = "";
+
+    (reactions || []).forEach(function (r) {
+        const chip = document.createElement("button");
+        chip.className = "reaction-chip" + ((myReactions || []).indexOf(r.emoji) !== -1 ? " mine" : "");
+        chip.dataset.emoji = r.emoji;
+        chip.textContent = `${r.emoji} ${r.count}`;
+        chip.title = "Toggle reaction";
+        chip.addEventListener("click", function () { toggleReaction(line, r.emoji); });
+        chipsEl.appendChild(chip);
     });
+}
 
-    container.appendChild(row);
+function sortChips(chipsEl) {
+    const chips = Array.prototype.slice.call(chipsEl.querySelectorAll(".reaction-chip"));
+    chips.sort(function (a, b) {
+        const aCount = parseInt((a.textContent.match(/\d+/) || [0])[0], 10);
+        const bCount = parseInt((b.textContent.match(/\d+/) || [0])[0], 10);
+        return bCount - aCount;
+    });
+    chips.forEach(function (chip) { chipsEl.appendChild(chip); });
+}
+
+function applyReactionUpdate(line, update) {
+    const chipsEl = line.querySelector(".reaction-chips");
+    if (!chipsEl) return;
+
+    let chip = chipsEl.querySelector(`.reaction-chip[data-emoji="${update.emoji}"]`);
+    if (!chip) {
+        chip = document.createElement("button");
+        chip.className = "reaction-chip";
+        chip.dataset.emoji = update.emoji;
+        chip.title = "Toggle reaction";
+        chip.addEventListener("click", function () { toggleReaction(line, update.emoji); });
+        chipsEl.appendChild(chip);
+    }
+    chip.textContent = `${update.emoji} ${update.count}`;
+    chip.classList.toggle("mine", !!update.mine);
+    sortChips(chipsEl);
+}
+
+async function toggleReaction(line, emoji) {
+    if (!CURRENT_USER) {
+        window.location = "/auth/login?next=" + encodeURIComponent(window.location.pathname);
+        return;
+    }
+
+    const messageId = parseInt(line.dataset.messageId, 10);
+    if (!messageId) return;
+
+    try {
+        const res = await fetch(`/community/${ANIME_SLUG}/messages/${messageId}/react`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ emoji: emoji }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            renderChips(line, data.reactions, data.my_reactions);
+            if (data.reaction_id) lastReactionId = Math.max(lastReactionId, data.reaction_id);
+        } else {
+            showToast(data.error || "Couldn't react.");
+        }
+    } catch (err) {
+        showToast("Network error -- try again.");
+    }
+}
+
+async function pollReactions() {
+    try {
+        const res = await fetch(`/community/${ANIME_SLUG}/reactions?after_id=${lastReactionId}`);
+        const data = await res.json();
+        if (!data.success) return;
+        if (data.latest_id > lastReactionId) lastReactionId = data.latest_id;
+
+        data.updates.forEach(function (update) {
+            const line = chatBox.querySelector(`.msg-line[data-message-id="${update.message_id}"]`);
+            if (line) applyReactionUpdate(line, update);
+        });
+    } catch (err) {
+        // best-effort
+    }
+}
+
+// ===============================
+// REPLY FLOW
+// ===============================
+
+function startReply(message) {
+    replyTarget = message;
+
+    const nameEl = document.getElementById("replyPreviewName");
+    const textEl = document.getElementById("replyPreviewText");
+    const bar = document.getElementById("replyPreview");
+
+    if (nameEl) nameEl.textContent = "@" + message.username;
+
+    let preview = message.kind === "gif" ? "sent a GIF" : message.content;
+    if (preview.length > 120) preview = preview.slice(0, 120) + "…";
+    if (textEl) textEl.textContent = preview;
+
+    if (bar) bar.hidden = false;
+    if (input) input.focus();
+}
+
+function cancelReply() {
+    replyTarget = null;
+    const bar = document.getElementById("replyPreview");
+    if (bar) bar.hidden = true;
+}
+
+const replyCancelBtn = document.getElementById("replyCancelBtn");
+if (replyCancelBtn) replyCancelBtn.addEventListener("click", cancelReply);
+
+function jumpToMessage(id) {
+    const target = chatBox.querySelector(`.msg-line[data-message-id="${id}"]`);
+    if (!target) {
+        showToast("That message isn't loaded anymore.");
+        return;
+    }
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    target.classList.add("flash");
+    setTimeout(function () { target.classList.remove("flash"); }, 1600);
 }
 
 // ===============================
@@ -299,36 +473,76 @@ function startNewGroup(sender, isMine, avatarColor) {
     return group;
 }
 
-function appendLine(group, html, messageDate) {
+function appendLine(group, message, isMine, messageDate) {
     const line = document.createElement("div");
     line.className = "msg-line";
+    line.dataset.messageId = message.id;
+
+    const tools = `
+        <div class="line-tools">
+            <button type="button" class="line-tool reply-tool" title="Reply">
+                <i class="fas fa-reply"></i>
+            </button>
+            <button type="button" class="line-tool react-tool" title="React">+</button>
+        </div>
+        <div class="quick-react">
+            ${QUICK_REACT.map(function (e) {
+                return `<button type="button" class="qr-btn" data-emoji="${e}" title="React ${e}">${e}</button>`;
+            }).join("")}
+        </div>
+    `;
+
     line.innerHTML = `
         <span class="msg-line-time">${formatTime(messageDate)}</span>
-        <div>${html}</div>
+        <div class="msg-line-body">
+            ${message.reply_to_username ? replyQuoteHtml(message) : ""}
+            <div class="msg-content">${buildBodyHtml(message)}</div>
+            <div class="reaction-chips"></div>
+        </div>
+        ${tools}
     `;
+
     group.querySelector(".msg-lines").appendChild(line);
+
+    const replyBtn = line.querySelector(".reply-tool");
+    if (replyBtn) replyBtn.addEventListener("click", function () { startReply(message); });
+
+    const reactBtn = line.querySelector(".react-tool");
+    const quickBar = line.querySelector(".quick-react");
+    if (reactBtn) {
+        reactBtn.addEventListener("click", function () {
+            if (quickBar) quickBar.classList.toggle("show");
+        });
+    }
+    line.querySelectorAll(".qr-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () { toggleReaction(line, btn.dataset.emoji); });
+    });
+
+    const quote = line.querySelector(".reply-quote");
+    if (quote) quote.addEventListener("click", function () { jumpToMessage(message.reply_to); });
+
+    renderChips(line, message.reactions || [], message.my_reactions || []);
 
     const timeEl = group.querySelector(".msg-group-time");
     if (timeEl) timeEl.textContent = formatTime(messageDate);
 }
 
-function renderMessage(sender, isMine, bodyHtml, avatarColor, messageDate) {
+function renderMessage(message) {
     removeWelcome();
+
+    const isMine = CURRENT_USER && message.user_id === CURRENT_USER.id;
+    const messageDate = new Date(message.created_at + "Z");
+
     maybeInsertDateDivider(messageDate);
 
     let group;
-
-    if (lastSender === sender && lastGroupEl) {
+    if (lastSender === message.username && lastGroupEl) {
         group = lastGroupEl;
-        appendLine(group, bodyHtml, messageDate);
     } else {
-        group = startNewGroup(sender, isMine, avatarColor);
-        appendLine(group, bodyHtml, messageDate);
+        group = startNewGroup(message.username, isMine, message.avatar_color);
     }
 
-    const oldRow = group.querySelector(".vote-row");
-    if (oldRow) oldRow.remove();
-    attachVoteRow(group);
+    appendLine(group, message, isMine, messageDate);
 
     chatBox.scrollTop = chatBox.scrollHeight;
 }
@@ -336,18 +550,7 @@ function renderMessage(sender, isMine, bodyHtml, avatarColor, messageDate) {
 function renderIncomingMessage(message) {
     if (renderedIds.has(message.id)) return;
     renderedIds.add(message.id);
-
-    const isMine = CURRENT_USER && message.user_id === CURRENT_USER.id;
-    const messageDate = new Date(message.created_at + "Z");
-
-    let bodyHtml;
-    if (message.kind === "gif") {
-        bodyHtml = `<div class="gif-attachment"><img src="${message.content}" alt="sent gif" loading="lazy"></div>`;
-    } else {
-        bodyHtml = `<p>${escapeHtml(message.content)}</p>`;
-    }
-
-    renderMessage(message.username, isMine, bodyHtml, message.avatar_color, messageDate);
+    renderMessage(message);
     lastMessageId = Math.max(lastMessageId, message.id);
 }
 
@@ -377,11 +580,14 @@ async function sendMessage() {
 
     sendBtn.disabled = true;
 
+    const payload = { kind: "text", content: text };
+    if (replyTarget) payload.reply_to = replyTarget.id;
+
     try {
         const res = await fetch(`/community/${ANIME_SLUG}/messages`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ kind: "text", content: text }),
+            body: JSON.stringify(payload),
         });
         const data = await res.json();
 
@@ -389,11 +595,12 @@ async function sendMessage() {
             renderIncomingMessage(data.message);
             input.value = "";
             resizeInput();
+            cancelReply();
         } else {
-            alert(data.error || "Couldn't send that message.");
+            showToast(data.error || "Couldn't send that message.");
         }
     } catch (err) {
-        alert("Network error -- try again.");
+        showToast("Network error -- try again.");
     } finally {
         sendBtn.disabled = false;
         closePanels();
@@ -407,23 +614,114 @@ async function sendMessage() {
 async function sendGif(url) {
     if (!CURRENT_USER) return;
 
+    const payload = { kind: "gif", content: url };
+    if (replyTarget) payload.reply_to = replyTarget.id;
+
     try {
         const res = await fetch(`/community/${ANIME_SLUG}/messages`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ kind: "gif", content: url }),
+            body: JSON.stringify(payload),
         });
         const data = await res.json();
 
         if (data.success) {
             renderIncomingMessage(data.message);
+            cancelReply();
         } else {
-            alert(data.error || "Couldn't send that gif.");
+            showToast(data.error || "Couldn't send that gif.");
         }
     } catch (err) {
-        alert("Network error -- try again.");
+        showToast("Network error -- try again.");
     }
 }
+
+// ===============================
+// SIDEBAR TABS + GIF GALLERY
+// ===============================
+
+let galleryLoaded = false;
+const galleryGridEl = document.getElementById("galleryGrid");
+
+document.querySelectorAll(".sidebar-item").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+        const tab = this.dataset.tab;
+        if (!tab) return;
+
+        document.querySelectorAll(".sidebar-item").forEach(function (b) { b.classList.remove("active"); });
+        this.classList.add("active");
+
+        document.querySelectorAll(".tab-panel").forEach(function (p) { p.hidden = true; });
+
+        const panel = document.getElementById("panel-" + tab);
+        if (panel) {
+            panel.hidden = false;
+            if (tab === "gallery" && !galleryLoaded) loadGallery();
+        }
+    });
+});
+
+async function loadGallery() {
+    galleryLoaded = true;
+    if (!galleryGridEl) return;
+
+    galleryGridEl.innerHTML = `<div class="gallery-empty">Loading the gallery...</div>`;
+
+    try {
+        const res = await fetch(`/community/${ANIME_SLUG}/gifs`);
+        const data = await res.json();
+        if (!data.success) {
+            galleryGridEl.innerHTML = `<div class="gallery-empty">Couldn't load the gallery.</div>`;
+            return;
+        }
+        if (!data.gifs.length) {
+            galleryGridEl.innerHTML = `<div class="gallery-empty">No GIFs shared yet. Be the first!</div>`;
+            return;
+        }
+
+        galleryGridEl.innerHTML = "";
+        data.gifs.forEach(function (gif) {
+            const item = document.createElement("div");
+            item.className = "gallery-item";
+            item.innerHTML = `<img src="${gif.url}" alt="community gif" loading="lazy">`;
+            item.title = "Click to copy the GIF link";
+            item.addEventListener("click", function () {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(gif.url).then(
+                        function () { showToast("GIF link copied — paste it in the chat 💬"); },
+                        function () { showToast(gif.url); }
+                    );
+                } else {
+                    showToast(gif.url);
+                }
+            });
+            galleryGridEl.appendChild(item);
+        });
+    } catch (err) {
+        galleryGridEl.innerHTML = `<div class="gallery-empty">Couldn't load the gallery.</div>`;
+    }
+}
+
+// ===============================
+// SPOILER REVEAL (click to show)
+// ===============================
+
+chatBox.addEventListener("click", function (e) {
+    const spoiler = e.target.closest(".spoiler");
+    if (spoiler) {
+        e.stopPropagation();
+        spoiler.classList.toggle("revealed");
+        return;
+    }
+
+    const inQuickBar = e.target.closest(".qr-btn");
+    const inReactTool = e.target.closest(".react-tool");
+    if (!inQuickBar && !inReactTool) {
+        chatBox.querySelectorAll(".quick-react.show").forEach(function (bar) {
+            bar.classList.remove("show");
+        });
+    }
+});
 
 // ===============================
 // AUTO-EXPANDING TEXTAREA
@@ -441,13 +739,15 @@ if (input) input.addEventListener("input", resizeInput);
 // STICKY HEADER SHADOW ON SCROLL
 // ===============================
 
-chatBox.addEventListener("scroll", function () {
-    if (chatBox.scrollTop > 4) {
-        chatHeader.classList.add("scrolled");
-    } else {
-        chatHeader.classList.remove("scrolled");
-    }
-});
+if (chatBox) {
+    chatBox.addEventListener("scroll", function () {
+        if (chatBox.scrollTop > 4) {
+            chatHeader.classList.add("scrolled");
+        } else {
+            chatHeader.classList.remove("scrolled");
+        }
+    });
+}
 
 // ===============================
 // EVENTS
@@ -472,4 +772,5 @@ pollMessages();
 refreshPresence();
 
 setInterval(pollMessages, 1200);
+setInterval(pollReactions, 2000);
 setInterval(refreshPresence, 8000);
