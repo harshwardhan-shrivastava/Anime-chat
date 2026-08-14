@@ -388,6 +388,7 @@
 .nav-user-trigger[aria-expanded="true"]{
     border-color:rgba(143,91,255,.55);
     background:rgba(143,91,255,.12);
+    box-shadow:0 0 18px rgba(143,91,255,.4);
 }
 
 .nav-user-caret{
@@ -432,7 +433,8 @@
     margin-bottom:4px;
 }
 .nav-user-menu-head:hover{
-    background:rgba(143,91,255,.12);
+    background:linear-gradient(135deg,rgba(143,91,255,.26),rgba(63,140,255,.16));
+    box-shadow:0 0 18px rgba(143,91,255,.4);
 }
 .nav-user-menu-name{
     font-weight:700;
@@ -455,6 +457,7 @@
     color:#d8d8d8;
     font-size:13.5px;
     font-weight:600;
+    cursor:pointer;
     transition:.2s;
 }
 .nav-user-menu-item i{
@@ -463,21 +466,28 @@
     color:#8f94b0;
     font-size:14px;
     flex-shrink:0;
+    transition:.2s;
 }
 .nav-user-menu-item:hover{
-    background:rgba(143,91,255,.14);
+    background:linear-gradient(135deg,rgba(143,91,255,.3),rgba(63,140,255,.18));
     color:white;
+    box-shadow:0 0 20px rgba(143,91,255,.5),inset 0 0 12px rgba(143,91,255,.15);
+    transform:translateX(3px);
 }
 .nav-user-menu-item:hover i{
     color:#c9a8ff;
+    filter:drop-shadow(0 0 6px rgba(201,168,255,.8));
 }
 .nav-user-menu-item.danger{
     color:#ff5c7a;
 }
 .nav-user-menu-item.danger:hover{
-    background:rgba(255,59,107,.14);
-    color:#ff8fa3;
+    background:linear-gradient(135deg,rgba(255,59,107,.32),rgba(255,122,89,.16));
+    color:#ff9db1;
+    box-shadow:0 0 20px rgba(255,59,107,.55),inset 0 0 12px rgba(255,59,107,.15);
+    transform:translateX(3px);
 }
 .nav-user-menu-item.danger:hover i{
     color:#ff8fa3;
+    filter:drop-shadow(0 0 6px rgba(255,143,163,.8));
 }
