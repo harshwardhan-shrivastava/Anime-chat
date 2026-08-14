@@ -791,90 +791,483 @@ def api_characters_search():
 
 
 # ---------------------------------------------------------------------------
-# "New to Anime" -- Beginner Quiz
+# "New to Anime" -- Beginner Quiz (branching modal flow)
 # ---------------------------------------------------------------------------
+#
+# The quiz is a six-step branching flow:
+#   1. taste   — broad, Hollywood-friendly pick (single) — no anime jargon
+#   2. mood    — how the user feels right now (single)
+#   3. branch Q1 — adapts to the taste pick
+#   4. mood Q1   — adapts to the mood pick
+#   5. branch Q2 — second question for that taste
+#   6. mood Q2   — second question for that mood
+#
+# Steps 3-6 are multi-select (max 3) and each option can declare `conflicts`
+# so directly opposite choices can never be selected together.
 
-def _quiz_questions():
-    """Six beginner-friendly questions. Asked in plain English so someone who
-    has never watched anime can answer — we translate their taste in
-    Hollywood/superhero/cartoon shows into anime genres under the hood."""
-    return [
-        {
-            "key": "taste",
-            "question": "What kinda shows have you watched before?",
-            "hint": "No anime knowledge needed — just what you already like.",
+_TASTE_Q = {
+    "question": "What kinda shows do you usually binge?",
+    "hint": "No anime knowledge needed — just what you already watch. Pick one.",
+    "multi": False,
+    "max": 1,
+    "options": [
+        {"value": "action", "emoji": "🎬", "label": "Action & blockbusters", "weights": {"Action": 3, "Adventure": 2}},
+        {"value": "superhero", "emoji": "🦸", "label": "Superheroes & superpowers", "weights": {"Action": 2, "Supernatural": 3}},
+        {"value": "comedy", "emoji": "😂", "label": "Comedy & sitcoms", "weights": {"Comedy": 3, "Slice of Life": 1}},
+        {"value": "drama", "emoji": "🎭", "label": "Drama & romance", "weights": {"Drama": 3, "Romance": 2}},
+        {"value": "scifi", "emoji": "🚀", "label": "Sci-fi & fantasy", "weights": {"Sci-Fi": 3, "Fantasy": 2}},
+        {"value": "horror", "emoji": "👻", "label": "Horror & thrillers", "weights": {"Horror": 3, "Psychological": 2, "Thriller": 1}},
+        {"value": "sports", "emoji": "🏀", "label": "Sports & competition", "weights": {"Sports": 3, "Action": 1}},
+        {"value": "animated", "emoji": "🎨", "label": "Cartoons & animation", "weights": {"Adventure": 2, "Fantasy": 2, "Comedy": 1}},
+        {"value": "everything", "emoji": "🎲", "label": "A bit of everything", "weights": {}},
+    ],
+}
+
+_MOOD_Q = {
+    "question": "What's your mood right now?",
+    "hint": "We'll match the show to how you're feeling. Pick one.",
+    "multi": False,
+    "max": 1,
+    "options": [
+        {"value": "laugh", "emoji": "😂", "label": "Make me laugh", "weights": {"Comedy": 3, "Slice of Life": 1}},
+        {"value": "pumped", "emoji": "⚡", "label": "Pump me up", "weights": {"Action": 3, "Sports": 1}},
+        {"value": "feel", "emoji": "💔", "label": "Let me feel things", "weights": {"Drama": 3, "Romance": 1}},
+        {"value": "chill", "emoji": "🧘", "label": "Keep it chill", "weights": {"Slice of Life": 3}},
+        {"value": "mind", "emoji": "🧠", "label": "Blow my mind", "weights": {"Psychological": 3, "Thriller": 2, "Mystery": 1}},
+        {"value": "spook", "emoji": "👻", "label": "Spook me", "weights": {"Horror": 3, "Supernatural": 1}},
+    ],
+}
+
+_BRANCH_QUESTIONS = {
+    "action": {
+        "q1": {
+            "question": "What kind of action gets your blood pumping?",
+            "hint": "Pick up to 3 — the ones that make you lean forward.",
+            "multi": True, "max": 3,
             "options": [
-                {"value": "hollywood", "emoji": "🍿", "label": "Hollywood movies & series", "weights": {"Action": 2, "Drama": 2, "Sci-Fi": 1}},
-                {"value": "superhero", "emoji": "🦸", "label": "Superhero stuff", "weights": {"Action": 3, "Supernatural": 2}},
-                {"value": "cartoons", "emoji": "🎨", "label": "Cartoons & animation", "weights": {"Adventure": 2, "Fantasy": 2, "Comedy": 1}},
-                {"value": "sitcom", "emoji": "😄", "label": "Sitcoms & comedy shows", "weights": {"Comedy": 3, "Slice of Life": 1}},
-                {"value": "drama", "emoji": "🎭", "label": "Soap operas & dramas", "weights": {"Drama": 3, "Romance": 2}},
-                {"value": "sports", "emoji": "🏀", "label": "Sports shows", "weights": {"Sports": 3, "Action": 1}},
-                {"value": "scifi", "emoji": "🚀", "label": "Sci-fi & fantasy", "weights": {"Sci-Fi": 3, "Fantasy": 2}},
-                {"value": "any", "emoji": "🎲", "label": "A bit of everything", "weights": {}},
+                {"value": "act_battles", "emoji": "⚔️", "label": "Epic battles & showdowns", "weights": {"Action": 3}, "conflicts": ["act_slow"]},
+                {"value": "act_chase", "emoji": "🏎️", "label": "Car chases & high-speed hunts", "weights": {"Action": 2, "Thriller": 1}, "conflicts": ["act_slow"]},
+                {"value": "act_martial", "emoji": "🥋", "label": "Martial arts & fist fights", "weights": {"Action": 2, "Sports": 1}, "conflicts": ["act_slow"]},
+                {"value": "act_war", "emoji": "🪖", "label": "Wars & armies", "weights": {"Action": 2, "Drama": 1}},
+                {"value": "act_heist", "emoji": "💼", "label": "Heists & secret missions", "weights": {"Action": 2, "Thriller": 1}},
+                {"value": "act_slow", "emoji": "🧊", "label": "Slow-burn tension", "weights": {"Psychological": 2, "Thriller": 2}, "conflicts": ["act_battles", "act_chase", "act_martial"]},
             ],
         },
-        {
-            "key": "mood",
-            "question": "What's your mood right now?",
-            "hint": "We'll match the show to how you're feeling.",
+        "q2": {
+            "question": "Where should the adventure happen?",
+            "hint": "Pick up to 3 worlds you'd happily escape into.",
+            "multi": True, "max": 3,
             "options": [
-                {"value": "laugh", "emoji": "😂", "label": "Make me laugh", "weights": {"Comedy": 3, "Slice of Life": 1}},
-                {"value": "pumped", "emoji": "⚡", "label": "Pump me up", "weights": {"Action": 3, "Sports": 1}},
-                {"value": "feel", "emoji": "💔", "label": "Let me feel things", "weights": {"Drama": 3, "Romance": 1}},
-                {"value": "chill", "emoji": "🧘", "label": "Keep it chill", "weights": {"Slice of Life": 3}},
-                {"value": "mind", "emoji": "🧠", "label": "Blow my mind", "weights": {"Psychological": 3, "Thriller": 2, "Mystery": 1}},
-                {"value": "spook", "emoji": "👻", "label": "Spook me", "weights": {"Horror": 3, "Supernatural": 1}},
+                {"value": "set_city", "emoji": "🌆", "label": "Modern city streets", "weights": {"Action": 1, "Slice of Life": 1}},
+                {"value": "set_fantasy", "emoji": "🏰", "label": "Fantasy worlds & kingdoms", "weights": {"Fantasy": 2, "Adventure": 1}},
+                {"value": "set_space", "emoji": "🚀", "label": "Space & other planets", "weights": {"Sci-Fi": 2, "Adventure": 1}},
+                {"value": "set_school", "emoji": "🏫", "label": "School & campus", "weights": {"Slice of Life": 1, "Romance": 1}},
+                {"value": "set_hist", "emoji": "⏳", "label": "Historical eras", "weights": {"Drama": 2}, "conflicts": ["set_future"]},
+                {"value": "set_future", "emoji": "🤖", "label": "Dystopian futures", "weights": {"Sci-Fi": 2, "Psychological": 1}, "conflicts": ["set_hist"]},
             ],
         },
-        {
-            "key": "world",
-            "question": "Which world sounds more fun to escape into?",
-            "hint": "Pick the setting that gives you wanderlust.",
+    },
+    "superhero": {
+        "q1": {
+            "question": "What kind of hero do you love watching?",
+            "hint": "Pick up to 3 — the hero archetypes you can't get enough of.",
+            "multi": True, "max": 3,
             "options": [
-                {"value": "real", "emoji": "🏙️", "label": "Everyday life, like ours", "weights": {"Slice of Life": 3, "Comedy": 1, "Drama": 1}},
-                {"value": "magic", "emoji": "🧙", "label": "Magic & monsters", "weights": {"Fantasy": 3, "Adventure": 2, "Supernatural": 1}},
-                {"value": "future", "emoji": "🤖", "label": "Futuristic / robots", "weights": {"Sci-Fi": 3, "Mecha": 2}},
-                {"value": "fight", "emoji": "🥋", "label": "Battles & tournaments", "weights": {"Action": 3, "Sports": 1}},
-                {"value": "highschool", "emoji": "🏫", "label": "High school life", "weights": {"Romance": 2, "Comedy": 2, "Slice of Life": 2}},
-                {"value": "mystery", "emoji": "🕵️", "label": "Mysteries & crimes", "weights": {"Mystery": 3, "Psychological": 2, "Thriller": 2}},
+                {"value": "hero_lone", "emoji": "🕶️", "label": "Lone vigilantes", "weights": {"Action": 2, "Psychological": 1}, "conflicts": ["hero_team"]},
+                {"value": "hero_team", "emoji": "🦸‍♀️", "label": "Super teams", "weights": {"Action": 2, "Adventure": 1}, "conflicts": ["hero_lone"]},
+                {"value": "hero_anti", "emoji": "😈", "label": "Anti-heroes & morally grey", "weights": {"Psychological": 2, "Drama": 1}},
+                {"value": "hero_power", "emoji": "⚡", "label": "Overpowered power fantasy", "weights": {"Action": 2, "Supernatural": 1}},
+                {"value": "hero_origin", "emoji": "📖", "label": "Origin stories & growth", "weights": {"Drama": 2, "Supernatural": 1}},
             ],
         },
-        {
-            "key": "length",
-            "question": "How much time are you willing to commit?",
-            "hint": "We'll only suggest shows that fit your schedule.",
+        "q2": {
+            "question": "What powers excite you most?",
+            "hint": "Pick up to 3 superpowers you'd kill to have.",
+            "multi": True, "max": 3,
             "options": [
-                {"value": "short", "emoji": "🍜", "label": "Short & sweet (≤ 12 eps)", "weights": {}},
-                {"value": "cour", "emoji": "📺", "label": "One season (13–26 eps)", "weights": {}},
-                {"value": "long", "emoji": "🐉", "label": "Long haul (27–100 eps)", "weights": {}},
-                {"value": "marathon", "emoji": "♾️", "label": "Marathon (100+ eps)", "weights": {}},
-                {"value": "any", "emoji": "🤷", "label": "No preference", "weights": {}},
+                {"value": "pow_fight", "emoji": "🥊", "label": "Hand-to-hand combat", "weights": {"Action": 2, "Sports": 1}, "conflicts": ["pow_energy"]},
+                {"value": "pow_energy", "emoji": "⚡", "label": "Energy blasts & powers", "weights": {"Supernatural": 3}, "conflicts": ["pow_fight"]},
+                {"value": "pow_speed", "emoji": "💨", "label": "Speed & agility", "weights": {"Action": 2}},
+                {"value": "pow_mind", "emoji": "🧠", "label": "Mind powers & telepathy", "weights": {"Psychological": 2, "Supernatural": 1}},
+                {"value": "pow_transform", "emoji": "🦖", "label": "Shapeshifting & transformations", "weights": {"Supernatural": 2, "Action": 1}},
             ],
         },
-        {
-            "key": "love",
-            "question": "How do you feel about love stories?",
-            "hint": "Romance is a big part of anime — let us know.",
+    },
+    "comedy": {
+        "q1": {
+            "question": "What style of comedy is your thing?",
+            "hint": "Pick up to 3 flavors that make you wheeze.",
+            "multi": True, "max": 3,
             "options": [
-                {"value": "love", "emoji": "💘", "label": "I'm a hopeless romantic", "weights": {"Romance": 4, "Drama": 2}},
-                {"value": "sometimes", "emoji": "💞", "label": "Only if it's not the whole plot", "weights": {"Romance": 1, "Comedy": 1}},
-                {"value": "nope", "emoji": "🙅", "label": "Skip the romance", "weights": {"Romance": -4}},
-                {"value": "fine", "emoji": "😌", "label": "Don't mind either way", "weights": {}},
+                {"value": "com_banter", "emoji": "🗣️", "label": "Witty banter & roasting", "weights": {"Comedy": 3}, "conflicts": ["com_absurd"]},
+                {"value": "com_awkward", "emoji": "😅", "label": "Awkward situations", "weights": {"Comedy": 2, "Slice of Life": 1}},
+                {"value": "com_absurd", "emoji": "🤪", "label": "Absurd & random humor", "weights": {"Comedy": 2, "Fantasy": 1}, "conflicts": ["com_banter"]},
+                {"value": "com_parody", "emoji": "🎭", "label": "Parody & satire", "weights": {"Comedy": 2, "Psychological": 1}},
+                {"value": "com_slapstick", "emoji": "🤸", "label": "Slapstick & physical comedy", "weights": {"Comedy": 2}},
             ],
         },
-        {
-            "key": "avoid",
-            "question": "Anything you'd rather not see?",
-            "hint": "We'll keep those shows out of your picks.",
+        "q2": {
+            "question": "Who's the funniest type of character?",
+            "hint": "Pick up to 3 comedic archetypes you love.",
+            "multi": True, "max": 3,
             "options": [
-                {"value": "no_horror", "emoji": "😱", "label": "No scary / gory stuff", "weights": {"Horror": -4, "Psychological": -2}},
-                {"value": "no_heavy", "emoji": "🌤️", "label": "Nothing too depressing", "weights": {"Horror": -2, "Psychological": -2, "Thriller": -1, "Drama": -1}},
-                {"value": "no_fan_service", "emoji": "🙈", "label": "Nothing too awkward", "weights": {"Ecchi": -4}},
-                {"value": "nothing", "emoji": "🚀", "label": "I'll watch anything", "weights": {}},
+                {"value": "who_deadpan", "emoji": "😐", "label": "Deadpan straight-man", "weights": {"Comedy": 3}, "conflicts": ["who_over"]},
+                {"value": "who_over", "emoji": "🎢", "label": "Loud over-the-top goofball", "weights": {"Comedy": 2, "Slice of Life": 1}, "conflicts": ["who_deadpan"]},
+                {"value": "who_group", "emoji": "👥", "label": "A chaotic friend group", "weights": {"Comedy": 2, "Slice of Life": 1}},
+                {"value": "who_genius", "emoji": "🧠", "label": "Genius who's terrible at life", "weights": {"Comedy": 2, "Psychological": 1}},
             ],
         },
-    ]
+    },
+    "drama": {
+        "q1": {
+            "question": "What kind of story pulls at your heart?",
+            "hint": "Pick up to 3 storylines that hook you.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "drm_romance", "emoji": "💞", "label": "Slow-burn romance", "weights": {"Romance": 3}, "conflicts": ["drm_tragedy"]},
+                {"value": "drm_tragedy", "emoji": "💔", "label": "Tragic & bittersweet", "weights": {"Drama": 3}, "conflicts": ["drm_romance"]},
+                {"value": "drm_growth", "emoji": "🌱", "label": "Coming-of-age growth", "weights": {"Slice of Life": 2, "Drama": 1}},
+                {"value": "drm_family", "emoji": "🏡", "label": "Family & friendship bonds", "weights": {"Drama": 2, "Slice of Life": 1}},
+                {"value": "drm_twist", "emoji": "🔄", "label": "Plot twists & secrets", "weights": {"Mystery": 2, "Drama": 1}},
+            ],
+        },
+        "q2": {
+            "question": "How do you like the emotional payoff?",
+            "hint": "Pick up to 3 — how the story should land.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "pay_cry", "emoji": "😭", "label": "Make me cry", "weights": {"Drama": 3}, "conflicts": ["pay_happy"]},
+                {"value": "pay_happy", "emoji": "😊", "label": "Warm happy endings", "weights": {"Romance": 2, "Slice of Life": 1}, "conflicts": ["pay_cry"]},
+                {"value": "pay_hope", "emoji": "🌅", "label": "Hope through hardship", "weights": {"Drama": 2}},
+                {"value": "pay_bittersweet", "emoji": "🌗", "label": "Bittersweet & realistic", "weights": {"Drama": 2, "Psychological": 1}},
+            ],
+        },
+    },
+    "scifi": {
+        "q1": {
+            "question": "What kind of sci-fi / fantasy world?",
+            "hint": "Pick up to 3 universes you'd move into.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "sf_space", "emoji": "🚀", "label": "Space exploration", "weights": {"Sci-Fi": 3}, "conflicts": ["sf_magic"]},
+                {"value": "sf_magic", "emoji": "🧙", "label": "Magic & monsters", "weights": {"Fantasy": 3}, "conflicts": ["sf_space"]},
+                {"value": "sf_cyber", "emoji": "🤖", "label": "Cyberpunk & high tech", "weights": {"Sci-Fi": 2, "Psychological": 1}},
+                {"value": "sf_dystopia", "emoji": "🌆", "label": "Dystopian societies", "weights": {"Psychological": 2, "Sci-Fi": 1}},
+                {"value": "sf_portal", "emoji": "🌀", "label": "Portal to another world", "weights": {"Fantasy": 2, "Adventure": 1}},
+            ],
+        },
+        "q2": {
+            "question": "What's the hook for you?",
+            "hint": "Pick up to 3 things that keep you glued.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "hook_mystery", "emoji": "🕵️", "label": "Mysteries of the universe", "weights": {"Mystery": 2, "Sci-Fi": 1}},
+                {"value": "hook_action", "emoji": "💥", "label": "Epic battles", "weights": {"Action": 2, "Fantasy": 1}},
+                {"value": "hook_world", "emoji": "🌍", "label": "World-building & lore", "weights": {"Fantasy": 2, "Adventure": 1}},
+                {"value": "hook_philo", "emoji": "🧠", "label": "Philosophical questions", "weights": {"Psychological": 3}},
+                {"value": "hook_survival", "emoji": "🏕️", "label": "Survival & resourcefulness", "weights": {"Adventure": 2, "Drama": 1}},
+            ],
+        },
+    },
+    "horror": {
+        "q1": {
+            "question": "What scares you in the best way?",
+            "hint": "Pick up to 3 kinds of creepy you enjoy.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "hrr_jump", "emoji": "😱", "label": "Jump scares & monsters", "weights": {"Horror": 3}, "conflicts": ["hrr_psych", "hrr_mild"]},
+                {"value": "hrr_psych", "emoji": "🌀", "label": "Psychological dread", "weights": {"Psychological": 3, "Horror": 1}, "conflicts": ["hrr_jump"]},
+                {"value": "hrr_gore", "emoji": "🩸", "label": "Gore & dark fantasy", "weights": {"Horror": 2, "Action": 1}, "conflicts": ["hrr_mild"]},
+                {"value": "hrr_super", "emoji": "🧟", "label": "Supernatural & ghosts", "weights": {"Supernatural": 2, "Horror": 1}},
+                {"value": "hrr_mild", "emoji": "🌙", "label": "Spooky but not traumatizing", "weights": {"Supernatural": 1, "Mystery": 1}, "conflicts": ["hrr_jump", "hrr_gore"]},
+            ],
+        },
+        "q2": {
+            "question": "How dark can it go?",
+            "hint": "Pick up to 3 — set the darkness dial.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "dk_full", "emoji": "🌑", "label": "Full dark, no light", "weights": {"Horror": 2, "Psychological": 2}, "conflicts": ["dk_light", "dk_hopeful"]},
+                {"value": "dk_light", "emoji": "🌅", "label": "Light at the end", "weights": {"Drama": 1, "Mystery": 1}, "conflicts": ["dk_full"]},
+                {"value": "dk_hopeful", "emoji": "🌈", "label": "Hopeful endings", "weights": {"Drama": 1, "Supernatural": 1}, "conflicts": ["dk_full"]},
+                {"value": "dk_thrill", "emoji": "🎢", "label": "Thrills without gore", "weights": {"Thriller": 2, "Mystery": 1}},
+            ],
+        },
+    },
+    "sports": {
+        "q1": {
+            "question": "What kind of competition?",
+            "hint": "Pick up to 3 sports you love to watch.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "sp_team", "emoji": "⚽", "label": "Team sports", "weights": {"Sports": 3}, "conflicts": ["sp_individual"]},
+                {"value": "sp_individual", "emoji": "🥊", "label": "Individual duels", "weights": {"Sports": 2, "Action": 1}, "conflicts": ["sp_team"]},
+                {"value": "sp_racing", "emoji": "🏎️", "label": "Racing & speed", "weights": {"Sports": 2, "Action": 1}},
+                {"value": "sp_game", "emoji": "♟️", "label": "Mind games & strategy", "weights": {"Sports": 1, "Psychological": 2}},
+                {"value": "sp_rival", "emoji": "🤝", "label": "Rivalries & underdogs", "weights": {"Sports": 2, "Drama": 1}},
+            ],
+        },
+        "q2": {
+            "question": "What gets you invested?",
+            "hint": "Pick up to 3 reasons you stay for the season.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "sp_win", "emoji": "🏆", "label": "The road to the top", "weights": {"Sports": 3}},
+                {"value": "sp_friendship", "emoji": "👯", "label": "Team bonds & friendships", "weights": {"Sports": 2, "Slice of Life": 1}},
+                {"value": "sp_underdog", "emoji": "🐣", "label": "Underdogs beating giants", "weights": {"Sports": 2, "Drama": 1}},
+                {"value": "sp_flow", "emoji": "🎯", "label": "Peak performance moments", "weights": {"Sports": 2, "Action": 1}},
+            ],
+        },
+    },
+    "animated": {
+        "q1": {
+            "question": "What kind of animated story?",
+            "hint": "Pick up to 3 — cartoons come in every flavor.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "an_kids", "emoji": "🧸", "label": "Family-friendly adventures", "weights": {"Adventure": 2, "Fantasy": 1}},
+                {"value": "an_epic", "emoji": "⚔️", "label": "Epic fantasy adventures", "weights": {"Adventure": 2, "Fantasy": 2}},
+                {"value": "an_funny", "emoji": "🤡", "label": "Silly & goofy", "weights": {"Comedy": 2}},
+                {"value": "an_movie", "emoji": "🎬", "label": "Movie-like polish & drama", "weights": {"Drama": 2, "Adventure": 1}},
+                {"value": "an_art", "emoji": "🎨", "label": "Beautiful art & atmosphere", "weights": {"Slice of Life": 1, "Drama": 1}},
+            ],
+        },
+        "q2": {
+            "question": "What matters most in a cartoon?",
+            "hint": "Pick up to 3 — the most important part for you.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "imp_story", "emoji": "📖", "label": "A gripping story", "weights": {"Drama": 2, "Mystery": 1}},
+                {"value": "imp_char", "emoji": "😊", "label": "Characters I love", "weights": {"Slice of Life": 2, "Comedy": 1}},
+                {"value": "imp_world", "emoji": "🌍", "label": "Amazing worlds", "weights": {"Fantasy": 2, "Adventure": 1}},
+                {"value": "imp_fun", "emoji": "🎉", "label": "Pure fun & laughs", "weights": {"Comedy": 2, "Slice of Life": 1}},
+            ],
+        },
+    },
+    "everything": {
+        "q1": {
+            "question": "What pulls you into a show first?",
+            "hint": "Pick up to 3 — your show-starter instincts.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "ev_story", "emoji": "📖", "label": "A killer story", "weights": {"Drama": 1, "Mystery": 1}},
+                {"value": "ev_char", "emoji": "💬", "label": "Characters I love", "weights": {"Slice of Life": 1, "Comedy": 1}},
+                {"value": "ev_world", "emoji": "🌍", "label": "Amazing worlds", "weights": {"Fantasy": 1, "Adventure": 1}},
+                {"value": "ev_action", "emoji": "💥", "label": "Action & spectacle", "weights": {"Action": 1}},
+                {"value": "ev_vibes", "emoji": "🌙", "label": "Mood & atmosphere", "weights": {"Psychological": 1, "Supernatural": 1}},
+            ],
+        },
+        "q2": {
+            "question": "Pick any three you'd want in one show:",
+            "hint": "Mix and match up to 3.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "mix_laugh", "emoji": "😂", "label": "Laughs", "weights": {"Comedy": 1}},
+                {"value": "mix_feels", "emoji": "💔", "label": "Feels", "weights": {"Drama": 1, "Romance": 1}},
+                {"value": "mix_action", "emoji": "⚡", "label": "Action", "weights": {"Action": 1}},
+                {"value": "mix_mind", "emoji": "🧠", "label": "Mind-benders", "weights": {"Psychological": 1}},
+                {"value": "mix_chill", "emoji": "🧘", "label": "Cozy comfort", "weights": {"Slice of Life": 1}},
+            ],
+        },
+    },
+}
+
+_MOOD_QUESTIONS = {
+    "laugh": {
+        "q1": {
+            "question": "What gets you giggling?",
+            "hint": "Pick up to 3 — your comedy triggers.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "lg_roast", "emoji": "🗣️", "label": "Roasting & banter", "weights": {"Comedy": 3}},
+                {"value": "lg_awkward", "emoji": "😅", "label": "Cringe & awkward", "weights": {"Comedy": 2, "Slice of Life": 1}},
+                {"value": "lg_random", "emoji": "🤪", "label": "Random nonsense", "weights": {"Comedy": 2}, "conflicts": ["lg_dry"]},
+                {"value": "lg_satire", "emoji": "🎭", "label": "Satire & parody", "weights": {"Comedy": 2, "Psychological": 1}},
+                {"value": "lg_dry", "emoji": "😑", "label": "Dry & deadpan", "weights": {"Comedy": 2}, "conflicts": ["lg_random"]},
+            ],
+        },
+        "q2": {
+            "question": "How do you like your comedy served?",
+            "hint": "Pick up to 3 — the seasoning matters.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "ls_light", "emoji": "🍃", "label": "Light & wholesome", "weights": {"Slice of Life": 2, "Comedy": 1}, "conflicts": ["ls_dark"]},
+                {"value": "ls_dark", "emoji": "🌑", "label": "Dark humor", "weights": {"Comedy": 2, "Psychological": 1}, "conflicts": ["ls_light"]},
+                {"value": "ls_chaos", "emoji": "🔥", "label": "Chaos & energy", "weights": {"Comedy": 2}},
+                {"value": "ls_heart", "emoji": "💗", "label": "Comedy with heart", "weights": {"Comedy": 1, "Drama": 1, "Slice of Life": 1}},
+            ],
+        },
+    },
+    "pumped": {
+        "q1": {
+            "question": "What hypes you up most?",
+            "hint": "Pick up to 3 — the adrenaline triggers.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "hp_battle", "emoji": "⚔️", "label": "Big fights", "weights": {"Action": 3}},
+                {"value": "hp_epic", "emoji": "🎵", "label": "Epic music & moments", "weights": {"Action": 2, "Drama": 1}},
+                {"value": "hp_underdog", "emoji": "🐺", "label": "Underdog comebacks", "weights": {"Sports": 2, "Drama": 1}},
+                {"value": "hp_training", "emoji": "🏋️", "label": "Training & getting stronger", "weights": {"Sports": 2, "Action": 1}},
+                {"value": "hp_team", "emoji": "🤝", "label": "Team rallies", "weights": {"Sports": 2, "Slice of Life": 1}},
+            ],
+        },
+        "q2": {
+            "question": "What keeps the hype going?",
+            "hint": "Pick up to 3 — don't let the hype die.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "hk_stakes", "emoji": "🎯", "label": "High stakes", "weights": {"Thriller": 2, "Action": 1}},
+                {"value": "hk_pacing", "emoji": "⏩", "label": "Non-stop pacing", "weights": {"Action": 2}},
+                {"value": "hk_rival", "emoji": "👊", "label": "Rivalries", "weights": {"Action": 1, "Sports": 1, "Drama": 1}},
+                {"value": "hk_payoff", "emoji": "💥", "label": "Huge payoffs", "weights": {"Action": 1, "Drama": 1}},
+            ],
+        },
+    },
+    "feel": {
+        "q1": {
+            "question": "What kind of feels are you after?",
+            "hint": "Pick up to 3 — the feelings you're chasing.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "fl_romance", "emoji": "💞", "label": "Romance", "weights": {"Romance": 3}},
+                {"value": "fl_sad", "emoji": "💧", "label": "Sad & heavy", "weights": {"Drama": 3}},
+                {"value": "fl_warm", "emoji": "☀️", "label": "Warm & wholesome", "weights": {"Slice of Life": 2}},
+                {"value": "fl_growth", "emoji": "🌱", "label": "Growth & healing", "weights": {"Drama": 2, "Slice of Life": 1}},
+                {"value": "fl_nostalgia", "emoji": "📼", "label": "Nostalgia", "weights": {"Slice of Life": 1, "Drama": 1}},
+            ],
+        },
+        "q2": {
+            "question": "How intense can the feels get?",
+            "hint": "Pick up to 3 — set the feels dial.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "fi_gut", "emoji": "💔", "label": "Gut-punching", "weights": {"Drama": 3}, "conflicts": ["fi_gentle"]},
+                {"value": "fi_gentle", "emoji": "🕊️", "label": "Gentle & soft", "weights": {"Slice of Life": 2}, "conflicts": ["fi_gut"]},
+                {"value": "fi_hopeful", "emoji": "🌅", "label": "Hopeful", "weights": {"Drama": 1, "Slice of Life": 1}},
+                {"value": "fi_epic", "emoji": "🌊", "label": "Epic emotional arcs", "weights": {"Drama": 2}},
+            ],
+        },
+    },
+    "chill": {
+        "q1": {
+            "question": "What does 'chill' mean to you?",
+            "hint": "Pick up to 3 — your cozy buttons.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "ch_nature", "emoji": "🌄", "label": "Nature & scenery", "weights": {"Slice of Life": 2}},
+                {"value": "ch_food", "emoji": "🍜", "label": "Food & cooking", "weights": {"Slice of Life": 2}},
+                {"value": "ch_slice", "emoji": "🏠", "label": "Everyday life", "weights": {"Slice of Life": 3}},
+                {"value": "ch_cute", "emoji": "🐱", "label": "Cute & comfy", "weights": {"Slice of Life": 2, "Comedy": 1}},
+                {"value": "ch_music", "emoji": "🎶", "label": "Music & vibes", "weights": {"Slice of Life": 1, "Drama": 1}},
+            ],
+        },
+        "q2": {
+            "question": "What's the perfect chill episode?",
+            "hint": "Pick up to 3 — your ideal wind-down.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "cj_noise", "emoji": "🤫", "label": "Quiet & low-stakes", "weights": {"Slice of Life": 2}, "conflicts": ["cj_drama"]},
+                {"value": "cj_drama", "emoji": "🍿", "label": "Light drama", "weights": {"Drama": 1, "Slice of Life": 1}, "conflicts": ["cj_noise"]},
+                {"value": "cj_friends", "emoji": "👫", "label": "Hanging with friends", "weights": {"Slice of Life": 2, "Comedy": 1}},
+                {"value": "cj_adventure", "emoji": "🚶", "label": "Gentle adventures", "weights": {"Adventure": 1, "Slice of Life": 1}},
+            ],
+        },
+    },
+    "mind": {
+        "q1": {
+            "question": "What kind of mind-bender?",
+            "hint": "Pick up to 3 — the twists that break you.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "mb_twist", "emoji": "🔀", "label": "Plot twists", "weights": {"Mystery": 2, "Thriller": 1}},
+                {"value": "mb_philo", "emoji": "🧠", "label": "Philosophy & ideas", "weights": {"Psychological": 3}},
+                {"value": "mb_mystery", "emoji": "🕵️", "label": "Unsolved mysteries", "weights": {"Mystery": 3}},
+                {"value": "mb_games", "emoji": "♟️", "label": "Games & puzzles", "weights": {"Psychological": 2, "Mystery": 1}},
+                {"value": "mb_psych", "emoji": "🌀", "label": "Character psychology", "weights": {"Psychological": 2, "Drama": 1}},
+            ],
+        },
+        "q2": {
+            "question": "How much should it hurt?",
+            "hint": "Pick up to 3 — the pain tolerance check.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "mh_full", "emoji": "🔥", "label": "Full mind-fry", "weights": {"Psychological": 3}, "conflicts": ["mh_gentle"]},
+                {"value": "mh_gentle", "emoji": "🌤️", "label": "Gentle introspective", "weights": {"Slice of Life": 1, "Drama": 1}, "conflicts": ["mh_full"]},
+                {"value": "mh_thrill", "emoji": "🎢", "label": "Thrilling ride", "weights": {"Thriller": 2}},
+                {"value": "mh_reward", "emoji": "💡", "label": "Aha! moments", "weights": {"Mystery": 2}},
+            ],
+        },
+    },
+    "spook": {
+        "q1": {
+            "question": "What kind of spooky?",
+            "hint": "Pick up to 3 — your fear flavor.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "sp_ghosts", "emoji": "👻", "label": "Ghosts & spirits", "weights": {"Supernatural": 3}},
+                {"value": "sp_psych", "emoji": "🌀", "label": "Psychological horror", "weights": {"Psychological": 2, "Horror": 1}},
+                {"value": "sp_monsters", "emoji": "👹", "label": "Monsters & creatures", "weights": {"Horror": 2, "Supernatural": 1}},
+                {"value": "sp_mystery", "emoji": "🔮", "label": "Creepy mysteries", "weights": {"Mystery": 2, "Supernatural": 1}},
+                {"value": "sp_gore", "emoji": "🩸", "label": "Gore & body horror", "weights": {"Horror": 2}, "conflicts": ["sp_light"]},
+                {"value": "sp_light", "emoji": "🌙", "label": "Spooky but light", "weights": {"Supernatural": 1, "Comedy": 1}, "conflicts": ["sp_gore"]},
+            ],
+        },
+        "q2": {
+            "question": "How do you want to feel after?",
+            "hint": "Pick up to 3 — the aftermath you're after.",
+            "multi": True, "max": 3,
+            "options": [
+                {"value": "sa_shook", "emoji": "😨", "label": "Shook", "weights": {"Horror": 2, "Psychological": 2}},
+                {"value": "sa_relief", "emoji": "😮‍💨", "label": "Relieved it ended", "weights": {"Thriller": 1, "Mystery": 1}},
+                {"value": "sa_curious", "emoji": "🤔", "label": "Wanting answers", "weights": {"Mystery": 2}},
+                {"value": "sa_thrill", "emoji": "🎢", "label": "Thrilled, not traumatized", "weights": {"Thriller": 2, "Supernatural": 1}},
+            ],
+        },
+    },
+}
+
+
+_OPTION_WEIGHTS = {}
+for _q in [_TASTE_Q, _MOOD_Q] + [
+    q for b in _BRANCH_QUESTIONS.values() for q in (b["q1"], b["q2"])
+] + [q for m in _MOOD_QUESTIONS.values() for q in (m["q1"], m["q2"])]:
+    for _o in _q["options"]:
+        _OPTION_WEIGHTS[_o["value"]] = _o.get("weights", {})
+
+
+_FRANCHISE_RE = re.compile(
+    r"-(?:2nd|3rd|4th|5th|s\d+|season|part|ova|movie|film|special|tv|remake|rebirth|the-movie|the-movie-.*|\d+).*$"
+)
+
+
+def _pub_question(q):
+    """Strip scoring weights so the client only gets display data."""
+    return {
+        "question": q["question"],
+        "hint": q.get("hint", ""),
+        "multi": q.get("multi", False),
+        "max": q.get("max", 1),
+        "options": [
+            {"value": o["value"], "emoji": o.get("emoji", ""),
+             "label": o["label"], "conflicts": o.get("conflicts", [])}
+            for o in q["options"]
+        ],
+    }
+
+
+def _quiz_flow_json():
+    return {
+        "taste": _pub_question(_TASTE_Q),
+        "mood": _pub_question(_MOOD_Q),
+        "branches": {
+            k: {"q1": _pub_question(v["q1"]), "q2": _pub_question(v["q2"])}
+            for k, v in _BRANCH_QUESTIONS.items()
+        },
+        "moods": {
+            k: {"q1": _pub_question(v["q1"]), "q2": _pub_question(v["q2"])}
+            for k, v in _MOOD_QUESTIONS.items()
+        },
+    }
 
 
 def _quiz_score_entry(entry, weights):
@@ -903,35 +1296,30 @@ def _quiz_score_entry(entry, weights):
     return total
 
 
-def _quiz_length_filter(value):
-    def pred(entry):
-        try:
-            eps = int(entry.get("total_episodes") or 0)
-        except (TypeError, ValueError):
-            return True
-        if value == "short":
-            return eps <= 12
-        if value == "cour":
-            return 13 <= eps <= 26
-        if value == "long":
-            return 27 <= eps <= 100
-        if value == "marathon":
-            return eps > 100
-        return True
-
-    return pred
+def _diverse_top(pool, n):
+    """Top-n picks with light franchise dedupe so a single show's seasons
+    don't hog every recommendation slot."""
+    picked = []
+    seen = set()
+    for score, slug in pool:
+        if len(picked) >= n:
+            break
+        base = _FRANCHISE_RE.sub("", slug)
+        if base in seen:
+            continue
+        seen.add(base)
+        picked.append(slug)
+    return picked
 
 
 def _run_quiz(answers):
     weights = {}
-    for q in _quiz_questions():
-        value = answers.get(q["key"], "")
-        if not value:
-            continue
-        for opt in q["options"]:
-            if opt["value"] == value:
-                for genre, w in opt["weights"].items():
-                    weights[genre] = weights.get(genre, 0) + w
+    for key, values in answers.items():
+        if isinstance(values, str):
+            values = [values]
+        for value in values or []:
+            for genre, w in (_OPTION_WEIGHTS.get(value) or {}).items():
+                weights[genre] = weights.get(genre, 0) + w
 
     pool = []
     for slug, entry in anime_database.items():
@@ -943,18 +1331,35 @@ def _run_quiz(answers):
         pool.append((scored, slug))
     pool.sort(key=lambda x: x[0], reverse=True)
 
-    length = answers.get("length", "")
-    if length and length != "any":
-        pred = _quiz_length_filter(length)
-        filtered = [x for x in pool if pred(anime_database[x[1]])]
-        if len(filtered) >= 3:
-            pool = filtered
-
-    top = [slug for _, slug in pool[:15]]
-    random.shuffle(top)
-
     top_genres = [g for g, w in sorted(weights.items(), key=lambda kv: -kv[1]) if w > 0][:5]
-    return top_genres, top[:5]
+    return top_genres, _diverse_top(pool, 4)
+
+
+def _pick_card(slug):
+    """Build a pick dict shaped for the homepage _anime_card.html partial."""
+    entry = anime_database.get(slug)
+    if entry is None:
+        return None
+    stats = get_anime_stats(slug)
+    live_rating = stats["average"] if stats["votes"] > 0 else entry.get("rating", "N/A")
+    return {
+        "slug": slug,
+        "title": entry.get("title") or slug,
+        "image": entry.get("image") or "",
+        "rating": entry.get("rating") or "N/A",
+        "year": entry.get("release") or "",
+        "genre": entry.get("genre") or "",
+        "total_episodes": entry.get("total_episodes", 0) or 0,
+        "member_count": entry.get("member_count", 0) or 0,
+        "has_sub": bool(entry.get("subtitles")),
+        "has_dub": any(
+            str(d).strip().lower() == "english"
+            for d in (entry.get("dub") or [])
+        ),
+        "arc_count": len(entry.get("watch_order") or []) or len(entry.get("seasons") or []),
+        "live_rating": live_rating,
+        "badge_label": "Your Match",
+    }
 
 
 @app.route("/quiz", methods=["GET", "POST"])
@@ -964,19 +1369,33 @@ def quiz():
         flash("Log in to find anime made for you.", "error")
         return redirect(url_for("auth.login", next=request.path))
 
+    picks = []
+    top_genres = []
+    show_results = False
+
     if request.method == "POST":
-        answers = {
-            q["key"]: (request.form.get(q["key"]) or "").strip()
-            for q in _quiz_questions()
-        }
-        top_genres, slugs = _run_quiz(answers)
-        save_quiz_result(user["id"], answers, top_genres, slugs)
-        flash("Quiz saved — your anime picks are ready!", "success")
-        return redirect(url_for("for_you"))
+        steps = ["q1", "q2", "q3", "q4", "q5", "q6"]
+        answers = {}
+        for step in steps:
+            # Support both repeated fields and comma-joined values from the client
+            values = []
+            for v in request.form.getlist(step):
+                values.extend(x.strip() for x in v.split(",") if x.strip())
+            answers[step] = values[0] if len(values) == 1 else values
+        if all(answers.get(s) for s in steps):
+            top_genres, slugs = _run_quiz(answers)
+            save_quiz_result(user["id"], answers, top_genres, slugs)
+            picks = [p for slug in slugs if (p := _pick_card(slug)) is not None]
+            show_results = True
+        else:
+            flash("Please answer every question before getting your picks.", "error")
 
     return render_template(
         "quiz.html",
-        questions=_quiz_questions(),
+        quiz_json=_quiz_flow_json(),
+        picks=picks,
+        top_genres=top_genres,
+        show_results=show_results,
         genres=_genre_list(),
     )
 

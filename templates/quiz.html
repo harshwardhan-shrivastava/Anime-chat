@@ -39,42 +39,47 @@
         <span class="hero-badge">✨ New to Anime</span>
         <h1>Find Your <span>First Anime</span></h1>
         <p>
-            No anime knowledge needed. Answer six simple questions about shows
-            you already like — superheroes, sitcoms, movies — and we'll match
-            you with anime you'll actually enjoy. Picks land on the
-            <strong>New to Anime</strong> tab.
+            No anime knowledge needed. Tell us about the shows you already love —
+            blockbusters, sitcoms, thrillers, cartoons — and in six quick
+            questions we'll match you with <strong>4 anime</strong> you'll
+            actually enjoy. Picks land on the <strong>New to Anime</strong> tab.
         </p>
+        <button type="button" class="quiz-start-btn" id="startQuizBtn">
+            <i class="fas fa-wand-magic-sparkles"></i> Start the Quiz
+        </button>
     </section>
 
-    <section class="quiz-shell">
-        <div class="quiz-progress-wrap">
-            <div class="quiz-progress-track">
-                <div class="quiz-progress-fill" id="progressFill"></div>
-            </div>
-            <span class="quiz-step-count" id="stepCount">1 / {{ questions | length }}</span>
-        </div>
+    <!-- Hidden submission form (answers are gathered in the modal flow) -->
+    <form method="post" action="{{ url_for('quiz') }}" id="quizForm" class="quiz-form">
+        <input type="hidden" name="q1" id="inpQ1">
+        <input type="hidden" name="q2" id="inpQ2">
+        <input type="hidden" name="q3" id="inpQ3">
+        <input type="hidden" name="q4" id="inpQ4">
+        <input type="hidden" name="q5" id="inpQ5">
+        <input type="hidden" name="q6" id="inpQ6">
+    </form>
 
-        <form method="post" action="{{ url_for('quiz') }}" class="quiz-form" id="quizForm">
-            {% for q in questions %}
-            <div class="quiz-step {% if loop.first %}active{% endif %}" data-step="{{ loop.index }}">
-                <div class="quiz-q-head">
-                    <span class="quiz-q-tag">Question {{ loop.index }}</span>
-                    <h2>{{ q.question }}</h2>
-                    <p>{{ q.hint }}</p>
+    <!-- Question pop-up -->
+    <div class="quiz-modal-overlay" id="quizOverlay" hidden>
+        <div class="quiz-modal" id="quizModalBox" role="dialog" aria-modal="true" aria-labelledby="qTitle">
+            <button type="button" class="quiz-modal-close" id="quizClose" aria-label="Close quiz">
+                <span class="modal-x"></span>
+            </button>
+
+            <div class="quiz-progress-wrap">
+                <div class="quiz-progress-track">
+                    <div class="quiz-progress-fill" id="progressFill"></div>
                 </div>
-                <div class="quiz-options {% if q.key == 'genre' %}quiz-options-genres{% endif %}">
-                    {% for opt in q.options %}
-                    <label class="quiz-opt">
-                        <input type="radio" name="{{ q.key }}" value="{{ opt.value }}">
-                        <span class="quiz-opt-card">
-                            <span class="quiz-opt-emoji">{{ opt.emoji }}</span>
-                            <span class="quiz-opt-label">{{ opt.label }}</span>
-                        </span>
-                    </label>
-                    {% endfor %}
-                </div>
+                <span class="quiz-step-count" id="stepCount">1 / 6</span>
             </div>
-            {% endfor %}
+
+            <div class="quiz-q-head">
+                <span class="quiz-q-tag" id="qTag">Question 1</span>
+                <h2 id="qTitle"></h2>
+                <p id="qHint"></p>
+            </div>
+
+            <div class="quiz-options" id="qOptions"></div>
 
             <div class="quiz-nav">
                 <button type="button" class="quiz-btn quiz-btn-ghost" id="backBtn">
@@ -83,12 +88,44 @@
                 <button type="button" class="quiz-btn quiz-btn-primary" id="nextBtn" disabled>
                     Next <i class="fas fa-arrow-right"></i>
                 </button>
-                <button type="submit" class="quiz-btn quiz-btn-primary" id="submitBtn" hidden>
-                    <i class="fas fa-wand-magic-sparkles"></i> Get My Anime
-                </button>
             </div>
-        </form>
-    </section>
+        </div>
+    </div>
+
+    <div class="quiz-toast" id="quizToast" hidden></div>
+
+    <!-- Results pop-up: 4 cards at homepage card size -->
+    {% if picks %}
+    <div class="quiz-modal-overlay" id="resultsOverlay" {% if not show_results %}hidden{% endif %}>
+        <div class="quiz-modal quiz-results-modal" role="dialog" aria-modal="true">
+            <button type="button" class="quiz-modal-close" id="resultsClose" aria-label="Close results">
+                <span class="modal-x"></span>
+            </button>
+            <div class="quiz-results-head">
+                <span class="hero-badge">🎯 Your Anime Picks</span>
+                <h2>Matched for <span>You</span></h2>
+                <p>
+                    4 shows picked for you
+                    {% if top_genres %}— matched on
+                    {% for genre in top_genres %}<span class="genre-chip-mini">{{ genre }}</span>{% endfor %}
+                    {% endif %}
+                </p>
+            </div>
+            <div class="quiz-results-grid">
+                {% for pick in picks %}
+                {% with anime=pick %}
+                {% include "_anime_card.html" %}
+                {% endwith %}
+                {% endfor %}
+            </div>
+            <div class="quiz-results-foot">
+                <a href="{{ url_for('for_you') }}" class="quiz-btn quiz-btn-primary">
+                    <i class="fas fa-bookmark"></i> Save these to my page
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <footer>
         <div class="footer-left">
@@ -113,60 +150,221 @@
     <script>
         (function () {
             "use strict";
-            var steps = Array.prototype.slice.call(document.querySelectorAll(".quiz-step"));
-            var total = steps.length;
-            var current = 0;
-            var fill = document.getElementById("progressFill");
-            var count = document.getElementById("stepCount");
+
+            var DATA = {{ quiz_json | tojson }};
+
+            var overlay = document.getElementById("quizOverlay");
+            var modalBox = document.getElementById("quizModalBox");
+            var resultsOverlay = document.getElementById("resultsOverlay");
+            var qTitle = document.getElementById("qTitle");
+            var qHint = document.getElementById("qHint");
+            var qTag = document.getElementById("qTag");
+            var qOptions = document.getElementById("qOptions");
             var nextBtn = document.getElementById("nextBtn");
             var backBtn = document.getElementById("backBtn");
-            var submitBtn = document.getElementById("submitBtn");
+            var fill = document.getElementById("progressFill");
+            var count = document.getElementById("stepCount");
+            var toast = document.getElementById("quizToast");
+            var form = document.getElementById("quizForm");
 
-            function hasAnswer(step) {
-                return !!step.querySelector("input[type=radio]:checked");
+            var answers = { q1: null, q2: null, q3: [], q4: [], q5: [], q6: [] };
+            var step = 1;
+            var toastTimer = null;
+
+            function stepDef() {
+                if (step === 1) return DATA.taste;
+                if (step === 2) return DATA.mood;
+                if (step === 3) return DATA.branches[answers.q1].q1;
+                if (step === 4) return DATA.moods[answers.q2].q1;
+                if (step === 5) return DATA.branches[answers.q1].q2;
+                return DATA.moods[answers.q2].q2;
             }
 
-            function render() {
-                steps.forEach(function (step, i) {
-                    step.classList.toggle("active", i === current);
-                });
-                fill.style.width = ((current + 1) / total * 100) + "%";
-                count.textContent = (current + 1) + " / " + total;
-                backBtn.style.visibility = current === 0 ? "hidden" : "visible";
-                nextBtn.hidden = current === total - 1;
-                submitBtn.hidden = current !== total - 1;
-                if (current === total - 1) {
-                    submitBtn.disabled = !hasAnswer(steps[current]);
-                } else {
-                    nextBtn.disabled = !hasAnswer(steps[current]);
+            function answered() {
+                var v = answers["q" + step];
+                if (step <= 2) return !!v;
+                return Array.isArray(v) && v.length > 0;
+            }
+
+            function optByValue(def, value) {
+                for (var i = 0; i < def.options.length; i++) {
+                    if (def.options[i].value === value) return def.options[i];
                 }
+                return null;
+            }
+
+            function optionConflicts(def, opt, sel) {
+                if ((opt.conflicts || []).some(function (c) { return sel.indexOf(c) >= 0; })) {
+                    return true;
+                }
+                for (var i = 0; i < sel.length; i++) {
+                    var so = optByValue(def, sel[i]);
+                    if (so && (so.conflicts || []).indexOf(opt.value) >= 0) return true;
+                }
+                return false;
+            }
+
+            function showToast(msg) {
+                toast.textContent = msg;
+                toast.hidden = false;
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(function () { toast.hidden = true; }, 2400);
+            }
+
+            function shake() {
+                modalBox.classList.remove("shake");
+                void modalBox.offsetWidth;
+                modalBox.classList.add("shake");
+            }
+
+            function renderOptions() {
+                var def = stepDef();
+                var sel = answers["q" + step];
+                var multi = !!def.multi;
+
+                qTag.textContent = "Question " + step;
+                qTitle.textContent = def.question;
+                qHint.textContent = def.hint || "";
+                count.textContent = step + " / 6";
+                fill.style.width = (step / 6 * 100) + "%";
+                qOptions.innerHTML = "";
+
+                def.options.forEach(function (opt) {
+                    var btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.className = multi ? "quiz-chip" : "quiz-opt-card";
+
+                    var emoji = document.createElement("span");
+                    emoji.className = "quiz-opt-emoji";
+                    emoji.textContent = opt.emoji;
+                    var label = document.createElement("span");
+                    label.className = "quiz-opt-label";
+                    label.textContent = opt.label;
+                    btn.appendChild(emoji);
+                    btn.appendChild(label);
+
+                    var isSel = step <= 2 ? sel === opt.value : sel.indexOf(opt.value) >= 0;
+                    if (isSel) btn.classList.add("selected");
+
+                    if (multi && !isSel) {
+                        var maxed = sel.length >= def.max;
+                        var clashes = optionConflicts(def, opt, sel);
+                        if (maxed || clashes) btn.classList.add("dimmed");
+                    }
+
+                    btn.addEventListener("click", function () { pickOption(opt.value); });
+                    qOptions.appendChild(btn);
+                });
+
+                backBtn.style.visibility = step === 1 ? "hidden" : "visible";
+                if (step === 6) {
+                    nextBtn.innerHTML = 'Get My Anime <i class="fas fa-wand-magic-sparkles"></i>';
+                } else {
+                    nextBtn.innerHTML = 'Next <i class="fas fa-arrow-right"></i>';
+                }
+                nextBtn.disabled = !answered();
+            }
+
+            function pickOption(value) {
+                if (step <= 2) {
+                    if (answers["q" + step] === value) return;
+                    answers["q" + step] = value;
+                    if (step === 1 || step === 2) {
+                        answers.q3 = [];
+                        answers.q4 = [];
+                        answers.q5 = [];
+                        answers.q6 = [];
+                    }
+                    renderOptions();
+                    return;
+                }
+                var def = stepDef();
+                var sel = answers["q" + step];
+                var idx = sel.indexOf(value);
+                if (idx >= 0) {
+                    sel.splice(idx, 1);
+                } else {
+                    if (sel.length >= def.max) {
+                        showToast("You can pick up to " + def.max + " — pick your favorites");
+                        shake();
+                        return;
+                    }
+                    var opt = optByValue(def, value);
+                    if (optionConflicts(def, opt, sel)) {
+                        showToast("That clashes with one you picked — opposites can't both win 😅");
+                        shake();
+                        return;
+                    }
+                    sel.push(value);
+                }
+                renderOptions();
+            }
+
+            function submitQuiz() {
+                ["q1", "q2", "q3", "q4", "q5", "q6"].forEach(function (k) {
+                    var v = answers[k];
+                    document.getElementById("inp" + k.toUpperCase()).value =
+                        Array.isArray(v) ? v.join(",") : (v || "");
+                });
+                form.submit();
+            }
+
+            function openQuiz() {
+                step = 1;
+                while (step < 6 && answered()) step += 1;
+                renderOptions();
+                overlay.hidden = false;
+                document.body.style.overflow = "hidden";
+            }
+
+            function closeQuiz() {
+                overlay.hidden = true;
+                document.body.style.overflow = "";
             }
 
             nextBtn.addEventListener("click", function () {
-                if (hasAnswer(steps[current]) && current < total - 1) {
-                    current += 1;
-                    render();
+                if (!answered()) return;
+                if (step < 6) {
+                    step += 1;
+                    renderOptions();
+                } else {
+                    submitQuiz();
                 }
             });
 
             backBtn.addEventListener("click", function () {
-                if (current > 0) {
-                    current -= 1;
-                    render();
+                if (step > 1) {
+                    step -= 1;
+                    renderOptions();
                 }
             });
 
-            steps.forEach(function (step) {
-                step.addEventListener("change", function () {
-                    if (current === total - 1) {
-                        submitBtn.disabled = !hasAnswer(steps[current]);
-                    } else {
-                        nextBtn.disabled = !hasAnswer(steps[current]);
-                    }
-                });
+            document.getElementById("startQuizBtn").addEventListener("click", openQuiz);
+            document.getElementById("quizClose").addEventListener("click", closeQuiz);
+            overlay.addEventListener("click", function (e) {
+                if (e.target === overlay) closeQuiz();
+            });
+            document.addEventListener("keydown", function (e) {
+                if (e.key === "Escape" && !overlay.hidden) closeQuiz();
             });
 
-            render();
+            if (resultsOverlay) {
+                var resultsClose = document.getElementById("resultsClose");
+                function closeResults() {
+                    resultsOverlay.hidden = true;
+                    document.body.style.overflow = "";
+                }
+                resultsClose.addEventListener("click", closeResults);
+                resultsOverlay.addEventListener("click", function (e) {
+                    if (e.target === resultsOverlay) closeResults();
+                });
+                document.addEventListener("keydown", function (e) {
+                    if (e.key === "Escape" && !resultsOverlay.hidden) closeResults();
+                });
+                if (!resultsOverlay.hidden) {
+                    document.body.style.overflow = "hidden";
+                }
+            }
         })();
     </script>
 </body>
