@@ -78,7 +78,7 @@ def profile():
         return redirect(url_for("auth.login", next=request.path))
 
     tab = request.args.get("tab", "history")
-    if tab not in ("history", "lists"):
+    if tab not in ("history", "lists", "settings"):
         tab = "history"
 
     history = []
@@ -92,12 +92,14 @@ def profile():
             history.append(pick)
 
     lists = [_list_pub(lst) for lst in _user_lists(user["id"])]
+    history_count = len(get_view_history(user["id"], 100000))
 
     return render_template(
         "profile.html",
         user=user,
         tab=tab,
         history=history,
+        history_count=history_count,
         lists=lists,
         max_lists=MAX_USER_LISTS,
         genres=_genre_list(),
