@@ -273,6 +273,18 @@ def create_tables():
             PRIMARY KEY (user_id, blocked_id)
         )
     """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS thr_reports(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            message_id INTEGER NOT NULL,
+            reporter_id INTEGER NOT NULL,
+            reason TEXT,
+            status TEXT DEFAULT 'open',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (message_id) REFERENCES thr_messages(id)
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_thr_reports_status ON thr_reports(status)")
 
     # ---- Notifications -----------------------------------------------------------
     cur.execute("""
@@ -608,9 +620,7 @@ def set_conversation_role(conv_id, user_id, role):
     )
     conn.commit()
     conn.close()
-
-
-# ---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
 # Messages — the unified engine
 # ---------------------------------------------------------------------------
 
@@ -711,9 +721,16 @@ def get_message(msg_id):
     return dict(row) if row else None
 
 
-def get_messages(context_type, context_id, before_id=None, limit=60):
+def get_messages(context_type, context_id, before_id=None, limit=60, exclude_user_ids=None):
     """History: the last `limit` messages, newest first in SQL, returned
-    oldest-first."""
+    oldest-first. Pass exclude_user_ids (e.g. people you blocked) to hide
+    their messages."""
+    block_sql = ""
+    block_args = ()
+    if exclude_user_ids:
+        placeholders = ",".join("?" for _ in exclude_user_ids)
+        block_sql = f" AND sender_id NOT IN ({placeholders})"
+        block_args = tuple(exclude_user_ids)
     conn = get_connection()
     cur = conn.cursor()
     if before_id:
@@ -721,39 +738,45 @@ def get_messages(context_type, context_id, before_id=None, limit=60):
             """
             SELECT * FROM (
                 SELECT * FROM thr_messages
-                WHERE context_type = ? AND context_id = ? AND id < ?
+                WHERE context_type = ? AND context_id = ? AND id < ?%s
                 ORDER BY id DESC LIMIT ?
             ) ORDER BY id ASC
-            """,
-            (context_type, context_id, before_id, limit),
+            """ % block_sql,
+            (context_type, context_id, before_id) + block_args + (limit,),
         )
     else:
         cur.execute(
             """
             SELECT * FROM (
                 SELECT * FROM thr_messages
-                WHERE context_type = ? AND context_id = ?
+                WHERE context_type = ? AND context_id = ?%s
                 ORDER BY id DESC LIMIT ?
             ) ORDER BY id ASC
-            """,
-            (context_type, context_id, limit),
+            """ % block_sql,
+            (context_type, context_id) + block_args + (limit,),
         )
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
     return rows
 
 
-def get_messages_after(context_type, context_id, after_id, limit=200):
+def get_messages_after(context_type, context_id, after_id, limit=200, exclude_user_ids=None):
     """Incremental poll: every message newer than after_id, oldest first."""
+    block_sql = ""
+    block_args = ()
+    if exclude_user_ids:
+        placeholders = ",".join("?" for _ in exclude_user_ids)
+        block_sql = f" AND sender_id NOT IN ({placeholders})"
+        block_args = tuple(exclude_user_ids)
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
         """
         SELECT * FROM thr_messages
-        WHERE context_type = ? AND context_id = ? AND id > ?
+        WHERE context_type = ? AND context_id = ? AND id > ?%s
         ORDER BY id ASC LIMIT ?
-        """,
-        (context_type, context_id, after_id, limit),
+        """ % block_sql,
+        (context_type, context_id, after_id) + block_args + (limit,),
     )
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
@@ -829,13 +852,16 @@ def can_access_context(context_type, context_id, user_id):
     if context_type == "channel":
         conn = get_connection()
         cur = conn.cursor()
+        # Membership required AND not banned from the community.
         cur.execute(
             """
             SELECT 1 FROM thr_channels ch
             JOIN thr_community_members m ON m.community_id = ch.community_id
-            WHERE ch.id = ? AND m.user_id = ?
+            LEFT JOIN thr_community_bans b
+              ON b.community_id = ch.community_id AND b.user_id = ?
+            WHERE ch.id = ? AND m.user_id = ? AND b.user_id IS NULL
             """,
-            (context_id, user_id),
+            (user_id, context_id, user_id),
         )
         ok = cur.fetchone() is not None
         conn.close()
@@ -1029,3 +1055,866 @@ def get_thread_message_counts(parent_id):
     n = cur.fetchone()["n"]
     conn.close()
     return n
+# ===========================================================================
+# Communities (Phase 2)
+# ===========================================================================
+
+DEFAULT_CHANNELS = [
+    ("general", "General discussion for the community"),
+    ("spoilers", "Manga / future-episode spoilers only"),
+    ("fan-art", "Art, edits and memes"),
+    ("episode-discussion", "Live reactions to episodes"),
+]
+
+DEFAULT_RULES = (
+    "1. Be kind and respectful.\n"
+    "2. Keep spoilers in #spoilers.\n"
+    "3. No harassment, hate speech or NSFW content.\n"
+    "4. Follow the moderators' instructions."
+)
+
+COMMUNITY_ROLES = ("owner", "moderator", "member")
+
+
+def get_community(cid):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM thr_communities WHERE id = ?", (cid,))
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_channel(chid):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM thr_channels WHERE id = ?", (chid,))
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def community_member_count(cid):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT COUNT(*) AS n FROM thr_community_members WHERE community_id = ?",
+        (cid,),
+    )
+    n = cur.fetchone()["n"]
+    conn.close()
+    return n
+
+
+def create_community(name, description, genre, owner_id, icon_color=None):
+    """Create a community owned by the caller, with the four default channels."""
+    conn = get_connection()
+    cur = conn.cursor()
+    slug = re.sub(r"[^a-z0-9]+", "-", (name or "").strip().lower()).strip("-")
+    if not slug:
+        slug = "community"
+    base = slug
+    n = 1
+    while True:
+        cur.execute("SELECT id FROM thr_communities WHERE slug = ?", (slug,))
+        if cur.fetchone() is None:
+            break
+        n += 1
+        slug = f"{base}-{n}"
+    cur.execute(
+        """
+        INSERT INTO thr_communities
+        (name, slug, description, genre, icon_color, is_public, owner_id, rules)
+        VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+        """,
+        (name.strip(), slug, (description or "").strip(), (genre or "").strip(),
+         icon_color or "#8b5cf6", owner_id, DEFAULT_RULES),
+    )
+    cid = cur.lastrowid
+    cur.execute(
+        "INSERT INTO thr_community_members (community_id, user_id, role) VALUES (?, ?, 'owner')",
+        (cid, owner_id),
+    )
+    for ch_name, topic in DEFAULT_CHANNELS:
+        cur.execute(
+            "INSERT INTO thr_channels (community_id, name, topic, is_default) VALUES (?, ?, ?, 1)",
+            (cid, ch_name, topic),
+        )
+    conn.commit()
+    conn.close()
+    return cid
+
+
+def _channel_unread(cur, ch, user_id):
+    """Unread message count for one channel row (caller holds the cursor)."""
+    cur.execute(
+        """
+        SELECT COALESCE((
+            SELECT COUNT(*) FROM thr_messages m
+            WHERE m.context_type = 'channel' AND m.context_id = ?
+              AND m.id > COALESCE((SELECT last_read_message_id
+                                   FROM thr_channel_reads
+                                   WHERE channel_id = ? AND user_id = ?), 0)
+              AND m.sender_id != ? AND m.deleted_at IS NULL
+        ), 0) AS n
+        """,
+        (ch["id"], ch["id"], user_id, user_id),
+    )
+    return cur.fetchone()["n"] or 0
+
+
+def get_community_channels(cid, user_id):
+    """Channels of a community with unread counts and live-party flags."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT ch.*,
+               EXISTS(
+                   SELECT 1 FROM thr_watch_parties wp
+                   WHERE wp.channel_id = ch.id
+                     AND datetime(wp.scheduled_time) <= datetime('now')
+               ) AS has_live_party
+        FROM thr_channels ch
+        WHERE ch.community_id = ?
+        ORDER BY ch.is_default DESC, ch.id ASC
+        """,
+        (cid,),
+    )
+    out = []
+    for row in cur.fetchall():
+        ch = dict(row)
+        ch["unread"] = _channel_unread(cur, ch, user_id)
+        ch["has_live_party"] = bool(ch["has_live_party"])
+        out.append(ch)
+    conn.close()
+    return out
+
+
+def get_user_communities(user_id):
+    """Rail list: communities the user belongs to, each with its channels,
+    total unread and per-community mute flag."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT c.*, m.role, m.muted,
+               (SELECT COUNT(*) FROM thr_community_members
+                WHERE community_id = c.id) AS member_count
+        FROM thr_communities c
+        JOIN thr_community_members m ON m.community_id = c.id AND m.user_id = ?
+        ORDER BY c.id ASC
+        """,
+        (user_id,),
+    )
+    out = []
+    for row in cur.fetchall():
+        c = dict(row)
+        channels = get_community_channels(c["id"], user_id)
+        c["channels"] = channels
+        c["unread"] = sum(ch["unread"] for ch in channels)
+        c["member_count"] = c.get("member_count") or 0
+        c["muted"] = bool(c["muted"])
+        c["role"] = c.get("role") or "member"
+        out.append(c)
+    conn.close()
+    return out
+
+
+def get_community_detail(cid, user_id):
+    """Everything the Communities tab needs for one community: info, my role,
+    members with roles, channels, open reports (mods only)."""
+    community = get_community(cid)
+    if not community:
+        return None
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT role FROM thr_community_members WHERE community_id = ? AND user_id = ?",
+        (cid, user_id),
+    )
+    me = cur.fetchone()
+    if not me:
+        conn.close()
+        return None
+    cur.execute(
+        """
+        SELECT u.id, u.username, u.avatar_color, m.role, m.muted, m.joined_at
+        FROM thr_community_members m
+        JOIN users u ON u.id = m.user_id
+        WHERE m.community_id = ?
+        ORDER BY m.joined_at ASC
+        """,
+        (cid,),
+    )
+    members = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        "SELECT u.id, u.username FROM thr_community_bans b JOIN users u ON u.id = b.user_id WHERE b.community_id = ?",
+        (cid,),
+    )
+    banned = [dict(r) for r in cur.fetchall()]
+    reports = []
+    my_role = me["role"]
+    if my_role in ("owner", "moderator"):
+        cur.execute(
+            """
+            SELECT r.*, m.content, u.username AS reporter
+            FROM thr_reports r
+            JOIN thr_messages m ON m.id = r.message_id
+            JOIN users u ON u.id = r.reporter_id
+            WHERE r.status = 'open'
+              AND m.context_type = 'channel'
+              AND m.context_id IN (SELECT id FROM thr_channels WHERE community_id = ?)
+            ORDER BY r.id DESC LIMIT 50
+            """,
+            (cid,),
+        )
+        reports = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    community = dict(community)
+    community["member_count"] = community_member_count(cid)
+    return {
+        "community": community,
+        "my_role": my_role,
+        "members": members,
+        "banned": banned,
+        "reports": reports,
+    }
+
+
+def discover_communities(user_id, genre=None, q=None):
+    """Public communities the user hasn't joined, with member counts."""
+    conn = get_connection()
+    cur = conn.cursor()
+    sql = """
+        SELECT c.*,
+               (SELECT COUNT(*) FROM thr_community_members
+                WHERE community_id = c.id) AS member_count
+        FROM thr_communities c
+        WHERE c.is_public = 1
+          AND NOT EXISTS (SELECT 1 FROM thr_community_members m
+                          WHERE m.community_id = c.id AND m.user_id = ?)
+    """
+    args = [user_id]
+    if genre:
+        sql += " AND c.genre = ?"
+        args.append(genre)
+    if q:
+        sql += " AND (c.name LIKE ? OR c.description LIKE ? OR c.genre LIKE ?)"
+        like = f"%{q.strip()}%"
+        args += [like, like, like]
+    sql += " ORDER BY member_count DESC, c.id ASC LIMIT 50"
+    cur.execute(sql, tuple(args))
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
+
+
+def is_community_member(cid, user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT 1 FROM thr_community_members WHERE community_id = ? AND user_id = ?",
+        (cid, user_id),
+    )
+    ok = cur.fetchone() is not None
+    conn.close()
+    return ok
+
+
+def get_member_role(cid, user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT role FROM thr_community_members WHERE community_id = ? AND user_id = ?",
+        (cid, user_id),
+    )
+    row = cur.fetchone()
+    conn.close()
+    return row["role"] if row else None
+
+
+def is_banned(cid, user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT 1 FROM thr_community_bans WHERE community_id = ? AND user_id = ?",
+        (cid, user_id),
+    )
+    ok = cur.fetchone() is not None
+    conn.close()
+    return ok
+
+
+def is_community_moderator(cid, user_id):
+    role = get_member_role(cid, user_id)
+    return role in ("owner", "moderator")
+
+
+def join_community(cid, user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT OR IGNORE INTO thr_community_members (community_id, user_id, role) VALUES (?, ?, 'member')",
+        (cid, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def leave_community(cid, user_id):
+    """Leave a community. The owner transfers ownership to the earliest
+    moderator, else the earliest member. An empty community is deleted."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT role FROM thr_community_members WHERE community_id = ? AND user_id = ?",
+        (cid, user_id),
+    )
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return False
+    role = row["role"]
+    cur.execute(
+        "DELETE FROM thr_community_members WHERE community_id = ? AND user_id = ?",
+        (cid, user_id),
+    )
+    cur.execute("DELETE FROM thr_channel_reads WHERE user_id = ? AND channel_id IN (SELECT id FROM thr_channels WHERE community_id = ?)", (user_id, cid))
+    if role == "owner":
+        cur.execute(
+            "SELECT user_id FROM thr_community_members WHERE community_id = ? ORDER BY joined_at ASC LIMIT 1",
+            (cid,),
+        )
+        nxt = cur.fetchone()
+        if nxt:
+            cur.execute(
+                "UPDATE thr_community_members SET role = 'owner' WHERE community_id = ? AND user_id = ?",
+                (cid, nxt["user_id"]),
+            )
+        else:
+            cur.execute("DELETE FROM thr_communities WHERE id = ?", (cid,))
+    conn.commit()
+    conn.close()
+    return True
+
+
+def remove_member(cid, user_id):
+    """Kick a member out (owner/moderator action). The owner cannot be kicked."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT role FROM thr_community_members WHERE community_id = ? AND user_id = ?",
+        (cid, user_id),
+    )
+    row = cur.fetchone()
+    if not row or row["role"] == "owner":
+        conn.close()
+        return False
+    cur.execute(
+        "DELETE FROM thr_community_members WHERE community_id = ? AND user_id = ?",
+        (cid, user_id),
+    )
+    cur.execute(
+        "DELETE FROM thr_channel_reads WHERE user_id = ? AND channel_id IN (SELECT id FROM thr_channels WHERE community_id = ?)",
+        (user_id, cid),
+    )
+    conn.commit()
+    conn.close()
+    return True
+
+
+def set_member_role(cid, user_id, role):
+    if role not in COMMUNITY_ROLES:
+        return False
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT role FROM thr_community_members WHERE community_id = ? AND user_id = ?",
+        (cid, user_id),
+    )
+    row = cur.fetchone()
+    if not row or row["role"] == "owner":
+        conn.close()
+        return False  # owner can't be demoted; unknown user
+    cur.execute(
+        "UPDATE thr_community_members SET role = ? WHERE community_id = ? AND user_id = ?",
+        (role, cid, user_id),
+    )
+    conn.commit()
+    conn.close()
+    return True
+
+
+def ban_member(cid, user_id, banned_by, reason=None):
+    """Ban a user: add to bans and drop their membership."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT role FROM thr_community_members WHERE community_id = ? AND user_id = ?",
+        (cid, user_id),
+    )
+    row = cur.fetchone()
+    if row and row["role"] == "owner":
+        conn.close()
+        return False
+    cur.execute(
+        "INSERT OR REPLACE INTO thr_community_bans (community_id, user_id, banned_by, reason) VALUES (?, ?, ?, ?)",
+        (cid, user_id, banned_by, reason),
+    )
+    cur.execute(
+        "DELETE FROM thr_community_members WHERE community_id = ? AND user_id = ?",
+        (cid, user_id),
+    )
+    cur.execute(
+        "DELETE FROM thr_channel_reads WHERE user_id = ? AND channel_id IN (SELECT id FROM thr_channels WHERE community_id = ?)",
+        (user_id, cid),
+    )
+    conn.commit()
+    conn.close()
+    return True
+
+
+def unban_member(cid, user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "DELETE FROM thr_community_bans WHERE community_id = ? AND user_id = ?",
+        (cid, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def set_community_muted(cid, user_id, muted):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE thr_community_members SET muted = ? WHERE community_id = ? AND user_id = ?",
+        (1 if muted else 0, cid, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def set_member_muted(cid, user_id, muted):
+    """Mod action: mute a member so they can't post."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE thr_community_members SET muted = ? WHERE community_id = ? AND user_id = ?",
+        (1 if muted else 0, cid, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_member_muted(cid, user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT muted FROM thr_community_members WHERE community_id = ? AND user_id = ?",
+        (cid, user_id),
+    )
+    row = cur.fetchone()
+    conn.close()
+    return bool(row and row["muted"])
+
+
+def update_community(cid, name=None, description=None, genre=None, icon_color=None, rules=None):
+    sets, args = [], []
+    if name is not None:
+        sets.append("name = ?")
+        args.append(name.strip())
+    if description is not None:
+        sets.append("description = ?")
+        args.append((description or "").strip())
+    if genre is not None:
+        sets.append("genre = ?")
+        args.append((genre or "").strip())
+    if icon_color is not None:
+        sets.append("icon_color = ?")
+        args.append(icon_color)
+    if rules is not None:
+        sets.append("rules = ?")
+        args.append((rules or "").strip())
+    if not sets:
+        return False
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(f"UPDATE thr_communities SET {', '.join(sets)} WHERE id = ?", tuple(args) + (cid,))
+    conn.commit()
+    conn.close()
+    return True
+
+
+def create_channel(cid, name, topic=None):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO thr_channels (community_id, name, topic) VALUES (?, ?, ?)",
+        (cid, name.strip(), (topic or "").strip()),
+    )
+    chid = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return chid
+
+
+def rename_channel(chid, name=None, topic=None):
+    sets, args = [], []
+    if name is not None:
+        sets.append("name = ?")
+        args.append(name.strip())
+    if topic is not None:
+        sets.append("topic = ?")
+        args.append((topic or "").strip())
+    if not sets:
+        return False
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(f"UPDATE thr_channels SET {', '.join(sets)} WHERE id = ?", tuple(args) + (chid,))
+    conn.commit()
+    conn.close()
+    return True
+
+
+def delete_channel(chid):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM thr_channels WHERE id = ?", (chid,))
+    conn.commit()
+    conn.close()
+
+
+def mark_channel_read(chid, user_id, message_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO thr_channel_reads (channel_id, user_id, last_read_message_id)
+        VALUES (?, ?, ?)
+        ON CONFLICT(channel_id, user_id)
+        DO UPDATE SET last_read_message_id = excluded.last_read_message_id
+        """,
+        (chid, user_id, message_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def log_mod_action(cid, actor_id, action, target_user_id=None, target_message_id=None, reason=None):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO thr_mod_log
+        (community_id, actor_id, action, target_user_id, target_message_id, reason)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (cid, actor_id, action, target_user_id, target_message_id, reason),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_mod_log(cid, limit=50):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT l.*, a.username AS actor, t.username AS target
+        FROM thr_mod_log l
+        LEFT JOIN users a ON a.id = l.actor_id
+        LEFT JOIN users t ON t.id = l.target_user_id
+        WHERE l.community_id = ?
+        ORDER BY l.id DESC LIMIT ?
+        """,
+        (cid, limit),
+    )
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
+
+
+def report_message(message_id, reporter_id, reason=None):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO thr_reports (message_id, reporter_id, reason) VALUES (?, ?, ?)",
+        (message_id, reporter_id, (reason or "").strip()[:500]),
+    )
+    rid = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return rid
+
+
+def resolve_report(report_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE thr_reports SET status = 'resolved' WHERE id = ? AND status = 'open'",
+        (report_id,),
+    )
+    ok = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return ok
+
+
+def block_user(user_id, blocked_id):
+    if user_id == blocked_id:
+        return False
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT OR IGNORE INTO thr_user_blocks (user_id, blocked_id) VALUES (?, ?)",
+        (user_id, blocked_id),
+    )
+    conn.commit()
+    conn.close()
+    return True
+
+
+def unblock_user(user_id, blocked_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "DELETE FROM thr_user_blocks WHERE user_id = ? AND blocked_id = ?",
+        (user_id, blocked_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_blocked_ids(user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT blocked_id FROM thr_user_blocks WHERE user_id = ?", (user_id,))
+    ids = [r["blocked_id"] for r in cur.fetchall()]
+    conn.close()
+    return ids
+
+
+def get_community_members_public(cid):
+    """Member rows with roles — used to power channel chat (mention list)."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT u.id, u.username, u.avatar_color, m.role, m.muted, m.joined_at
+        FROM thr_community_members m
+        JOIN users u ON u.id = m.user_id
+        WHERE m.community_id = ?
+        ORDER BY m.joined_at ASC
+        """,
+        (cid,),
+    )
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
+
+
+def soft_delete_any(msg_id):
+    """Moderator delete — soft-deletes regardless of sender."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE thr_messages SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL",
+        (_utcnow(), msg_id),
+    )
+    ok = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return ok
+# ---------------------------------------------------------------------------
+# Polls
+# ---------------------------------------------------------------------------
+
+def create_poll(channel_id, author_id, question, options):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO thr_polls (channel_id, question, author_id) VALUES (?, ?, ?)",
+        (channel_id, (question or "").strip(), author_id),
+    )
+    pid = cur.lastrowid
+    for opt in options[:8]:
+        opt = (opt or "").strip()
+        if opt:
+            cur.execute(
+                "INSERT INTO thr_poll_options (poll_id, text) VALUES (?, ?)", (pid, opt)
+            )
+    conn.commit()
+    conn.close()
+    return pid
+
+
+def get_channel_polls(channel_id, viewer_id):
+    """All polls in a channel with option counts and the viewer's vote."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT p.*, u.username AS author, u.avatar_color AS author_color,
+               (SELECT COUNT(*) FROM thr_poll_votes v WHERE v.poll_id = p.id) AS total_votes
+        FROM thr_polls p
+        JOIN users u ON u.id = p.author_id
+        WHERE p.channel_id = ?
+        ORDER BY p.id ASC
+        """,
+        (channel_id,),
+    )
+    out = []
+    for row in cur.fetchall():
+        poll = dict(row)
+        poll["author_color"] = poll.get("author_color") or "#8b5cf6"
+        cur.execute(
+            "SELECT id, text FROM thr_poll_options WHERE poll_id = ? ORDER BY id ASC",
+            (poll["id"],),
+        )
+        options = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            "SELECT option_id, COUNT(*) AS n FROM thr_poll_votes WHERE poll_id = ? GROUP BY option_id",
+            (poll["id"],),
+        )
+        counts = {r["option_id"]: r["n"] for r in cur.fetchall()}
+        cur.execute(
+            "SELECT option_id FROM thr_poll_votes WHERE poll_id = ? AND user_id = ?",
+            (poll["id"], viewer_id),
+        )
+        my_vote = cur.fetchone()
+        for opt in options:
+            opt["votes"] = counts.get(opt["id"], 0)
+        poll["options"] = options
+        poll["my_option_id"] = my_vote["option_id"] if my_vote else None
+        out.append(poll)
+    conn.close()
+    return out
+
+
+def vote_poll(poll_id, option_id, user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM thr_poll_options WHERE id = ? AND poll_id = ?", (option_id, poll_id))
+    if cur.fetchone() is None:
+        conn.close()
+        return False
+    cur.execute(
+        "INSERT OR REPLACE INTO thr_poll_votes (poll_id, option_id, user_id) VALUES (?, ?, ?)",
+        (poll_id, option_id, user_id),
+    )
+    conn.commit()
+    conn.close()
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Watch parties
+# ---------------------------------------------------------------------------
+
+def create_watch_party(channel_id, anime_id, host_user_id, title, scheduled_time):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO thr_watch_parties
+        (channel_id, anime_id, host_user_id, title, scheduled_time)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (channel_id, (anime_id or "").strip(), host_user_id, (title or "").strip()[:120], scheduled_time),
+    )
+    pid = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return pid
+
+
+def get_channel_parties(channel_id, viewer_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT wp.*, u.username AS host, u.avatar_color AS host_color,
+               CASE WHEN datetime(wp.scheduled_time) <= datetime('now') THEN 1 ELSE 0 END AS is_live,
+               (SELECT COUNT(*) FROM thr_watch_party_rsvps r WHERE r.party_id = wp.id) AS rsvp_count,
+               EXISTS(SELECT 1 FROM thr_watch_party_rsvps r WHERE r.party_id = wp.id AND r.user_id = ?) AS is_rsvped
+        FROM thr_watch_parties wp
+        JOIN users u ON u.id = wp.host_user_id
+        WHERE wp.channel_id = ?
+        ORDER BY wp.scheduled_time ASC
+        """,
+        (viewer_id, channel_id),
+    )
+    rows = [dict(r) for r in cur.fetchall()]
+    for row in rows:
+        row["is_live"] = bool(row["is_live"])
+        row["is_rsvped"] = bool(row["is_rsvped"])
+    conn.close()
+    return rows
+
+
+def get_community_parties(cid, viewer_id):
+    """All watch parties across a community (for the channel panel)."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT wp.*, ch.name AS channel_name, u.username AS host, u.avatar_color AS host_color,
+               CASE WHEN datetime(wp.scheduled_time) <= datetime('now') THEN 1 ELSE 0 END AS is_live,
+               (SELECT COUNT(*) FROM thr_watch_party_rsvps r WHERE r.party_id = wp.id) AS rsvp_count,
+               EXISTS(SELECT 1 FROM thr_watch_party_rsvps r WHERE r.party_id = wp.id AND r.user_id = ?) AS is_rsvped
+        FROM thr_watch_parties wp
+        JOIN thr_channels ch ON ch.id = wp.channel_id
+        JOIN users u ON u.id = wp.host_user_id
+        WHERE ch.community_id = ?
+        ORDER BY datetime(wp.scheduled_time) ASC
+        """,
+        (viewer_id, cid),
+    )
+    rows = [dict(r) for r in cur.fetchall()]
+    for row in rows:
+        row["is_live"] = bool(row["is_live"])
+        row["is_rsvped"] = bool(row["is_rsvped"])
+    conn.close()
+    return rows
+
+
+def get_party(party_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM thr_watch_parties WHERE id = ?", (party_id,))
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def rsvp_party(party_id, user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT OR IGNORE INTO thr_watch_party_rsvps (party_id, user_id) VALUES (?, ?)",
+        (party_id, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def unrsvp_party(party_id, user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "DELETE FROM thr_watch_party_rsvps WHERE party_id = ? AND user_id = ?",
+        (party_id, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_party(party_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM thr_watch_parties WHERE id = ?", (party_id,))
+    conn.commit()
+    conn.close()

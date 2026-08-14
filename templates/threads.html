@@ -31,8 +31,8 @@
             <button class="thr-tab active" data-tab="messages">
                 <i class="fas fa-comment-dots"></i> Messages
             </button>
-            <button class="thr-tab disabled" data-tab="communities" title="Communities arrive in the next update">
-                <i class="fas fa-users"></i> Communities <span class="thr-soon">soon</span>
+            <button class="thr-tab" data-tab="communities">
+                <i class="fas fa-users"></i> Communities
             </button>
         </nav>
 
@@ -69,6 +69,55 @@
 
     <!-- ===================== BODY ===================== -->
     <div class="thr-body">
+
+        <!-- COMMUNITY RAIL (Discord-style server list) -->
+        <aside class="thr-rail hidden" id="commRail">
+            <div class="thr-rail-list" id="commRailList"></div>
+            <div class="thr-rail-bottom">
+                <button id="btnCreateComm" class="thr-rail-btn" title="Create a community">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button id="btnDiscover" class="thr-rail-btn" title="Discover communities">
+                    <i class="fas fa-compass"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- CHANNEL PANEL -->
+        <aside class="thr-channel-panel hidden" id="channelPanel">
+            <div class="thr-comm-head">
+                <div class="thr-comm-title-row">
+                    <span id="commName" class="thr-comm-name"></span>
+                    <button id="btnCommMenuHead" class="thr-icon-btn thr-comm-chevron" title="Community settings">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+                <div id="commMeta" class="thr-comm-meta"></div>
+                <div id="commRules" class="thr-comm-rules hidden"></div>
+            </div>
+            <div class="thr-channel-search">
+                <input id="channelSearch" type="text" placeholder="Search channels" autocomplete="off">
+            </div>
+            <div class="thr-channel-section-label">Text channels</div>
+            <div id="channelList" class="thr-channel-list"></div>
+            <div class="thr-channel-section-label">Watch parties</div>
+            <div id="partyList" class="thr-party-list"></div>
+        </aside>
+
+        <!-- DISCOVER PANEL -->
+        <aside class="thr-channel-panel hidden" id="discoverPanel">
+            <div class="thr-comm-head">
+                <div class="thr-comm-title-row">
+                    <span class="thr-comm-name">Discover</span>
+                </div>
+                <div id="discoverMeta" class="thr-comm-meta">Public communities you can join</div>
+            </div>
+            <div class="thr-channel-search">
+                <input id="discoverSearch" type="text" placeholder="Search by name, genre…" autocomplete="off">
+            </div>
+            <div class="thr-channel-section-label">Browse</div>
+            <div id="discoverList" class="thr-discover-list"></div>
+        </aside>
 
         <!-- LEFT PANEL -->
         <aside class="thr-left">
@@ -119,6 +168,12 @@
                     </div>
                     <div class="thr-chat-actions">
                         <span id="seenText" class="thr-seen-text" title="Read receipts"></span>
+                        <button id="btnParty" class="thr-icon-btn hidden" title="Host a watch party">
+                            <i class="fas fa-tv"></i>
+                        </button>
+                        <button id="btnNewPoll" class="thr-icon-btn hidden" title="Create a poll">
+                            <i class="fas fa-poll"></i>
+                        </button>
                         <button id="btnMute" class="thr-icon-btn" title="Mute conversation">
                             <i class="fas fa-bell-slash"></i>
                         </button>
@@ -140,6 +195,8 @@
                     <span id="pinnedStripText"></span>
                     <button class="thr-link-btn" id="btnPinnedStripOpen">View all</button>
                 </div>
+
+                <div class="thr-party-strip hidden" id="partyStrip"></div>
 
                 <div class="thr-messages" id="msgList"></div>
 
@@ -303,6 +360,151 @@
                 </span>
                 <input type="checkbox" id="setTyping" class="thr-switch">
             </label>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== NEW COMMUNITY MODAL ===================== -->
+<div class="thr-modal hidden" id="modalNewCommunity">
+    <div class="thr-modal-card">
+        <div class="thr-modal-head">
+            <h3>Create a community</h3>
+            <button class="thr-modal-close" data-close="modalNewCommunity"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <input id="commNameInput" class="thr-text-input" type="text" placeholder="Community name" maxlength="60">
+            <input id="commGenreInput" class="thr-text-input" type="text" list="commGenres" placeholder="Genre (e.g. Shonen, Romance, Isekai)" maxlength="40">
+            <datalist id="commGenres">
+                <option value="Action"></option><option value="Adventure"></option>
+                <option value="Comedy"></option><option value="Drama"></option>
+                <option value="Fantasy"></option><option value="Horror"></option>
+                <option value="Mecha"></option><option value="Mystery"></option>
+                <option value="Romance"></option><option value="Sci-Fi"></option>
+                <option value="Slice of Life"></option><option value="Sports"></option>
+                <option value="Thriller"></option><option value="Isekai"></option>
+                <option value="Shonen"></option><option value="Seinen"></option>
+            </datalist>
+            <textarea id="commDescInput" class="thr-textarea" rows="3" placeholder="What's this community about?" maxlength="500"></textarea>
+            <div class="thr-color-row">
+                <span class="thr-label">Icon color</span>
+                <div id="commColors" class="thr-color-swatches"></div>
+            </div>
+            <button id="btnCreateCommSubmit" class="thr-btn thr-btn-primary thr-btn-block">Create community</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== COMMUNITY MENU MODAL ===================== -->
+<div class="thr-modal hidden" id="modalCommunity">
+    <div class="thr-modal-card thr-modal-wide">
+        <div class="thr-modal-head">
+            <h3 id="commModalTitle">Community</h3>
+            <button class="thr-modal-close" data-close="modalCommunity"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-comm-tabs">
+            <button class="thr-comm-tab active" data-ctab="info">Info</button>
+            <button class="thr-comm-tab" data-ctab="members">Members</button>
+            <button class="thr-comm-tab" data-ctab="modlog">Mod log</button>
+            <button class="thr-comm-tab" data-ctab="reports">Reports</button>
+        </div>
+        <div class="thr-modal-body">
+            <!-- Info + rules -->
+            <div id="ctabInfo" class="thr-ctab">
+                <input id="commEditName" class="thr-text-input" type="text" maxlength="60">
+                <input id="commEditGenre" class="thr-text-input" type="text" maxlength="40">
+                <textarea id="commEditDesc" class="thr-textarea" rows="2" maxlength="500"></textarea>
+                <label class="thr-label">Community rules <em>(shown in #general and the channel panel)</em></label>
+                <textarea id="commEditRules" class="thr-textarea" rows="5" maxlength="2000"></textarea>
+                <button id="btnSaveCommunity" class="thr-btn thr-btn-primary">Save changes</button>
+                <div class="thr-comm-danger">
+                    <button id="btnLeaveCommunity" class="thr-btn thr-btn-danger">
+                        <i class="fas fa-sign-out-alt"></i> Leave community
+                    </button>
+                    <button id="btnMuteCommunity" class="thr-btn">Mute community</button>
+                </div>
+            </div>
+            <!-- Members -->
+            <div id="ctabMembers" class="thr-ctab hidden">
+                <div id="commMemberList" class="thr-member-list"></div>
+                <div id="commBannedList" class="thr-banned-list"></div>
+            </div>
+            <!-- Mod log -->
+            <div id="ctabModlog" class="thr-ctab hidden">
+                <div id="commModlog" class="thr-modlog"></div>
+            </div>
+            <!-- Reports -->
+            <div id="ctabReports" class="thr-ctab hidden">
+                <div id="commReports" class="thr-reports-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== NEW CHANNEL MODAL ===================== -->
+<div class="thr-modal hidden" id="modalNewChannel">
+    <div class="thr-modal-card">
+        <div class="thr-modal-head">
+            <h3>New channel</h3>
+            <button class="thr-modal-close" data-close="modalNewChannel"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <input id="channelNameInput" class="thr-text-input" type="text" placeholder="channel-name" maxlength="30">
+            <input id="channelTopicInput" class="thr-text-input" type="text" placeholder="Topic (optional)" maxlength="120">
+            <button id="btnCreateChannel" class="thr-btn thr-btn-primary thr-btn-block">Create channel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== NEW POLL MODAL ===================== -->
+<div class="thr-modal hidden" id="modalPoll">
+    <div class="thr-modal-card">
+        <div class="thr-modal-head">
+            <h3>Create a poll</h3>
+            <button class="thr-modal-close" data-close="modalPoll"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <input id="pollQuestion" class="thr-text-input" type="text" placeholder="Question — e.g. Best opening theme?" maxlength="300">
+            <div id="pollOptions" class="thr-poll-options"></div>
+            <button id="btnAddPollOption" class="thr-link-btn">+ Add option</button>
+            <button id="btnCreatePoll" class="thr-btn thr-btn-primary thr-btn-block">Post poll</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== WATCH PARTY MODAL ===================== -->
+<div class="thr-modal hidden" id="modalParty">
+    <div class="thr-modal-card">
+        <div class="thr-modal-head">
+            <h3>Host a watch party</h3>
+            <button class="thr-modal-close" data-close="modalParty"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <input id="partyTitleInput" class="thr-text-input" type="text" placeholder="Party name — e.g. Friday night marathon" maxlength="120">
+            <div class="thr-search thr-modal-search">
+                <i class="fas fa-search"></i>
+                <input id="partyAnimeSearch" type="text" placeholder="Search anime to watch together…" autocomplete="off">
+            </div>
+            <div id="partyAnimeResults" class="thr-user-results"></div>
+            <div id="partyAnimePick" class="thr-party-anime-pick hidden"></div>
+            <input id="partyWhen" class="thr-text-input" type="datetime-local">
+            <button id="btnCreateParty" class="thr-btn thr-btn-primary thr-btn-block">
+                <i class="fas fa-calendar-check"></i> Create party
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== REPORT MODAL ===================== -->
+<div class="thr-modal hidden" id="modalReport">
+    <div class="thr-modal-card">
+        <div class="thr-modal-head">
+            <h3>Report message</h3>
+            <button class="thr-modal-close" data-close="modalReport"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <label class="thr-label">Why are you reporting this message?</label>
+            <textarea id="reportReason" class="thr-textarea" rows="3" maxlength="500" placeholder="Spoilers, harassment, spam…"></textarea>
+            <button id="btnSubmitReport" class="thr-btn thr-btn-danger thr-btn-block">Submit report</button>
         </div>
     </div>
 </div>

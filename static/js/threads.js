@@ -31,6 +31,16 @@
         notifUnread: 0,
         convFilter: "",
         lastSeenText: "",
+        activeTab: "messages",
+        communities: [],
+        activeCommunity: null,
+        discoverMode: false,
+        discoverList: [],
+        commFilter: "",
+        polls: [],
+        parties: [],
+        communityDetail: null,
+        myCommunityRole: "member",
     };
 
     // ----------------------------------------------------------
@@ -142,9 +152,9 @@
     function convPreview(c) {
         var lm = c.last_message || {};
         if (!lm.content && !lm.kind) return "No messages yet";
-        if (lm.kind === "gif") return "🎁 GIF";
-        if (lm.kind === "image") return "🖼 Image";
-        if (lm.kind === "video") return "🎥 Video";
+        if (lm.kind === "gif") return "\uD83C\uDF81 GIF";
+        if (lm.kind === "image") return "\uD83D\uDDBC Image";
+        if (lm.kind === "video") return "\uD83C\uDFA5 Video";
         var prefix = "";
         if (c.type === "group" && lm.sender_id && lm.sender_id !== State.me.id) {
             var s = State.convMemberName(c, lm.sender_id);
@@ -267,8 +277,35 @@
         $("#msgInput").focus();
     }
 
+    function isChannelOpen() { return State.active && State.active.type === "channel"; }
+
+    function isCommMod() {
+        return State.myCommunityRole === "owner" || State.myCommunityRole === "moderator";
+    }
+
     function renderChatHead() {
         var conv = State.active.conv;
+
+        // ---- Channel (Communities tab) ----
+        if (conv.type === "channel") {
+            var comm = State.activeCommunity;
+            $("#chatAvatar").innerHTML = "#";
+            $("#chatAvatar").style.background = (comm && comm.icon_color) || "#8b5cf6";
+            $("#chatName").textContent = "#" + (conv.name || "channel");
+            $("#chatSub").textContent = conv.topic || (comm ? comm.name : "");
+            $("#chatPresence").className = "thr-presence-dot";
+            $("#btnMute").style.display = "none";
+            $("#btnMembers").style.display = "";
+            $("#btnParty").classList.remove("hidden");
+            $("#btnNewPoll").classList.remove("hidden");
+            $("#seenText").textContent = "";
+            return;
+        }
+
+        $("#btnParty").classList.add("hidden");
+        $("#btnNewPoll").classList.add("hidden");
+        $("#btnMute").style.display = "";
+
         var isDm = conv.type === "dm";
         var name = convDisplayName(conv);
         $("#chatAvatar").innerHTML = isDm
@@ -319,8 +356,11 @@
             State.members.forEach(function (m) { State.memberMap[m.id] = m; });
             State.settings = res.settings || State.settings;
             syncSettingsUI();
+            if (res.polls) State.polls = res.polls;
+            if (res.parties) State.parties = res.parties;
             renderMessages(true);
             renderPins(res.pins || []);
+            if (isChannelOpen()) renderPartyStrip();
             refreshPresence();
         });
     }
@@ -330,14 +370,24 @@
         var html = "";
         var lastDay = null;
         var limit = State.messages.length;
+        var polls = isChannelOpen() ? State.polls : [];
+        var pi = 0;
         for (var i = 0; i < limit; i++) {
             var m = State.messages[i];
+            while (pi < polls.length && String(polls[pi].created_at || "") <= String(m.created_at || "")) {
+                html += renderPollCard(polls[pi]);
+                pi++;
+            }
             var day = dayKey(m.created_at);
             if (day !== lastDay) {
                 html += '<div class="thr-day-divider"><span>' + escapeHtml(fmtDay(m.created_at)) + "</span></div>";
                 lastDay = day;
             }
             html += renderMessage(m);
+        }
+        while (pi < polls.length) {
+            html += renderPollCard(polls[pi]);
+            pi++;
         }
         list.innerHTML = html;
 
@@ -396,6 +446,11 @@
         if (mine) {
             actions += '<button class="thr-msg-act" data-act="edit" data-id="' + m.id + '" title="Edit"><i class="fas fa-pen"></i></button>';
             actions += '<button class="thr-msg-act danger" data-act="delete" data-id="' + m.id + '" title="Delete"><i class="fas fa-trash"></i></button>';
+        } else if (isChannelOpen()) {
+            actions += '<button class="thr-msg-act" data-act="report" data-id="' + m.id + '" title="Report"><i class="fas fa-flag"></i></button>';
+            if (isCommMod()) {
+                actions += '<button class="thr-msg-act danger" data-act="mod-delete" data-id="' + m.id + '" title="Delete (moderator)"><i class="fas fa-trash"></i></button>';
+            }
         }
 
         var body;
@@ -438,6 +493,7 @@
         var conv = State.active && State.active.conv;
         if (!conv) return;
         var el = $("#seenText");
+        if (conv.type === "channel") { el.textContent = ""; return; }
         if (!State.settings.read_receipts || conv.type === "group") {
             el.textContent = "";
             return;
@@ -456,8 +512,7 @@
             if (t2 !== State.lastSeenText) { el.textContent = t2; State.lastSeenText = t2; }
         }
     }
-
-    // ----------------------------------------------------------
+        // ----------------------------------------------------------
     // Sending + editing + deleting + pinning
     // ----------------------------------------------------------
     function sendMessage() {
@@ -559,6 +614,18 @@
         if (!State.active) return;
         var last = State.messages[State.messages.length - 1];
         var id = last ? last.id : 0;
+        if (State.active.type === "channel") {
+            api("/threads/api/channels/" + State.active.id + "/read", { json: { message_id: id } });
+            State.active.conv.unread = 0;
+            if (State.activeCommunity) {
+                (State.activeCommunity.channels || []).forEach(function (ch) {
+                    if (ch.id === State.active.id) ch.unread = 0;
+                });
+                renderChannelList();
+                renderRail();
+            }
+            return;
+        }
         api("/threads/api/conversations/" + State.active.id + "/read", { json: { message_id: id } });
         State.active.conv.unread = 0;
         renderConversations();
@@ -582,6 +649,9 @@
                     State.members.forEach(function (m) { State.memberMap[m.id] = m; });
                 }
                 markActiveRead();
+            }
+            if (isChannelOpen()) {
+                updateChannelExtras(res.polls || State.polls, res.parties || State.parties);
             }
             updateTypingRow(res.typing || []);
             updateSeenText();
@@ -608,6 +678,9 @@
         if (conv && conv.type === "dm" && conv.other) ids.push(conv.other.id);
         State.conversations.forEach(function (c) {
             if (c.type === "dm" && c.other && ids.indexOf(c.other.id) === -1) ids.push(c.other.id);
+        });
+        State.members.forEach(function (m) {
+            if (ids.indexOf(m.id) === -1) ids.push(m.id);
         });
         api("/threads/api/presence?ids=" + ids.join(",")).then(function (res) {
             if (res.success) {
@@ -697,7 +770,8 @@
         }).join("");
         box.classList.remove("hidden");
     }
-        function insertMention(username) {
+
+    function insertMention(username) {
         var input = $("#msgInput");
         var pos = input.selectionStart || input.value.length;
         var text = input.value;
@@ -749,8 +823,7 @@
             }
         });
     }
-
-    // ---- DM modal ----
+        // ---- DM modal ----
     function wireDmModal() {
         var input = $("#dmSearch");
         var results = $("#dmResults");
@@ -1029,6 +1102,7 @@
         });
 
         $("#btnMembers").addEventListener("click", function () {
+            if (isChannelOpen()) { openCommunityMenu("members"); return; }
             openModal("modalMembers");
             render();
             loadMembers();
@@ -1056,8 +1130,872 @@
         }
         refreshConversations();
     }
+        // ============================================================
+    // Communities tab (Phase 2)
+    // ============================================================
 
-    // ---- Pins modal ----
+    function setTab(tab) {
+        State.activeTab = tab;
+        $$(".thr-tab").forEach(function (x) {
+            x.classList.toggle("active", x.getAttribute("data-tab") === tab);
+        });
+        var isComm = tab === "communities";
+        $("#commRail").classList.toggle("hidden", !isComm);
+        $(".thr-left").classList.toggle("hidden", isComm);
+        if (!isComm) {
+            $("#channelPanel").classList.add("hidden");
+            $("#discoverPanel").classList.add("hidden");
+            if (isChannelOpen()) {
+                State.active = null;
+                $("#convView").classList.add("hidden");
+                $("#emptyState").classList.remove("hidden");
+            }
+            renderConversations();
+            return;
+        }
+        $("#channelPanel").classList.toggle("hidden", State.discoverMode);
+        $("#discoverPanel").classList.toggle("hidden", !State.discoverMode);
+        if (!State.activeCommunity) {
+            if (State.communities.length) {
+                var c = State.communities[0];
+                State.activeCommunity = c;
+                State.myCommunityRole = c.role || "member";
+                renderRail();
+                renderChannelPanel();
+                if (c.channels && c.channels.length) openChannel(c.channels[0]);
+            } else {
+                showDiscover();
+            }
+        } else if (!isChannelOpen() && State.activeCommunity.channels && State.activeCommunity.channels.length) {
+            openChannel(State.activeCommunity.channels[0]);
+        } else {
+            renderChannelPanel();
+        }
+        refreshCommunities();
+    }
+
+    function showDiscover() {
+        State.discoverMode = true;
+        $("#channelPanel").classList.add("hidden");
+        $("#discoverPanel").classList.remove("hidden");
+        loadDiscover();
+    }
+
+    function renderRail() {
+        var html = "";
+        State.communities.forEach(function (c) {
+            var active = State.activeCommunity && State.activeCommunity.id === c.id;
+            html += '<div class="thr-rail-item' + (active ? " active" : "") + '" data-comm="' + c.id + '" title="' +
+                escapeHtml(c.name) + '">' +
+                '<span class="thr-rail-icon" style="background:' + escapeHtml(c.icon_color || "#8b5cf6") + '">' +
+                escapeHtml(initials(c.name)) + "</span>" +
+                (c.unread ? '<span class="thr-unread-badge thr-rail-badge">' + (c.unread > 99 ? "99+" : c.unread) + "</span>" : "") +
+                "</div>";
+        });
+        $("#commRailList").innerHTML = html || '<div class="thr-rail-empty" title="Join or create a community">+</div>';
+    }
+
+    function renderChannelPanel() {
+        var c = State.activeCommunity;
+        if (!c) return;
+        $("#commName").textContent = c.name || "";
+        $("#commMeta").textContent = (c.member_count || 0) + " members" + (c.genre ? " · " + c.genre : "");
+        var rules = $("#commRules");
+        if (c.rules) {
+            rules.innerHTML = '<i class="fas fa-scroll"></i> ' + escapeHtml(c.rules);
+            rules.classList.remove("hidden");
+        } else {
+            rules.classList.add("hidden");
+        }
+        renderChannelList();
+        renderPartyList();
+    }
+
+    function renderChannelList() {
+        var c = State.activeCommunity;
+        if (!c) return;
+        var filter = State.commFilter.toLowerCase();
+        var html = "";
+        (c.channels || []).forEach(function (ch) {
+            if (filter && ch.name.indexOf(filter) === -1) return;
+            var active = State.active && State.active.type === "channel" && State.active.id === ch.id;
+            html += '<div class="thr-channel' + (active ? " active" : "") + '" data-ch="' + ch.id + '">' +
+                '<span class="thr-channel-name"># ' + escapeHtml(ch.name) + "</span>" +
+                (ch.has_live_party ? '<span class="thr-live-dot" title="Watch party live">\uD83D\uDD34</span>' : "") +
+                (ch.unread ? '<span class="thr-unread-badge">' + (ch.unread > 99 ? "99+" : ch.unread) + "</span>" : "") +
+                "</div>";
+        });
+        if (isCommMod()) {
+            html += '<div class="thr-channel thr-channel-add" id="btnAddChannel"><span class="thr-channel-name">+ New channel</span></div>';
+        }
+        $("#channelList").innerHTML = html || '<div class="thr-conv-empty">No channels match.</div>';
+    }
+
+    function renderPartyList() {
+        var c = State.activeCommunity;
+        if (!c) return;
+        var parties = c.parties || [];
+        var html = parties.map(function (p) {
+            var live = p.is_live ? '<span class="thr-live-dot">\uD83D\uDD34</span> ' : "";
+            return '<div class="thr-party-row" data-party="' + p.id + '" data-ch="' + p.channel_id + '" title="Open #' +
+                escapeHtml(p.channel_name || "") + '">' +
+                live + "<b>" + escapeHtml(p.title) + "</b>" +
+                '<span class="thr-party-meta">' + escapeHtml(p.anime_title || p.anime_id || "") +
+                " · " + fmtConvTime(p.scheduled_time) + " · " + (p.rsvp_count || 0) + " going</span></div>";
+        }).join("");
+        $("#partyList").innerHTML = html || '<div class="thr-conv-empty">No watch parties yet — host one from a channel!</div>';
+    }
+
+    function openChannel(ch) {
+        if (!ch) return;
+        State.active = { type: "channel", id: ch.id, conv: ch };
+        State.replyTo = null;
+        State.attach = null;
+        State.editingId = null;
+        State.messages = [];
+        State.seenIds = {};
+        State.afterId = 0;
+        State.firstId = 0;
+        State.hasMore = true;
+        State.loadingOlder = false;
+        State.polls = [];
+        State.parties = [];
+
+        $("#emptyState").classList.add("hidden");
+        $("#convView").classList.remove("hidden");
+        renderChatHead();
+        loadHistory();
+        markActiveRead();
+        $("#msgInput").focus();
+        renderChannelList();
+    }
+
+    function refreshCommunities(cb) {
+        api("/threads/api/communities").then(function (res) {
+            if (!res.success) { if (cb) cb(); return; }
+            var prevActiveId = State.activeCommunity ? State.activeCommunity.id : null;
+            State.communities = res.communities || [];
+            renderRail();
+            if (State.activeCommunity) {
+                var fresh = null;
+                State.communities.forEach(function (c) { if (c.id === prevActiveId) fresh = c; });
+                if (fresh) {
+                    State.activeCommunity = fresh;
+                    renderChannelPanel();
+                    if (State.active && State.active.type === "channel") {
+                        var ch = null;
+                        (fresh.channels || []).forEach(function (x) { if (x.id === State.active.id) ch = x; });
+                        if (ch) State.active.conv = ch;
+                    }
+                } else {
+                    State.activeCommunity = null;
+                    State.active = null;
+                    $("#convView").classList.add("hidden");
+                    $("#emptyState").classList.remove("hidden");
+                }
+            }
+            if (cb) cb();
+        });
+    }
+
+    function loadDiscover(q) {
+        q = q || $("#discoverSearch").value.trim();
+        api("/threads/api/communities/discover" + (q ? "?q=" + encodeURIComponent(q) : "")).then(function (res) {
+            if (!res.success) { handleApiError(res); return; }
+            State.discoverList = res.communities || [];
+            renderDiscover();
+        });
+    }
+
+    function renderDiscover() {
+        var list = State.discoverList || [];
+        $("#discoverList").innerHTML = list.map(function (c) {
+            return '<div class="thr-discover-card">' +
+                '<span class="thr-rail-icon thr-disc-icon" style="background:' + escapeHtml(c.icon_color || "#8b5cf6") + '">' +
+                escapeHtml(initials(c.name)) + "</span>" +
+                '<div class="thr-disc-body">' +
+                '<div class="thr-disc-name">' + escapeHtml(c.name) + "</div>" +
+                '<div class="thr-disc-meta">' + (c.member_count || 0) + " members" + (c.genre ? " · " + escapeHtml(c.genre) : "") + "</div>" +
+                (c.description ? '<div class="thr-disc-desc">' + escapeHtml(c.description) + "</div>" : "") +
+                "</div>" +
+                '<button class="thr-btn thr-btn-sm thr-btn-primary" data-join="' + c.id + '">Join</button></div>';
+        }).join("") || '<div class="thr-conv-empty">No communities found — create the first one!</div>';
+    }
+
+    // ---- Polls + parties (rendered in channel chat) ----
+
+    function renderPollCard(p) {
+        var total = p.total_votes || 0;
+        var voted = p.my_option_id != null;
+        var opts = (p.options || []).map(function (o) {
+            var pct = total ? Math.round((o.votes / total) * 100) : 0;
+            return '<div class="thr-poll-opt' + (o.id === p.my_option_id ? " chosen" : "") + '" data-poll="' + p.id +
+                '" data-opt="' + o.id + '" title="' + (voted ? "Change your vote" : "Click to vote") + '">' +
+                '<span class="thr-poll-bar" style="width:' + pct + '%"></span>' +
+                '<span class="thr-poll-text">' + escapeHtml(o.text) + "</span>" +
+                '<span class="thr-poll-count">' + o.votes + " · " + pct + "%</span></div>";
+        }).join("");
+        return '<div class="thr-poll-card" data-pollid="' + p.id + '">' +
+            '<div class="thr-poll-head"><i class="fas fa-poll"></i> <b>' + escapeHtml(p.question) + "</b></div>" +
+            '<div class="thr-poll-sub">by ' + escapeHtml(p.author) + " · " + total + (total === 1 ? " vote" : " votes") +
+            (voted ? ' · <span class="thr-voted-chip">voted</span>' : "") + "</div>" +
+            '<div class="thr-poll-opts">' + opts + "</div></div>";
+    }
+
+    function renderPartyStrip() {
+        var strip = $("#partyStrip");
+        var live = State.parties.filter(function (p) { return p.is_live; });
+        var upcoming = State.parties.filter(function (p) { return !p.is_live; });
+        if (!live.length && !upcoming.length) {
+            strip.classList.add("hidden");
+            strip.innerHTML = "";
+            return;
+        }
+        var html = "";
+        live.forEach(function (p) {
+            html += '<div class="thr-party-banner live" data-party="' + p.id + '">' +
+                '<span class="thr-live-pulse"></span><i class="fas fa-tv"></i> <b>' + escapeHtml(p.title) + "</b>" +
+                (p.anime_title ? " — " + escapeHtml(p.anime_title) : "") + " is live now! " +
+                '<button class="thr-link-btn" data-join-party="' + p.id + '">Join party</button>' +
+                (p.is_rsvped ? ' <span class="thr-voted-chip">you\u2019re going</span>' : "") + "</div>";
+        });
+        upcoming.forEach(function (p) {
+            html += '<div class="thr-party-banner" data-party="' + p.id + '">' +
+                '<i class="fas fa-tv"></i> <b>' + escapeHtml(p.title) + "</b>" +
+                (p.anime_title ? " (" + escapeHtml(p.anime_title) + ")" : "") + " · starts " + fmtConvTime(p.scheduled_time) +
+                " · " + (p.rsvp_count || 0) + " going " +
+                '<button class="thr-link-btn" data-rsvp-party="' + p.id + '">' + (p.is_rsvped ? "Going \u2713" : "RSVP") + "</button>" +
+                (p.is_host || isCommMod() ? ' <button class="thr-link-btn danger" data-cancel-party="' + p.id + '">cancel</button>' : "") +
+                "</div>";
+        });
+        strip.innerHTML = html;
+        strip.classList.remove("hidden");
+    }
+
+    function updateChannelExtras(polls, parties) {
+        var pollsChanged = JSON.stringify(polls) !== JSON.stringify(State.polls);
+        var partiesChanged = JSON.stringify(parties) !== JSON.stringify(State.parties);
+        if (pollsChanged) {
+            State.polls = polls || [];
+            renderMessages(false);
+        }
+        if (partiesChanged) {
+            State.parties = parties || [];
+            renderPartyStrip();
+        }
+    }
+
+    function loadChannelParties() {
+        if (!isChannelOpen()) return;
+        api("/threads/api/messages?ctx=channel:" + State.active.id + "&limit=1").then(function (res) {
+            if (res.success && res.parties) {
+                State.parties = res.parties;
+                renderPartyStrip();
+            }
+        });
+    }
+
+    function modDeleteMessage(id) {
+        if (!window.confirm("Delete this message as a moderator?")) return;
+        api("/threads/api/messages/" + id, { method: "DELETE" }).then(function (res) {
+            if (!res.success) { handleApiError(res); return; }
+            State.messages.forEach(function (m, i) {
+                if (m.id === id) { State.messages[i].deleted_at = "yes"; State.messages[i].content = ""; }
+            });
+            renderMessages(false);
+            toast("Message deleted");
+        });
+    }
+
+    // ---- Community menu modal ----
+
+    function openCommunityMenu(tab) {
+        var c = State.activeCommunity;
+        if (!c) return;
+        $("#commModalTitle").textContent = c.name || "Community";
+        $("#commEditName").value = c.name || "";
+        $("#commEditGenre").value = c.genre || "";
+        $("#commEditDesc").value = c.description || "";
+        $("#commEditRules").value = c.rules || "";
+        $("#btnMuteCommunity").textContent = c.muted ? "Unmute community" : "Mute community";
+        var canMod = isCommMod();
+        $$(".thr-comm-tab").forEach(function (t) {
+            var name = t.getAttribute("data-ctab");
+            t.classList.toggle("hidden", !canMod && name !== "info" && name !== "members");
+        });
+        api("/threads/api/communities/" + c.id).then(function (res) {
+            if (!res.success) { handleApiError(res); return; }
+            State.communityDetail = res;
+            openModal("modalCommunity");
+            var target = tab || "info";
+            $$(".thr-comm-tab").forEach(function (t) {
+                t.classList.toggle("active", t.getAttribute("data-ctab") === target);
+            });
+            showCommTab(target);
+        });
+    }
+
+    function showCommTab(tab) {
+        ["info", "members", "modlog", "reports"].forEach(function (x) {
+            $("#ctab" + x.charAt(0).toUpperCase() + x.slice(1)).classList.toggle("hidden", x !== tab);
+        });
+        if (tab === "members") renderCommMembers();
+        if (tab === "modlog") loadModlog();
+        if (tab === "reports") renderCommReports();
+    }
+
+    function renderCommMembers() {
+        var d = State.communityDetail;
+        if (!d) return;
+        var me = State.me;
+        var canMod = d.my_role === "owner" || d.my_role === "moderator";
+        var isOwner = d.my_role === "owner";
+        var html = (d.members || []).map(function (m) {
+            var role = m.role === "owner" ? '<span class="thr-role-chip owner">Owner</span>'
+                : m.role === "moderator" ? '<span class="thr-role-chip">Mod</span>' : "";
+            var actions = "";
+            if (canMod && m.id !== me.id && m.role !== "owner") {
+                if (isOwner) {
+                    actions += m.role === "moderator"
+                        ? '<button class="thr-link-btn" data-uid="' + m.id + '" data-role="member">Demote</button>'
+                        : '<button class="thr-link-btn" data-uid="' + m.id + '" data-role="moderator">Make mod</button>';
+                }
+                actions += '<button class="thr-link-btn danger" data-kick="' + m.id + '">Kick</button>';
+                actions += '<button class="thr-link-btn danger" data-mute="' + m.id + '" data-muted="' + (m.muted ? "1" : "0") + '">' + (m.muted ? "Unmute" : "Mute") + "</button>";
+                actions += '<button class="thr-link-btn danger" data-ban="' + m.id + '">Ban</button>';
+            }
+            if (m.id !== me.id) {
+                actions += '<button class="thr-link-btn danger" data-block="' + m.id + '">Block</button>';
+            }
+            return '<div class="thr-member-row">' +
+                '<span class="thr-avatar thr-avatar-md" style="background:' + escapeHtml(m.avatar_color) + '">' +
+                escapeHtml(initials(m.username)) + "</span>" +
+                '<span class="thr-member-name">' + escapeHtml(m.username) + (m.id === me.id ? " (you)" : "") + "</span>" +
+                (m.muted ? '<span class="thr-muted-chip">muted</span>' : "") + role +
+                '<span class="thr-member-actions">' + actions + "</span></div>";
+        }).join("");
+        var bannedHtml = "";
+        if (d.banned && d.banned.length) {
+            bannedHtml = '<div class="thr-banned-head">Banned users</div>' + d.banned.map(function (b) {
+                return '<div class="thr-member-row"><span class="thr-avatar thr-avatar-md thr-avatar-dim" style="background:#4b5267">' +
+                    escapeHtml(initials(b.username)) + "</span><span class='thr-member-name'>" + escapeHtml(b.username) +
+                    "</span><span class='thr-member-actions'><button class='thr-link-btn' data-unban='" + b.id + "'>Unban</button></span></div>";
+            }).join("");
+        }
+        $("#commMemberList").innerHTML = html || '<div class="thr-dropdown-empty">No members</div>';
+        $("#commBannedList").innerHTML = bannedHtml;
+    }
+
+    function loadModlog() {
+        if (!State.activeCommunity) return;
+        api("/threads/api/communities/" + State.activeCommunity.id + "/modlog").then(function (res) {
+            if (!res.success) { handleApiError(res); return; }
+            var log = res.log || [];
+            $("#commModlog").innerHTML = log.length ? log.map(function (l) {
+                return '<div class="thr-modlog-row"><b>' + escapeHtml(l.action) + "</b> by " +
+                    escapeHtml(l.actor || "?") + (l.target ? " → " + escapeHtml(l.target) : "") +
+                    (l.reason ? " — " + escapeHtml(l.reason) : "") +
+                    '<span class="thr-modlog-time">' + fmtConvTime(l.created_at) + "</span></div>";
+            }).join("") : '<div class="thr-dropdown-empty">No moderation actions yet</div>';
+        });
+    }
+
+    function renderCommReports() {
+        var d = State.communityDetail;
+        var reports = (d && d.reports) || [];
+        $("#commReports").innerHTML = reports.length ? reports.map(function (r) {
+            return '<div class="thr-report-row"><i class="fas fa-flag"></i><div>' +
+                "<div><b>Report #" + r.id + "</b> by " + escapeHtml(r.reporter) + "</div>" +
+                '<div class="thr-report-msg">' + escapeHtml(String(r.content || "").slice(0, 200)) + "</div>" +
+                (r.reason ? '<div class="thr-report-reason">' + escapeHtml(r.reason) + "</div>" : "") +
+                '</div><button class="thr-btn thr-btn-sm" data-resolve-report="' + r.id + '">Dismiss</button></div>';
+        }).join("") : '<div class="thr-dropdown-empty">No open reports</div>';
+    }
+
+    function saveCommunityEdit() {
+        var c = State.activeCommunity;
+        if (!c) return;
+        api("/threads/api/communities/" + c.id, {
+            method: "PATCH",
+            json: {
+                name: $("#commEditName").value,
+                genre: $("#commEditGenre").value,
+                description: $("#commEditDesc").value,
+                rules: $("#commEditRules").value,
+            },
+        }).then(function (res) {
+            if (!res.success) { handleApiError(res); return; }
+            toast("Community updated");
+            closeModal("modalCommunity");
+            refreshCommunities();
+        });
+    }
+
+    function leaveCommunityAction() {
+        var c = State.activeCommunity;
+        if (!c) return;
+        if (!window.confirm("Leave " + c.name + "?")) return;
+        api("/threads/api/communities/" + c.id + "/leave", { json: {} }).then(function (res) {
+            if (!res.success) { handleApiError(res); return; }
+            closeModal("modalCommunity");
+            State.activeCommunity = null;
+            State.active = null;
+            $("#convView").classList.add("hidden");
+            $("#emptyState").classList.remove("hidden");
+            refreshCommunities();
+            showDiscover();
+        });
+    }
+
+    function toggleCommunityMute() {
+        var c = State.activeCommunity;
+        if (!c) return;
+        var next = !c.muted;
+        api("/threads/api/communities/" + c.id + "/mute", { json: { muted: next } }).then(function (res) {
+            if (!res.success) { handleApiError(res); return; }
+            c.muted = next;
+            toast(next ? "Community muted — no unread badges" : "Unmuted");
+            $("#btnMuteCommunity").textContent = next ? "Unmute community" : "Mute community";
+            refreshCommunities();
+        });
+    }
+
+    function submitReport() {
+        if (!State.reportMessageId) return;
+        api("/threads/api/messages/" + State.reportMessageId + "/report", {
+            json: { reason: $("#reportReason").value },
+        }).then(function (res) {
+            if (!res.success) { handleApiError(res); return; }
+            closeModal("modalReport");
+            toast("Thanks — report sent to the moderators");
+        });
+    }
+        // ---- Modals: poll, party, new community ----
+
+    function renderPollModalOptions() {
+        var vals = $$("#pollOptions .thr-text-input").map(function (i) { return i.value; });
+        if (vals.length < 2) vals.push("");
+        var html = vals.map(function (v, i) {
+            return '<div class="thr-poll-option-row">' +
+                '<input class="thr-text-input" type="text" maxlength="120" placeholder="Option ' + (i + 1) + '" value="' + escapeHtml(v) + '">' +
+                (i > 1 ? '<button class="thr-link-btn danger" data-del-opt="' + i + '">\u2715</button>' : "") + "</div>";
+        }).join("");
+        $("#pollOptions").innerHTML = html;
+    }
+
+    var partyPick = null;
+
+    function wirePollModal() {
+        renderPollModalOptions();
+        $("#btnAddPollOption").addEventListener("click", function () {
+            var vals = $$("#pollOptions .thr-text-input").map(function (i) { return i.value; });
+            if (vals.length >= 8) { toast("Max 8 options", "error"); return; }
+            vals.push("");
+            var html = vals.map(function (v, i) {
+                return '<div class="thr-poll-option-row">' +
+                    '<input class="thr-text-input" type="text" maxlength="120" placeholder="Option ' + (i + 1) + '" value="' + escapeHtml(v) + '">' +
+                    (i > 1 ? '<button class="thr-link-btn danger" data-del-opt="' + i + '">\u2715</button>' : "") + "</div>";
+            }).join("");
+            $("#pollOptions").innerHTML = html;
+        });
+        $("#pollOptions").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-del-opt]");
+            if (!b) return;
+            var inputs = $$("#pollOptions .thr-text-input");
+            var idx = parseInt(b.getAttribute("data-del-opt"), 10);
+            if (inputs[idx]) inputs[idx].remove();
+        });
+        $("#btnCreatePoll").addEventListener("click", function () {
+            if (!isChannelOpen()) return;
+            var question = $("#pollQuestion").value.trim();
+            var options = $$("#pollOptions .thr-text-input").map(function (i) { return i.value.trim(); }).filter(Boolean);
+            if (!question) { toast("Ask a question", "error"); return; }
+            if (options.length < 2) { toast("Add at least 2 options", "error"); return; }
+            api("/threads/api/channels/" + State.active.id + "/polls", {
+                json: { question: question, options: options },
+            }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                State.polls = res.polls || [];
+                renderMessages(false);
+                closeModal("modalPoll");
+                toast("Poll posted");
+            });
+        });
+    }
+
+    function wirePartyModal() {
+        var sInput = $("#partyAnimeSearch");
+        var results = $("#partyAnimeResults");
+        var t;
+        function search() {
+            var q = sInput.value.trim();
+            if (!q) { results.innerHTML = ""; return; }
+            fetch("/api/search?q=" + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (res) {
+                if (!res.success) { results.innerHTML = ""; return; }
+                results.innerHTML = res.results.map(function (a) {
+                    return '<div class="thr-user-row thr-party-anime-row" data-slug="' + escapeHtml(a.slug) + '" data-title="' + escapeHtml(a.title) + '">' +
+                        (a.image ? '<img class="thr-party-anime-thumb" src="' + escapeHtml(a.image) + '" alt="">' : "") +
+                        "<span>" + escapeHtml(a.title) + "</span></div>";
+                }).join("") || '<div class="thr-dropdown-empty">No anime found</div>';
+            });
+        }
+        sInput.addEventListener("input", function () {
+            clearTimeout(t);
+            t = setTimeout(search, 300);
+        });
+        results.addEventListener("click", function (e) {
+            var row = e.target.closest(".thr-party-anime-row");
+            if (!row) return;
+            partyPick = { slug: row.getAttribute("data-slug"), title: row.getAttribute("data-title") };
+            $("#partyAnimePick").innerHTML = '<i class="fas fa-tv"></i> Watching: <b>' + escapeHtml(partyPick.title) +
+                "</b> <button class='thr-link-btn' data-clear-party-pick='1'>\u2715</button>";
+            $("#partyAnimePick").classList.remove("hidden");
+            results.innerHTML = "";
+            sInput.value = "";
+        });
+        $("#partyAnimePick").addEventListener("click", function (e) {
+            if (e.target.closest("[data-clear-party-pick]")) {
+                partyPick = null;
+                $("#partyAnimePick").classList.add("hidden");
+                $("#partyAnimePick").innerHTML = "";
+            }
+        });
+        $("#btnCreateParty").addEventListener("click", function () {
+            if (!isChannelOpen()) return;
+            var title = $("#partyTitleInput").value.trim();
+            var when = $("#partyWhen").value;
+            if (!title) { toast("Name the party", "error"); return; }
+            if (!when) { toast("Pick a start time", "error"); return; }
+            var iso = new Date(when).toISOString();
+            api("/threads/api/channels/" + State.active.id + "/parties", {
+                json: { title: title, anime_id: partyPick ? partyPick.slug : "", scheduled_time: iso },
+            }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                State.parties = res.parties || [];
+                renderPartyStrip();
+                closeModal("modalParty");
+                toast("Watch party created — watch for the \uD83D\uDD34 flag!");
+                refreshCommunities();
+            });
+        });
+    }
+
+    var COMM_COLORS = ["#8b5cf6", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#ec4899", "#06b6d4", "#f97316", "#14b8a6"];
+    var chosenCommColor = COMM_COLORS[0];
+
+    function wireNewCommunityModal() {
+        var swatches = $("#commColors");
+        swatches.innerHTML = COMM_COLORS.map(function (c, i) {
+            return '<span class="thr-swatch' + (i === 0 ? " chosen" : "") + '" data-color="' + c + '" style="background:' + c + '"></span>';
+        }).join("");
+        swatches.addEventListener("click", function (e) {
+            var sw = e.target.closest(".thr-swatch");
+            if (!sw) return;
+            chosenCommColor = sw.getAttribute("data-color");
+            $$(".thr-swatch", swatches).forEach(function (s) { s.classList.remove("chosen"); });
+            sw.classList.add("chosen");
+        });
+        $("#btnCreateComm").addEventListener("click", function () { openModal("modalNewCommunity"); });
+        $("#btnCreateCommSubmit").addEventListener("click", function () {
+            var name = $("#commNameInput").value.trim();
+            if (!name) { toast("Give the community a name", "error"); return; }
+            api("/threads/api/communities", {
+                json: {
+                    name: name,
+                    genre: $("#commGenreInput").value.trim(),
+                    description: $("#commDescInput").value.trim(),
+                    icon_color: chosenCommColor,
+                },
+            }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                closeModal("modalNewCommunity");
+                $("#commNameInput").value = "";
+                $("#commGenreInput").value = "";
+                $("#commDescInput").value = "";
+                var c = res.community;
+                State.discoverMode = false;
+                State.activeCommunity = c;
+                State.myCommunityRole = "owner";
+                renderRail();
+                renderChannelPanel();
+                if (c.channels && c.channels.length) openChannel(c.channels[0]);
+                toast("Community created!");
+            });
+        });
+    }
+
+    function wireCommunities() {
+        wireNewCommunityModal();
+        wirePollModal();
+        wirePartyModal();
+
+        $("#btnSubmitReport").addEventListener("click", submitReport);
+
+        // rail
+        $("#commRailList").addEventListener("click", function (e) {
+            var item = e.target.closest(".thr-rail-item");
+            if (!item) return;
+            var cid = parseInt(item.getAttribute("data-comm"), 10);
+            var c = null;
+            State.communities.forEach(function (x) { if (x.id === cid) c = x; });
+            if (!c) return;
+            State.discoverMode = false;
+            State.activeCommunity = c;
+            State.myCommunityRole = c.role || "member";
+            renderRail();
+            renderChannelPanel();
+            if (State.active && State.active.type === "channel") {
+                var ok = false;
+                (c.channels || []).forEach(function (ch) { if (ch.id === State.active.id) ok = true; });
+                if (!ok) {
+                    State.active = null;
+                    $("#convView").classList.add("hidden");
+                    $("#emptyState").classList.remove("hidden");
+                    if (c.channels && c.channels.length) openChannel(c.channels[0]);
+                }
+            } else if (c.channels && c.channels.length) {
+                openChannel(c.channels[0]);
+            }
+        });
+
+        // channel list
+        $("#channelList").addEventListener("click", function (e) {
+            if (e.target.closest("#btnAddChannel")) {
+                openModal("modalNewChannel");
+                return;
+            }
+            var item = e.target.closest(".thr-channel");
+            if (!item) return;
+            var chid = parseInt(item.getAttribute("data-ch"), 10);
+            var ch = null;
+            (State.activeCommunity.channels || []).forEach(function (x) { if (x.id === chid) ch = x; });
+            if (ch) openChannel(ch);
+        });
+
+        // party rows in the channel panel
+        $("#partyList").addEventListener("click", function (e) {
+            var row = e.target.closest(".thr-party-row");
+            if (!row) return;
+            var chid = parseInt(row.getAttribute("data-ch"), 10);
+            var ch = null;
+            (State.activeCommunity.channels || []).forEach(function (x) { if (x.id === chid) ch = x; });
+            if (ch) openChannel(ch);
+        });
+
+        // discover
+        $("#btnDiscover").addEventListener("click", showDiscover);
+        $("#discoverList").addEventListener("click", function (e) {
+            var join = e.target.closest("[data-join]");
+            if (!join) return;
+            var cid = parseInt(join.getAttribute("data-join"), 10);
+            api("/threads/api/communities/" + cid + "/join", { json: {} }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                var c = res.community;
+                State.discoverMode = false;
+                State.activeCommunity = c;
+                State.myCommunityRole = "member";
+                loadDiscover($("#discoverSearch").value);
+                renderRail();
+                renderChannelPanel();
+                if (c.channels && c.channels.length) openChannel(c.channels[0]);
+                toast("Joined " + c.name);
+            });
+        });
+
+        // community menu header + tabs + actions
+        $("#btnCommMenuHead").addEventListener("click", function () { openCommunityMenu("info"); });
+        $$(".thr-comm-tab").forEach(function (t) {
+            t.addEventListener("click", function () {
+                $$(".thr-comm-tab").forEach(function (x) { x.classList.remove("active"); });
+                t.classList.add("active");
+                showCommTab(t.getAttribute("data-ctab"));
+            });
+        });
+        $("#btnSaveCommunity").addEventListener("click", saveCommunityEdit);
+        $("#btnLeaveCommunity").addEventListener("click", leaveCommunityAction);
+        $("#btnMuteCommunity").addEventListener("click", toggleCommunityMute);
+
+        // community modal: member actions
+        $("#commMemberList").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-role],[data-kick],[data-mute],[data-ban],[data-block]");
+            if (!b) return;
+            var uid = parseInt(b.getAttribute("data-uid") || b.getAttribute("data-kick") ||
+                b.getAttribute("data-mute") || b.getAttribute("data-ban") || b.getAttribute("data-block"), 10);
+            var base = "/threads/api/communities/" + State.activeCommunity.id + "/members/" + uid;
+            if (b.hasAttribute("data-role")) {
+                api(base + "/role", { json: { role: b.getAttribute("data-role") } }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    toast("Role updated");
+                    openCommunityMenu("members");
+                });
+            } else if (b.hasAttribute("data-kick")) {
+                if (!window.confirm("Kick this member?")) return;
+                api(base + "/kick", { json: {} }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    toast("Member kicked");
+                    openCommunityMenu("members");
+                });
+            } else if (b.hasAttribute("data-mute")) {
+                var muted = b.getAttribute("data-muted") === "1";
+                api(base + "/mute", { json: { muted: !muted } }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    toast(muted ? "Unmuted" : "Muted — they can't post");
+                    openCommunityMenu("members");
+                });
+            } else if (b.hasAttribute("data-ban")) {
+                if (!window.confirm("Ban this member from the community?")) return;
+                api(base + "/ban", { json: {} }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    toast("Member banned");
+                    openCommunityMenu("members");
+                });
+            } else if (b.hasAttribute("data-block")) {
+                api("/threads/api/users/block", { json: { user_id: uid } }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    toast("User blocked — their messages are hidden");
+                });
+            }
+        });
+
+        $("#commBannedList").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-unban]");
+            if (!b) return;
+            var uid = parseInt(b.getAttribute("data-unban"), 10);
+            api("/threads/api/communities/" + State.activeCommunity.id + "/members/" + uid + "/unban", { json: {} }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                toast("Unbanned");
+                openCommunityMenu("members");
+            });
+        });
+
+        $("#commReports").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-resolve-report]");
+            if (!b) return;
+            var rid = parseInt(b.getAttribute("data-resolve-report"), 10);
+            api("/threads/api/reports/" + rid + "/resolve", { json: {} }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                toast("Report dismissed");
+                openCommunityMenu("reports");
+            });
+        });
+
+        // party strip actions
+        $("#partyStrip").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-join-party],[data-rsvp-party],[data-cancel-party]");
+            if (!b) return;
+            var pid = parseInt(b.getAttribute("data-join-party") || b.getAttribute("data-rsvp-party") || b.getAttribute("data-cancel-party"), 10);
+            if (b.hasAttribute("data-join-party")) {
+                var p = null;
+                State.parties.forEach(function (x) { if (x.id === pid) p = x; });
+                if (p && p.anime_id) window.open("/anime/" + p.anime_id, "_blank");
+                else toast("Party is live — enjoy the chat!");
+                return;
+            }
+            if (b.hasAttribute("data-cancel-party")) {
+                if (!window.confirm("Cancel this watch party?")) return;
+                api("/threads/api/parties/" + pid, { method: "DELETE" }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    toast("Party cancelled");
+                    loadChannelParties();
+                    refreshCommunities();
+                });
+                return;
+            }
+            var isGoing = false;
+            State.parties.forEach(function (x) { if (x.id === pid) isGoing = x.is_rsvped; });
+            if (isGoing) {
+                api("/threads/api/parties/" + pid + "/rsvp", { method: "DELETE" }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    State.parties = res.parties || [];
+                    renderPartyStrip();
+                    refreshCommunities();
+                });
+            } else {
+                api("/threads/api/parties/" + pid + "/rsvp", { json: {} }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    State.parties = res.parties || [];
+                    renderPartyStrip();
+                    toast("You're going! \uD83C\uDF7F");
+                    refreshCommunities();
+                });
+            }
+        });
+
+        // poll vote (delegated from inline poll cards)
+        $("#msgList").addEventListener("click", function (e) {
+            var opt = e.target.closest(".thr-poll-opt");
+            if (!opt) return;
+            var pid = parseInt(opt.getAttribute("data-poll"), 10);
+            var oid = parseInt(opt.getAttribute("data-opt"), 10);
+            api("/threads/api/polls/" + pid + "/vote", { json: { option_id: oid } }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                State.polls = res.polls || [];
+                renderMessages(false);
+            });
+        });
+
+        // channel chat-head buttons
+        $("#btnParty").addEventListener("click", function () {
+            if (!isChannelOpen()) return;
+            $("#partyTitleInput").value = "";
+            $("#partyWhen").value = "";
+            partyPick = null;
+            $("#partyAnimePick").classList.add("hidden");
+            $("#partyAnimePick").innerHTML = "";
+            openModal("modalParty");
+        });
+        $("#btnNewPoll").addEventListener("click", function () {
+            if (!isChannelOpen()) return;
+            $("#pollQuestion").value = "";
+            renderPollModalOptions();
+            openModal("modalPoll");
+        });
+
+        // new channel modal
+        $("#btnCreateChannel").addEventListener("click", function () {
+            var name = $("#channelNameInput").value.trim();
+            if (!name) { toast("Channel needs a name", "error"); return; }
+            api("/threads/api/communities/" + State.activeCommunity.id + "/channels", {
+                json: { name: name, topic: $("#channelTopicInput").value.trim() },
+            }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                closeModal("modalNewChannel");
+                $("#channelNameInput").value = "";
+                $("#channelTopicInput").value = "";
+                var ch = res.channel;
+                (State.activeCommunity.channels || []).push(ch);
+                renderChannelList();
+                openChannel(ch);
+                refreshCommunities();
+                toast("Channel created");
+            });
+        });
+    }
+
+    function openChannelFromNotification(chid) {
+        if (State.activeTab !== "communities") setTab("communities");
+        function tryOpen() {
+            var found = false;
+            State.communities.forEach(function (c) {
+                (c.channels || []).forEach(function (ch) {
+                    if (ch.id === chid) {
+                        found = true;
+                        State.discoverMode = false;
+                        State.activeCommunity = c;
+                        State.myCommunityRole = c.role || "member";
+                        renderRail();
+                        renderChannelPanel();
+                        openChannel(ch);
+                    }
+                });
+            });
+            return found;
+        }
+        if (!tryOpen()) {
+            refreshCommunities(function () { tryOpen(); });
+        }
+    }
+        // ---- Pins modal ----
     function wirePinsModal() {
         var list = $("#pinsList");
         function render() {
@@ -1141,6 +2079,9 @@
                         var found = State.conversations.some(function (c) { return c.id === id && c.type === type; });
                         if (!found) refreshConversations();
                         openConversation(type, id);
+                        dd.classList.add("hidden");
+                    } else if (type === "channel") {
+                        openChannelFromNotification(id);
                         dd.classList.add("hidden");
                     }
                 }
@@ -1308,13 +2249,38 @@
         $("#btnEmptyDm").addEventListener("click", function () { openModal("modalNewDm"); });
         $("#btnNewGroup").addEventListener("click", function () { openModal("modalNewGroup"); });
 
-        // tabs (Communities arrives in Phase 2)
+        // tabs
         $$(".thr-tab").forEach(function (t) {
             t.addEventListener("click", function () {
-                if (t.classList.contains("disabled")) return;
-                $$(".thr-tab").forEach(function (x) { x.classList.remove("active"); });
-                t.classList.add("active");
+                setTab(t.getAttribute("data-tab"));
             });
+        });
+
+        // message actions — report / moderator delete
+        $("#msgList").addEventListener("click", function (e) {
+            var act = e.target.closest("[data-act]");
+            if (!act) return;
+            var kind = act.getAttribute("data-act");
+            if (kind === "report") {
+                State.reportMessageId = parseInt(act.getAttribute("data-id"), 10);
+                $("#reportReason").value = "";
+                openModal("modalReport");
+            } else if (kind === "mod-delete") {
+                modDeleteMessage(parseInt(act.getAttribute("data-id"), 10));
+            }
+        });
+
+        // channel search filter
+        $("#channelSearch").addEventListener("input", function () {
+            State.commFilter = this.value;
+            renderChannelList();
+        });
+
+        // discover search
+        $("#discoverSearch").addEventListener("input", function () {
+            clearTimeout(this._t);
+            var input = this;
+            this._t = setTimeout(function () { loadDiscover(input.value); }, 300);
         });
     }
 
@@ -1340,6 +2306,7 @@
         wireMembersModal();
         wirePinsModal();
         wireSettingsModal();
+        wireCommunities();
         wireBell();
         wireEvents();
 
@@ -1352,8 +2319,10 @@
 
         // heartbeat + polling
         refreshPresence();
+        refreshCommunities();
         setInterval(pollMessages, 1500);
         setInterval(refreshConversations, 5000);
+        setInterval(refreshCommunities, 5000);
         setInterval(refreshPresence, 10000);
         setInterval(refreshNotifications, 15000);
 
@@ -1378,6 +2347,8 @@
             var parts = open.split(":");
             if ((parts[0] === "dm" || parts[0] === "group") && parts[1]) {
                 setTimeout(function () { openConversation(parts[0], parseInt(parts[1], 10)); }, 100);
+            } else if (parts[0] === "channel" && parts[1]) {
+                setTimeout(function () { openChannelFromNotification(parseInt(parts[1], 10)); }, 100);
             }
         }
     }
