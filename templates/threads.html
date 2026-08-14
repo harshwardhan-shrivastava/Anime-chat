@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threads | AnimeChat</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}">
+</head>
+<body
+    data-user='{{ current_user | tojson if current_user else "null" }}'
+    data-conversations='{{ conversations | tojson }}'
+    data-notifications='{{ unread_notifications }}'>
+
+<div id="threads-app">
+
+    <!-- ===================== TOP BAR ===================== -->
+    <header class="thr-topbar">
+        <div class="thr-brand" title="Back to AnimeChat">
+            <a href="{{ url_for('home') }}" class="thr-brand-link">
+                <span class="thr-brand-mark">T</span>
+                <span class="thr-brand-name">Threads</span>
+            </a>
+        </div>
+
+        <nav class="thr-tabs">
+            <button class="thr-tab active" data-tab="messages">
+                <i class="fas fa-comment-dots"></i> Messages
+            </button>
+            <button class="thr-tab disabled" data-tab="communities" title="Communities arrive in the next update">
+                <i class="fas fa-users"></i> Communities <span class="thr-soon">soon</span>
+            </button>
+        </nav>
+
+        <div class="thr-topbar-right">
+            <a href="{{ url_for('home') }}" class="thr-back-btn" title="Back to AnimeChat">
+                <i class="fas fa-arrow-left"></i> Site
+            </a>
+            <div class="thr-bell-wrap">
+                <button id="btnBell" class="thr-icon-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span id="bellBadge" class="thr-badge hidden">0</span>
+                </button>
+                <div id="bellDropdown" class="thr-dropdown hidden">
+                    <div class="thr-dropdown-head">
+                        <span>Notifications</span>
+                        <button id="btnNotifRead" class="thr-link-btn">Mark all read</button>
+                    </div>
+                    <div id="notifList" class="thr-dropdown-list"></div>
+                </div>
+            </div>
+            {% if current_user %}
+            <div class="thr-user-pill">
+                <span class="thr-avatar" style="background:{{ current_user.avatar_color }}">
+                    {{ current_user.username[:2]|upper }}
+                </span>
+                <span class="thr-user-name">{{ current_user.username }}</span>
+                <a href="{{ url_for('auth.logout') }}" class="thr-logout" title="Log out">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- ===================== BODY ===================== -->
+    <div class="thr-body">
+
+        <!-- LEFT PANEL -->
+        <aside class="thr-left">
+            <div class="thr-left-head">
+                <div class="thr-search">
+                    <i class="fas fa-search"></i>
+                    <input id="convSearch" type="text" placeholder="Search conversations" autocomplete="off">
+                </div>
+                <div class="thr-new-btns">
+                    <button id="btnNewDm" class="thr-new-btn" title="New message (DM)">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button id="btnNewGroup" class="thr-new-btn" title="New group">
+                        <i class="fas fa-users"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="convList" class="thr-conv-list"></div>
+        </aside>
+
+        <!-- MAIN PANEL -->
+        <section class="thr-main">
+
+            <!-- Empty state -->
+            <div id="emptyState" class="thr-empty">
+                <div class="thr-empty-inner">
+                    <div class="thr-empty-icon"><i class="fas fa-comment-dots"></i></div>
+                    <h2>Your messages</h2>
+                    <p>Pick a conversation on the left, or start a new one.</p>
+                    <button id="btnEmptyDm" class="thr-btn thr-btn-primary">
+                        <i class="fas fa-pen"></i> New message
+                    </button>
+                </div>
+            </div>
+
+            <!-- Open conversation -->
+            <div id="convView" class="thr-conv-view hidden">
+                <header class="thr-chat-head">
+                    <div class="thr-chat-id">
+                        <span id="chatAvatar" class="thr-avatar thr-avatar-md"></span>
+                        <div class="thr-chat-titles">
+                            <div class="thr-chat-name-row">
+                                <span id="chatName" class="thr-chat-name"></span>
+                                <span id="chatPresence" class="thr-presence-dot"></span>
+                            </div>
+                            <div id="chatSub" class="thr-chat-sub"></div>
+                        </div>
+                    </div>
+                    <div class="thr-chat-actions">
+                        <span id="seenText" class="thr-seen-text" title="Read receipts"></span>
+                        <button id="btnMute" class="thr-icon-btn" title="Mute conversation">
+                            <i class="fas fa-bell-slash"></i>
+                        </button>
+                        <button id="btnMembers" class="thr-icon-btn" title="Members">
+                            <i class="fas fa-users"></i>
+                        </button>
+                        <button id="btnPins" class="thr-icon-btn" title="Pinned messages">
+                            <i class="fas fa-thumbtack"></i>
+                            <span id="pinBadge" class="thr-badge hidden">0</span>
+                        </button>
+                        <button id="btnSettings" class="thr-icon-btn" title="Threads settings">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </header>
+
+                <div class="thr-pinned-strip hidden" id="pinnedStrip">
+                    <i class="fas fa-thumbtack"></i>
+                    <span id="pinnedStripText"></span>
+                    <button class="thr-link-btn" id="btnPinnedStripOpen">View all</button>
+                </div>
+
+                <div class="thr-messages" id="msgList"></div>
+
+                <div class="thr-typing-row hidden" id="typingRow">
+                    <div class="thr-typing-bubble">
+                        <span class="thr-typing-dot"></span>
+                        <span class="thr-typing-dot"></span>
+                        <span class="thr-typing-dot"></span>
+                    </div>
+                    <span id="typingText" class="thr-typing-text"></span>
+                </div>
+
+                <footer class="thr-composer">
+                    <div class="thr-reply-bar hidden" id="replyBar">
+                        <i class="fas fa-reply"></i>
+                        <span class="thr-reply-info">
+                            Replying to <span id="replyName" class="thr-reply-name"></span>
+                            <span id="replySnippet" class="thr-reply-snippet"></span>
+                        </span>
+                        <button class="thr-link-btn" id="btnCancelReply">cancel</button>
+                    </div>
+                    <div class="thr-attach-preview hidden" id="attachPreview">
+                        <i class="fas fa-paperclip"></i>
+                        <span id="attachName" class="thr-attach-name"></span>
+                        <button class="thr-link-btn" id="btnClearAttach">remove</button>
+                    </div>
+                    <div class="thr-input-row">
+                        <button id="btnGif" class="thr-icon-btn thr-input-btn" title="GIF (Giphy)">
+                            <i class="fas fa-gift"></i>
+                        </button>
+                        <button id="btnAttach" class="thr-icon-btn thr-input-btn" title="Upload image / video">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <input type="file" id="fileInput" class="hidden" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm,video/quicktime">
+                        <textarea id="msgInput" rows="1" placeholder="Message @" autocomplete="off"></textarea>
+                        <div id="mentionBox" class="thr-mention-box hidden"></div>
+                        <button id="btnSend" class="thr-send-btn" title="Send (Enter)">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </footer>
+            </div>
+        </section>
+    </div>
+</div>
+
+<!-- ===================== TOAST ===================== -->
+<div id="thrToast" class="thr-toast"></div>
+
+<!-- ===================== NEW DM MODAL ===================== -->
+<div class="thr-modal hidden" id="modalNewDm">
+    <div class="thr-modal-card">
+        <div class="thr-modal-head">
+            <h3>New message</h3>
+            <button class="thr-modal-close" data-close="modalNewDm"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <div class="thr-search thr-modal-search">
+                <i class="fas fa-search"></i>
+                <input id="dmSearch" type="text" placeholder="Search users by username…" autocomplete="off">
+            </div>
+            <div id="dmResults" class="thr-user-results"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== NEW GROUP MODAL ===================== -->
+<div class="thr-modal hidden" id="modalNewGroup">
+    <div class="thr-modal-card">
+        <div class="thr-modal-head">
+            <h3>New group</h3>
+            <button class="thr-modal-close" data-close="modalNewGroup"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <input id="groupName" class="thr-text-input" type="text" placeholder="Group name" maxlength="40">
+            <div class="thr-search thr-modal-search">
+                <i class="fas fa-search"></i>
+                <input id="groupSearch" type="text" placeholder="Add members…" autocomplete="off">
+            </div>
+            <div id="groupPicks" class="thr-group-picks"></div>
+            <div id="groupResults" class="thr-user-results"></div>
+            <div class="thr-color-row">
+                <span class="thr-label">Icon color</span>
+                <div id="groupColors" class="thr-color-swatches"></div>
+            </div>
+            <button id="btnCreateGroup" class="thr-btn thr-btn-primary thr-btn-block">Create group</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== GIF MODAL ===================== -->
+<div class="thr-modal hidden" id="modalGif">
+    <div class="thr-modal-card thr-modal-gif">
+        <div class="thr-modal-head">
+            <h3>GIF picker</h3>
+            <button class="thr-modal-close" data-close="modalGif"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <div class="thr-search thr-modal-search">
+                <i class="fas fa-search"></i>
+                <input id="gifSearch" type="text" placeholder="Search Giphy… (empty = trending)" autocomplete="off">
+            </div>
+            <div id="gifGrid" class="thr-gif-grid"></div>
+            <div id="gifNote" class="thr-gif-note hidden"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== MEMBERS MODAL ===================== -->
+<div class="thr-modal hidden" id="modalMembers">
+    <div class="thr-modal-card">
+        <div class="thr-modal-head">
+            <h3>Members <span id="membersCount" class="thr-count-chip"></span></h3>
+            <button class="thr-modal-close" data-close="modalMembers"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <div id="memberList" class="thr-member-list"></div>
+            <div id="memberAddRow" class="thr-member-add hidden">
+                <div class="thr-search thr-modal-search">
+                    <i class="fas fa-search"></i>
+                    <input id="memberSearch" type="text" placeholder="Add a member…" autocomplete="off">
+                </div>
+                <div id="memberResults" class="thr-user-results"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== PINS MODAL ===================== -->
+<div class="thr-modal hidden" id="modalPins">
+    <div class="thr-modal-card">
+        <div class="thr-modal-head">
+            <h3>Pinned messages</h3>
+            <button class="thr-modal-close" data-close="modalPins"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <div id="pinsList" class="thr-pins-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== SETTINGS MODAL ===================== -->
+<div class="thr-modal hidden" id="modalSettings">
+    <div class="thr-modal-card">
+        <div class="thr-modal-head">
+            <h3>Threads settings</h3>
+            <button class="thr-modal-close" data-close="modalSettings"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <label class="thr-toggle-row">
+                <span>
+                    <span class="thr-toggle-title">Read receipts</span>
+                    <span class="thr-toggle-sub">Show when others have read your messages (and let them see yours)</span>
+                </span>
+                <input type="checkbox" id="setReadReceipts" class="thr-switch">
+            </label>
+            <label class="thr-toggle-row">
+                <span>
+                    <span class="thr-toggle-title">Typing indicators</span>
+                    <span class="thr-toggle-sub">Show when someone is typing</span>
+                </span>
+                <input type="checkbox" id="setTyping" class="thr-switch">
+            </label>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/threads.js') }}"></script>
+</body>
+</html>

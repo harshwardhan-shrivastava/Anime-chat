@@ -43,12 +43,19 @@ from auth import auth, load_logged_in_user
 from chat import chat_bp
 from profile_routes import bp as profile_bp
 
+from threads import init_threads
+
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-insecure-change-me")
 
 app.register_blueprint(auth)
 app.register_blueprint(chat_bp)
 app.register_blueprint(profile_bp)
+
+
+init_threads(app)
+
 
 # Make sure the profile/history/list tables exist even if the app is
 # imported (not only when run as __main__). Idempotent.
@@ -755,9 +762,9 @@ def community(anime_slug):
 
 
 @app.route("/anime-reviews/<anime_slug>", methods=["GET"])
-def anime_reviews(anime_slug):
+def anime_reviews(anime_slug): 
     if anime_slug not in anime_database:
-        return jsonify({"success": False, "error": "Anime not found"}), 404
+         return jsonify({"success": False, "error": "Anime not found"}), 404
     stats = get_anime_stats(anime_slug)
     return jsonify({
         "success": True,
