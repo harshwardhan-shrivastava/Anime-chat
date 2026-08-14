@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ list_data.name }} | AnimeChat</title>
+    <link rel="icon" type="image/svg+xml"
+          href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/auth.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/profile.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet">
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js" crossorigin="anonymous"></script>
+</head>
+<body data-page="profile">
+    <div class="background">
+        <div class="circle one"></div>
+        <div class="circle two"></div>
+        <div class="circle three"></div>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-list" style="max-width:1300px;margin:20px auto 0;width:90%;">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% include "_navbar.html" %}
+
+    <section class="profile-list-head">
+        <a href="{{ url_for('profile.profile', tab='lists') }}" class="profile-back-link">
+            <i class="fas fa-arrow-left"></i> Back to lists
+        </a>
+        <h1>{{ list_data.name }}</h1>
+        <p>
+            {{ list_data.item_count }} Items
+            {% if list_data.item_count %}
+            &bull; Updated on {{ list_data.updated_at | nice_date }}
+            {% endif %}
+        </p>
+    </section>
+
+    <section class="profile-section">
+        {% if items %}
+        <div class="profile-card-grid">
+            {% for pick in items %}
+            <div class="profile-card-wrap" data-slug="{{ pick.slug }}">
+                <button type="button" class="profile-remove-chip"
+                        data-slug="{{ pick.slug }}" title="Remove from list">
+                    <i class="fas fa-xmark"></i>
+                </button>
+                {% with anime=pick %}
+                {% include "_anime_card.html" %}
+                {% endwith %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="profile-empty">
+            <div class="empty-icon">📭</div>
+            <h3>This list is empty</h3>
+            <p>Add anime to this list from any anime card using the “Add to list” button.</p>
+            <a href="{{ url_for('browse', sort='popular') }}" class="pick-btn-solid empty-cta">
+                <i class="fas fa-compass"></i> Browse anime
+            </a>
+        </div>
+        {% endif %}
+    </section>
+
+    <footer>
+        <div class="footer-left">
+            <h2>AnimeChat</h2>
+            <p>The place where every anime has its own community.</p>
+        </div>
+        <div class="footer-links">
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('browse', sort='popular') }}">Popular</a>
+            <a href="{{ url_for('browse', sort='trending') }}">Trending</a>
+            <a href="{{ url_for('browse', sort='critics') }}">Critics</a>
+            <a href="{{ url_for('browse', sort='underrated') }}">Underrated</a>
+        </div>
+        <div class="footer-social">
+            <a href="#"><i class="fab fa-discord"></i></a>
+            <a href="#"><i class="fab fa-github"></i></a>
+            <a href="#"><i class="fab fa-reddit"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+        </div>
+    </footer>
+
+    <script>
+        const LIST_ID = {{ list_data.id }};
+    </script>
+    <script src="{{ url_for('static', filename='js/list_picker.js') }}"></script>
+    <script>
+        // Remove an anime from this list directly from its card.
+        document.querySelectorAll(".profile-remove-chip").forEach(function (btn) {
+            btn.addEventListener("click", async function () {
+                const slug = btn.dataset.slug;
+                const wrap = btn.closest(".profile-card-wrap");
+                btn.disabled = true;
+                try {
+                    const res = await fetch(`/api/lists/${LIST_ID}/items/${encodeURIComponent(slug)}`, {
+                        method: "DELETE"
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || "failed");
+                    wrap.style.transition = "opacity .3s, transform .3s";
+                    wrap.style.opacity = "0";
+                    wrap.style.transform = "scale(.92)";
+                    setTimeout(function () { wrap.remove(); }, 300);
+                } catch (err) {
+                    btn.disabled = false;
+                    alert("Couldn't remove from list. Try again.");
+                }
+            });
+        });
+    </script>
+</body>
+</html>

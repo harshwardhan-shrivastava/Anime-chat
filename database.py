@@ -115,6 +115,39 @@ def create_tables():
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_lists(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_list_items(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            list_id INTEGER NOT NULL,
+            anime_slug TEXT NOT NULL,
+            added_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (list_id, anime_slug),
+            FOREIGN KEY(list_id) REFERENCES user_lists(id) ON DELETE CASCADE
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS view_history(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            anime_slug TEXT NOT NULL,
+            viewed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (user_id, anime_slug),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -486,3 +519,195 @@ def get_latest_quiz_result(user_id):
     result["top_genres"] = json.loads(result["top_genres"])
     result["result_slugs"] = json.loads(result["result_slugs"])
     return result
+
+
+# ---------------------------------------------------------------------------
+# User anime lists (max 10, Crunchyroll-style) + view history
+# ---------------------------------------------------------------------------
+
+MAX_USER_LISTS = 10
+
+
+def create_user_list(user_id, name):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) AS n FROM user_lists WHERE user_id = ?", (user_id,))
+    if cursor.fetchone()["n"] >= MAX_USER_LISTS:
+        conn.close()
+        return None
+    cursor.execute(
+        "INSERT INTO user_lists (user_id, name) VALUES (?, ?)",
+        (user_id, name),
+    )
+    conn.commit()
+    list_id = cursor.lastrowid
+    cursor.execute(
+        "SELECT * FROM user_lists WHERE id = ?", (list_id,)
+    )
+    row = dict(cursor.fetchone())
+    row["slugs"] = []
+    conn.close()
+    return row
+
+
+def get_user_lists(user_id):
+    """All of a user's lists with their anime slugs attached."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT * FROM user_lists
+        WHERE user_id = ?
+        ORDER BY updated_at DESC, id DESC
+        """,
+        (user_id,),
+    )
+    lists = [dict(r) for r in cursor.fetchall()]
+    for lst in lists:
+        cursor.execute(
+            "SELECT anime_slug FROM user_list_items WHERE list_id = ?",
+            (lst["id"],),
+        )
+        lst["slugs"] = [r["anime_slug"] for r in cursor.fetchall()]
+    conn.close()
+    return lists
+
+
+def get_user_list(list_id, user_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT * FROM user_lists WHERE id = ? AND user_id = ?",
+        (list_id, user_id),
+    )
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return None
+    lst = dict(row)
+    cursor.execute(
+        "SELECT anime_slug FROM user_list_items WHERE list_id = ?",
+        (lst["id"],),
+    )
+    lst["slugs"] = [r["anime_slug"] for r in cursor.fetchall()]
+    conn.close()
+    return lst
+
+
+def rename_user_list(list_id, user_id, name):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        UPDATE user_lists SET name = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND user_id = ?
+        """,
+        (name, list_id, user_id),
+    )
+    conn.commit()
+    changed = cursor.rowcount > 0
+    conn.close()
+    return changed
+
+
+def delete_user_list(list_id, user_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM user_list_items WHERE list_id = ?",
+        (list_id,),
+    )
+    cursor.execute(
+        "DELETE FROM user_lists WHERE id = ? AND user_id = ?",
+        (list_id, user_id),
+    )
+    conn.commit()
+    changed = cursor.rowcount > 0
+    conn.close()
+    return changed
+
+
+def _touch_list(list_id, cursor):
+    cursor.execute(
+        "UPDATE user_lists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        (list_id,),
+    )
+
+
+def add_to_user_list(list_id, user_id, anime_slug):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id FROM user_lists WHERE id = ? AND user_id = ?",
+        (list_id, user_id),
+    )
+    if not cursor.fetchone():
+        conn.close()
+        return False
+    cursor.execute(
+        """
+        INSERT OR IGNORE INTO user_list_items (list_id, anime_slug)
+        VALUES (?, ?)
+        """,
+        (list_id, anime_slug),
+    )
+    added = cursor.rowcount > 0
+    _touch_list(list_id, cursor)
+    conn.commit()
+    conn.close()
+    return added
+
+
+def remove_from_user_list(list_id, user_id, anime_slug):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id FROM user_lists WHERE id = ? AND user_id = ?",
+        (list_id, user_id),
+    )
+    if not cursor.fetchone():
+        conn.close()
+        return False
+    cursor.execute(
+        "DELETE FROM user_list_items WHERE list_id = ? AND anime_slug = ?",
+        (list_id, anime_slug),
+    )
+    removed = cursor.rowcount > 0
+    if removed:
+        _touch_list(list_id, cursor)
+    conn.commit()
+    conn.close()
+    return removed
+
+
+def record_view(user_id, anime_slug):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO view_history (user_id, anime_slug, viewed_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(user_id, anime_slug)
+        DO UPDATE SET viewed_at = CURRENT_TIMESTAMP
+        """,
+        (user_id, anime_slug),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_view_history(user_id, limit=60):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT anime_slug, viewed_at FROM view_history
+        WHERE user_id = ?
+        ORDER BY viewed_at DESC
+        LIMIT ?
+        """,
+        (user_id, limit),
+    )
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return rows

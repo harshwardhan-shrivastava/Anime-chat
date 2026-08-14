@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Profile | AnimeChat</title>
+    <link rel="icon" type="image/svg+xml"
+          href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/auth.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/profile.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet">
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js" crossorigin="anonymous"></script>
+</head>
+<body data-page="profile">
+    <div class="background">
+        <div class="circle one"></div>
+        <div class="circle two"></div>
+        <div class="circle three"></div>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-list" style="max-width:1300px;margin:20px auto 0;width:90%;">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% include "_navbar.html" %}
+
+    <!-- Profile banner -->
+    <section class="profile-banner">
+        <div class="profile-banner-inner">
+            <div class="profile-avatar" style="background:{{ user.avatar_color }}">
+                {{ user.username[:2]|upper }}
+            </div>
+            <div class="profile-id">
+                <h1>{{ user.username }}</h1>
+                <p>
+                    <i class="fas fa-calendar-alt"></i>
+                    Member since {{ user.created_at | nice_date }}
+                </p>
+            </div>
+            <a href="{{ url_for('auth.logout') }}" class="profile-logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                Log out
+            </a>
+        </div>
+    </section>
+
+    <!-- Sub-nav tabs -->
+    <nav class="profile-tabs">
+        <a href="{{ url_for('profile.profile', tab='history') }}"
+           class="profile-tab {% if tab == 'history' %}active{% endif %}">
+            HISTORY
+        </a>
+        <a href="{{ url_for('profile.profile', tab='lists') }}"
+           class="profile-tab {% if tab == 'lists' %}active{% endif %}">
+            LISTS
+        </a>
+    </nav>
+
+    {% if tab == 'history' %}
+    <!-- ================= HISTORY ================= -->
+    <section class="profile-section">
+        <div class="profile-section-head">
+            <h2>Watched Recently</h2>
+            <p>Every anime card you've opened, with the last time you visited.</p>
+        </div>
+        {% if history %}
+        <div class="profile-card-grid">
+            {% for pick in history %}
+            <div class="profile-card-wrap">
+                <span class="profile-visited-chip">
+                    <i class="fas fa-clock"></i> {{ pick.visited_at | time_ago }}
+                </span>
+                {% with anime=pick %}
+                {% include "_anime_card.html" %}
+                {% endwith %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="profile-empty">
+            <div class="empty-icon">🕘</div>
+            <h3>No history yet</h3>
+            <p>Open any anime card and it'll show up here with the time you visited.</p>
+            <a href="{{ url_for('home') }}" class="pick-btn-solid empty-cta">
+                <i class="fas fa-compass"></i> Start exploring
+            </a>
+        </div>
+        {% endif %}
+    </section>
+    {% else %}
+    <!-- ================= LISTS ================= -->
+    <section class="profile-section">
+        <div class="profile-lists-toolbar">
+            <button type="button" class="profile-create-btn" id="createListBtn">
+                <i class="fas fa-plus"></i> CREATE NEW LIST
+            </button>
+            <span class="profile-list-counter">
+                {{ lists | length }} / {{ max_lists }} lists
+            </span>
+        </div>
+
+        {% if lists %}
+        <div class="profile-lists-grid">
+            {% for lst in lists %}
+            <div class="profile-list-card" data-list-id="{{ lst.id }}">
+                <button type="button" class="profile-list-menu-btn" aria-label="List options">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="profile-list-menu" hidden>
+                    <button type="button" class="profile-menu-item" data-action="rename">
+                        <i class="fas fa-pen"></i> Rename
+                    </button>
+                    <button type="button" class="profile-menu-item danger" data-action="delete">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+                <a href="{{ url_for('profile.profile_list', list_id=lst.id) }}" class="profile-list-link">
+                    <h3>{{ lst.name }}</h3>
+                    <p>
+                        {{ lst.item_count }} Items
+                        {% if lst.item_count %}
+                        &bull; Updated on {{ lst.updated_at | nice_date }}
+                        {% endif %}
+                    </p>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="profile-empty">
+            <div class="empty-icon">📚</div>
+            <h3>No lists yet</h3>
+            <p>Create up to 10 custom lists and add any anime to them from the cards.</p>
+            <button type="button" class="pick-btn-solid empty-cta" id="emptyCreateBtn">
+                <i class="fas fa-plus"></i> Create your first list
+            </button>
+        </div>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    <!-- Create list modal -->
+    <div class="profile-modal-overlay" id="createModal" hidden>
+        <div class="profile-modal">
+            <button type="button" class="profile-modal-close" data-close-modal aria-label="Close">
+                <span class="modal-x"></span>
+            </button>
+            <span class="hero-badge">📚 New List</span>
+            <h2>Name your list</h2>
+            <p>Anything goes — “peak romance”, “to binge this weekend”, “isekai slander”.</p>
+            <input type="text" id="newListName" maxlength="50"
+                   placeholder="e.g. weekend binges" autocomplete="off">
+            <div class="profile-modal-actions">
+                <button type="button" class="profile-btn-ghost" data-close-modal>Cancel</button>
+                <button type="button" class="profile-btn-primary" id="confirmCreateBtn">
+                    <i class="fas fa-check"></i> Create
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rename list modal -->
+    <div class="profile-modal-overlay" id="renameModal" hidden>
+        <div class="profile-modal">
+            <button type="button" class="profile-modal-close" data-close-modal aria-label="Close">
+                <span class="modal-x"></span>
+            </button>
+            <span class="hero-badge">✏️ Rename List</span>
+            <h2>Give it a new name</h2>
+            <input type="text" id="renameListName" maxlength="50"
+                   placeholder="New list name" autocomplete="off">
+            <div class="profile-modal-actions">
+                <button type="button" class="profile-btn-ghost" data-close-modal>Cancel</button>
+                <button type="button" class="profile-btn-primary" id="confirmRenameBtn">
+                    <i class="fas fa-check"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-left">
+            <h2>AnimeChat</h2>
+            <p>The place where every anime has its own community.</p>
+        </div>
+        <div class="footer-links">
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('browse', sort='popular') }}">Popular</a>
+            <a href="{{ url_for('browse', sort='trending') }}">Trending</a>
+            <a href="{{ url_for('browse', sort='critics') }}">Critics</a>
+            <a href="{{ url_for('browse', sort='underrated') }}">Underrated</a>
+        </div>
+        <div class="footer-social">
+            <a href="#"><i class="fab fa-discord"></i></a>
+            <a href="#"><i class="fab fa-github"></i></a>
+            <a href="#"><i class="fab fa-reddit"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/list_picker.js') }}"></script>
+</body>
+</html>

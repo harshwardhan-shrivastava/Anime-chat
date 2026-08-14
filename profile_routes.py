@@ -1,0 +1,228 @@
+from flask import Blueprint, render_template, request, jsonify, g, url_for, flash, redirect
+
+from anime_data import anime_database
+from database import (
+    get_anime_stats,
+    create_user_list,
+    get_user_lists,
+    get_user_list,
+    rename_user_list,
+    delete_user_list,
+    add_to_user_list,
+    remove_from_user_list,
+    get_view_history,
+    MAX_USER_LISTS,
+)
+
+bp = Blueprint("profile", __name__)
+
+
+def _pick_card(slug):
+    """Build a pick dict shaped for the homepage _anime_card.html partial."""
+    entry = anime_database.get(slug)
+    if entry is None:
+        return None
+    stats = get_anime_stats(slug)
+    live_rating = stats["average"] if stats["votes"] > 0 else entry.get("rating", "N/A")
+    return {
+        "slug": slug,
+        "title": entry.get("title") or slug,
+        "image": entry.get("image") or "",
+        "rating": entry.get("rating") or "N/A",
+        "year": entry.get("release") or "",
+        "genre": entry.get("genre") or "",
+        "total_episodes": entry.get("total_episodes", 0) or 0,
+        "member_count": entry.get("member_count", 0) or 0,
+        "has_sub": bool(entry.get("subtitles")),
+        "has_dub": any(
+            str(d).strip().lower() == "english"
+            for d in (entry.get("dub") or [])
+        ),
+        "arc_count": len(entry.get("watch_order") or []) or len(entry.get("seasons") or []),
+        "live_rating": live_rating,
+        "badge_label": "In List",
+    }
+
+
+def _require_user_json():
+    """Return (user, error_response) — 401 JSON if logged out."""
+    user = g.get("user")
+    if user is None:
+        return None, (jsonify({"success": False, "error": "login"}), 401)
+    return user, None
+
+
+def _list_pub(lst):
+    """Public shape of a list for JSON/templates."""
+    return {
+        "id": lst["id"],
+        "name": lst["name"],
+        "created_at": lst.get("created_at", ""),
+        "updated_at": lst.get("updated_at", ""),
+        "item_count": len(lst.get("slugs") or []),
+    }
+
+
+@bp.route("/profile")
+def profile():
+    user = g.get("user")
+    if user is None:
+        flash("Log in to see your profile.", "error")
+        return redirect(url_for("auth.login", next=request.path))
+
+    tab = request.args.get("tab", "history")
+    if tab not in ("history", "lists"):
+        tab = "history"
+
+    history = []
+    if tab == "history":
+        for row in get_view_history(user["id"], 60):
+            pick = _pick_card(row["anime_slug"])
+            if pick is None:
+                continue
+            pick["badge_label"] = "Visited"
+            pick["visited_at"] = row["viewed_at"]
+            history.append(pick)
+
+    lists = [_list_pub(lst) for lst in get_user_lists(user["id"])]
+
+    return render_template(
+        "profile.html",
+        user=user,
+        tab=tab,
+        history=history,
+        lists=lists,
+        max_lists=MAX_USER_LISTS,
+        genres=_genre_list(),
+    )
+
+
+@bp.route("/profile/lists/<int:list_id>")
+def profile_list(list_id):
+    user = g.get("user")
+    if user is None:
+        flash("Log in to see your lists.", "error")
+        return redirect(url_for("auth.login", next=request.path))
+
+    lst = get_user_list(list_id, user["id"])
+    if lst is None:
+        flash("That list doesn't exist.", "error")
+        return redirect(url_for("profile.profile", tab="lists"))
+
+    items = []
+    for slug in lst["slugs"]:
+        pick = _pick_card(slug)
+        if pick is not None:
+            items.append(pick)
+
+    return render_template(
+        "profile_list.html",
+        user=user,
+        list_data=_list_pub(lst),
+        items=items,
+        genres=_genre_list(),
+    )
+
+
+@bp.route("/api/lists", methods=["GET", "POST"])
+def api_lists():
+    user, err = _require_user_json()
+    if err:
+        return err
+
+    if request.method == "GET":
+        slug = (request.args.get("slug") or "").strip()
+        lists = []
+        for lst in get_user_lists(user["id"]):
+            pub = _list_pub(lst)
+            if slug:
+                pub["contains"] = slug in lst["slugs"]
+            lists.append(pub)
+        return jsonify({
+            "success": True,
+            "lists": lists,
+            "count": len(lists),
+            "max": MAX_USER_LISTS,
+        })
+
+    # POST — create a list
+    payload = request.get_json(silent=True) or {}
+    name = (payload.get("name") or "").strip()
+    if not name:
+        return jsonify({"success": False, "error": "name"}), 400
+    if len(name) > 50:
+        return jsonify({"success": False, "error": "too_long"}), 400
+
+    existing = get_user_lists(user["id"])
+    if len(existing) >= MAX_USER_LISTS:
+        return jsonify({"success": False, "error": "limit"}), 400
+
+    created = create_user_list(user["id"], name)
+    if created is None:
+        return jsonify({"success": False, "error": "limit"}), 400
+    return jsonify({"success": True, "list": _list_pub(created), "count": len(existing) + 1})
+
+
+@bp.route("/api/lists/<int:list_id>", methods=["POST"])
+def api_list_action(list_id):
+    user, err = _require_user_json()
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    action = data.get("action")
+    if action == "rename":
+        name = (data.get("name") or "").strip()
+        if not name:
+            return jsonify({"success": False, "error": "name"}), 400
+        if len(name) > 50:
+            return jsonify({"success": False, "error": "too_long"}), 400
+        if not rename_user_list(list_id, user["id"], name):
+            return jsonify({"success": False, "error": "not_found"}), 404
+        return jsonify({"success": True, "name": name})
+    if action == "delete":
+        if not delete_user_list(list_id, user["id"]):
+            return jsonify({"success": False, "error": "not_found"}), 404
+        return jsonify({"success": True})
+    return jsonify({"success": False, "error": "action"}), 400
+
+
+@bp.route("/api/lists/<int:list_id>/items", methods=["POST"])
+def api_list_add_item(list_id):
+    user, err = _require_user_json()
+    if err:
+        return err
+
+    slug = (request.form.get("slug") or "").strip()
+    if not slug or anime_database.get(slug) is None:
+        return jsonify({"success": False, "error": "slug"}), 400
+
+    added = add_to_user_list(list_id, user["id"], slug)
+    if added is False:
+        return jsonify({"success": False, "error": "not_found"}), 404
+    return jsonify({"success": True, "added": added, "contains": True})
+
+
+@bp.route("/api/lists/<int:list_id>/items/<anime_slug>", methods=["DELETE"])
+def api_list_remove_item(list_id, anime_slug):
+    user, err = _require_user_json()
+    if err:
+        return err
+
+    removed = remove_from_user_list(list_id, user["id"], anime_slug)
+    if removed is False:
+        return jsonify({"success": False, "error": "not_found"}), 404
+    return jsonify({"success": True, "contains": False})
+
+
+def _genre_list():
+    """Top genres for the navbar category dropdown (matches app.py)."""
+    from collections import Counter
+
+    counter = Counter()
+    for entry in anime_database.values():
+        for genre in entry.get("genre", "").split(" • "):
+            genre = genre.strip()
+            if genre and genre.lower() != "anime":
+                counter[genre] += 1
+    return [g for g, _ in counter.most_common(20)]

@@ -28,15 +28,31 @@ from database import (
     get_all_episode_stats,
     save_quiz_result,
     get_latest_quiz_result,
+    create_user_list,
+    get_user_lists,
+    get_user_list,
+    rename_user_list,
+    delete_user_list,
+    add_to_user_list,
+    remove_from_user_list,
+    record_view,
+    get_view_history,
+    MAX_USER_LISTS,
 )
 from auth import auth, load_logged_in_user
 from chat import chat_bp
+from profile_routes import bp as profile_bp
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-insecure-change-me")
 
 app.register_blueprint(auth)
 app.register_blueprint(chat_bp)
+app.register_blueprint(profile_bp)
+
+# Make sure the profile/history/list tables exist even if the app is
+# imported (not only when run as __main__). Idempotent.
+create_tables()
 
 
 @app.before_request
@@ -77,6 +93,51 @@ def anime_img_large(image):
     flavor. Kept as a separate filter so the detail-page hero stays explicit
     about serving HD where it matters most."""
     return anime_img(image)
+
+
+def _parse_db_time(ts):
+    from datetime import datetime, timezone
+    if not ts:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except (TypeError, ValueError):
+        return None
+
+
+@app.template_filter("time_ago")
+def time_ago(ts):
+    """'just now' / '3h ago' / '12d ago' / 'Jul 3, 2026'."""
+    from datetime import datetime, timezone
+    dt = _parse_db_time(ts)
+    if dt is None:
+        return ""
+    delta = datetime.now(timezone.utc) - dt
+    secs = max(int(delta.total_seconds()), 0)
+    if secs < 60:
+        return "just now"
+    mins = secs // 60
+    if mins < 60:
+        return f"{mins}m ago"
+    hrs = mins // 60
+    if hrs < 24:
+        return f"{hrs}h ago"
+    days = hrs // 24
+    if days < 7:
+        return f"{days}d ago"
+    return dt.strftime("%b %d, %Y")
+
+
+@app.template_filter("nice_date")
+def nice_date(ts):
+    """'Jul 3, 2026' — used for list 'Updated on' lines and member since."""
+    dt = _parse_db_time(ts)
+    if dt is None:
+        return ts or ""
+    return dt.strftime("%b %d, %Y")
 
 
 # ---------------------------------------------------------------------------
@@ -594,6 +655,9 @@ def anime(anime_slug):
     anime = anime_database.get(anime_slug)
     if anime is None:
         return "Anime not found", 404
+    user = g.get("user")
+    if user is not None:
+        record_view(user["id"], anime_slug)
     return render_template(
         "anime.html",
         anime=anime,

@@ -1715,6 +1715,16 @@ footer p{
     border:1px solid rgba(255,255,255,.08);
     padding:8px 16px;
     border-radius:999px;
+    text-decoration:none;
+    color:inherit;
+    transition:.25s;
+
+}
+
+.nav-user-pill:hover{
+
+    border-color:rgba(143,91,255,.55);
+    background:rgba(30,38,52,.95);
 
 }
 

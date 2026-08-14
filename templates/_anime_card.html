@@ -94,14 +94,25 @@
             {{ anime.member_count | default(0) }} Members
         </span>
 
-        <span class="heart">
-            <i class="far fa-heart"></i>
-        </span>
+        <div class="card-actions">
 
-        <a href="/community/{{ anime.slug }}" class="enter-chat">
-            Enter Chat
-            <i class="fas fa-arrow-right"></i>
-        </a>
+            <span class="heart">
+                <i class="far fa-heart"></i>
+            </span>
+
+            <button type="button" class="card-list-btn"
+                    data-slug="{{ anime.slug }}"
+                    data-title="{{ anime.title }}"
+                    title="Add to list">
+                <i class="fas fa-bookmark"></i>
+            </button>
+
+            <a href="/community/{{ anime.slug }}" class="enter-chat">
+                Enter Chat
+                <i class="fas fa-arrow-right"></i>
+            </a>
+
+        </div>
 
     </div>
 

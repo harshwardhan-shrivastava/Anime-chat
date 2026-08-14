@@ -41,6 +41,7 @@ def _public_user(user):
         "email": user["email"],
         "avatar_color": user["avatar_color"],
         "is_verified": bool(user["is_verified"]),
+        "created_at": user.get("created_at", ""),
     }
 
 
