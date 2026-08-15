@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up | AnimeChat</title>
+    <title>Create Account | AnimeChat</title>
 
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 
@@ -22,6 +22,80 @@
     <div class="circle three"></div>
 </div>
 
+<!-- ======================================================
+AVATAR GALLERY POPUP
+======================================================= -->
+<div class="avatar-popup" id="avatarPopup" hidden>
+    <div class="avatar-popup-content">
+        <div class="avatar-popup-header">
+            <div>
+                <h2>Avatar Selection</h2>
+                <p>Choose your avatar! You can change it any time.</p>
+            </div>
+            <button type="button" class="close-avatar-popup" id="closeAvatarPicker" aria-label="Close">×</button>
+        </div>
+        <div class="avatar-scroll">
+            <section class="avatar-category">
+                <h3>Close-up</h3>
+                <div class="avatar-gallery">
+                    {% for i in range(1, 9) %}
+                    <div class="avatar-option" data-avatar="profile{{ i }}.png">
+                        <img src="{{ url_for('static', filename='images/avatars/profile' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            <section class="avatar-category">
+                <h3>Gyaru</h3>
+                <div class="avatar-gallery">
+                    {% for i in range(1, 9) %}
+                    <div class="avatar-option" data-avatar="gyaru{{ i }}.png">
+                        <img src="{{ url_for('static', filename='images/avatars/gyaru' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            <section class="avatar-category">
+                <h3>Chibi</h3>
+                <div class="avatar-gallery">
+                    {% for i in range(1, 9) %}
+                    <div class="avatar-option" data-avatar="chibi{{ i }}.png">
+                        <img src="{{ url_for('static', filename='images/avatars/chibi' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            <section class="avatar-category">
+                <h3>Fantasy</h3>
+                <div class="avatar-gallery">
+                    {% for i in range(1, 9) %}
+                    <div class="avatar-option" data-avatar="fantasy{{ i }}.png">
+                        <img src="{{ url_for('static', filename='images/avatars/fantasy' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================
+AVATAR CONFIRMATION POPUP
+======================================================= -->
+<div class="avatar-confirm-popup" id="avatarConfirmPopup" hidden>
+    <div class="avatar-confirm-box">
+        <h3>Choose this avatar?</h3>
+        <p>This avatar will represent your AnimeChat profile.</p>
+        <div class="confirm-avatar-preview">
+            <img id="confirmAvatarImage" src="" alt="Avatar Preview">
+        </div>
+        <div class="avatar-confirm-buttons">
+            <button type="button" class="cancel-avatar-btn" id="cancelAvatar">NO</button>
+            <button type="button" class="confirm-avatar-btn" id="confirmAvatar">YES, USE AVATAR</button>
+        </div>
+    </div>
+</div>
+
 <div class="auth-wrapper">
 
     <a href="{{ url_for('home') }}" class="auth-brand">
@@ -30,7 +104,7 @@
 
     <div class="auth-card">
         <h1>Create your account</h1>
-        <p class="auth-subtitle">Join the community and start chatting with real fans.</p>
+        <p class="auth-subtitle">Pick an avatar and join the community.</p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -44,6 +118,18 @@
 
         <form method="POST" action="{{ url_for('auth.signup') }}">
 
+            <div class="avatar-picker-preview">
+                <div class="selected-avatar-box">
+                    <img id="selectedAvatarPreview"
+                         src="{{ url_for('static', filename='images/avatars/' ~ (avatar or 'profile1.png')) }}"
+                         alt="Selected Avatar">
+                </div>
+                <button type="button" class="choose-avatar-btn" id="openAvatarPicker">
+                    <i class="fas fa-images"></i> CHOOSE AVATAR
+                </button>
+                <input type="hidden" name="avatar" id="selectedAvatarInput" value="{{ avatar or 'profile1.png' }}">
+            </div>
+
             <div class="auth-field">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" placeholder="e.g. TanjiroFan22"
@@ -55,7 +141,7 @@
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email" placeholder="you@example.com"
                        value="{{ email or '' }}" required>
-                <div class="auth-hint">We'll send a verification link here.</div>
+                <div class="auth-hint">We'll send a 6-digit verification code here.</div>
             </div>
 
             <div class="auth-field">
@@ -77,6 +163,8 @@
         </div>
     </div>
 </div>
+
+<script src="{{ url_for('static', filename='js/avatar_picker.js') }}"></script>
 
 </body>
 </html>

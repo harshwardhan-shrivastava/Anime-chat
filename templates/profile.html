@@ -40,8 +40,9 @@
     <!-- Profile banner -->
     <section class="profile-banner">
         <div class="profile-banner-inner">
-            <div class="profile-avatar" style="background:{{ user.avatar_color }}">
-                {{ user.username[:2]|upper }}
+            <div class="profile-avatar">
+                <img src="{{ url_for('static', filename='images/avatars/' ~ user.avatar) }}"
+                     alt="{{ user.username }}'s avatar" class="settings-avatar-img">
             </div>
             <div class="profile-id">
                 <h1>{{ user.username }}</h1>
@@ -109,21 +110,36 @@
     <section class="profile-section">
         <div class="profile-section-head">
             <h2>Settings</h2>
-            <p>Your account details at a glance.</p>
+            <p>Edit your display name and avatar. Changes show up everywhere instantly.</p>
         </div>
         <div class="profile-settings-card">
-            <div class="profile-settings-id">
-                <div class="profile-avatar" style="background:{{ user.avatar_color }}">
-                    {{ user.username[:2]|upper }}
+            <form method="POST" action="{{ url_for('profile.profile', tab='settings') }}" class="profile-settings-form">
+                <div class="profile-settings-id">
+                    <div class="profile-avatar">
+                        <img src="{{ url_for('static', filename='images/avatars/' ~ user.avatar) }}"
+                             alt="{{ user.username }}'s avatar" class="settings-avatar-img">
+                    </div>
+                    <div class="settings-fields">
+                        <div class="auth-field">
+                            <label for="settingsUsername">Username</label>
+                            <input type="text" id="settingsUsername" name="username"
+                                   value="{{ user.username }}" required maxlength="20">
+                        </div>
+                        <button type="button" class="choose-avatar-btn" id="openAvatarPicker">
+                            <i class="fas fa-images"></i> CHANGE AVATAR
+                        </button>
+                        <input type="hidden" name="avatar" id="selectedAvatarInput" value="{{ user.avatar }}">
+                    </div>
                 </div>
-                <div>
-                    <h3>{{ user.username }}</h3>
-                    <p>
-                        <i class="fas fa-calendar-alt"></i>
-                        Member since {{ user.created_at | nice_date }}
-                    </p>
+                <div class="auth-field">
+                    <label for="settingsPassword">Current password</label>
+                    <input type="password" id="settingsPassword" name="password"
+                           placeholder="Enter your password to save" required>
                 </div>
-            </div>
+                <button type="submit" class="pick-btn-solid" style="margin-top:4px;">
+                    <i class="fas fa-check"></i> Save changes
+                </button>
+            </form>
             <div class="profile-settings-stats">
                 <a href="{{ url_for('profile.profile', tab='history') }}" class="profile-stat">
                     <span class="profile-stat-num">{{ history_count }}</span>
@@ -133,6 +149,10 @@
                     <span class="profile-stat-num">{{ lists | length }}</span>
                     <span class="profile-stat-label">Anime lists</span>
                 </a>
+                <div class="profile-stat">
+                    <span class="profile-stat-num"><i class="fas fa-envelope"></i></span>
+                    <span class="profile-stat-label">{{ user.email }}</span>
+                </div>
             </div>
         </div>
     </section>
@@ -227,6 +247,61 @@
         </div>
     </div>
 
+    <!-- Avatar gallery popup -->
+    <div class="avatar-popup" id="avatarPopup" hidden>
+        <div class="avatar-popup-content">
+            <div class="avatar-popup-header">
+                <div>
+                    <h2>Avatar Selection</h2>
+                    <p>Pick the avatar that represents you.</p>
+                </div>
+                <button type="button" class="close-avatar-popup" id="closeAvatarPicker" aria-label="Close">×</button>
+            </div>
+            <div class="avatar-scroll">
+                <section class="avatar-category">
+                    <h3>Close-up</h3>
+                    <div class="avatar-gallery">
+                        {% for i in range(1, 9) %}
+                        <div class="avatar-option" data-avatar="profile{{ i }}.png">
+                            <img src="{{ url_for('static', filename='images/avatars/profile' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+                <section class="avatar-category">
+                    <h3>Gyaru</h3>
+                    <div class="avatar-gallery">
+                        {% for i in range(1, 9) %}
+                        <div class="avatar-option" data-avatar="gyaru{{ i }}.png">
+                            <img src="{{ url_for('static', filename='images/avatars/gyaru' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+                <section class="avatar-category">
+                    <h3>Chibi</h3>
+                    <div class="avatar-gallery">
+                        {% for i in range(1, 9) %}
+                        <div class="avatar-option" data-avatar="chibi{{ i }}.png">
+                            <img src="{{ url_for('static', filename='images/avatars/chibi' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+                <section class="avatar-category">
+                    <h3>Fantasy</h3>
+                    <div class="avatar-gallery">
+                        {% for i in range(1, 9) %}
+                        <div class="avatar-option" data-avatar="fantasy{{ i }}.png">
+                            <img src="{{ url_for('static', filename='images/avatars/fantasy' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
     <footer>
         <div class="footer-left">
             <h2>AnimeChat</h2>
@@ -249,5 +324,6 @@
 
     <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
     <script src="{{ url_for('static', filename='js/list_picker.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/avatar_picker.js') }}"></script>
 </body>
 </html>

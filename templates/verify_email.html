@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ "Verify Email | AnimeChat" if purpose == "verify" else "Reset Password | AnimeChat" }}</title>
+
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js" crossorigin="anonymous"></script>
+</head>
+<body class="auth-body">
+
+<div class="background">
+    <div class="circle one"></div>
+    <div class="circle two"></div>
+    <div class="circle three"></div>
+</div>
+
+<div class="auth-wrapper">
+
+    <a href="{{ url_for('home') }}" class="auth-brand">
+        <span class="brand-anime">Anime</span><span class="brand-chat">Chat</span>
+    </a>
+
+    <div class="auth-card" style="text-align:center;">
+
+        <div class="mail-icon">
+            <i class="fas fa-envelope-open-text"></i>
+        </div>
+
+        <h1>{{ "Verify your email" if purpose == "verify" else "Reset your password" }}</h1>
+        <p class="auth-subtitle">
+            {{ "We sent a 6-digit code to" if purpose == "verify" else "We sent a 6-digit reset code to" }}
+            <strong style="color:white">{{ email }}</strong>.
+        </p>
+
+        {% if resent %}
+        <div class="flash flash-success" style="display:block;margin:0 0 14px;">A new code has been sent.</div>
+        {% endif %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-list">
+                {% for category, message in messages %}
+                <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% endwith %}
+
+        {% if dev_code %}
+        <div class="dev-link-box">
+            <p><i class="fas fa-flask"></i> SMTP isn't configured on this server yet, so here's your code directly (this box only shows up in dev mode):</p>
+            <span class="dev-code">{{ dev_code }}</span>
+        </div>
+        {% endif %}
+
+        <form method="POST" id="verificationForm">
+            <div class="code-inputs">
+                <input type="text" maxlength="1" inputmode="numeric" autocomplete="off">
+                <input type="text" maxlength="1" inputmode="numeric" autocomplete="off">
+                <input type="text" maxlength="1" inputmode="numeric" autocomplete="off">
+                <input type="text" maxlength="1" inputmode="numeric" autocomplete="off">
+                <input type="text" maxlength="1" inputmode="numeric" autocomplete="off">
+                <input type="text" maxlength="1" inputmode="numeric" autocomplete="off">
+            </div>
+            <input type="hidden" name="verification_code" id="verificationCode">
+
+            <p class="verification-timer">
+                Code expires in <span id="timer">5:00</span>
+            </p>
+
+            <div class="resend-code-area">
+                <span>Didn't receive the code?</span>
+                <button type="submit" form="resendCodeForm" class="resend-code-btn">Resend code</button>
+            </div>
+
+            <button type="submit" class="auth-submit">Verify</button>
+        </form>
+
+        <form id="resendCodeForm"
+              action="{{ url_for('auth.resend_verification_code') if purpose == 'verify' else url_for('auth.resend_password_reset_code') }}"
+              method="POST"></form>
+
+        <div class="auth-switch">
+            <a href="{{ url_for('auth.login') }}">Back to login</a>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    "use strict";
+    var inputs = document.querySelectorAll(".code-inputs input");
+    var form = document.getElementById("verificationForm");
+    var verificationCode = document.getElementById("verificationCode");
+
+    inputs.forEach(function (input, index) {
+        input.addEventListener("input", function () {
+            input.value = input.value.replace(/[^0-9]/g, "");
+            if (input.value && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+        });
+        input.addEventListener("keydown", function (event) {
+            if (event.key === "Backspace" && !input.value && index > 0) {
+                inputs[index - 1].focus();
+            }
+        });
+    });
+
+    form.addEventListener("submit", function (event) {
+        var code = Array.from(inputs).map(function (el) { return el.value; }).join("");
+        if (code.length !== 6) {
+            event.preventDefault();
+            return;
+        }
+        verificationCode.value = code;
+    });
+
+    var remainingSeconds = 300;
+    var timer = document.getElementById("timer");
+    var countdown = setInterval(function () {
+        remainingSeconds--;
+        if (remainingSeconds < 0) {
+            clearInterval(countdown);
+            timer.textContent = "Expired";
+            return;
+        }
+        var minutes = Math.floor(remainingSeconds / 60);
+        var seconds = remainingSeconds % 60;
+        timer.textContent = minutes + ":" + String(seconds).padStart(2, "0");
+    }, 1000);
+})();
+</script>
+
+</body>
+</html>

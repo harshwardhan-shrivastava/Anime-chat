@@ -6,6 +6,7 @@ import random
 import re
 import threading
 import time
+from datetime import timedelta
 
 import requests
 
@@ -48,6 +49,9 @@ from threads import init_threads
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-insecure-change-me")
+
+# Sessions last 10 years, so users stay logged in across devices/visits.
+app.permanent_session_lifetime = timedelta(days=3650)
 
 app.register_blueprint(auth)
 app.register_blueprint(chat_bp)

@@ -105,6 +105,16 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
         <div class="user-card">
 
+            {% if current_user.avatar %}
+            <img
+
+                class="user-avatar user-avatar-img"
+
+                src="{{ url_for('static', filename='images/avatars/' ~ current_user.avatar) }}"
+
+                alt="">
+
+            {% else %}
             <div
 
                 class="user-avatar"
@@ -114,6 +124,8 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
                 {{ current_user.username[:2]|upper }}
 
             </div>
+
+            {% endif %}
 
             <div class="user-information">
 

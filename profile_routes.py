@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, request, jsonify, g, url_for, flash, redirect
+import re
+
+from flask import Blueprint, render_template, request, jsonify, g, url_for, flash, redirect, session
 
 from anime_data import anime_database
 from database import (
@@ -12,6 +14,7 @@ from database import (
     add_to_user_list,
     remove_from_user_list,
     get_view_history,
+    update_user_profile,
     MAX_USER_LISTS,
 )
 
@@ -70,12 +73,40 @@ def _list_pub(lst):
     }
 
 
-@bp.route("/profile")
+@bp.route("/profile", methods=["GET", "POST"])
 def profile():
     user = g.get("user")
     if user is None:
         flash("Log in to see your profile.", "error")
         return redirect(url_for("auth.login", next=request.path))
+
+    # Settings tab: update username + avatar image (Tohoku-style).
+    if request.method == "POST":
+        from werkzeug.security import check_password_hash
+        import database as db
+
+        username = (request.form.get("username") or "").strip()
+        avatar = (request.form.get("avatar") or "profile1.png").strip()
+        password = request.form.get("password") or ""
+
+        full = db.get_user_by_id(user["id"])
+        if not full or not check_password_hash(full["password_hash"], password):
+            flash("Enter your current password to save changes.", "error")
+            return redirect(url_for("profile.profile", tab="settings"))
+
+        if not re.match(r"^[A-Za-z0-9_]{3,20}$", username):
+            flash("Username must be 3-20 characters: letters, numbers, underscores only.", "error")
+            return redirect(url_for("profile.profile", tab="settings"))
+
+        other = db.get_user_by_username(username)
+        if other and other["id"] != user["id"]:
+            flash("That username is already taken.", "error")
+            return redirect(url_for("profile.profile", tab="settings"))
+
+        update_user_profile(user["id"], username, avatar)
+        session["user_id"] = user["id"]
+        flash("Profile updated!", "success")
+        return redirect(url_for("profile.profile", tab="settings"))
 
     tab = request.args.get("tab", "history")
     if tab not in ("history", "lists", "settings"):

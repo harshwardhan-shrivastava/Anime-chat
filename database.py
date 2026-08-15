@@ -1,11 +1,131 @@
+import os
 import sqlite3
 import random
 
 DATABASE = "animechat.db"
 AVATAR_COLORS = ["#00c16a", "#3b82f6", "#f59e0b", "#ec4899", "#9333ea", "#06b6d4", "#ef4444"]
 
+# ==========================================================
+# Turso (remote SQLite) support
+#
+# By default the app stores everything in a local animechat.db file. On
+# hosting that recreates the app folder (free hosts, container recycling,
+# redeploys), that file gets wiped and every account + history + list is
+# lost. To keep data permanently, create a free Turso database
+# (https://turso.tech) and set:
+#
+#     TURSO_DATABASE_URL   e.g. libsql://your-db-org.turso.io
+#     TURSO_AUTH_TOKEN     the database token
+#
+# The app then stores everything in the remote database instead and all
+# existing SQL keeps working unchanged. If Turso is unreachable, the app
+# falls back to the local file so the site keeps working.
+# ==========================================================
+TURSO_DATABASE_URL = os.environ.get("TURSO_DATABASE_URL")
+TURSO_AUTH_TOKEN = os.environ.get("TURSO_AUTH_TOKEN")
+try:
+    import turso_serverless
+except ImportError:
+    turso_serverless = None
+TURSO_ENABLED = bool(
+    turso_serverless is not None
+    and TURSO_DATABASE_URL
+    and TURSO_AUTH_TOKEN
+)
+TURSO_BROKEN = False
 
-def get_connection():
+if TURSO_ENABLED:
+    print("ANIMECHAT DB: using Turso (persistent) database")
+else:
+    print("ANIMECHAT DB: using local file animechat.db (accounts/history/lists can be lost if the app folder is recreated)")
+
+
+def _mark_turso_broken(error):
+    global TURSO_BROKEN
+    if TURSO_ENABLED and not TURSO_BROKEN:
+        TURSO_BROKEN = True
+        print("CRITICAL: TURSO DATABASE UNREACHABLE - %r" % (error,))
+        print("CRITICAL: Falling back to local animechat.db. DATA WILL BE LOST ON REDEPLOY.")
+        print("CRITICAL: Check TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in the hosting environment.")
+
+
+class RowView:
+    """sqlite3.Row-style row: supports row["name"] and row[index]."""
+
+    def __init__(self, keys, values):
+        self._keys = tuple(keys)
+        self._values = tuple(values)
+
+    def __getitem__(self, key):
+        if isinstance(key, (int, slice)):
+            return self._values[key]
+        return self._values[self._keys.index(key)]
+
+    def keys(self):
+        return self._keys
+
+    def __iter__(self):
+        return iter(self._values)
+
+    def __len__(self):
+        return len(self._values)
+
+    def __repr__(self):
+        return "<RowView %r>" % (dict(zip(self._keys, self._values)),)
+
+
+class CompatCursor:
+    """Wraps a sqlite3-style cursor (turso's Cursor) and normalizes rows so
+    row["column"] works exactly like sqlite3.Row."""
+
+    def __init__(self, cursor):
+        self._cursor = cursor
+
+    @property
+    def lastrowid(self):
+        return getattr(self._cursor, "lastrowid", None)
+
+    @property
+    def rowcount(self):
+        return getattr(self._cursor, "rowcount", -1)
+
+    @property
+    def description(self):
+        return getattr(self._cursor, "description", None)
+
+    def _column_names(self):
+        description = getattr(self._cursor, "description", None)
+        if not description:
+            return None
+        try:
+            return [column[0] for column in description]
+        except Exception:
+            return None
+
+    def _normalize(self, row):
+        if row is None or isinstance(row, (RowView, sqlite3.Row, dict)):
+            return row
+        keys = self._column_names()
+        if keys is None:
+            return row
+        return RowView(keys, row)
+
+    def execute(self, sql, parameters=()):
+        self._cursor.execute(sql, parameters)
+        return self
+
+    def fetchone(self):
+        return self._normalize(self._cursor.fetchone())
+
+    def fetchall(self):
+        return [self._normalize(row) for row in self._cursor.fetchall()]
+
+    def __iter__(self):
+        for row in self._cursor:
+            yield self._normalize(row)
+
+
+def _new_local_connection():
     conn = sqlite3.connect(DATABASE, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -14,6 +134,84 @@ def get_connection():
     except sqlite3.OperationalError:
         pass
     return conn
+
+
+class CompatConnection:
+    """Wraps a sqlite3-style connection (turso's Connection) so conn.execute,
+    conn.cursor, commit and close all behave like the local sqlite3 API.
+
+    turso's connect() is lazy: it only talks to the network on the first
+    query. If any call fails, the wrapper marks Turso broken and re-runs the
+    operation against a fresh local connection, so a Turso outage degrades
+    to the local file transparently instead of 500ing the request."""
+
+    def __init__(self, connection):
+        self._connection = connection
+
+    def _fallback_local(self):
+        if not isinstance(self._connection, sqlite3.Connection):
+            self._connection = _new_local_connection()
+        return self._connection
+
+    def execute(self, sql, parameters=()):
+        try:
+            return CompatCursor(self._connection.execute(sql, parameters))
+        except Exception as error:
+            _mark_turso_broken(error)
+            return CompatCursor(self._fallback_local().execute(sql, parameters))
+
+    def cursor(self):
+        try:
+            return CompatCursor(self._connection.cursor())
+        except Exception as error:
+            _mark_turso_broken(error)
+            return CompatCursor(self._fallback_local().cursor())
+
+    def executemany(self, sql, seq_of_parameters):
+        try:
+            return CompatCursor(self._connection.executemany(sql, seq_of_parameters))
+        except Exception as error:
+            _mark_turso_broken(error)
+            return CompatCursor(self._fallback_local().executemany(sql, seq_of_parameters))
+
+    def commit(self):
+        try:
+            return self._connection.commit()
+        except Exception as error:
+            _mark_turso_broken(error)
+            return self._fallback_local().commit()
+
+    def rollback(self):
+        try:
+            return self._connection.rollback()
+        except Exception as error:
+            _mark_turso_broken(error)
+            return self._fallback_local().rollback()
+
+    def close(self):
+        try:
+            return self._connection.close()
+        except Exception as error:
+            _mark_turso_broken(error)
+            return self._fallback_local().close()
+
+
+def get_connection():
+    if TURSO_ENABLED and not TURSO_BROKEN:
+        try:
+            # isolation_level=None runs every statement in autocommit mode, so
+            # writes are saved immediately and no BEGIN/COMMIT transaction is
+            # sent through the remote HTTP protocol.
+            connection = turso_serverless.connect(
+                TURSO_DATABASE_URL,
+                auth_token=TURSO_AUTH_TOKEN,
+                isolation_level=None,
+            )
+            return CompatConnection(connection)
+        except Exception as error:
+            _mark_turso_broken(error)
+
+    return _new_local_connection()
 
 
 def create_tables():
@@ -73,10 +271,16 @@ def create_tables():
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             avatar_color TEXT NOT NULL,
+            avatar TEXT NOT NULL DEFAULT 'profile1.png',
             is_verified INTEGER NOT NULL DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+    # Migration: existing databases don't have the avatar column yet.
+    user_cols = [row[1] for row in cursor.execute("PRAGMA table_info(users)").fetchall()]
+    if "avatar" not in user_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN avatar TEXT NOT NULL DEFAULT 'profile1.png'")
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS chat_messages(
@@ -169,21 +373,49 @@ def create_tables():
     conn.close()
 
 
-def create_user(username, email, password_hash):
+def create_user(username, email, password_hash, avatar="profile1.png"):
     conn = get_connection()
     cursor = conn.cursor()
     avatar_color = random.choice(AVATAR_COLORS)
     cursor.execute(
         """
-        INSERT INTO users (username, email, password_hash, avatar_color, is_verified)
-        VALUES (?, ?, ?, ?, 0)
+        INSERT INTO users (username, email, password_hash, avatar_color, avatar, is_verified)
+        VALUES (?, ?, ?, ?, ?, 0)
         """,
-        (username, email, password_hash, avatar_color)
+        (username, email, password_hash, avatar_color, avatar)
     )
     conn.commit()
     user_id = cursor.lastrowid
     conn.close()
     return user_id
+
+
+def update_user_profile(user_id, username, avatar):
+    """Update a user's username and/or avatar image. Returns True on success."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET username = ?, avatar = ? WHERE id = ?",
+        (username, avatar, user_id),
+    )
+    conn.commit()
+    changed = cursor.rowcount > 0
+    conn.close()
+    return changed
+
+
+def update_password(email, password_hash):
+    """Set a new password hash for the account with the given email."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET password_hash = ? WHERE email = ?",
+        (password_hash, email),
+    )
+    conn.commit()
+    changed = cursor.rowcount > 0
+    conn.close()
+    return changed
 
 
 def get_user_by_email(email):
