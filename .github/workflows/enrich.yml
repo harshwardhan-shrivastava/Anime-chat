@@ -2,9 +2,13 @@ name: Enrich anime data
 
 on:
   schedule:
-    # Every 2 hours (public repo = free unlimited Actions minutes): fresh
-    # episode titles + HD thumbs land within ~2h of an episode airing.
-    - cron: "17 */2 * * *"
+    # Every 15 minutes (public repo = free unlimited Actions minutes):
+    # fresh episode titles + HD thumbs land within ~15-30 min of an
+    # episode airing. GitHub may delay scheduled runs 5-15 min, and a
+    # tick is skipped if the previous run is still going (so runs never
+    # pile up). Only pushes when data actually changed, so Render only
+    # redeploys when something new landed.
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 permissions:
