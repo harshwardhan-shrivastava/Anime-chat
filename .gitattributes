@@ -1,0 +1,8 @@
+anime_characters_index.json filter=lfs diff=lfs merge=lfs -text
+anime_characters.json filter=lfs diff=lfs merge=lfs -text
+anime_character_va.json filter=lfs diff=lfs merge=lfs -text
+anime_ep_thumbs.json filter=lfs diff=lfs merge=lfs -text
+anime_mal_episodes.json filter=lfs diff=lfs merge=lfs -text
+anime_poster_refresh.json filter=lfs diff=lfs merge=lfs -text
+anime_streaming_jw_*.json filter=lfs diff=lfs merge=lfs -text
+anime_data.json filter=lfs diff=lfs merge=lfs -text

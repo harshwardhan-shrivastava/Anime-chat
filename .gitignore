@@ -12,3 +12,5 @@ anime_schedule.json
 anime_mal_episodes_w*.json
 # Transient TVmaze thumbnail-fetch worker caches (resume state lives in the base cache + todo)
 anime_ep_thumbs_w*.json
+# Runtime SQLite database (dev fallback only — production uses Turso)
+animechat.db
