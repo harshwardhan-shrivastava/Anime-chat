@@ -125,33 +125,29 @@
 }
 
 .password-wrap input{
-    padding-right:52px;
+    padding-right:42px;
 }
 
 .pw-toggle{
     position:absolute;
     top:50%;
-    right:8px;
+    right:10px;
     transform:translateY(-50%);
-    width:34px;
-    height:34px;
     display:flex;
     align-items:center;
     justify-content:center;
-    background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.12);
-    border-radius:50%;
-    color:rgba(255,255,255,.6);
+    background:none;
+    border:none;
+    color:rgba(255,255,255,.55);
     cursor:pointer;
-    padding:0;
-    transition:all .2s;
+    padding:6px;
+    border-radius:8px;
+    transition:color .2s, background .2s;
 }
 
 .pw-toggle:hover{
     color:#fff;
-    background:rgba(143,91,255,.22);
-    border-color:rgba(143,91,255,.55);
-    box-shadow:0 0 12px rgba(143,91,255,.35);
+    background:rgba(255,255,255,.08);
 }
 
 .auth-submit{
