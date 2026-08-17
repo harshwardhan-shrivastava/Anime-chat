@@ -1,0 +1,54 @@
+name: Enrich anime data
+
+on:
+  schedule:
+    # Every 12 hours: fresh episode titles + HD thumbs for newly aired eps.
+    - cron: "17 */12 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run enrichment
+        run: python3 scripts/run_enrichment.py
+
+      - name: Commit fresh data
+        run: |
+          git add \
+            anime_data.json \
+            anime_airing_a0.json \
+            anime_airing_a1.json \
+            anime_airing_todo.json \
+            anime_ep_thumbs_crosstodo.json \
+            anime_backfill_progress.json \
+            anime_characters.json \
+            anime_character_va.json \
+            anime_characters_index.json \
+            anime_characters_progress.json \
+            anime_character_va_progress.json
+
+          if git diff --cached --quiet; then
+            echo "No data changes this run — nothing to commit."
+          else
+            git -c user.name="github-actions[bot]" \
+                -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+                commit -m "chore: refresh episode titles + HD thumbs"
+            git push
+            echo "Pushed fresh data — Render will auto-deploy it."
+          fi
