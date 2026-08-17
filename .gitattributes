@@ -6,3 +6,4 @@ anime_mal_episodes.json filter=lfs diff=lfs merge=lfs -text
 anime_poster_refresh.json filter=lfs diff=lfs merge=lfs -text
 anime_streaming_jw_*.json filter=lfs diff=lfs merge=lfs -text
 anime_data.json filter=lfs diff=lfs merge=lfs -text
+anime_characters.sqlite filter=lfs diff=lfs merge=lfs -text

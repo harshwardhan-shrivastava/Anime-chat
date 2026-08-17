@@ -16,7 +16,7 @@ load_dotenv()
 from flask import Flask, render_template, request, jsonify, g, url_for, flash, redirect
 
 from anime_data import anime_database
-from characters_data import characters_index, search_characters, reload_characters
+from characters_data import search_characters, index_stats, reload_characters
 from database import (
     create_tables,
     get_connection,
@@ -242,11 +242,35 @@ _SCHEDULE_STATUS_MAP = {
 _schedule_state = {"last": 0.0, "running": False}
 _schedule_lock = threading.Lock()
 
-_BY_AID = {
-    e["anilist_id"]: (slug, e)
-    for slug, e in anime_database.items()
-    if e.get("anilist_id")
-}
+class _LazyByAid(dict):
+    """anime_database keyed by anilist_id, built lazily so importing the
+    app never loads the catalog into RAM on low-memory hosts."""
+
+    _built = False
+
+    def _ensure(self):
+        if not self._built:
+            self.update({
+                e["anilist_id"]: (slug, e)
+                for slug, e in anime_database.items()
+                if e.get("anilist_id")
+            })
+            self._built = True
+
+    def get(self, key, default=None):
+        self._ensure()
+        return dict.get(self, key, default)
+
+    def __getitem__(self, key):
+        self._ensure()
+        return dict.__getitem__(self, key)
+
+    def __contains__(self, key):
+        self._ensure()
+        return dict.__contains__(self, key)
+
+
+_BY_AID = _LazyByAid()
 
 
 def _save_fresh_airing_cache(fresh):
@@ -345,6 +369,10 @@ def _ensure_airing_schedule():
 
 
 def _schedule_loop():
+    # On Render the disk is ephemeral (rewrites are lost) and reloads
+    # double memory, so the background loops are local-dev only.
+    if os.environ.get("RENDER"):
+        return
     while True:
         _ensure_airing_schedule()
         time.sleep(_SCHEDULE_TTL)
@@ -412,6 +440,7 @@ def _full_enrich_worker():
             for slug, e in anime_database.items()
             if e.get("anilist_id")
         })
+        _BY_AID._built = True
         print("[auto-enrich] Full enrichment completed successfully", flush=True)
     except Exception as exc:
         print(f"[auto-enrich] Error during enrichment: {exc}", flush=True)
@@ -422,6 +451,8 @@ def _full_enrich_worker():
 
 
 def _full_enrich_loop():
+    if os.environ.get("RENDER"):
+        return
     time.sleep(120)
     while True:
         with _enrich_lock:
@@ -814,12 +845,16 @@ def _char_public(entries):
     ]
 
 
+@app.route("/healthz")
+def healthz():
+    """Lightweight health check that does not load the anime catalog."""
+    return "ok"
+
+
 @app.route("/characters")
 def characters():
     initial = search_characters("", 0, 60)
-    total = len(characters_index)
-    covered = len({e["slug"] for e in characters_index})
-    with_va = sum(1 for e in characters_index if e.get("jp") or e.get("en"))
+    total, covered, with_va = index_stats()
 
     def _fmt(n):
         return f"{n:,}" if n >= 1000 else str(n)
@@ -860,7 +895,7 @@ def api_characters_search():
         "q": q,
         "offset": offset,
         "limit": limit,
-        "total": len(characters_index),
+        "total": index_stats()[0],
         "results": results,
     })
 
