@@ -26,10 +26,54 @@ Environment variables:
 
 import json
 import os
+import socket
 import smtplib
 import ssl
 import urllib.request
 from email.mime.text import MIMEText
+
+
+def _ipv4_first_socket(host, port, timeout, tls, context, server_hostname):
+    """Connect to host:port preferring IPv4.
+
+    Gmail's DNS returns IPv6 (AAAA) records first; Render free instances
+    have no IPv6 route, so Python's default connection attempt dies with
+    '[Errno 101] Network is unreachable'. Sorting AF_INET first fixes it.
+    """
+    addrs = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)
+    addrs.sort(key=lambda a: 0 if a[0] == socket.AF_INET else 1)
+    last = None
+    for family, stype, proto, _, addr in addrs:
+        raw = None
+        try:
+            raw = socket.socket(family, stype, proto)
+            raw.settimeout(timeout)
+            raw.connect(addr)
+            if tls:
+                return context.wrap_socket(raw, server_hostname=server_hostname)
+            return raw
+        except OSError as exc:
+            last = exc
+            if raw is not None:
+                try:
+                    raw.close()
+                except OSError:
+                    pass
+    raise last or OSError(f"could not connect to {host}:{port}")
+
+
+class _Ipv4FirstSMTP(smtplib.SMTP):
+    """SMTP that connects IPv4-first (for STARTTLS on port 587)."""
+
+    def _get_socket(self, host, port, timeout):
+        return _ipv4_first_socket(host, port, timeout, False, None, None)
+
+
+class _Ipv4FirstSMTP_SSL(smtplib.SMTP_SSL):
+    """SMTP_SSL that connects IPv4-first (for implicit TLS on port 465)."""
+
+    def _get_socket(self, host, port, timeout):
+        return _ipv4_first_socket(host, port, timeout, True, self.context, self._host)
 
 LOG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs", "emails.log")
 
@@ -122,11 +166,31 @@ def _send_via_smtp(to_email, subject, body):
     msg["To"] = to_email
 
     context = ssl.create_default_context()
-    with smtplib.SMTP_SSL(host, port, context=context, timeout=10) as server:
-        server.login(user, password)
-        server.sendmail(sender, [to_email], msg.as_string())
+    errors = []
 
-    print("[AnimeChat] EMAIL SENT THROUGH SMTP")
+    # Attempt 1: implicit TLS on the configured port (Gmail 465), IPv4-first.
+    try:
+        with _Ipv4FirstSMTP_SSL(host, port, context=context, timeout=10) as server:
+            server.login(user, password)
+            server.sendmail(sender, [to_email], msg.as_string())
+        print("[AnimeChat] EMAIL SENT THROUGH SMTP (SSL)")
+        return
+    except Exception as exc:
+        errors.append(f"ssl/{port}: {exc}")
+
+    # Attempt 2: STARTTLS on 587 (Gmail's alternate port), IPv4-first.
+    try:
+        with _Ipv4FirstSMTP(host, 587, timeout=10) as server:
+            server.ehlo()
+            server.starttls(context=context)
+            server.login(user, password)
+            server.sendmail(sender, [to_email], msg.as_string())
+        print("[AnimeChat] EMAIL SENT THROUGH SMTP (STARTTLS)")
+        return
+    except Exception as exc:
+        errors.append(f"starttls/587: {exc}")
+
+    raise RuntimeError("; ".join(errors))
 
 
 def send_verification_email(to_email, username, code, purpose="verify"):
