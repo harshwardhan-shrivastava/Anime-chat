@@ -105,11 +105,16 @@ def _send_via_sendgrid(to_email, subject, body, api_key):
 
 
 def _send_via_smtp(to_email, subject, body):
-    host = os.environ.get("SMTP_HOST")
-    port = int(os.environ.get("SMTP_PORT", "465"))
-    user = os.environ.get("SMTP_USER")
-    password = os.environ.get("SMTP_PASS")
-    sender = os.environ.get("MAIL_FROM", user)
+    host = (os.environ.get("SMTP_HOST") or "").strip()
+    user = (os.environ.get("SMTP_USER") or "").strip()
+    # Gmail app passwords are generated with spaces ("abcd efgh ijkl mnop");
+    # smtplib rejects them unless the spaces are removed.
+    password = (os.environ.get("SMTP_PASS") or "").replace(" ", "")
+    sender = (os.environ.get("MAIL_FROM") or "").strip() or user
+    try:
+        port = int((os.environ.get("SMTP_PORT") or "465").strip())
+    except (TypeError, ValueError):
+        port = 465
 
     msg = MIMEText(body)
     msg["Subject"] = subject
@@ -138,13 +143,16 @@ def send_verification_email(to_email, username, code, purpose="verify"):
     """
 
     subject, body = _message_parts(username, code, purpose)
+    smtp_configured = bool((os.environ.get("SMTP_HOST") or "").strip())
+    smtp_failed = False
 
-    if os.environ.get("SMTP_HOST"):
+    if smtp_configured:
         try:
             # Primary: Gmail/plain SMTP.
             _send_via_smtp(to_email, subject, body)
-            return {"sent": True, "dev_code": None}
+            return {"sent": True, "dev_code": None, "dev_reason": None}
         except Exception as exc:
+            smtp_failed = True
             print(f"[AnimeChat][MAIL ERROR] SMTP failed for {to_email}: {exc}")
 
     api_key = os.environ.get("SENDGRID_API_KEY")
@@ -152,9 +160,13 @@ def send_verification_email(to_email, username, code, purpose="verify"):
         try:
             # Backup: only used when SMTP isn't configured or fails.
             _send_via_sendgrid(to_email, subject, body, api_key)
-            return {"sent": True, "dev_code": None}
+            return {"sent": True, "dev_code": None, "dev_reason": None}
         except Exception as exc:
             print(f"[AnimeChat][MAIL ERROR] SendGrid failed for {to_email}: {exc}")
 
     _log_dev_code(to_email, code)
-    return {"sent": False, "dev_code": code}
+    return {
+        "sent": False,
+        "dev_code": code,
+        "dev_reason": "smtp_failed" if smtp_failed else "not_configured",
+    }
