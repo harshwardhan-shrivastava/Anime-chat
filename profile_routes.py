@@ -1,3 +1,4 @@
+import re
 
 from flask import Blueprint, render_template, request, jsonify, g, url_for, flash, redirect, session
 
@@ -85,6 +86,8 @@ def profile():
         import database as db
 
         username = (request.form.get("username") or "").strip()
+        # Sanitize hidden control characters and trim to 100 - any name works.
+        username = re.sub(r"[\x00-\x1f\x7f\u200b-\u200d\ufeff]", "", username).strip()[:100]
         avatar = (request.form.get("avatar") or "profile1.png").strip()
         password = request.form.get("password") or ""
 
@@ -93,8 +96,8 @@ def profile():
             flash("Enter your current password to save changes.", "error")
             return redirect(url_for("profile.profile", tab="settings"))
 
-        if not username or len(username) > 100:
-            flash("Username must be 1-100 characters.", "error")
+        if not username:
+            flash("Username can't be empty.", "error")
             return redirect(url_for("profile.profile", tab="settings"))
 
         other = db.get_user_by_username(username)

@@ -73,13 +73,19 @@ def signup():
         return render_template("signup.html")
 
     username = (request.form.get("username") or "").strip()
+    # Sanitize: drop control characters (line breaks, zero-width marks, etc.)
+    # so pasted names with hidden characters can never break validation.
+    username = re.sub(r"[\x00-\x1f\x7f\u200b-\u200d\ufeff]", "", username).strip()
+    # No length restriction in practice: anything over 100 chars is silently
+    # trimmed so the database stays sane. Any typed name works.
+    username = username[:100]
     email = (request.form.get("email") or "").strip().lower()
     password = request.form.get("password") or ""
     confirm = request.form.get("confirm_password") or ""
     avatar = (request.form.get("avatar") or DEFAULT_AVATAR).strip()
 
-    if not username or len(username) > 100:
-        flash("Username must be 1-100 characters.", "error")
+    if not username:
+        flash("Username can't be empty.", "error")
         return render_template("signup.html", username=username, email=email, avatar=avatar)
 
     if not EMAIL_RE.match(email):
