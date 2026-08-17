@@ -262,7 +262,7 @@
                     <h3>Close-up</h3>
                     <div class="avatar-gallery">
                         {% for i in range(1, 9) %}
-                        <div class="avatar-option" data-avatar="profile{{ i }}.png">
+                        <div class="avatar-option profile" data-avatar="profile{{ i }}.png">
                             <img src="{{ url_for('static', filename='images/avatars/profile' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
                         </div>
                         {% endfor %}
@@ -272,7 +272,7 @@
                     <h3>Gyaru</h3>
                     <div class="avatar-gallery">
                         {% for i in range(1, 9) %}
-                        <div class="avatar-option" data-avatar="gyaru{{ i }}.png">
+                        <div class="avatar-option gyaru" data-avatar="gyaru{{ i }}.png">
                             <img src="{{ url_for('static', filename='images/avatars/gyaru' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
                         </div>
                         {% endfor %}
@@ -282,7 +282,7 @@
                     <h3>Chibi</h3>
                     <div class="avatar-gallery">
                         {% for i in range(1, 9) %}
-                        <div class="avatar-option" data-avatar="chibi{{ i }}.png">
+                        <div class="avatar-option chibi" data-avatar="chibi{{ i }}.png">
                             <img src="{{ url_for('static', filename='images/avatars/chibi' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
                         </div>
                         {% endfor %}
@@ -292,7 +292,7 @@
                     <h3>Fantasy</h3>
                     <div class="avatar-gallery">
                         {% for i in range(1, 9) %}
-                        <div class="avatar-option" data-avatar="fantasy{{ i }}.png">
+                        <div class="avatar-option fantasy{% if i == 7 %} tall{% endif %}" data-avatar="fantasy{{ i }}.png">
                             <img src="{{ url_for('static', filename='images/avatars/fantasy' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
                         </div>
                         {% endfor %}

@@ -118,6 +118,35 @@
     margin-top:6px;
 }
 
+/* ---------- password show/hide toggle ---------- */
+
+.password-wrap{
+    position:relative;
+}
+
+.password-wrap input{
+    padding-right:46px;
+}
+
+.pw-toggle{
+    position:absolute;
+    top:50%;
+    right:10px;
+    transform:translateY(-50%);
+    background:none;
+    border:none;
+    color:rgba(255,255,255,.45);
+    font-size:15px;
+    cursor:pointer;
+    padding:8px;
+    line-height:1;
+    transition:color .2s;
+}
+
+.pw-toggle:hover{
+    color:#a78bfa;
+}
+
 .auth-submit{
     width:100%;
     padding:15px;
@@ -641,6 +670,26 @@
 .avatar-option.selected {
     border-color: #8f5bff;
     box-shadow: 0 0 20px rgba(143, 91, 255, .6);
+}
+
+/* Per-category avatar sizing:
+   - Tall transparent pixel-art (gyaru / fantasy7): show the whole character,
+     never crop the top/bottom like object-fit:cover was doing.
+   - White-background square avatars (chibi / fantasy / profile): zoom in a
+     bit so the character fills the card and the white padding is trimmed. */
+.avatar-option.gyaru img,
+.avatar-option.fantasy.tall img{
+    object-fit: contain;
+    transform: none;
+}
+.avatar-option.chibi img{
+    transform: scale(1.4);
+}
+.avatar-option.fantasy img{
+    transform: scale(1.25);
+}
+.avatar-option.profile img{
+    transform: scale(1.1);
 }
 
 .avatar-confirm-popup {

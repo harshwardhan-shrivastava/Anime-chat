@@ -54,7 +54,10 @@
 
             <div class="auth-field">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Your password" required>
+                <div class="password-wrap">
+                    <input type="password" id="password" name="password" placeholder="Your password" required>
+                    <button type="button" class="pw-toggle" aria-label="Show password"><i class="fas fa-eye"></i></button>
+                </div>
             </div>
 
             <button type="submit" class="auth-submit">Log in</button>
@@ -70,6 +73,20 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    document.querySelectorAll(".pw-toggle").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            var input = btn.parentElement.querySelector("input");
+            var show = input.type === "password";
+            input.type = show ? "text" : "password";
+            btn.innerHTML = show ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+            btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
+        });
+    });
+})();
+</script>
 
 </body>
 </html>

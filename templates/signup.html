@@ -39,7 +39,7 @@ AVATAR GALLERY POPUP
                 <h3>Close-up</h3>
                 <div class="avatar-gallery">
                     {% for i in range(1, 9) %}
-                    <div class="avatar-option" data-avatar="profile{{ i }}.png">
+                    <div class="avatar-option profile" data-avatar="profile{{ i }}.png">
                         <img src="{{ url_for('static', filename='images/avatars/profile' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
                     </div>
                     {% endfor %}
@@ -49,7 +49,7 @@ AVATAR GALLERY POPUP
                 <h3>Gyaru</h3>
                 <div class="avatar-gallery">
                     {% for i in range(1, 9) %}
-                    <div class="avatar-option" data-avatar="gyaru{{ i }}.png">
+                    <div class="avatar-option gyaru" data-avatar="gyaru{{ i }}.png">
                         <img src="{{ url_for('static', filename='images/avatars/gyaru' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
                     </div>
                     {% endfor %}
@@ -59,7 +59,7 @@ AVATAR GALLERY POPUP
                 <h3>Chibi</h3>
                 <div class="avatar-gallery">
                     {% for i in range(1, 9) %}
-                    <div class="avatar-option" data-avatar="chibi{{ i }}.png">
+                    <div class="avatar-option chibi" data-avatar="chibi{{ i }}.png">
                         <img src="{{ url_for('static', filename='images/avatars/chibi' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
                     </div>
                     {% endfor %}
@@ -69,7 +69,7 @@ AVATAR GALLERY POPUP
                 <h3>Fantasy</h3>
                 <div class="avatar-gallery">
                     {% for i in range(1, 9) %}
-                    <div class="avatar-option" data-avatar="fantasy{{ i }}.png">
+                    <div class="avatar-option fantasy{% if i == 7 %} tall{% endif %}" data-avatar="fantasy{{ i }}.png">
                         <img src="{{ url_for('static', filename='images/avatars/fantasy' ~ i ~ '.png') }}" alt="Avatar {{ i }}" loading="lazy">
                     </div>
                     {% endfor %}
@@ -146,12 +146,18 @@ AVATAR CONFIRMATION POPUP
 
             <div class="auth-field">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="At least 8 characters" required minlength="8">
+                <div class="password-wrap">
+                    <input type="password" id="password" name="password" placeholder="At least 8 characters" required minlength="8">
+                    <button type="button" class="pw-toggle" aria-label="Show password"><i class="fas fa-eye"></i></button>
+                </div>
             </div>
 
             <div class="auth-field">
                 <label for="confirm_password">Confirm password</label>
-                <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter your password" required minlength="8">
+                <div class="password-wrap">
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter your password" required minlength="8">
+                    <button type="button" class="pw-toggle" aria-label="Show password"><i class="fas fa-eye"></i></button>
+                </div>
             </div>
 
             <button type="submit" class="auth-submit">Create account</button>
@@ -165,6 +171,20 @@ AVATAR CONFIRMATION POPUP
 </div>
 
 <script src="{{ url_for('static', filename='js/avatar_picker.js') }}"></script>
+
+<script>
+(function () {
+    document.querySelectorAll(".pw-toggle").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            var input = btn.parentElement.querySelector("input");
+            var show = input.type === "password";
+            input.type = show ? "text" : "password";
+            btn.innerHTML = show ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+            btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
+        });
+    });
+})();
+</script>
 
 </body>
 </html>
