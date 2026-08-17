@@ -118,6 +118,24 @@
     margin-top:6px;
 }
 
+/* ---------- live username availability ---------- */
+
+.username-status{
+    font-size:12px;
+    font-weight:600;
+    margin-top:6px;
+    min-height:16px;
+}
+.username-status.ok{
+    color:#22c55e;
+}
+.username-status.bad{
+    color:#f87171;
+}
+.username-status.checking{
+    color:rgba(255,255,255,.45);
+}
+
 /* ---------- password show/hide toggle ---------- */
 
 .password-wrap{

@@ -93,8 +93,8 @@ def profile():
             flash("Enter your current password to save changes.", "error")
             return redirect(url_for("profile.profile", tab="settings"))
 
-        if not username or len(username) > 50:
-            flash("Username must be 1-50 characters.", "error")
+        if not username or len(username) > 100:
+            flash("Username must be 1-100 characters.", "error")
             return redirect(url_for("profile.profile", tab="settings"))
 
         other = db.get_user_by_username(username)

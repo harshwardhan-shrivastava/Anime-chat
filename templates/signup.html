@@ -7,7 +7,7 @@
 
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}?v=2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}?v=3">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -133,8 +133,9 @@ AVATAR CONFIRMATION POPUP
             <div class="auth-field">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" placeholder="e.g. TanjiroFan22"
-                       value="{{ username or '' }}" required maxlength="50">
-                <div class="auth-hint">Any name works — up to 50 characters.</div>
+                       value="{{ username or '' }}" required maxlength="100" autocomplete="off">
+                <div class="auth-hint">Any name works — up to 100 characters. A green check means it's free.</div>
+                <div id="usernameStatus" class="username-status"></div>
             </div>
 
             <div class="auth-field">
@@ -185,6 +186,49 @@ AVATAR CONFIRMATION POPUP
             btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
         });
     });
+
+    // Live username availability: green check as you type, before submitting.
+    var nameInput = document.getElementById("username");
+    var nameStatus = document.getElementById("usernameStatus");
+    var nameTimer = null;
+    if (nameInput && nameStatus) {
+        nameInput.addEventListener("input", function () {
+            clearTimeout(nameTimer);
+            var name = nameInput.value.trim();
+            if (!name) {
+                nameStatus.className = "username-status";
+                nameStatus.textContent = "";
+                return;
+            }
+            if (name.length > 100) {
+                nameStatus.className = "username-status bad";
+                nameStatus.textContent = "✗ Too long — keep it under 100 characters.";
+                return;
+            }
+            nameStatus.className = "username-status checking";
+            nameStatus.textContent = "Checking…";
+            nameTimer = setTimeout(function () {
+                fetch("{{ url_for('auth.username_available') }}?username=" + encodeURIComponent(name))
+                    .then(function (r) { return r.json(); })
+                    .then(function (res) {
+                        if (res.available) {
+                            nameStatus.className = "username-status ok";
+                            nameStatus.textContent = "✓ Available";
+                        } else if (res.reason === "taken") {
+                            nameStatus.className = "username-status bad";
+                            nameStatus.textContent = "✗ Taken — try another name";
+                        } else {
+                            nameStatus.className = "username-status bad";
+                            nameStatus.textContent = "✗ Not available";
+                        }
+                    })
+                    .catch(function () {
+                        nameStatus.className = "username-status";
+                        nameStatus.textContent = "";
+                    });
+            }, 400);
+        });
+    }
 })();
 </script>
 

@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 
 DATABASE = "animechat.db"
 
-USERNAME_RE = re.compile(r"^.{1,50}$")
+USERNAME_RE = re.compile(r"^.{1,100}$")
 MENTION_RE = re.compile(r"@([A-Za-z0-9_]{3,20})")
 
 CONTEXT_TYPES = ("dm", "group", "channel")

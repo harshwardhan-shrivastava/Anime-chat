@@ -78,8 +78,8 @@ def signup():
     confirm = request.form.get("confirm_password") or ""
     avatar = (request.form.get("avatar") or DEFAULT_AVATAR).strip()
 
-    if not username or len(username) > 50:
-        flash("Username must be 1-50 characters.", "error")
+    if not username or len(username) > 100:
+        flash("Username must be 1-100 characters.", "error")
         return render_template("signup.html", username=username, email=email, avatar=avatar)
 
     if not EMAIL_RE.match(email):
@@ -215,6 +215,24 @@ def resend_verification_code():
         dev_error=mail_result.get("dev_error"),
         resent=True,
     )
+
+
+# ==========================================================
+# USERNAME AVAILABILITY (live green-check on the signup form)
+# ==========================================================
+@auth.route("/api/username-available")
+def username_available():
+    """Live check used by the signup form: is this name free to use?"""
+    from flask import jsonify
+
+    username = (request.args.get("username") or "").strip()
+    if not username:
+        return jsonify({"available": False, "reason": "empty"})
+    if len(username) > 100:
+        return jsonify({"available": False, "reason": "too_long"})
+    if database.get_user_by_username(username):
+        return jsonify({"available": False, "reason": "taken"})
+    return jsonify({"available": True, "reason": "ok"})
 
 
 # ==========================================================
