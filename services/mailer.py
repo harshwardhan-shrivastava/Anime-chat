@@ -211,6 +211,7 @@ def send_verification_email(to_email, username, code, purpose="verify"):
     smtp_user = (os.environ.get("SMTP_USER") or "").strip()
     smtp_pass = (os.environ.get("SMTP_PASS") or "").strip()
     smtp_error = None
+    sendgrid_error = None
 
     if smtp_configured and (not smtp_user or not smtp_pass):
         smtp_error = "SMTP_USER/SMTP_PASS are empty on the server"
@@ -231,12 +232,31 @@ def send_verification_email(to_email, username, code, purpose="verify"):
             _send_via_sendgrid(to_email, subject, body, api_key)
             return {"sent": True, "dev_code": None, "dev_reason": None, "dev_error": None}
         except Exception as exc:
+            sendgrid_error = str(exc)
             print(f"[AnimeChat][MAIL ERROR] SendGrid failed for {to_email}: {exc}")
 
     _log_dev_code(to_email, code)
+
+    if smtp_error and sendgrid_error:
+        detail = (
+            f"Gmail SMTP is blocked from this server ({smtp_error}). "
+            f"SendGrid backup also failed: {sendgrid_error}"
+        )
+        reason = "smtp_failed"
+    elif smtp_error:
+        detail = (
+            f"Gmail SMTP is blocked from this server ({smtp_error}). "
+            f"No SendGrid key is configured - add SENDGRID_API_KEY in Render -> "
+            f"Environment to receive the code by email."
+        )
+        reason = "smtp_failed"
+    else:
+        detail = "No email service is configured on this server."
+        reason = "not_configured"
+
     return {
         "sent": False,
         "dev_code": code,
-        "dev_reason": "smtp_failed" if smtp_error else "not_configured",
-        "dev_error": smtp_error,
+        "dev_reason": reason,
+        "dev_error": detail,
     }

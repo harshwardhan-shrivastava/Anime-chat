@@ -57,9 +57,9 @@
         {% if dev_code %}
         <div class="dev-link-box">
             {% if dev_reason == "smtp_failed" %}
-            <p><i class="fas fa-flask"></i> The email couldn't be sent, so here's your code for now.<br><span class="dev-error">SMTP error: {{ dev_error }}</span></p>
+            <p><i class="fas fa-flask"></i> The email couldn't be sent, so here's your code for now.<br><span class="dev-error">{{ dev_error }}</span></p>
             {% else %}
-            <p><i class="fas fa-flask"></i> SMTP isn't configured on this server yet, so here's your code directly (this box only shows up in dev mode):</p>
+            <p><i class="fas fa-flask"></i> No email service is configured on this server yet, so here's your code directly (this box only shows up in dev mode):</p>
             {% endif %}
             <span class="dev-code">{{ dev_code }}</span>
         </div>
