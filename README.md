@@ -11,8 +11,8 @@ Anime discussion platform built with Flask
      to test right away** — signup still works, and the verification link is
      printed in the terminal, saved to `logs/emails.log`, and shown directly on
      the "check your email" screen.
-   - `TENOR_API_KEY` — free key from https://tenor.com/gifapi/documentation, needed
-     for the GIF picker to search Tenor's full library instead of erroring out.
+   - `GIPHY_API_KEY` — free key from https://developers.giphy.com, needed for the
+     GIF picker in the chat to search Giphy's library instead of erroring out.
 3. Run `python app.py` and open http://127.0.0.1:5000
 
 ### How the pieces fit together
@@ -20,7 +20,7 @@ Anime discussion platform built with Flask
   Werkzeug password hashing, itsdangerous signed tokens for the verify link).
 - `services/mailer.py` — sends the verification email (or logs a dev link if SMTP
   isn't set up yet).
-- `services/tenor.py` — proxies GIF search to Tenor so the API key never reaches
+- `services/giphy.py` — proxies GIF search to Giphy so the API key never reaches
   the browser.
 - `chat.py` — the real community chat backend: messages are saved to SQLite per
   anime community and per user, so two different logged-in accounts (e.g. you and

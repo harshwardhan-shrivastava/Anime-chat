@@ -24,7 +24,23 @@ services:
       - key: TURSO_AUTH_TOKEN
         sync: false
       # Email for the 6-digit verification codes. Gmail SMTP is the
-      # primary (SMTP_HOST/SMTP_USER/SMTP_PASS); SENDGRID_API_KEY is a
-      # backup that's only used when SMTP is missing or fails.
+      # primary (SMTP_HOST/SMTP_USER/SMTP_PASS/MAIL_FROM); SENDGRID_API_KEY
+      # is a backup that's only used when SMTP is missing or fails.
+      # For Gmail, SMTP_PASS is a 16-char App Password (Google account
+      # security -> App passwords), not your regular Gmail password.
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
       - key: SENDGRID_API_KEY
+        sync: false
+      # Free key from https://developers.giphy.com for the GIF picker in
+      # the chat (threads). Without it the picker errors out.
+      - key: GIPHY_API_KEY
         sync: false
