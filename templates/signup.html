@@ -228,6 +228,23 @@ AVATAR CONFIRMATION POPUP
                     });
             }, 400);
         });
+
+        // Never let an empty username reach the server: stop the submit,
+        // focus the field and show a friendly inline nudge instead.
+        var signupForm = document.querySelector(".auth-card form");
+        if (signupForm) {
+            signupForm.addEventListener("submit", function (e) {
+                var name = nameInput.value.trim();
+                if (!name) {
+                    e.preventDefault();
+                    nameStatus.className = "username-status bad";
+                    nameStatus.textContent = "✗ Type your username first";
+                    nameInput.focus();
+                    nameInput.style.borderColor = "#f87171";
+                    setTimeout(function () { nameInput.style.borderColor = ""; }, 2500);
+                }
+            });
+        }
     }
 })();
 </script>

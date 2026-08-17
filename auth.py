@@ -85,7 +85,7 @@ def signup():
     avatar = (request.form.get("avatar") or DEFAULT_AVATAR).strip()
 
     if not username:
-        flash("Username can't be empty.", "error")
+        flash("Type a username first.", "error")
         return render_template("signup.html", username=username, email=email, avatar=avatar)
 
     if not EMAIL_RE.match(email):

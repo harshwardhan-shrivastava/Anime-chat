@@ -97,7 +97,7 @@ def profile():
             return redirect(url_for("profile.profile", tab="settings"))
 
         if not username:
-            flash("Username can't be empty.", "error")
+            flash("Type a username first.", "error")
             return redirect(url_for("profile.profile", tab="settings"))
 
         other = db.get_user_by_username(username)
