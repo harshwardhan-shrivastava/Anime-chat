@@ -23,3 +23,8 @@ services:
         sync: false
       - key: TURSO_AUTH_TOKEN
         sync: false
+      # Email for the 6-digit verification codes. SendGrid (HTTPS) is
+      # recommended on Render; verify your sender once in its dashboard.
+      # Otherwise plain SMTP (SMTP_HOST/SMTP_USER/SMTP_PASS) also works.
+      - key: SENDGRID_API_KEY
+        sync: false
