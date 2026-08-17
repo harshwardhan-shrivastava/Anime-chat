@@ -249,6 +249,12 @@
     word-break:break-all;
 }
 
+.dev-error{
+    color:#f87171;
+    font-size:12px;
+    word-break:break-word;
+}
+
 .resend-form{
     margin-top:24px;
     display:flex;

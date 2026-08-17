@@ -122,6 +122,7 @@ def signup():
         purpose="verify",
         dev_code=mail_result.get("dev_code"),
         dev_reason=mail_result.get("dev_reason"),
+        dev_error=mail_result.get("dev_error"),
         resent=False,
     )
 
@@ -212,6 +213,7 @@ def resend_verification_code():
         purpose="verify",
         dev_code=mail_result.get("dev_code"),
         dev_reason=mail_result.get("dev_reason"),
+        dev_error=mail_result.get("dev_error"),
         resent=True,
     )
 
@@ -268,6 +270,7 @@ def forgot_password():
                 purpose="reset",
                 dev_code=mail_result.get("dev_code"),
         dev_reason=mail_result.get("dev_reason"),
+        dev_error=mail_result.get("dev_error"),
                 resent=False,
             )
 
@@ -352,6 +355,7 @@ def resend_password_reset_code():
         purpose="reset",
         dev_code=mail_result.get("dev_code"),
         dev_reason=mail_result.get("dev_reason"),
+        dev_error=mail_result.get("dev_error"),
         resent=True,
     )
 
