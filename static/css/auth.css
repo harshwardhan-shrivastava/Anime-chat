@@ -673,23 +673,32 @@
 }
 
 /* Per-category avatar sizing:
-   - Tall transparent pixel-art (gyaru / fantasy7): show the whole character,
-     never crop the top/bottom like object-fit:cover was doing.
-   - White-background square avatars (chibi / fantasy / profile): zoom in a
-     bit so the character fills the card and the white padding is trimmed. */
+   - Tall pixel-art avatars (gyaru / fantasy7): zoom on the head + upper
+     body (object-position:top) so the face is always visible, in the
+     picker and in the circular previews.
+   - White-background square avatars (chibi / fantasy / profile): zoom in
+     so the character fills the card and the white padding is trimmed. */
 .avatar-option.gyaru img,
 .avatar-option.fantasy.tall img{
-    object-fit: contain;
+    object-fit: cover;
+    object-position: top center;
     transform: none;
 }
 .avatar-option.chibi img{
-    transform: scale(1.4);
+    transform: scale(1.55);
 }
 .avatar-option.fantasy img{
-    transform: scale(1.25);
+    transform: scale(1.4);
 }
 .avatar-option.profile img{
-    transform: scale(1.1);
+    transform: scale(1.15);
+}
+
+/* Anywhere tall avatars appear in circles (selected preview, confirm
+   popup, navbar, profile): keep them framed on the face, not the torso. */
+img[src*="gyaru"],
+img[src*="fantasy7"]{
+    object-position: top center;
 }
 
 .avatar-confirm-popup {
