@@ -23,8 +23,8 @@ services:
         sync: false
       - key: TURSO_AUTH_TOKEN
         sync: false
-      # Email for the 6-digit verification codes. SendGrid (HTTPS) is
-      # recommended on Render; verify your sender once in its dashboard.
-      # Otherwise plain SMTP (SMTP_HOST/SMTP_USER/SMTP_PASS) also works.
+      # Email for the 6-digit verification codes. Gmail SMTP is the
+      # primary (SMTP_HOST/SMTP_USER/SMTP_PASS); SENDGRID_API_KEY is a
+      # backup that's only used when SMTP is missing or fails.
       - key: SENDGRID_API_KEY
         sync: false

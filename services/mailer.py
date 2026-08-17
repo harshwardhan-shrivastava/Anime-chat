@@ -4,24 +4,24 @@ password.
 
 Delivery is tried in this order:
 
-1. SendGrid REST API (SENDGRID_API_KEY) - HTTPS on port 443, so it works
-   from any hosting, even where outbound SMTP is blocked (e.g. Render).
-   This is the recommended method. You must verify a sender address once
-   in the SendGrid dashboard (Settings -> Sender Authentication ->
-   Single Sender Verification) - no domain needed.
-2. Plain SMTP (SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS).
+1. Gmail/plain SMTP (SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS) -
+   the primary method. Works on Render (outbound port 465 is allowed).
+2. SendGrid REST API (SENDGRID_API_KEY) - backup method, HTTPS on port
+   443. Only used if SMTP is not configured or fails. You must verify a
+   sender address once in the SendGrid dashboard (Settings -> Sender
+   Authentication -> Single Sender Verification) - no domain needed.
 3. Dev fallback - the code is logged to logs/emails.log and returned so
    the verify page can show it directly on screen while real email is
    being configured.
 
 Environment variables:
 
-    SENDGRID_API_KEY   free Twilio SendGrid API key (recommended)
-    SMTP_HOST          e.g. smtp.gmail.com
+    SMTP_HOST          e.g. smtp.gmail.com (primary)
     SMTP_PORT          e.g. 465
     SMTP_USER          the mailbox username / address to send from
     SMTP_PASS          the mailbox password or app password
     MAIL_FROM          the "From" address shown to recipients (defaults to SMTP_USER)
+    SENDGRID_API_KEY   free Twilio SendGrid API key (backup only)
 """
 
 import json
@@ -139,22 +139,22 @@ def send_verification_email(to_email, username, code, purpose="verify"):
 
     subject, body = _message_parts(username, code, purpose)
 
-    api_key = os.environ.get("SENDGRID_API_KEY")
-    if api_key:
-        try:
-            _send_via_sendgrid(to_email, subject, body, api_key)
-            return {"sent": True, "dev_code": None}
-        except Exception as exc:
-            # Don't crash signup just because one method failed -- try the
-            # next method, and worst case surface the dev code.
-            print(f"[AnimeChat][MAIL ERROR] SendGrid failed for {to_email}: {exc}")
-
     if os.environ.get("SMTP_HOST"):
         try:
+            # Primary: Gmail/plain SMTP.
             _send_via_smtp(to_email, subject, body)
             return {"sent": True, "dev_code": None}
         except Exception as exc:
             print(f"[AnimeChat][MAIL ERROR] SMTP failed for {to_email}: {exc}")
+
+    api_key = os.environ.get("SENDGRID_API_KEY")
+    if api_key:
+        try:
+            # Backup: only used when SMTP isn't configured or fails.
+            _send_via_sendgrid(to_email, subject, body, api_key)
+            return {"sent": True, "dev_code": None}
+        except Exception as exc:
+            print(f"[AnimeChat][MAIL ERROR] SendGrid failed for {to_email}: {exc}")
 
     _log_dev_code(to_email, code)
     return {"sent": False, "dev_code": code}
