@@ -309,11 +309,15 @@
 
                 </div>
 
-                <div class="info-row">
+                <div class="info-row info-row-genres">
 
                     <span>Genres</span>
 
-                    <strong>{{ anime.genre }}</strong>
+                    <div class="genre-tags">
+                        {% for g in (anime.genre or '').split('•') if g.strip() %}
+                        <span class="genre-tag">{{ g.strip() }}</span>
+                        {% endfor %}
+                    </div>
 
                 </div>
 

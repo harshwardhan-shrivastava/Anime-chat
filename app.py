@@ -232,7 +232,7 @@ def real_dubs(dubs):
 # Live airing-schedule refresher
 # ---------------------------------------------------------------------------
 
-_SCHEDULE_TTL = 1800
+_SCHEDULE_TTL = 600  # 10 minutes: keep live airing data fresh on the deployed site
 _SCHEDULE_QUERY = """
 query ($ids: [Int]) {
   Page(page: 1, perPage: 50) {
@@ -316,6 +316,51 @@ def _save_fresh_airing_cache(fresh):
             print(f"[schedule] failed to persist airing cache: {exc}", flush=True)
 
 
+def _apply_episode_state(entry, st, nxt):
+    """Mirror apply_airing's released/TBC logic on the in-memory catalog.
+
+    Runs off the fresh AniList schedule data so the deployed site keeps
+    every episode's released state and next-episode countdown accurate
+    without loading a second copy of the catalog (safe on Render's 512MB
+    free tier, where the heavy disk-based enrichment is disabled).
+    """
+    try:
+        from scripts.enrich_airing import _global_number, _is_placeholder
+    except Exception:
+        return
+
+    if st == "Ongoing":
+        aired = (nxt or {}).get("episode")
+        if not aired:
+            return
+        aired -= 1
+    elif st in ("Completed", "Cancelled"):
+        aired = entry.get("total_episodes") or 0
+        if not aired:
+            return
+    else:
+        return
+
+    seasons = entry.get("seasons") or []
+    for si, s in enumerate(seasons):
+        for ep in s.get("episodes") or []:
+            gnum = _global_number(seasons, si, ep.get("number") or 0)
+            if st == "Ongoing":
+                if gnum > aired:
+                    if ep.get("released") is not False:
+                        ep["released"] = False
+                    if not ep.get("title") or _is_placeholder(ep.get("title")):
+                        ep["title"] = "TBC"
+                else:
+                    ep.pop("released", None)
+                    if _is_placeholder(ep.get("title")):
+                        ep.pop("title", None)
+            elif gnum <= aired:
+                ep.pop("released", None)
+                if _is_placeholder(ep.get("title")):
+                    ep.pop("title", None)
+
+
 def _refresh_airing_schedule_worker():
     ids, seen = [], set()
     for entry in anime_database.values():
@@ -360,6 +405,8 @@ def _refresh_airing_schedule_worker():
                     entry["start_year"] = sd["year"]
                 if sd.get("month"):
                     entry["start_month"] = sd["month"]
+
+                _apply_episode_state(entry, st, nxt)
         except Exception:
             continue
         time.sleep(1.0)
@@ -383,10 +430,9 @@ def _ensure_airing_schedule():
 
 
 def _schedule_loop():
-    # On Render the disk is ephemeral (rewrites are lost) and reloads
-    # double memory, so the background loops are local-dev only.
-    if os.environ.get("RENDER"):
-        return
+    # Runs everywhere, including Render: refreshes airing status, next
+    # episode countdowns and released/TBC flags purely in memory, so it is
+    # safe on Render's 512MB free tier (no second catalog copy, no reload).
     while True:
         _ensure_airing_schedule()
         time.sleep(_SCHEDULE_TTL)
@@ -465,6 +511,10 @@ def _full_enrich_worker():
 
 
 def _full_enrich_loop():
+    # The heavy enrichment loads a second copy of the ~60MB catalog into
+    # RAM while serving requests, which would OOM-kill Render's 512MB free
+    # instances (and its disk writes are ephemeral anyway). Live airing
+    # updates on Render are handled by _schedule_loop above instead.
     if os.environ.get("RENDER"):
         return
     time.sleep(120)

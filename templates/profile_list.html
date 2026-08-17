@@ -41,7 +41,17 @@
         <a href="{{ url_for('profile.profile', tab='lists') }}" class="profile-back-link">
             <i class="fas fa-arrow-left"></i> Back to lists
         </a>
-        <h1>{{ list_data.name }}</h1>
+        <div class="profile-list-title-row">
+            <h1>{{ list_data.name }}</h1>
+            <div class="profile-list-actions">
+                <button type="button" class="profile-list-action-btn" id="renameListBtn" title="Rename list">
+                    <i class="fas fa-pen"></i> Rename
+                </button>
+                <button type="button" class="profile-list-action-btn danger" id="deleteListBtn" title="Delete list">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
         <p>
             {{ list_data.item_count }} Items
             {% if list_data.item_count %}
@@ -77,6 +87,25 @@
         {% endif %}
     </section>
 
+    <!-- Rename list modal -->
+    <div class="profile-modal-overlay" id="renameModal" hidden>
+        <div class="profile-modal">
+            <button type="button" class="profile-modal-close" data-close-modal aria-label="Close">
+                <span class="modal-x"></span>
+            </button>
+            <span class="hero-badge">✏️ Rename List</span>
+            <h2>Give it a new name</h2>
+            <input type="text" id="renameListName" maxlength="50"
+                   placeholder="New list name" autocomplete="off">
+            <div class="profile-modal-actions">
+                <button type="button" class="profile-btn-ghost" data-close-modal>Cancel</button>
+                <button type="button" class="profile-btn-primary" id="confirmRenameBtn">
+                    <i class="fas fa-check"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
     <footer>
         <div class="footer-left">
             <h2>AnimeChat</h2>
@@ -99,6 +128,71 @@
 
     <script>
         const LIST_ID = {{ list_data.id }};
+
+        // ---- Rename / delete this list right from its own page ----
+        const renameModal = document.getElementById("renameModal");
+        const renameListName = document.getElementById("renameListName");
+        const confirmRenameBtn = document.getElementById("confirmRenameBtn");
+        const renameListBtn = document.getElementById("renameListBtn");
+        const deleteListBtn = document.getElementById("deleteListBtn");
+
+        function openRenameModal() {
+            renameModal.hidden = false;
+            document.body.style.overflow = "hidden";
+            const titleEl = document.querySelector(".profile-list-title-row h1");
+            renameListName.value = titleEl ? titleEl.textContent.trim() : "";
+            setTimeout(function () { renameListName.focus(); }, 50);
+        }
+        function closeRenameModal() {
+            renameModal.hidden = true;
+            document.body.style.overflow = "";
+        }
+        document.querySelectorAll("[data-close-modal]").forEach(function (btn) {
+            btn.addEventListener("click", closeRenameModal);
+        });
+        renameModal.addEventListener("click", function (e) {
+            if (e.target === renameModal) closeRenameModal();
+        });
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") closeRenameModal();
+        });
+
+        renameListBtn.addEventListener("click", openRenameModal);
+        confirmRenameBtn.addEventListener("click", async function () {
+            const name = renameListName.value.trim();
+            if (!name) { renameListName.focus(); return; }
+            confirmRenameBtn.disabled = true;
+            try {
+                const res = await fetch(`/api/lists/${LIST_ID}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "rename", name: name })
+                });
+                if (!res.ok) { alert("Couldn't rename that list."); return; }
+                window.location.reload();
+            } catch (err) {
+                alert("Something went wrong. Try again.");
+            } finally {
+                confirmRenameBtn.disabled = false;
+            }
+        });
+
+        deleteListBtn.addEventListener("click", async function () {
+            if (!confirm("Delete this list? The anime inside won't be affected.")) return;
+            deleteListBtn.disabled = true;
+            try {
+                const res = await fetch(`/api/lists/${LIST_ID}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "delete" })
+                });
+                if (!res.ok) { alert("Couldn't delete that list."); return; }
+                window.location.href = "/profile?tab=lists";
+            } catch (err) {
+                deleteListBtn.disabled = false;
+                alert("Something went wrong. Try again.");
+            }
+        });
     </script>
     <script src="{{ url_for('static', filename='js/list_picker.js') }}"></script>
     <script>
