@@ -155,18 +155,14 @@
     async function openPicker(btn, asModal) {
         const slug = btn.dataset.slug;
         const title = btn.dataset.title || "";
-        let data;
-        try {
-            data = await fetchLists(slug);
-        } catch (err) {
-            return;
-        }
-        if (!data) return;
 
         closePicker();
         currentBtn = btn;
         currentSlug = slug;
 
+        // Open the popover INSTANTLY with a loading row - don't wait for the
+        // API round trip before showing anything (that was the "opens late"
+        // feeling). Rows populate below when the lists arrive.
         let container = document.createElement("div");
         container.className = asModal ? "list-picker-overlay" : "list-picker-anchor";
 
@@ -185,7 +181,7 @@
                   '</div>'
                 : '<div class="list-picker-sub">' + escapeHtml(title) + '</div>' +
                   '<div class="list-picker-counter"></div>') +
-            '<div class="list-picker-rows"></div>' +
+            '<div class="list-picker-rows"><div class="list-picker-empty">Loading your lists…</div></div>' +
             '<div class="list-picker-new">' +
             '   <input type="text" maxlength="50" placeholder="New list name…" autocomplete="off">' +
             '   <button type="button" class="list-picker-add"><i class="fas fa-plus"></i></button>' +
@@ -196,9 +192,6 @@
         if (asModal) container.addEventListener("click", function (e) {
             if (e.target === container) closePicker();
         });
-
-        setCounter(picker.querySelector(".list-picker-counter"), data);
-        renderRows(picker.querySelector(".list-picker-rows"), data.lists, slug);
 
         picker.querySelector(".list-picker-close").addEventListener("click", closePicker);
         picker.querySelector(".list-picker-new input").addEventListener("keydown", function (e) {
@@ -223,6 +216,18 @@
                 closePicker();
             }, { once: true });
         }, 0);
+
+        // Populate rows as soon as the API answers (popover is already open).
+        try {
+            const data = await fetchLists(slug);
+            if (!data) return; // 401 already redirected to login
+            setCounter(picker.querySelector(".list-picker-counter"), data);
+            renderRows(picker.querySelector(".list-picker-rows"), data.lists, slug);
+            if (!asModal) positionPopover(btn);
+        } catch (err) {
+            const rowsEl = picker.querySelector(".list-picker-rows");
+            if (rowsEl) rowsEl.innerHTML = '<div class="list-picker-empty">Couldn\'t load your lists.</div>';
+        }
     }
 
     async function createNewList() {

@@ -14,6 +14,7 @@ from database import (
     add_to_user_list,
     remove_from_user_list,
     get_view_history,
+    get_history_count,
     update_user_profile,
     MAX_USER_LISTS,
 )
@@ -125,7 +126,7 @@ def profile():
             history.append(pick)
 
     lists = [_list_pub(lst) for lst in _user_lists(user["id"])]
-    history_count = len(get_view_history(user["id"], 100000))
+    history_count = get_history_count(user["id"])
 
     return render_template(
         "profile.html",

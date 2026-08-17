@@ -1017,26 +1017,43 @@ def ensure_default_lists(user_id):
 
 
 def get_user_lists(user_id):
-    """All of a user's lists with their anime slugs attached."""
+    """All of a user's lists with their anime slugs attached.
+
+    One LEFT JOIN query instead of one query per list: the remote Turso DB
+    is hit over HTTP, so the old per-list loop cost N+1 network round trips
+    every time the "Add to List" picker opened.
+    """
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT * FROM user_lists
-        WHERE user_id = ?
-        ORDER BY updated_at DESC, id ASC
+        SELECT l.id, l.name, l.created_at, l.updated_at, i.anime_slug
+        FROM user_lists l
+        LEFT JOIN user_list_items i ON i.list_id = l.id
+        WHERE l.user_id = ?
+        ORDER BY l.updated_at DESC, l.id ASC
         """,
         (user_id,),
     )
-    lists = [dict(r) for r in cursor.fetchall()]
-    for lst in lists:
-        cursor.execute(
-            "SELECT anime_slug FROM user_list_items WHERE list_id = ?",
-            (lst["id"],),
-        )
-        lst["slugs"] = [r["anime_slug"] for r in cursor.fetchall()]
+    rows = cursor.fetchall()
     conn.close()
-    return lists
+
+    by_id, order = {}, []
+    for r in rows:
+        lst_id = r["id"]
+        if lst_id not in by_id:
+            by_id[lst_id] = {
+                "id": lst_id,
+                "name": r["name"],
+                "created_at": r["created_at"],
+                "updated_at": r["updated_at"],
+                "slugs": [],
+            }
+            order.append(lst_id)
+        slug = r["anime_slug"]
+        if slug:
+            by_id[lst_id]["slugs"].append(slug)
+    return [by_id[i] for i in order]
 
 
 def get_user_list(list_id, user_id):
@@ -1160,6 +1177,20 @@ def record_view(user_id, anime_slug):
     )
     conn.commit()
     conn.close()
+
+
+def get_history_count(user_id):
+    """Fast COUNT(*) for the profile header - avoids fetching every row
+    just to show a number (that was a huge query on heavy watchers)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT COUNT(*) AS n FROM view_history WHERE user_id = ?",
+        (user_id,),
+    )
+    n = cursor.fetchone()["n"]
+    conn.close()
+    return n
 
 
 def get_view_history(user_id, limit=60):
