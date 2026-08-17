@@ -1,4 +1,3 @@
-import re
 
 from flask import Blueprint, render_template, request, jsonify, g, url_for, flash, redirect, session
 
@@ -94,7 +93,7 @@ def profile():
             flash("Enter your current password to save changes.", "error")
             return redirect(url_for("profile.profile", tab="settings"))
 
-        if not re.match(r"^.{1,50}$", username):
+        if not username or len(username) > 50:
             flash("Username must be 1-50 characters.", "error")
             return redirect(url_for("profile.profile", tab="settings"))
 

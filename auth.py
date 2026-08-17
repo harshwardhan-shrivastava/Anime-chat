@@ -10,9 +10,6 @@ import database
 
 auth = Blueprint("auth", __name__)
 
-# Any name is allowed for now - just needs to be non-empty and not absurdly
-# long (kept at 50 so database/search stay sane).
-USERNAME_RE = re.compile(r"^.{1,50}$")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 DEFAULT_AVATAR = "profile1.png"
@@ -81,7 +78,7 @@ def signup():
     confirm = request.form.get("confirm_password") or ""
     avatar = (request.form.get("avatar") or DEFAULT_AVATAR).strip()
 
-    if not USERNAME_RE.match(username):
+    if not username or len(username) > 50:
         flash("Username must be 1-50 characters.", "error")
         return render_template("signup.html", username=username, email=email, avatar=avatar)
 
