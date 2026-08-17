@@ -6,9 +6,15 @@ Anime discussion platform built with Flask
 1. Install deps: `pip install -r requirements.txt`
 2. Copy `.env.example` to `.env` and fill in:
    - `SECRET_KEY` — any long random string (needed for login sessions).
+   - `GMAIL_TOKEN_JSON` — **the reliable way to send on Render**: paste the full
+     `token.json` contents from `gmail_auth.py` (same as Project Tohoku). It
+     sends via the Gmail API over HTTPS, which works everywhere. Render's
+     network can't reach Gmail's SMTP servers, so plain SMTP alone will fail
+     there with "[Errno 101] Network is unreachable".
    - `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `MAIL_FROM` — your real
-     email account, so verification emails actually get sent. **Leave these blank
-     to test right away** — signup still works, and the verification link is
+     email account via Gmail SMTP (works on local dev and hosts that allow
+     outbound SMTP; on Render it's only a fallback). **Leave everything blank
+     to test right away** — signup still works, and the verification code is
      printed in the terminal, saved to `logs/emails.log`, and shown directly on
      the "check your email" screen.
    - `GIPHY_API_KEY` — free key from https://developers.giphy.com, needed for the

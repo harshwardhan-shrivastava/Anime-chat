@@ -4,19 +4,27 @@ password.
 
 Delivery is tried in this order:
 
-1. Gmail/plain SMTP (SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS) -
-   the primary method. Works on Render (outbound port 465 is allowed).
-2. SendGrid REST API (SENDGRID_API_KEY) - backup method, HTTPS on port
-   443. Only used if SMTP is not configured or fails. You must verify a
-   sender address once in the SendGrid dashboard (Settings -> Sender
-   Authentication -> Single Sender Verification) - no domain needed.
-3. Dev fallback - the code is logged to logs/emails.log and returned so
+1. Gmail API OAuth (GMAIL_TOKEN_JSON) - HTTPS on port 443, so it works
+   from any host, including Render (which cannot reach Gmail's SMTP
+   servers at all - outbound SMTP is blocked there). This is the same
+   method Project Tohoku uses: the token comes from gmail_auth.py, and
+   the email arrives in the inbox from your own Gmail account.
+2. Gmail/plain SMTP (SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS) -
+   the original primary method. Works on local dev and hosts that allow
+   outbound SMTP.
+3. SendGrid REST API (SENDGRID_API_KEY) - backup method, HTTPS on port
+   443. Only used if the Gmail methods are not configured or fail. You
+   must verify a sender address once in the SendGrid dashboard
+   (Settings -> Sender Authentication -> Single Sender Verification) -
+   no domain needed.
+4. Dev fallback - the code is logged to logs/emails.log and returned so
    the verify page can show it directly on screen while real email is
    being configured.
 
 Environment variables:
 
-    SMTP_HOST          e.g. smtp.gmail.com (primary)
+    GMAIL_TOKEN_JSON   the token.json contents from gmail_auth.py (primary on Render)
+    SMTP_HOST          e.g. smtp.gmail.com
     SMTP_PORT          e.g. 465
     SMTP_USER          the mailbox username / address to send from
     SMTP_PASS          the mailbox password or app password
@@ -24,6 +32,7 @@ Environment variables:
     SENDGRID_API_KEY   free Twilio SendGrid API key (backup only)
 """
 
+import base64
 import json
 import os
 import socket
@@ -148,6 +157,69 @@ def _send_via_sendgrid(to_email, subject, body, api_key):
     print("[AnimeChat] EMAIL SENT THROUGH SENDGRID")
 
 
+def _send_via_gmail_api(to_email, subject, body):
+    """Send through the Gmail REST API using an OAuth token.
+
+    GMAIL_TOKEN_JSON is the token.json produced by gmail_auth.py in the
+    Project Tohoku setup (paste its full contents into the env var). The
+    request goes over HTTPS (port 443), which works from Render even
+    though Gmail SMTP is unreachable there. The access token refreshes
+    automatically; the refresh token stays valid while the Google Cloud
+    OAuth app is published ("In production").
+    """
+    from google.auth.exceptions import GoogleAuthError, RefreshError
+    from google.oauth2.credentials import Credentials
+    from googleapiclient.discovery import build
+
+    token_json = os.environ.get("GMAIL_TOKEN_JSON") or ""
+    if not token_json.strip():
+        raise RuntimeError("GMAIL_TOKEN_JSON is not configured")
+
+    try:
+        token_info = json.loads(token_json)
+    except Exception as exc:
+        raise RuntimeError(
+            f"GMAIL_TOKEN_JSON is not valid JSON: {exc}"
+        ) from exc
+
+    try:
+        credentials = Credentials.from_authorized_user_info(
+            token_info,
+            ["https://www.googleapis.com/auth/gmail.send"],
+        )
+    except Exception as exc:
+        raise RuntimeError(
+            "GMAIL_TOKEN_JSON is not a usable Gmail token. Re-run gmail_auth.py "
+            f"and paste the new token.json contents into GMAIL_TOKEN_JSON. ({exc})"
+        ) from exc
+
+    sender = (
+        (os.environ.get("MAIL_FROM") or "").strip()
+        or (os.environ.get("SMTP_USER") or "").strip()
+    )
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    if sender:
+        msg["From"] = sender
+    msg["To"] = to_email
+
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
+
+    try:
+        service = build("gmail", "v1", credentials=credentials, cache_discovery=False)
+        service.users().messages().send(userId="me", body={"raw": raw}).execute()
+    except (RefreshError, GoogleAuthError) as exc:
+        raise RuntimeError(
+            "Gmail API token is expired or invalid. Fix: in Google Cloud Console "
+            "set the OAuth consent screen to 'In production' (so it never expires "
+            f"again), re-run gmail_auth.py, then update GMAIL_TOKEN_JSON. ({exc})"
+        ) from exc
+    except Exception as exc:
+        raise RuntimeError(f"Gmail API error: {exc}") from exc
+
+    print("[AnimeChat] EMAIL SENT THROUGH GMAIL API")
+
+
 def _send_via_smtp(to_email, subject, body):
     host = (os.environ.get("SMTP_HOST") or "").strip()
     user = (os.environ.get("SMTP_USER") or "").strip()
@@ -210,15 +282,25 @@ def send_verification_email(to_email, username, code, purpose="verify"):
     smtp_configured = bool((os.environ.get("SMTP_HOST") or "").strip())
     smtp_user = (os.environ.get("SMTP_USER") or "").strip()
     smtp_pass = (os.environ.get("SMTP_PASS") or "").strip()
+    gmail_api_error = None
     smtp_error = None
     sendgrid_error = None
+
+    if os.environ.get("GMAIL_TOKEN_JSON"):
+        try:
+            # Primary: Gmail API over HTTPS - works from Render.
+            _send_via_gmail_api(to_email, subject, body)
+            return {"sent": True, "dev_code": None, "dev_reason": None, "dev_error": None}
+        except Exception as exc:
+            gmail_api_error = str(exc)
+            print(f"[AnimeChat][MAIL ERROR] Gmail API failed for {to_email}: {exc}")
 
     if smtp_configured and (not smtp_user or not smtp_pass):
         smtp_error = "SMTP_USER/SMTP_PASS are empty on the server"
         print(f"[AnimeChat][MAIL ERROR] {smtp_error}")
     elif smtp_configured:
         try:
-            # Primary: Gmail/plain SMTP.
+            # Fallback: Gmail/plain SMTP (works on local dev).
             _send_via_smtp(to_email, subject, body)
             return {"sent": True, "dev_code": None, "dev_reason": None, "dev_error": None}
         except Exception as exc:
@@ -228,7 +310,7 @@ def send_verification_email(to_email, username, code, purpose="verify"):
     api_key = os.environ.get("SENDGRID_API_KEY")
     if api_key:
         try:
-            # Backup: only used when SMTP isn't configured or fails.
+            # Last backup: only used when the Gmail methods aren't configured or fail.
             _send_via_sendgrid(to_email, subject, body, api_key)
             return {"sent": True, "dev_code": None, "dev_reason": None, "dev_error": None}
         except Exception as exc:
@@ -237,18 +319,9 @@ def send_verification_email(to_email, username, code, purpose="verify"):
 
     _log_dev_code(to_email, code)
 
-    if smtp_error and sendgrid_error:
-        detail = (
-            f"Gmail SMTP is blocked from this server ({smtp_error}). "
-            f"SendGrid backup also failed: {sendgrid_error}"
-        )
-        reason = "smtp_failed"
-    elif smtp_error:
-        detail = (
-            f"Gmail SMTP is blocked from this server ({smtp_error}). "
-            f"No SendGrid key is configured - add SENDGRID_API_KEY in Render -> "
-            f"Environment to receive the code by email."
-        )
+    failed = [e for e in (gmail_api_error, smtp_error, sendgrid_error) if e]
+    if failed:
+        detail = "All email methods failed. " + " | ".join(failed)
         reason = "smtp_failed"
     else:
         detail = "No email service is configured on this server."

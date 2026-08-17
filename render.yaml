@@ -23,9 +23,15 @@ services:
         sync: false
       - key: TURSO_AUTH_TOKEN
         sync: false
-      # Email for the 6-digit verification codes. Gmail SMTP is the
-      # primary (SMTP_HOST/SMTP_USER/SMTP_PASS/MAIL_FROM); SENDGRID_API_KEY
-      # is a backup that's only used when SMTP is missing or fails.
+      # Email for the 6-digit verification codes.
+      # GMAIL_TOKEN_JSON is the primary method on Render: it's the token.json
+      # contents from gmail_auth.py (the same one Project Tohoku uses) and
+      # sends over HTTPS, because Render's network cannot reach Gmail's SMTP
+      # servers. Paste the FULL token.json contents (it starts with "{").
+      - key: GMAIL_TOKEN_JSON
+        sync: false
+      # Fallback: Gmail SMTP (SMTP_HOST/SMTP_USER/SMTP_PASS/MAIL_FROM) works
+      # on local dev; SENDGRID_API_KEY is a last-resort HTTPS backup.
       # For Gmail, SMTP_PASS is a 16-char App Password (Google account
       # security -> App passwords), not your regular Gmail password.
       - key: SMTP_HOST
