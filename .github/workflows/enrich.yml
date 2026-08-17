@@ -2,8 +2,9 @@ name: Enrich anime data
 
 on:
   schedule:
-    # Every 12 hours: fresh episode titles + HD thumbs for newly aired eps.
-    - cron: "17 */12 * * *"
+    # Every 2 hours (public repo = free unlimited Actions minutes): fresh
+    # episode titles + HD thumbs land within ~2h of an episode airing.
+    - cron: "17 */2 * * *"
   workflow_dispatch:
 
 permissions:
