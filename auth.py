@@ -84,9 +84,17 @@ def signup():
     confirm = request.form.get("confirm_password") or ""
     avatar = (request.form.get("avatar") or DEFAULT_AVATAR).strip()
 
+    # A stale/re-submitted signup form (browser back, double-click, cached
+    # tab) can POST with an empty username after the flow already moved on.
+    # Route those to the right place instead of showing a confusing error.
     if not username:
-        flash("Type a username first.", "error")
-        return render_template("signup.html", username=username, email=email, avatar=avatar)
+        if session.get("user_id"):
+            return redirect(url_for("home"))
+        if session.get("pending_registration"):
+            return redirect(url_for("auth.verify_email"))
+        # Truly fresh empty submit: just re-render the form - the inline
+        # "Type your username first" hint (client-side) already nudged them.
+        return render_template("signup.html", username="", email="", avatar=avatar)
 
     if not EMAIL_RE.match(email):
         flash("Enter a valid email address.", "error")
