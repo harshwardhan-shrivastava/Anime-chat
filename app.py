@@ -71,6 +71,20 @@ def _attach_user():
     load_logged_in_user()
 
 
+@app.after_request
+def _no_store_html(response):
+    """Never let browsers cache HTML pages.
+
+    Without this, browsers (especially Brave) serve stale copies of pages
+    like /signup for hours, which caused confusing "old version" errors
+    (outdated username messages, missing fixes). Static assets (css/js)
+    are unaffected - only text/html is forced fresh.
+    """
+    if response.mimetype == "text/html":
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+    return response
+
+
 @app.context_processor
 def _inject_user():
     return {"current_user": g.get("user")}

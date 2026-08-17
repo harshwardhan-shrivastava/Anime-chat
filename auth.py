@@ -161,12 +161,23 @@ def verify_email():
             flash("That code isn't right — check it and try again.", "error")
             return render_template("verify_email.html", email=email, purpose="verify", dev_code=None, resent=False)
 
-        user_id = database.create_user(
-            pending["username"],
-            pending["email"],
-            pending["password"],
-            avatar=pending["avatar"],
-        )
+        try:
+            user_id = database.create_user(
+                pending["username"],
+                pending["email"],
+                pending["password"],
+                avatar=pending["avatar"],
+            )
+        except Exception:
+            # Unique-constraint hits (email/username already registered) or
+            # any other DB hiccup here should show a clear message, not a 500.
+            session.pop("pending_registration", None)
+            flash(
+                "Couldn't create the account - that email or username may "
+                "already be registered. Try logging in instead.",
+                "error",
+            )
+            return redirect(url_for("auth.login"))
         # The account is only created after the code checks out, so it's
         # verified by construction.
         database.mark_user_verified(user_id)
