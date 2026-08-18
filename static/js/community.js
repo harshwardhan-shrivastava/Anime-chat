@@ -40,27 +40,33 @@ let replyTarget = null;
 let pendingGif = null;   // { url } or null
 let pendingAnime = null; // { slug, title, image, year, rating } or null
 
-function showPendingPreview(type, data) {
-    var el = document.getElementById("pendingPreview");
-    if (!el) return;
-    el.style.display = "flex";
+function buildPendingHtml(type, data) {
     if (type === "gif") {
-        el.innerHTML =
-            '<div class="pending-thumb">' +
+        return '<div class="pending-thumb">' +
             '<img class="pending-gif" src="' + escapeHtml(data.url) + '" alt="GIF">' +
             '<button class="pending-remove" onclick="clearPendingPreview()"><i class="fas fa-times"></i></button>' +
             '</div>';
     } else if (type === "anime") {
         var img = data.image ? '<img src="' + escapeHtml(data.image) + '" alt="">' : '';
         var meta = [data.year, data.rating].filter(Boolean).join(' \u2022 ');
-        el.innerHTML =
-            '<div class="pending-anime">' + img +
+        return '<div class="pending-anime">' + img +
             '<div class="pending-anime-info"><div class="pending-anime-title">' + escapeHtml(data.title) + '</div>' +
             (meta ? '<div class="pending-anime-meta">' + escapeHtml(meta) + '</div>' : '') +
             '</div>' +
             '</div>' +
             '<button class="pending-remove" onclick="clearPendingPreview()"><i class="fas fa-times"></i></button>';
     }
+    return "";
+}
+
+function showPendingPreview(type, data) {
+    var html = buildPendingHtml(type, data);
+    // Update community chat preview
+    var el = document.getElementById("pendingPreview");
+    if (el) { el.style.display = "flex"; el.innerHTML = html; }
+    // Update modal preview
+    var mel = document.getElementById("modalPendingPreview");
+    if (mel) { mel.style.display = "flex"; mel.innerHTML = html; }
 }
 
 function clearPendingPreview() {
