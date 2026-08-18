@@ -541,6 +541,48 @@
             attachment_preview: attach ? attach.preview || null : null,
             parent_message_id: State.replyTo ? State.replyTo.id : null,
         };
+        // Optimistic send: render the message instantly, then swap in the
+        // server's copy when the POST returns, so Enter feels immediate
+        // even when the backend round-trip is slow.
+        if (State.me) {
+            var tempId = -Date.now();
+            var tempMsg = {
+                id: tempId,
+                sender_id: State.me.id,
+                sender: {
+                    id: State.me.id,
+                    username: State.me.username || "",
+                    avatar_color: State.me.avatar_color || "",
+                    avatar: State.me.avatar || null,
+                },
+                kind: kind,
+                content: content,
+                attachment_url: payload.attachment_url,
+                attachment_preview: payload.attachment_preview,
+                parent_message_id: payload.parent_message_id,
+                parent: null,
+                created_at: new Date().toISOString().replace("T", " ").slice(0, 19),
+                temp: true,
+            };
+            appendMessages([tempMsg]);
+            input.value = "";
+            autoGrow(input);
+            clearAttach();
+            State.replyTo = null;
+            $("#replyBar").classList.add("hidden");
+            api("/threads/api/messages", { json: payload }).then(function (res) {
+                if (!res.success) {
+                    handleApiError(res);
+                    removeTempMessage(tempId);
+                    input.value = content;
+                    if (attach) State.attach = attach;
+                    return;
+                }
+                replaceTempMessage(tempId, res.message);
+                markActiveRead();
+            });
+            return;
+        }
         api("/threads/api/messages", { json: payload }).then(function (res) {
             if (!res.success) { handleApiError(res); return; }
             appendMessages([res.message]);
@@ -551,6 +593,27 @@
             $("#replyBar").classList.add("hidden");
             markActiveRead();
         });
+    }
+
+    function removeTempMessage(tempId) {
+        State.messages = State.messages.filter(function (m) { return m.id !== tempId; });
+        renderMessages(false);
+    }
+
+    function replaceTempMessage(tempId, real) {
+        // If the poller already fetched the real message before this response
+        // arrived, just drop the temporary copy (no duplicate).
+        if (State.seenIds[real.id]) { removeTempMessage(tempId); return; }
+        var idx = -1;
+        State.messages.forEach(function (m, i) { if (m.id === tempId) idx = i; });
+        if (idx >= 0) {
+            State.messages[idx] = real;
+            State.seenIds[real.id] = true;
+            State.afterId = Math.max(State.afterId, real.id);
+            renderMessages(true);
+        } else {
+            appendMessages([real]);
+        }
     }
 
     function appendMessages(msgs) {
@@ -623,7 +686,10 @@
 
     function markActiveRead() {
         if (!State.active) return;
-        var last = State.messages[State.messages.length - 1];
+        var last = null;
+        for (var i = State.messages.length - 1; i >= 0; i--) {
+            if (State.messages[i].id > 0) { last = State.messages[i]; break; }
+        }
         var id = last ? last.id : 0;
         if (State.active.type === "channel") {
             api("/threads/api/channels/" + State.active.id + "/read", { json: { message_id: id } });

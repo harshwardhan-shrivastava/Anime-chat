@@ -582,10 +582,35 @@ async function sendMessage() {
     const text = input.value.trim();
     if (text === "" || !CURRENT_USER) return;
 
-    sendBtn.disabled = true;
-
     const payload = { kind: "text", content: text };
     if (replyTarget) payload.reply_to = replyTarget.id;
+
+    // Optimistic send: render the message instantly so Enter feels
+    // immediate, even when the backend round-trip is slow.
+    const tempId = -Date.now();
+    const optimisticMsg = {
+        id: tempId,
+        anime_slug: ANIME_SLUG,
+        user_id: CURRENT_USER.id,
+        username: CURRENT_USER.username,
+        avatar_color: CURRENT_USER.avatar_color || colorForName(CURRENT_USER.username),
+        avatar: CURRENT_USER.avatar || null,
+        kind: "text",
+        content: text,
+        reply_to: replyTarget ? replyTarget.id : null,
+        created_at: new Date().toISOString().replace("T", " ").slice(0, 19),
+        reactions: [],
+        my_reactions: [],
+        reply_to_username: replyTarget ? replyTarget.username : null,
+        reply_to_content: replyTarget ? replyTarget.content : null,
+        reply_to_kind: replyTarget ? "text" : null,
+        _temp: true,
+    };
+    renderIncomingMessage(optimisticMsg);
+    input.value = "";
+    resizeInput();
+    cancelReply();
+    closePanels();
 
     try {
         const res = await fetch(`/community/${ANIME_SLUG}/messages`, {
@@ -596,18 +621,38 @@ async function sendMessage() {
         const data = await res.json();
 
         if (data.success) {
-            renderIncomingMessage(data.message);
-            input.value = "";
-            resizeInput();
-            cancelReply();
+            // Swap the optimistic message with the server's real copy
+            // (server has the real id, created_at, avatar, etc.).
+            const tempLine = chatBox.querySelector(`.msg-line[data-message-id="${tempId}"]`);
+            if (tempLine) {
+                tempLine.dataset.messageId = data.message.id;
+                renderedIds.delete(tempId);
+                renderedIds.add(data.message.id);
+                lastMessageId = Math.max(lastMessageId, data.message.id);
+            } else {
+                renderIncomingMessage(data.message);
+            }
         } else {
+            // Remove the optimistic message on failure
+            const tempLine = chatBox.querySelector(`.msg-line[data-message-id="${tempId}"]`);
+            if (tempLine) {
+                const group = tempLine.closest(".msg-group");
+                tempLine.remove();
+                if (group && !group.querySelector(".msg-line")) group.remove();
+            }
+            renderedIds.delete(tempId);
             showToast(data.error || "Couldn't send that message.");
         }
     } catch (err) {
+        // Remove the optimistic message on network error
+        const tempLine = chatBox.querySelector(`.msg-line[data-message-id="${tempId}"]`);
+        if (tempLine) {
+            const group = tempLine.closest(".msg-group");
+            tempLine.remove();
+            if (group && !group.querySelector(".msg-line")) group.remove();
+        }
+        renderedIds.delete(tempId);
         showToast("Network error -- try again.");
-    } finally {
-        sendBtn.disabled = false;
-        closePanels();
     }
 }
 
