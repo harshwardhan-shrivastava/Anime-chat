@@ -331,80 +331,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
 <section class="app-shell">
 
-    <!-- ================= LEFT SIDEBAR ================= -->
-
-    <aside class="left-sidebar">
-
-        <div class="sidebar-card">
-
-            <h3>
-
-                Explore
-
-            </h3>
-
-            <nav class="sidebar-menu">
-
-                <button class="sidebar-item active" data-tab="discussion">
-
-                    <i class="fas fa-comments"></i>
-
-                    Discussion
-
-                </button>
-
-                <button class="sidebar-item" data-tab="trending">
-
-                    <i class="fas fa-fire"></i>
-
-                    Trending
-
-                </button>
-
-                <button class="sidebar-item" data-tab="gallery">
-
-                    <i class="fas fa-images"></i>
-
-                    GIF Gallery
-
-                </button>
-
-                <button class="sidebar-item" data-tab="guides">
-
-                    <i class="fas fa-book"></i>
-
-                    Guides
-
-                </button>
-
-            </nav>
-
-        </div>
-
-        <div class="sidebar-card">
-
-            <h3>
-
-                About This Community
-
-            </h3>
-
-            <p>
-
-                Discuss episodes,
-                manga,
-                theories,
-                characters,
-                memes,
-                fan art,
-                and everything related to
-                <strong>{{ anime_name }}</strong>.
-
-            </p>
-
-        </div>
-
-    </aside>
+    
 
     <!-- ================= CHAT ================= -->
 
@@ -416,7 +343,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
             <header class="chat-header" id="chatHeader">
 
-                <div>
+                <div class="chat-header-left">
 
                     <h2>
 
@@ -429,6 +356,42 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
                         Live public discussion
 
                     </span>
+
+                </div>
+
+                <div class="chat-header-tabs">
+
+                    <button class="sidebar-item active" data-tab="discussion">
+
+                        <i class="fas fa-comments"></i>
+
+                        Discussion
+
+                    </button>
+
+                    <button class="sidebar-item" data-tab="trending">
+
+                        <i class="fas fa-fire"></i>
+
+                        Trending
+
+                    </button>
+
+                    <button class="sidebar-item" data-tab="gallery">
+
+                        <i class="fas fa-images"></i>
+
+                        GIF Gallery
+
+                    </button>
+
+                    <button class="sidebar-item" data-tab="guides">
+
+                        <i class="fas fa-book"></i>
+
+                        Guides
+
+                    </button>
 
                 </div>
 
