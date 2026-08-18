@@ -587,9 +587,9 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
                 </div>
 
-                <div id="pendingPreview" class="pending-preview" style="display:none"></div>
-                <div class="composer-input">
+                <div class="composer-input" style="position:relative">
 
+                    <div id="pendingPreview" class="pending-preview" style="display:none"></div>
                     <textarea
 
                         id="messageInput"
@@ -859,8 +859,8 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
             </div>
             <div id="modalAnimeResults" class="anime-results"></div>
         </div>
-        <div id="modalPendingPreview" class="pending-preview" style="display:none"></div>
-        <div class="composer-input">
+        <div class="composer-input" style="position:relative">
+            <div id="modalPendingPreview" class="pending-preview" style="display:none"></div>
             <textarea id="modalMessageInput" rows="1" placeholder="Share your thoughts with the {{ anime_name }} community..."></textarea>
         </div>
     </div>

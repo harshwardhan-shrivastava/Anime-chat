@@ -3938,58 +3938,73 @@ input:focus-visible{
     color: var(--green, #27d07d);
 }
 
-/* Pending media preview above composer */
+/* Pending media preview — Discord-style inline thumbnail */
 .pending-preview {
-    margin: 0 16px;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
+    padding: 8px 10px 4px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+.pending-preview .pending-thumb {
     position: relative;
+    flex-shrink: 0;
 }
 .pending-preview .pending-gif {
-    max-height: 100px;
+    max-height: 80px;
+    max-width: 120px;
     border-radius: 8px;
-    object-fit: contain;
+    object-fit: cover;
+    display: block;
 }
 .pending-preview .pending-anime {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    background: rgba(124,58,237,0.1);
+    border: 1px solid rgba(124,58,237,0.2);
+    border-radius: 8px;
+    padding: 6px 10px;
 }
 .pending-preview .pending-anime img {
-    width: 36px;
-    height: 50px;
+    width: 32px;
+    height: 44px;
     object-fit: cover;
-    border-radius: 6px;
+    border-radius: 4px;
+}
+.pending-preview .pending-anime-info {
+    min-width: 0;
 }
 .pending-preview .pending-anime-title {
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 600;
     color: #fff;
-    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
 }
 .pending-preview .pending-anime-meta {
-    font-size: 12px;
-    color: rgba(255,255,255,0.5);
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
 }
 .pending-preview .pending-remove {
     position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 22px;
-    height: 22px;
+    top: -4px;
+    right: -4px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    border: none;
-    background: rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.6);
-    font-size: 12px;
+    border: 2px solid rgba(0,0,0,0.5);
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    font-size: 10px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background 0.15s;
+    backdrop-filter: blur(4px);
 }
 .pending-preview .pending-remove:hover {
-    background: rgba(239,68,68,0.3);
-    color: #fff;
+    background: rgba(239,68,68,0.6);
 }

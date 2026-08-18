@@ -43,10 +43,10 @@ let pendingAnime = null; // { slug, title, image, year, rating } or null
 function showPendingPreview(type, data) {
     var el = document.getElementById("pendingPreview");
     if (!el) return;
-    el.style.display = "block";
+    el.style.display = "flex";
     if (type === "gif") {
         el.innerHTML =
-            '<div style="display:flex;align-items:center;gap:10px">' +
+            '<div class="pending-thumb">' +
             '<img class="pending-gif" src="' + escapeHtml(data.url) + '" alt="GIF">' +
             '<button class="pending-remove" onclick="clearPendingPreview()"><i class="fas fa-times"></i></button>' +
             '</div>';
@@ -55,11 +55,11 @@ function showPendingPreview(type, data) {
         var meta = [data.year, data.rating].filter(Boolean).join(' \u2022 ');
         el.innerHTML =
             '<div class="pending-anime">' + img +
-            '<div><div class="pending-anime-title">' + escapeHtml(data.title) + '</div>' +
+            '<div class="pending-anime-info"><div class="pending-anime-title">' + escapeHtml(data.title) + '</div>' +
             (meta ? '<div class="pending-anime-meta">' + escapeHtml(meta) + '</div>' : '') +
             '</div>' +
-            '<button class="pending-remove" onclick="clearPendingPreview()"><i class="fas fa-times"></i></button>' +
-            '</div>';
+            '</div>' +
+            '<button class="pending-remove" onclick="clearPendingPreview()"><i class="fas fa-times"></i></button>';
     }
 }
 
