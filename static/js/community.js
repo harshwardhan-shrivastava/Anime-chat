@@ -208,12 +208,12 @@ if (gifSearch) {
 
 function closePanels() {
     if (!emojiPanel) return;
-    emojiPanel.classList.remove("show");
-    gifPanel.classList.remove("show");
+    if (emojiPanel) emojiPanel.classList.remove("show");
+    if (gifPanel) gifPanel.classList.remove("show");
     if (animePanel) animePanel.classList.add("hidden");
     if (plusMenu) plusMenu.classList.add("hidden");
-    emojiBtn.classList.remove("active");
-    gifBtn.classList.remove("active");
+    if (emojiBtn) emojiBtn.classList.remove("active");
+    if (gifBtn) gifBtn.classList.remove("active");
     if (plusBtn) plusBtn.classList.remove("active");
 }
 
