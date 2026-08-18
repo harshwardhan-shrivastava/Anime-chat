@@ -1268,8 +1268,9 @@ setInterval(refreshPresence, 8000);
                                 '<div class="anime-result-meta">' + escapeHtml(item.year || '') + (item.rating ? ' • ' + escapeHtml(item.rating) : '') + '</div>' +
                                 '</div>' +
                                 '<button class="anime-result-send" title="Send"><i class="fas fa-paper-plane"></i></button>';
-                            card.querySelector('.anime-result-send').addEventListener('click', function (e) {
-                                e.stopPropagation();
+                            // Make the entire card clickable to send
+                            card.style.cursor = 'pointer';
+                            card.addEventListener('click', function (e) {
                                 sendAnimeCard(item.slug, item.title, item.image, item.year, item.rating);
                                 closeModalPanels();
                             });
