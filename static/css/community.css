@@ -3816,23 +3816,129 @@ html, body {
 }
 .community-page {
     display: flex;
+
+/* ============================================================
+   BLUR OVERLAY + FULL-SCREEN CHAT MODAL
+   ============================================================ */
+
+/* Chat area gets blur + enter button when not active */
+.chat-blur-overlay {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+}
+.chat-blur-overlay .chat-container {
+    filter: blur(6px);
+    pointer-events: none;
+    opacity: 0.5;
+    transition: filter 0.3s, opacity 0.3s;
+}
+.chat-blur-overlay:hover .chat-container {
+    filter: blur(4px);
+    opacity: 0.6;
+}
+
+.chat-enter-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    padding: 16px 36px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(18, 25, 35, 0.85);
+    backdrop-filter: blur(20px);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.chat-enter-btn:hover {
+    background: rgba(39, 208, 125, 0.15);
+    border-color: rgba(39, 208, 125, 0.4);
+    transform: translate(-50%, -50%) scale(1.05);
+    box-shadow: 0 12px 40px rgba(39, 208, 125, 0.2);
+}
+.chat-enter-btn i {
+    font-size: 20px;
+    color: var(--green, #27d07d);
+}
+
+/* Full-screen chat modal */
+.chat-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: #0d1117;
+    display: flex;
     flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
 }
-.community-hero {
+.chat-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Modal header */
+.chat-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    background: rgba(18, 24, 34, 0.95);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
     flex-shrink: 0;
-    max-height: 280px;
-    min-height: 180px;
-    margin-bottom: 0 !important;
-    overflow: hidden;
 }
-.app-shell {
+.chat-modal-header h2 {
+    font-size: 20px;
     flex: 1;
-    min-height: 0;
-    margin-top: 16px !important;
 }
-.chat-container {
-    height: 100% !important;
-    max-height: none !important;
+.chat-modal-close {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+.chat-modal-close:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+/* Modal chat feed — scrollable */
+.chat-modal-feed {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 20px 24px;
+    min-height: 0;
+}
+
+/* Modal composer — pinned at bottom */
+.chat-modal-composer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    background: rgba(18, 25, 35, 0.96);
+    backdrop-filter: blur(22px);
+    border-top: 1px solid rgba(255,255,255,0.08);
 }

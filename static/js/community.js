@@ -1007,3 +1007,207 @@ refreshPresence();
 setInterval(pollMessages, 1200);
 setInterval(pollReactions, 2000);
 setInterval(refreshPresence, 8000);
+
+// ===============================
+// FULL-SCREEN CHAT MODAL
+// ===============================
+
+const chatModal = document.getElementById("chatModal");
+const chatEnterBtn = document.getElementById("chatEnterBtn");
+const chatBlurOverlay = document.getElementById("chatBlurOverlay");
+const chatModalClose = document.getElementById("chatModalClose");
+const modalChatBox = document.getElementById("modalChatBox");
+const modalMessageInput = document.getElementById("modalMessageInput");
+const modalSendBtn = document.getElementById("modalSendBtn");
+const modalPlusBtn = document.getElementById("modalPlusBtn");
+const modalPlusMenu = document.getElementById("modalPlusMenu");
+const modalOnlineCount = document.getElementById("modalOnlineCount");
+
+// Track modal state
+let modalLastMessageId = 0;
+let modalRenderedIds = new Set();
+let modalPollTimer = null;
+
+// Open modal
+if (chatEnterBtn) {
+    chatEnterBtn.addEventListener("click", function () {
+        chatModal.classList.add("active");
+        document.body.style.overflow = "hidden";
+        // Sync modal with current chat state
+        modalLastMessageId = lastMessageId;
+        modalRenderedIds = new Set(renderedIds);
+        // Copy existing messages to modal
+        var msgs = chatBox.querySelectorAll(".msg-group");
+        msgs.forEach(function (group) {
+            var clone = group.cloneNode(true);
+            modalChatBox.appendChild(clone);
+        });
+        modalChatBox.scrollTop = modalChatBox.scrollHeight;
+        // Start polling for modal
+        startModalPoll();
+        if (modalMessageInput) modalMessageInput.focus();
+    });
+}
+
+// Close modal
+if (chatModalClose) {
+    chatModalClose.addEventListener("click", closeModal);
+}
+
+function closeModal() {
+    chatModal.classList.remove("active");
+    document.body.style.overflow = "";
+    if (modalPollTimer) clearInterval(modalPollTimer);
+}
+
+// Modal send
+if (modalSendBtn) {
+    modalSendBtn.addEventListener("click", sendModalMessage);
+}
+if (modalMessageInput) {
+    modalMessageInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendModalMessage();
+        }
+    });
+}
+
+async function sendModalMessage() {
+    var text = (modalMessageInput.value || "").trim();
+    if (!text || !CURRENT_USER) return;
+
+    var payload = { kind: "text", content: text };
+
+    // Optimistic render in modal
+    var tempId = -Date.now();
+    var group = document.createElement("div");
+    group.className = "msg-group mine";
+    var color = CURRENT_USER.avatar_color || "#3b82f6";
+    var now = new Date();
+    var timeStr = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    group.innerHTML =
+        '<div class="msg-group-head">' +
+        '<span class="msg-group-name" style="color:' + color + '">' + escapeHtml(CURRENT_USER.username) + '</span>' +
+        '<span class="msg-group-time">' + timeStr + '</span>' +
+        '</div>' +
+        '<div class="msg-lines">' +
+        '<div class="msg-line" data-message-id="' + tempId + '">' +
+        '<span class="msg-line-time">' + timeStr + '</span>' +
+        '<div class="msg-line-body"><div class="msg-content"><p class="msg-text">' + escapeHtml(text) + '</p></div><div class="reaction-chips"></div></div>' +
+        '</div></div>';
+    modalChatBox.appendChild(group);
+    modalChatBox.scrollTop = modalChatBox.scrollHeight;
+    modalMessageInput.value = "";
+
+    try {
+        var res = await fetch("/community/" + ANIME_SLUG + "/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        var data = await res.json();
+        if (data.success) {
+            // Update the temp line with real ID
+            var tempLine = modalChatBox.querySelector('.msg-line[data-message-id="' + tempId + '"]');
+            if (tempLine) tempLine.dataset.messageId = data.message.id;
+            modalRenderedIds.add(data.message.id);
+            modalLastMessageId = Math.max(modalLastMessageId, data.message.id);
+            // Also update the main chat
+            renderIncomingMessage(data.message);
+        } else {
+            removeModalTemp(tempId);
+            showToast(data.error || "Couldn't send.");
+        }
+    } catch (err) {
+        removeModalTemp(tempId);
+        showToast("Network error.");
+    }
+}
+
+function removeModalTemp(tempId) {
+    var line = modalChatBox.querySelector('.msg-line[data-message-id="' + tempId + '"]');
+    if (line) {
+        var g = line.closest(".msg-group");
+        line.remove();
+        if (g && !g.querySelector(".msg-line")) g.remove();
+    }
+}
+
+// Modal polling
+function startModalPoll() {
+    if (modalPollTimer) clearInterval(modalPollTimer);
+    modalPollTimer = setInterval(modalPoll, 1200);
+}
+
+async function modalPoll() {
+    try {
+        var res = await fetch("/community/" + ANIME_SLUG + "/messages?after_id=" + modalLastMessageId);
+        var data = await res.json();
+        if (!data.success) return;
+        data.messages.forEach(function (msg) {
+            if (modalRenderedIds.has(msg.id)) return;
+            modalRenderedIds.add(msg.id);
+            modalLastMessageId = Math.max(modalLastMessageId, msg.id);
+            // Render in modal
+            renderModalMessage(msg);
+            // Also render in background chat
+            renderIncomingMessage(msg);
+        });
+    } catch (err) {}
+}
+
+function renderModalMessage(msg) {
+    var isMine = CURRENT_USER && msg.user_id === CURRENT_USER.id;
+    var color = isMine ? "#3b82f6" : (msg.avatar_color || colorForName(msg.username));
+    var now = new Date(msg.created_at + "Z");
+    var timeStr = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+    var group = document.createElement("div");
+    group.className = "msg-group" + (isMine ? " mine" : "");
+    var avatarHtml = msg.avatar
+        ? '<div class="avatar" style="background:' + color + '"><img class="avatar-img" src="/static/images/avatars/' + escapeHtml(msg.avatar) + '" alt=""></div>'
+        : '<div class="avatar" style="background:' + color + '">' + initials(msg.username) + '</div>';
+
+    var bodyHtml = buildBodyHtml(msg);
+
+    group.innerHTML =
+        '<div class="msg-group-head">' + avatarHtml +
+        '<span class="msg-group-name" style="color:' + color + '">' + escapeHtml(msg.username) + '</span>' +
+        '<span class="msg-group-time">' + timeStr + '</span>' +
+        '</div>' +
+        '<div class="msg-lines">' +
+        '<div class="msg-line" data-message-id="' + msg.id + '">' +
+        '<span class="msg-line-time">' + timeStr + '</span>' +
+        '<div class="msg-line-body">' + bodyHtml +
+        '<div class="reaction-chips"></div></div></div></div>';
+
+    modalChatBox.appendChild(group);
+    modalChatBox.scrollTop = modalChatBox.scrollHeight;
+    renderChips(group.querySelector(".msg-line"), msg.reactions || [], msg.my_reactions || []);
+}
+
+// Modal plus menu
+if (modalPlusBtn) {
+    modalPlusBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var isOpen = !modalPlusMenu.classList.contains("hidden");
+        modalPlusMenu.classList.toggle("hidden", isOpen);
+    });
+}
+if (modalPlusMenu) {
+    modalPlusMenu.querySelectorAll(".plus-menu-item").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            modalPlusMenu.classList.add("hidden");
+            var action = btn.dataset.action;
+            if (action === "emoji") {
+                // Focus input for emoji
+                if (modalMessageInput) modalMessageInput.focus();
+            } else if (action === "gif") {
+                showToast("GIF picker coming soon!");
+            } else if (action === "anime") {
+                showToast("Anime picker coming soon in modal!");
+            }
+        });
+    });
+}

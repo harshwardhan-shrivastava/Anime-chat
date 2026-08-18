@@ -338,6 +338,11 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
     <main class="chat-area">
 
         <div class="tab-panel" id="panel-discussion">
+        <div class="chat-blur-overlay" id="chatBlurOverlay">
+            <button class="chat-enter-btn" id="chatEnterBtn">
+                <i class="fas fa-comments"></i>
+                Enter Chat
+            </button>
 
         <div class="chat-container">
 
@@ -647,6 +652,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
         </div>
 
+        </div><!-- /chat-blur-overlay -->
         </div><!-- /panel-discussion -->
 
         <!-- ================= GIF GALLERY PANEL ================= -->
@@ -823,6 +829,40 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
 <!-- ====================================================== -->
 <!-- FOOTER -->
+<!-- ================= FULL-SCREEN CHAT MODAL ================= -->
+<div class="chat-modal" id="chatModal">
+    <div class="chat-modal-header">
+        <h2>{{ anime_name }} Discussion</h2>
+        <div class="chat-status">
+            <span class="pulse-dot"></span>
+            <span id="modalOnlineCount">0</span> Online
+        </div>
+        <button class="chat-modal-close" id="chatModalClose"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="chat-modal-feed" id="modalChatBox">
+        <div class="welcome-box">
+            <div class="welcome-icon">💬</div>
+            <h2>Welcome to {{ anime_name }} Chat</h2>
+            <p>Start the conversation!</p>
+        </div>
+    </div>
+    <div class="chat-modal-composer">
+        <div class="composer-tools">
+            <button id="modalPlusBtn" class="tool-btn plus-btn" title="Share">
+                <i class="fas fa-plus"></i>
+            </button>
+            <div id="modalPlusMenu" class="plus-menu hidden">
+                <button class="plus-menu-item" data-action="emoji">😊 Emoji</button>
+                <button class="plus-menu-item" data-action="gif">🎬 GIF</button>
+                <button class="plus-menu-item" data-action="anime">📺 Anime</button>
+            </div>
+        </div>
+        <div class="composer-input">
+            <textarea id="modalMessageInput" rows="1" placeholder="Share your thoughts with the {{ anime_name }} community..."></textarea>
+        </div>
+        <button id="modalSendBtn" class="send-btn"><i class="fas fa-paper-plane"></i> Send</button>
+    </div>
+</div>
 <!-- ====================================================== -->
 
 <footer class="footer">
