@@ -541,7 +541,15 @@ def add_chat_message(anime_slug, user_id, username, avatar_color, kind, content,
     )
     conn.commit()
     message_id = cursor.lastrowid
-    cursor.execute("SELECT * FROM chat_messages WHERE id = ?", (message_id,))
+    cursor.execute(
+        """
+        SELECT m.*, u.avatar AS avatar
+        FROM chat_messages m
+        JOIN users u ON u.id = m.user_id
+        WHERE m.id = ?
+        """,
+        (message_id,),
+    )
     row = cursor.fetchone()
     conn.close()
     msg = dict(row)
@@ -565,9 +573,11 @@ def get_chat_messages(anime_slug, after_id=0, limit=200, user_id=None):
     if after_id:
         cursor.execute(
             """
-            SELECT m.*, r.username AS reply_username, r.content AS reply_content, r.kind AS reply_kind
+            SELECT m.*, r.username AS reply_username, r.content AS reply_content, r.kind AS reply_kind,
+                   u.avatar AS avatar
             FROM chat_messages m
             LEFT JOIN chat_messages r ON r.id = m.reply_to
+            LEFT JOIN users u ON u.id = m.user_id
             WHERE m.anime_slug = ? AND m.id > ?
             ORDER BY m.id ASC
             LIMIT ?
@@ -578,9 +588,11 @@ def get_chat_messages(anime_slug, after_id=0, limit=200, user_id=None):
         cursor.execute(
             """
             SELECT * FROM (
-                SELECT m.*, r.username AS reply_username, r.content AS reply_content, r.kind AS reply_kind
+                SELECT m.*, r.username AS reply_username, r.content AS reply_content, r.kind AS reply_kind,
+                       u.avatar AS avatar
                 FROM chat_messages m
                 LEFT JOIN chat_messages r ON r.id = m.reply_to
+                LEFT JOIN users u ON u.id = m.user_id
                 WHERE m.anime_slug = ?
                 ORDER BY m.id DESC
                 LIMIT ?
@@ -721,10 +733,12 @@ def get_online_users(anime_slug, active_seconds=60):
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT username, avatar_color FROM chat_presence
-        WHERE anime_slug = ?
-        AND datetime(last_seen) >= datetime('now', ?)
-        ORDER BY last_seen DESC
+        SELECT p.username, p.avatar_color, u.avatar AS avatar
+        FROM chat_presence p
+        LEFT JOIN users u ON u.id = p.user_id
+        WHERE p.anime_slug = ?
+        AND datetime(p.last_seen) >= datetime('now', ?)
+        ORDER BY p.last_seen DESC
         """,
         (anime_slug, f"-{active_seconds} seconds")
     )

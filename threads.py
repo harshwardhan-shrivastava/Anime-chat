@@ -84,6 +84,7 @@ def _enrich_messages(rows, member_ids=None):
                     "id": u["id"],
                     "username": u["username"],
                     "avatar_color": u["avatar_color"],
+                    "avatar": u["avatar"],
                 }
     for m in rows:
         item = dict(m)
@@ -94,6 +95,7 @@ def _enrich_messages(rows, member_ids=None):
                 "id": u["id"],
                 "username": u["username"],
                 "avatar_color": u["avatar_color"],
+                "avatar": u["avatar"],
             }
             if sender:
                 users[m["sender_id"]] = sender
@@ -1150,7 +1152,12 @@ def user_blocked():
     for uid in ids:
         u = site_db.get_user_by_id(uid)
         if u:
-            out.append({"id": uid, "username": u["username"], "avatar_color": u["avatar_color"]})
+            out.append({
+                "id": uid,
+                "username": u["username"],
+                "avatar_color": u["avatar_color"],
+                "avatar": u["avatar"],
+            })
     return jsonify({"success": True, "blocked": out})
 
 

@@ -317,7 +317,7 @@ def search_users(query, exclude_id, limit=10):
     q = f"%{query.strip()}%"
     cur.execute(
         """
-        SELECT id, username, avatar_color
+        SELECT id, username, avatar_color, avatar
         FROM users
         WHERE (username LIKE ? OR email LIKE ?) AND id != ?
         ORDER BY username ASC
@@ -424,7 +424,7 @@ def get_conversation_members(conv_id):
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT u.id, u.username, u.avatar_color,
+        SELECT u.id, u.username, u.avatar_color, u.avatar,
                cm.role, cm.muted, cm.joined_at, cm.last_read_message_id
         FROM thr_conversation_members cm
         JOIN users u ON u.id = cm.user_id
@@ -496,7 +496,7 @@ def get_user_conversations(user_id):
         if c["type"] == "dm":
             cur.execute(
                 """
-                SELECT u.id, u.username, u.avatar_color
+                SELECT u.id, u.username, u.avatar_color, u.avatar
                 FROM thr_conversation_members cm
                 JOIN users u ON u.id = cm.user_id
                 WHERE cm.conversation_id = ? AND cm.user_id != ?
@@ -508,7 +508,7 @@ def get_user_conversations(user_id):
         else:
             cur.execute(
                 """
-                SELECT u.id, u.username, u.avatar_color
+                SELECT u.id, u.username, u.avatar_color, u.avatar
                 FROM thr_conversation_members cm
                 JOIN users u ON u.id = cm.user_id
                 WHERE cm.conversation_id = ?
@@ -1005,7 +1005,8 @@ def get_notifications(user_id, limit=30):
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT n.*, u.username AS from_username, u.avatar_color AS from_color
+        SELECT n.*, u.username AS from_username, u.avatar_color AS from_color,
+               u.avatar AS from_avatar
         FROM thr_notifications n
         LEFT JOIN users u ON u.id = n.from_user_id
         WHERE n.user_id = ?
@@ -1239,7 +1240,7 @@ def get_community_detail(cid, user_id):
         return None
     cur.execute(
         """
-        SELECT u.id, u.username, u.avatar_color, m.role, m.muted, m.joined_at
+        SELECT u.id, u.username, u.avatar_color, u.avatar, m.role, m.muted, m.joined_at
         FROM thr_community_members m
         JOIN users u ON u.id = m.user_id
         WHERE m.community_id = ?
@@ -1249,7 +1250,7 @@ def get_community_detail(cid, user_id):
     )
     members = [dict(r) for r in cur.fetchall()]
     cur.execute(
-        "SELECT u.id, u.username FROM thr_community_bans b JOIN users u ON u.id = b.user_id WHERE b.community_id = ?",
+        "SELECT u.id, u.username, u.avatar FROM thr_community_bans b JOIN users u ON u.id = b.user_id WHERE b.community_id = ?",
         (cid,),
     )
     banned = [dict(r) for r in cur.fetchall()]
@@ -1703,7 +1704,7 @@ def get_community_members_public(cid):
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT u.id, u.username, u.avatar_color, m.role, m.muted, m.joined_at
+        SELECT u.id, u.username, u.avatar_color, u.avatar, m.role, m.muted, m.joined_at
         FROM thr_community_members m
         JOIN users u ON u.id = m.user_id
         WHERE m.community_id = ?

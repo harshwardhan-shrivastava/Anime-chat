@@ -72,10 +72,11 @@ function renderMembers(members) {
 
         const item = document.createElement("div");
         item.className = "member-item";
+        const memberAvatar = member && member.avatar
+            ? `<div class="member-avatar" style="background:${member.avatar_color || colorForName(member.username)}"><img class="avatar-img" src="/static/images/avatars/${escapeHtml(member.avatar)}" alt=""></div>`
+            : `<div class="member-avatar" style="background:${member.avatar_color || colorForName(member.username)}">${initials(member.username)}</div>`;
         item.innerHTML = `
-            <div class="member-avatar" style="background:${member.avatar_color || colorForName(member.username)}">
-                ${initials(member.username)}
-            </div>
+            ${memberAvatar}
             <div>
                 <span class="member-name">${escapeHtml(member.username)}</span>
                 <span class="member-role">${isYou ? "You" : "Online now"}</span>
@@ -451,15 +452,18 @@ function jumpToMessage(id) {
 // MESSAGE GROUPING RENDERER
 // ===============================
 
-function startNewGroup(sender, isMine, avatarColor) {
+function startNewGroup(sender, isMine, avatarColor, avatar) {
     const group = document.createElement("div");
     group.className = "msg-group" + (isMine ? " mine" : "");
 
     const color = isMine ? "#3b82f6" : (avatarColor || colorForName(sender));
+    const avatarEl = avatar
+        ? `<div class="avatar" style="background:${color}"><img class="avatar-img" src="/static/images/avatars/${escapeHtml(avatar)}" alt=""></div>`
+        : `<div class="avatar" style="background:${color}">${initials(sender)}</div>`;
 
     group.innerHTML = `
         <div class="msg-group-head">
-            <div class="avatar" style="background:${color}">${initials(sender)}</div>
+            ${avatarEl}
             <span class="msg-group-name" style="color:${color}">${escapeHtml(sender)}</span>
             <span class="msg-group-time"></span>
         </div>
@@ -539,7 +543,7 @@ function renderMessage(message) {
     if (lastSender === message.username && lastGroupEl) {
         group = lastGroupEl;
     } else {
-        group = startNewGroup(message.username, isMine, message.avatar_color);
+        group = startNewGroup(message.username, isMine, message.avatar_color, message.avatar);
     }
 
     appendLine(group, message, isMine, messageDate);

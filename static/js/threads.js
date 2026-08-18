@@ -96,6 +96,17 @@
         return String(name || "?").slice(0, 2).toUpperCase();
     }
 
+    // Inner content of an avatar circle: the user's profile picture when
+    // they have one, otherwise their initials.
+    function avatarInner(user) {
+        user = user || {};
+        if (user.avatar) {
+            return '<img class="thr-avatar-img" src="/static/images/avatars/' +
+                escapeHtml(user.avatar) + '" alt="">';
+        }
+        return escapeHtml(initials(user.username));
+    }
+
     function toast(msg, type) {
         var box = $("#thrToast");
         box.textContent = msg;
@@ -170,7 +181,7 @@
             var other = c.other || {};
             return '<span class="thr-avatar ' + sizeCls + '" style="background:' +
                 escapeHtml(other.avatar_color || "#8b5cf6") + '">' +
-                escapeHtml(initials(other.username)) + "</span>";
+                avatarInner(other) + "</span>";
         }
         return '<span class="thr-avatar ' + sizeCls + '" style="background:' +
             escapeHtml(c.avatar_color || "#8b5cf6") + '">' +
@@ -309,7 +320,7 @@
         var isDm = conv.type === "dm";
         var name = convDisplayName(conv);
         $("#chatAvatar").innerHTML = isDm
-            ? escapeHtml(initials(conv.other ? conv.other.username : "?"))
+            ? avatarInner(conv.other || {})
             : escapeHtml(initials(conv.name));
         $("#chatAvatar").style.background = isDm
             ? (conv.other ? conv.other.avatar_color : "#8b5cf6")
@@ -467,7 +478,7 @@
 
         return '<div class="' + cls + '" data-mid="' + m.id + '">' +
             '<div class="thr-msg-avatar" style="background:' + escapeHtml(sender.avatar_color || "#8b5cf6") + '">' +
-            escapeHtml(initials(sender.username)) + "</div>" +
+            avatarInner(sender) + "</div>" +
             '<div class="thr-msg-main">' +
             '<div class="thr-msg-head"><span class="thr-msg-user">' + escapeHtml(sender.username || "unknown") + "</span>" +
             '<span class="thr-msg-time">' + fmtClock(m.created_at) + "</span></div>" +
@@ -721,7 +732,7 @@
             return '<div class="thr-notif' + (n.read ? " read" : "") + '" data-ntype="' + n.type + '" data-nctx="' +
                 (n.context_type ? n.context_type + ":" + n.context_id : "") + '">' +
                 '<span class="thr-notif-avatar" style="background:' + escapeHtml(n.from_color || "#8b5cf6") + '">' +
-                escapeHtml(initials(n.from_username)) + "</span>" +
+                avatarInner({ username: n.from_username, avatar: n.from_avatar }) + "</span>" +
                 '<span class="thr-notif-body"><span class="thr-notif-text"><b>' + escapeHtml(n.from_username || "someone") + "</b>" +
                 escapeHtml(text) + "</span><span class='thr-notif-time'>" + escapeHtml(ago) + "</span></span>" +
                 (n.read ? "" : '<span class="thr-notif-dot"></span>') + "</div>";
@@ -766,7 +777,7 @@
         box.innerHTML = cands.map(function (mem) {
             return '<div class="thr-mention-opt" data-user="' + mem.username + '">' +
                 '<span class="thr-avatar thr-avatar-sm" style="background:' + escapeHtml(mem.avatar_color) + '">' +
-                escapeHtml(initials(mem.username)) + "</span>@" + escapeHtml(mem.username) + "</div>";
+                avatarInner(mem) + "</span>@" + escapeHtml(mem.username) + "</div>";
         }).join("");
         box.classList.remove("hidden");
     }
@@ -836,7 +847,7 @@
                 results.innerHTML = res.users.map(function (u) {
                     return '<div class="thr-user-row" data-uid="' + u.id + '">' +
                         '<span class="thr-avatar thr-avatar-md" style="background:' + escapeHtml(u.avatar_color) + '">' +
-                        escapeHtml(initials(u.username)) + "</span>" +
+                        avatarInner(u) + "</span>" +
                         "<span>" + escapeHtml(u.username) + "</span></div>";
                 }).join("") || '<div class="thr-dropdown-empty">No users found</div>';
             });
@@ -897,7 +908,7 @@
             picks.innerHTML = ids.map(function (uid) {
                 var u = groupPicks[uid];
                 return '<span class="thr-pick"><span class="thr-avatar thr-avatar-sm" style="background:' +
-                    escapeHtml(u.avatar_color) + '">' + escapeHtml(initials(u.username)) + "</span>" +
+                    escapeHtml(u.avatar_color) + '">' + avatarInner(u) + "</span>" +
                     escapeHtml(u.username) + ' <button class="thr-link-btn" data-remove="' + uid + '">✕</button></span>';
             }).join("");
             return ids.length;
@@ -912,9 +923,10 @@
                     return ids.indexOf(String(u.id)) === -1;
                 }).map(function (u) {
                     return '<div class="thr-user-row" data-uid="' + u.id + '" data-name="' +
-                        escapeHtml(u.username) + '" data-color="' + escapeHtml(u.avatar_color) + '">' +
+                        escapeHtml(u.username) + '" data-color="' + escapeHtml(u.avatar_color) +
+                        '" data-avatar="' + escapeHtml(u.avatar || "") + '">' +
                         '<span class="thr-avatar thr-avatar-md" style="background:' + escapeHtml(u.avatar_color) + '">' +
-                        escapeHtml(initials(u.username)) + "</span><span>" + escapeHtml(u.username) + "</span></div>";
+                        avatarInner(u) + "</span><span>" + escapeHtml(u.username) + "</span></div>";
                 }).join("") || '<div class="thr-dropdown-empty">No more users</div>';
             });
         }
@@ -932,6 +944,7 @@
                 id: parseInt(uid, 10),
                 username: row.getAttribute("data-name"),
                 avatar_color: row.getAttribute("data-color"),
+                avatar: row.getAttribute("data-avatar"),
             };
             renderPicks();
             sInput.value = "";
@@ -1043,7 +1056,7 @@
                 }
                 return '<div class="thr-member-row">' +
                     '<span class="thr-avatar thr-avatar-md" style="background:' + escapeHtml(m.avatar_color) + '">' +
-                    escapeHtml(initials(m.username)) + "</span>" + dot +
+                    avatarInner(m) + "</span>" + dot +
                     '<span class="thr-member-name">' + escapeHtml(m.username) + (m.id === State.me.id ? " (you)" : "") + "</span>" +
                     role + "<span class='thr-member-actions'>" + remove + "</span></div>";
             }).join("");
@@ -1058,7 +1071,7 @@
                 sResults.innerHTML = res.users.filter(function (u) { return !ids[u.id]; }).map(function (u) {
                     return '<div class="thr-user-row" data-uid="' + u.id + '">' +
                         '<span class="thr-avatar thr-avatar-md" style="background:' + escapeHtml(u.avatar_color) + '">' +
-                        escapeHtml(initials(u.username)) + "</span><span>" + escapeHtml(u.username) + "</span></div>";
+                        avatarInner(u) + "</span><span>" + escapeHtml(u.username) + "</span></div>";
                 }).join("") || '<div class="thr-dropdown-empty">All members already added</div>';
             });
         }
@@ -1469,7 +1482,7 @@
             }
             return '<div class="thr-member-row">' +
                 '<span class="thr-avatar thr-avatar-md" style="background:' + escapeHtml(m.avatar_color) + '">' +
-                escapeHtml(initials(m.username)) + "</span>" +
+                avatarInner(m) + "</span>" +
                 '<span class="thr-member-name">' + escapeHtml(m.username) + (m.id === me.id ? " (you)" : "") + "</span>" +
                 (m.muted ? '<span class="thr-muted-chip">muted</span>' : "") + role +
                 '<span class="thr-member-actions">' + actions + "</span></div>";
@@ -1478,7 +1491,7 @@
         if (d.banned && d.banned.length) {
             bannedHtml = '<div class="thr-banned-head">Banned users</div>' + d.banned.map(function (b) {
                 return '<div class="thr-member-row"><span class="thr-avatar thr-avatar-md thr-avatar-dim" style="background:#4b5267">' +
-                    escapeHtml(initials(b.username)) + "</span><span class='thr-member-name'>" + escapeHtml(b.username) +
+                    avatarInner(b) + "</span><span class='thr-member-name'>" + escapeHtml(b.username) +
                     "</span><span class='thr-member-actions'><button class='thr-link-btn' data-unban='" + b.id + "'>Unban</button></span></div>";
             }).join("");
         }
