@@ -1211,3 +1211,158 @@ if (modalPlusMenu) {
         });
     });
 }
+
+// ===============================
+// BLUR OVERLAY + FULL-SCREEN CHAT MODAL
+// ===============================
+
+(function () {
+    var chatContainer = document.querySelector(".chat-container");
+    var chatFeed = document.querySelector(".chat-feed");
+    var tabPanel = document.getElementById("panel-discussion");
+
+    if (!chatContainer || !chatFeed || !tabPanel) return;
+
+    // Add "locked" class to make the blur show
+    tabPanel.classList.add("chat-locked");
+
+    // Create the enter button overlay
+    var enterOverlay = document.createElement("div");
+    enterOverlay.className = "chat-enter-overlay";
+    enterOverlay.innerHTML =
+        '<button class="chat-enter-btn" id="chatEnterBtn">' +
+        '<i class="fas fa-comments"></i>' +
+        'Enter Chat' +
+        '</button>';
+    tabPanel.style.position = "relative";
+    tabPanel.appendChild(enterOverlay);
+
+    // Full-screen modal
+    var modal = document.getElementById("chatModal");
+    var modalClose = document.getElementById("chatModalClose");
+    var modalBox = document.getElementById("modalChatBox");
+    var modalInput = document.getElementById("modalMessageInput");
+    var modalSend = document.getElementById("modalSendBtn");
+    var modalOnline = document.getElementById("modalOnlineCount");
+
+    var modalLastId = 0;
+    var modalSeen = new Set();
+    var modalPoll = null;
+
+    // Open modal
+    enterOverlay.addEventListener("click", function () {
+        modal.classList.add("active");
+        document.body.style.overflow = "hidden";
+        // Copy current messages
+        modalLastId = lastMessageId;
+        modalSeen = new Set(renderedIds);
+        var groups = chatFeed.querySelectorAll(".msg-group");
+        groups.forEach(function (g) {
+            modalBox.appendChild(g.cloneNode(true));
+        });
+        modalBox.scrollTop = modalBox.scrollHeight;
+        startModalPoll();
+        if (modalInput) modalInput.focus();
+    });
+
+    // Close
+    if (modalClose) modalClose.addEventListener("click", closeModal);
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && modal.classList.contains("active")) closeModal();
+    });
+
+    function closeModal() {
+        modal.classList.remove("active");
+        document.body.style.overflow = "";
+        if (modalPoll) clearInterval(modalPoll);
+    }
+
+    // Modal send
+    if (modalSend) modalSend.addEventListener("click", sendModalMsg);
+    if (modalInput) modalInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendModalMsg(); }
+    });
+
+    function sendModalMsg() {
+        var text = (modalInput.value || "").trim();
+        if (!text || !CURRENT_USER) return;
+        modalInput.value = "";
+
+        var tempId = -Date.now();
+        var now = new Date();
+        var ts = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        var color = CURRENT_USER.avatar_color || "#3b82f6";
+        var g = document.createElement("div");
+        g.className = "msg-group mine";
+        g.innerHTML =
+            '<div class="msg-group-head">' +
+            '<span class="msg-group-name" style="color:' + color + '">' + escapeHtml(CURRENT_USER.username) + '</span>' +
+            '<span class="msg-group-time">' + ts + '</span></div>' +
+            '<div class="msg-lines"><div class="msg-line" data-message-id="' + tempId + '">' +
+            '<span class="msg-line-time">' + ts + '</span>' +
+            '<div class="msg-line-body"><div class="msg-content"><p class="msg-text">' + escapeHtml(text) + '</p></div>' +
+            '<div class="reaction-chips"></div></div></div></div>';
+        modalBox.appendChild(g);
+        modalBox.scrollTop = modalBox.scrollHeight;
+
+        fetch("/community/" + ANIME_SLUG + "/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ kind: "text", content: text }),
+        }).then(function (r) { return r.json(); }).then(function (data) {
+            if (data.success) {
+                var line = modalBox.querySelector('.msg-line[data-message-id="' + tempId + '"]');
+                if (line) line.dataset.messageId = data.message.id;
+                modalSeen.add(data.message.id);
+                modalLastId = Math.max(modalLastId, data.message.id);
+                renderIncomingMessage(data.message);
+            }
+        }).catch(function () {});
+    }
+
+    function startModalPoll() {
+        if (modalPoll) clearInterval(modalPoll);
+        modalPoll = setInterval(function () {
+            fetch("/community/" + ANIME_SLUG + "/messages?after_id=" + modalLastId)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data.success) return;
+                    data.messages.forEach(function (msg) {
+                        if (modalSeen.has(msg.id)) return;
+                        modalSeen.add(msg.id);
+                        modalLastId = Math.max(modalLastId, msg.id);
+                        renderModalMsg(msg);
+                        renderIncomingMessage(msg);
+                    });
+                }).catch(function () {});
+        }, 1200);
+    }
+
+    function renderModalMsg(msg) {
+        var isMine = CURRENT_USER && msg.user_id === CURRENT_USER.id;
+        var color = isMine ? "#3b82f6" : (msg.avatar_color || colorForName(msg.username));
+        var now = new Date(msg.created_at + "Z");
+        var ts = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        var g = document.createElement("div");
+        g.className = "msg-group" + (isMine ? " mine" : "");
+        var av = msg.avatar
+            ? '<div class="avatar" style="background:' + color + '"><img class="avatar-img" src="/static/images/avatars/' + escapeHtml(msg.avatar) + '" alt=""></div>'
+            : '<div class="avatar" style="background:' + color + '">' + initials(msg.username) + '</div>';
+        g.innerHTML =
+            '<div class="msg-group-head">' + av +
+            '<span class="msg-group-name" style="color:' + color + '">' + escapeHtml(msg.username) + '</span>' +
+            '<span class="msg-group-time">' + ts + '</span></div>' +
+            '<div class="msg-lines"><div class="msg-line" data-message-id="' + msg.id + '">' +
+            '<span class="msg-line-time">' + ts + '</span>' +
+            '<div class="msg-line-body">' + buildBodyHtml(msg) +
+            '<div class="reaction-chips"></div></div></div></div>';
+        modalBox.appendChild(g);
+        modalBox.scrollTop = modalBox.scrollHeight;
+        renderChips(g.querySelector(".msg-line"), msg.reactions || [], msg.my_reactions || []);
+    }
+
+    // Escape key to close
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && modal.classList.contains("active")) closeModal();
+    });
+})();
