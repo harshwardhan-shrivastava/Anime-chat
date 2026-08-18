@@ -1157,26 +1157,146 @@ setInterval(refreshPresence, 8000);
         renderChips(g.querySelector(".msg-line"), msg.reactions || [], msg.my_reactions || []);
     }
 
-    // Modal plus menu
+    // --- Modal pickers ---
     var modalPlusBtn = document.getElementById("modalPlusBtn");
     var modalPlusMenu = document.getElementById("modalPlusMenu");
+    var modalEmojiPanel = document.getElementById("modalEmojiPanel");
+    var modalEmojiGrid = document.getElementById("modalEmojiGrid");
+    var modalGifPanel = document.getElementById("modalGifPanel");
+    var modalGifSearch = document.getElementById("modalGifSearch");
+    var modalGifGrid = document.getElementById("modalGifGrid");
+    var modalAnimePanel = document.getElementById("modalAnimePanel");
+    var modalAnimeSearch = document.getElementById("modalAnimeSearch");
+    var modalAnimeResults = document.getElementById("modalAnimeResults");
+    var modalAnimeClose = document.getElementById("modalAnimePanelClose");
+
+    function closeModalPanels() {
+        if (modalEmojiPanel) modalEmojiPanel.classList.remove("show");
+        if (modalGifPanel) modalGifPanel.classList.remove("show");
+        if (modalAnimePanel) modalAnimePanel.classList.add("hidden");
+        if (modalPlusBtn) modalPlusBtn.classList.remove("active");
+    }
+
+    // Populate emoji grid
+    if (modalEmojiGrid) {
+        EMOJIS.forEach(function (emoji) {
+            var btn = document.createElement("button");
+            btn.textContent = emoji;
+            btn.addEventListener("click", function () {
+                modalInput.value += emoji;
+                modalInput.focus();
+            });
+            modalEmojiGrid.appendChild(btn);
+        });
+    }
+
+    // GIF search in modal
+    var modalGifTimer = null;
+    async function searchModalGif(query) {
+        if (!modalGifGrid) return;
+        modalGifGrid.innerHTML = '<div class="gif-empty-state">Searching GIFs...</div>';
+        try {
+            var url = query ? '/api/gif-search?q=' + encodeURIComponent(query) : '/api/gif-search';
+            var res = await fetch(url);
+            var data = await res.json();
+            if (!data.success) { modalGifGrid.innerHTML = '<div class="gif-empty-state">' + escapeHtml(data.error) + '</div>'; return; }
+            modalGifGrid.innerHTML = '';
+            if (!data.results.length) { modalGifGrid.innerHTML = '<div class="gif-empty-state">No gifs found.</div>'; return; }
+            data.results.forEach(function (gif) {
+                var img = document.createElement("img");
+                img.src = gif.preview || gif.url;
+                img.alt = gif.title || "gif";
+                img.loading = "lazy";
+                img.addEventListener("click", function () {
+                    sendGif(gif.url);
+                    closeModalPanels();
+                });
+                modalGifGrid.appendChild(img);
+            });
+        } catch (err) {
+            modalGifGrid.innerHTML = '<div class="gif-empty-state">Couldn\'t reach GIPHY.</div>';
+        }
+    }
+    if (modalGifSearch) {
+        searchModalGif("");
+        modalGifSearch.addEventListener("input", function () {
+            clearTimeout(modalGifTimer);
+            var q = modalGifSearch.value.trim();
+            modalGifTimer = setTimeout(function () { searchModalGif(q); }, 350);
+        });
+    }
+
+    // Anime search in modal
+    var modalAnimeTimer = null;
+    if (modalAnimeSearch) {
+        modalAnimeSearch.addEventListener("input", function () {
+            clearTimeout(modalAnimeTimer);
+            var q = modalAnimeSearch.value.trim();
+            if (!q) { modalAnimeResults.innerHTML = ""; return; }
+            modalAnimeResults.innerHTML = '<div class="anime-result-loading">Searching…</div>';
+            modalAnimeTimer = setTimeout(function () {
+                fetch('/api/search?q=' + encodeURIComponent(q))
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (!data.success || !data.results.length) {
+                            modalAnimeResults.innerHTML = '<div class="anime-result-loading">No results</div>';
+                            return;
+                        }
+                        modalAnimeResults.innerHTML = '';
+                        data.results.forEach(function (item) {
+                            var card = document.createElement("div");
+                            card.className = 'anime-result-card';
+                            card.innerHTML =
+                                '<img src="' + escapeHtml(item.image || '') + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+                                '<div class="anime-result-info">' +
+                                '<div class="anime-result-title">' + escapeHtml(item.title) + '</div>' +
+                                '<div class="anime-result-meta">' + escapeHtml(item.year || '') + (item.rating ? ' • ' + escapeHtml(item.rating) : '') + '</div>' +
+                                '</div>' +
+                                '<button class="anime-result-send" title="Send"><i class="fas fa-paper-plane"></i></button>';
+                            card.querySelector('.anime-result-send').addEventListener('click', function (e) {
+                                e.stopPropagation();
+                                sendAnimeCard(item.slug, item.title, item.image, item.year, item.rating);
+                                closeModalPanels();
+                            });
+                            modalAnimeResults.appendChild(card);
+                        });
+                    }).catch(function () {});
+            }, 350);
+        });
+    }
+    if (modalAnimeClose) {
+        modalAnimeClose.addEventListener("click", function () { closeModalPanels(); });
+    }
+
+    // Plus menu actions
     if (modalPlusBtn && modalPlusMenu) {
         modalPlusBtn.addEventListener("click", function (e) {
             e.stopPropagation();
-            modalPlusMenu.classList.toggle("hidden");
+            var isOpen = !modalPlusMenu.classList.contains("hidden");
+            closeModalPanels();
+            modalPlusMenu.classList.toggle("hidden", isOpen);
         });
         modalPlusMenu.querySelectorAll(".plus-menu-item").forEach(function (btn) {
             btn.addEventListener("click", function () {
                 modalPlusMenu.classList.add("hidden");
                 var action = btn.dataset.action;
                 if (action === "emoji") {
-                    if (modalInput) modalInput.focus();
+                    closeModalPanels();
+                    if (modalEmojiPanel) modalEmojiPanel.classList.add("show");
                 } else if (action === "gif") {
-                    showToast("GIF picker coming soon!");
+                    closeModalPanels();
+                    if (modalGifPanel) modalGifPanel.classList.add("show");
                 } else if (action === "anime") {
-                    showToast("Anime picker coming soon in modal!");
+                    closeModalPanels();
+                    if (modalAnimePanel) modalAnimePanel.classList.remove("hidden");
+                    if (modalAnimeSearch) modalAnimeSearch.focus();
                 }
             });
+        });
+        document.addEventListener("click", function (e) {
+            if (modalPlusMenu && !modalPlusMenu.contains(e.target) && e.target !== modalPlusBtn && !modalPlusBtn.contains(e.target)) {
+                modalPlusMenu.classList.add("hidden");
+            }
         });
     }
 

@@ -840,6 +840,23 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
             <p>Start the conversation!</p>
         </div>
     </div>
+    <!-- Modal picker panels -->
+    <div id="modalEmojiPanel" class="picker-panel">
+        <div class="picker-header"><h3>Emojis</h3></div>
+        <div id="modalEmojiGrid" class="emoji-grid"></div>
+    </div>
+    <div id="modalGifPanel" class="picker-panel">
+        <div class="picker-header"><h3>Search GIFs</h3></div>
+        <input id="modalGifSearch" class="gif-search" type="text" placeholder="Search anything... Naruto, Gojo, Absolute Cinema...">
+        <div id="modalGifGrid" class="gif-grid"></div>
+    </div>
+    <div id="modalAnimePanel" class="anime-panel hidden">
+        <div class="anime-panel-head">
+            <input id="modalAnimeSearch" type="text" placeholder="Search anime..." autocomplete="off">
+            <button id="modalAnimePanelClose" class="anime-panel-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="modalAnimeResults" class="anime-results"></div>
+    </div>
     <div class="chat-modal-composer">
         <div class="composer-tools">
             <button id="modalPlusBtn" class="tool-btn plus-btn" title="Share">
