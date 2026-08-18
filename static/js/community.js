@@ -991,7 +991,7 @@ if (chatBox) {
 // EVENTS
 // ===============================
 
-if (sendBtn) sendBtn.addEventListener("click", sendMessage);
+// sendBtn removed — Enter key handles text send
 
 if (input) {
     input.addEventListener("keydown", function (event) {
@@ -1079,7 +1079,7 @@ setInterval(refreshPresence, 8000);
     }
 
     // Modal send
-    if (modalSend) modalSend.addEventListener("click", sendModalMsg);
+    // modalSendBtn removed — Enter key handles text send
     if (modalInput) modalInput.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendModalMsg(); }
     });
