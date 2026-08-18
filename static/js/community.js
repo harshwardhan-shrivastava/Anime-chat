@@ -12,6 +12,12 @@ const gifPanel = document.getElementById("gifPanel");
 const emojiGrid = document.getElementById("emojiGrid");
 const gifGrid = document.getElementById("gifGrid");
 const gifSearch = document.getElementById("gifSearch");
+const plusBtn = document.getElementById("plusBtn");
+const plusMenu = document.getElementById("plusMenu");
+const animePanel = document.getElementById("animePanel");
+const animeSearch = document.getElementById("animeSearch");
+const animeResults = document.getElementById("animeResults");
+const animePanelClose = document.getElementById("animePanelClose");
 const typingIndicator = document.getElementById("typingIndicator");
 const chatHeader = document.getElementById("chatHeader");
 const memberList = document.getElementById("memberList");
@@ -204,8 +210,11 @@ function closePanels() {
     if (!emojiPanel) return;
     emojiPanel.classList.remove("show");
     gifPanel.classList.remove("show");
+    if (animePanel) animePanel.classList.add("hidden");
+    if (plusMenu) plusMenu.classList.add("hidden");
     emojiBtn.classList.remove("active");
     gifBtn.classList.remove("active");
+    if (plusBtn) plusBtn.classList.remove("active");
 }
 
 if (emojiBtn) {
@@ -228,6 +237,163 @@ if (gifBtn) {
             gifBtn.classList.add("active");
         }
     });
+}
+
+// Plus button → emoji / gif / anime menu
+if (plusBtn) {
+    plusBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        const isOpen = !plusMenu.classList.contains("hidden");
+        closePanels();
+        if (!isOpen) plusMenu.classList.remove("hidden");
+    });
+    document.addEventListener("click", function (e) {
+        if (plusMenu && !plusMenu.contains(e.target) && e.target !== plusBtn && !plusBtn.contains(e.target)) {
+            plusMenu.classList.add("hidden");
+        }
+    });
+}
+
+if (plusMenu) {
+    plusMenu.querySelectorAll(".plus-menu-item").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            var action = btn.dataset.action;
+            plusMenu.classList.add("hidden");
+            if (action === "emoji") {
+                closePanels();
+                emojiPanel.classList.add("show");
+                emojiBtn.classList.add("active");
+            } else if (action === "gif") {
+                closePanels();
+                gifPanel.classList.add("show");
+                gifBtn.classList.add("active");
+            } else if (action === "anime") {
+                closePanels();
+                animePanel.classList.remove("hidden");
+                plusBtn.classList.add("active");
+                animeSearch.focus();
+            }
+        });
+    });
+}
+
+// Anime search panel
+var animeSearchTimer = null;
+
+if (animeSearch) {
+    animeSearch.addEventListener("input", function () {
+        clearTimeout(animeSearchTimer);
+        var q = animeSearch.value.trim();
+        if (!q) { animeResults.innerHTML = ""; return; }
+        animeResults.innerHTML = '<div class="anime-result-loading">Searching…</div>';
+        animeSearchTimer = setTimeout(function () {
+            fetch("/api/search?q=" + encodeURIComponent(q))
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data.success || !data.results.length) {
+                        animeResults.innerHTML = '<div class="anime-result-loading">No results</div>';
+                        return;
+                    }
+                    animeResults.innerHTML = "";
+                    data.results.forEach(function (item) {
+                        var card = document.createElement("div");
+                        card.className = "anime-result-card";
+                        card.innerHTML =
+                            '<img src="' + escapeHtml(item.image || "") + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+                            '<div class="anime-result-info">' +
+                            '<div class="anime-result-title">' + escapeHtml(item.title) + '</div>' +
+                            '<div class="anime-result-meta">' + escapeHtml(item.year || "") + (item.rating ? ' • ' + escapeHtml(item.rating) : "") + '</div>' +
+                            '</div>' +
+                            '<button class="anime-result-send" title="Send"><i class="fas fa-paper-plane"></i></button>';
+                        card.querySelector(".anime-result-send").addEventListener("click", function (e) {
+                            e.stopPropagation();
+                            sendAnimeCard(item.slug, item.title, item.image, item.year, item.rating);
+                        });
+                        card.addEventListener("click", function () {
+                            sendAnimeCard(item.slug, item.title, item.image, item.year, item.rating);
+                        });
+                        animeResults.appendChild(card);
+                    });
+                })
+                .catch(function () {
+                    animeResults.innerHTML = '<div class="anime-result-loading">Search failed</div>';
+                });
+        }, 300);
+    });
+}
+
+if (animePanelClose) {
+    animePanelClose.addEventListener("click", function () {
+        animePanel.classList.add("hidden");
+        plusBtn.classList.remove("active");
+    });
+}
+
+async function sendAnimeCard(slug, title, image, year, rating) {
+    if (!CURRENT_USER) return;
+    closePanels();
+    animePanel.classList.add("hidden");
+    plusBtn.classList.remove("active");
+
+    var payload = { kind: "anime", content: JSON.stringify({ slug: slug, title: title, image: image, year: year || "", rating: rating || "" }) };
+
+    // Optimistic render
+    var tempId = -Date.now();
+    var optimisticMsg = {
+        id: tempId,
+        anime_slug: ANIME_SLUG,
+        user_id: CURRENT_USER.id,
+        username: CURRENT_USER.username,
+        avatar_color: CURRENT_USER.avatar_color || colorForName(CURRENT_USER.username),
+        avatar: CURRENT_USER.avatar || null,
+        kind: "anime",
+        content: payload.content,
+        reply_to: null,
+        created_at: new Date().toISOString().replace("T", " ").slice(0, 19),
+        reactions: [],
+        my_reactions: [],
+        reply_to_username: null,
+        reply_to_content: null,
+        reply_to_kind: null,
+        _temp: true,
+    };
+    renderIncomingMessage(optimisticMsg);
+
+    try {
+        var res = await fetch("/community/" + ANIME_SLUG + "/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        var data = await res.json();
+        if (data.success) {
+            var tempLine = chatBox.querySelector('.msg-line[data-message-id="' + tempId + '"]');
+            if (tempLine) {
+                tempLine.dataset.messageId = data.message.id;
+                renderedIds.delete(tempId);
+                renderedIds.add(data.message.id);
+                lastMessageId = Math.max(lastMessageId, data.message.id);
+            } else {
+                renderIncomingMessage(data.message);
+            }
+        } else {
+            removeTemp(tempId);
+            showToast(data.error || "Couldn't send anime card.");
+        }
+    } catch (err) {
+        removeTemp(tempId);
+        showToast("Network error — try again.");
+    }
+}
+
+function removeTemp(tempId) {
+    var tempLine = chatBox.querySelector('.msg-line[data-message-id="' + tempId + '"]');
+    if (tempLine) {
+        var group = tempLine.closest(".msg-group");
+        tempLine.remove();
+        if (group && !group.querySelector(".msg-line")) group.remove();
+    }
+    renderedIds.delete(tempId);
 }
 
 // ===============================
@@ -287,6 +453,24 @@ function showToast(text) {
 function buildBodyHtml(message) {
     if (message.kind === "gif") {
         return `<div class="gif-attachment"><img src="${message.content}" alt="sent gif" loading="lazy"></div>`;
+    }
+
+    if (message.kind === "anime") {
+        try {
+            var data = JSON.parse(message.content);
+            var img = data.image ? `<img src="${escapeHtml(data.image)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
+            var meta = [data.year, data.rating].filter(Boolean).join(' • ');
+            return `<a href="/anime/${escapeHtml(data.slug)}" target="_blank" class="anime-card-msg">
+                <div class="anime-card-msg-img">${img}</div>
+                <div class="anime-card-msg-info">
+                    <div class="anime-card-msg-title">${escapeHtml(data.title)}</div>
+                    ${meta ? `<div class="anime-card-msg-meta">${escapeHtml(meta)}</div>` : ''}
+                </div>
+                <div class="anime-card-msg-arrow"><i class="fas fa-external-link-alt"></i></div>
+            </a>`;
+        } catch (e) {
+            return `<p class="msg-text">${escapeHtml(message.content)}</p>`;
+        }
     }
 
     let html = escapeHtml(message.content);

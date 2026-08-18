@@ -228,6 +228,9 @@
                         <button class="thr-link-btn" id="btnClearAttach">remove</button>
                     </div>
                     <div class="thr-input-row">
+                        <button id="btnAnime" class="thr-icon-btn thr-input-btn thr-anime-btn" title="Share anime">
+                            <i class="fas fa-tv"></i>
+                        </button>
                         <button id="btnGif" class="thr-icon-btn thr-input-btn" title="GIF (Giphy)">
                             <i class="fas fa-gift"></i>
                         </button>
@@ -305,6 +308,23 @@
             </div>
             <div id="gifGrid" class="thr-gif-grid"></div>
             <div id="gifNote" class="thr-gif-note hidden"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== ANIME PICKER MODAL ===================== -->
+<div class="thr-modal hidden" id="modalAnime">
+    <div class="thr-modal-card thr-modal-anime">
+        <div class="thr-modal-head">
+            <h3>Share anime</h3>
+            <button class="thr-modal-close" data-close="modalAnime"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <div class="thr-search thr-modal-search">
+                <i class="fas fa-search"></i>
+                <input id="animeSearch" type="text" placeholder="Search 13k+ anime..." autocomplete="off">
+            </div>
+            <div id="animeResults" class="thr-anime-results"></div>
         </div>
     </div>
 </div>

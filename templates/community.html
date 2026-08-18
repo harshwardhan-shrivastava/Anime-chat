@@ -588,6 +588,28 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
                     <button
 
+                        id="plusBtn"
+
+                        class="tool-btn plus-btn"
+
+                        title="Share">
+
+                        <i class="fas fa-plus"></i>
+
+                    </button>
+
+                    <div id="plusMenu" class="plus-menu hidden">
+
+                        <button class="plus-menu-item" data-action="emoji">😊 Emoji</button>
+
+                        <button class="plus-menu-item" data-action="gif">🎬 GIF</button>
+
+                        <button class="plus-menu-item" data-action="anime">📺 Anime</button>
+
+                    </div>
+
+                    <button
+
                         id="emojiBtn"
 
                         class="tool-btn">
@@ -605,6 +627,20 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
                         GIF
 
                     </button>
+
+                </div>
+
+                <div id="animePanel" class="anime-panel hidden">
+
+                    <div class="anime-panel-head">
+
+                        <input id="animeSearch" type="text" placeholder="Search anime..." autocomplete="off">
+
+                        <button id="animePanelClose" class="anime-panel-close"><i class="fas fa-times"></i></button>
+
+                    </div>
+
+                    <div id="animeResults" class="anime-results"></div>
 
                 </div>
 

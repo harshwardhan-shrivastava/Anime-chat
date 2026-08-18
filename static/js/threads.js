@@ -164,6 +164,7 @@
         var lm = c.last_message || {};
         if (!lm.content && !lm.kind) return "No messages yet";
         if (lm.kind === "gif") return "\uD83C\uDF81 GIF";
+        if (lm.kind === "anime") return "\uD83D\uDCFA Anime";
         if (lm.kind === "image") return "\uD83D\uDDBC Image";
         if (lm.kind === "video") return "\uD83C\uDFA5 Video";
         var prefix = "";
@@ -429,7 +430,23 @@
         );
 
         var attach = "";
-        if (m.attachment_url) {
+        if (m.kind === "anime") {
+            try {
+                var adata = JSON.parse(m.content);
+                var aimg = adata.image ? '<img src="' + escapeHtml(adata.image) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '';
+                var ameta = [adata.year, adata.rating].filter(Boolean).join(' \u2022 ');
+                attach = '<a href="/anime/' + escapeHtml(adata.slug) + '" target="_blank" class="thr-anime-msg-card">' +
+                    '<div class="thr-anime-msg-img">' + aimg + '</div>' +
+                    '<div class="thr-anime-msg-info">' +
+                    '<div class="thr-anime-msg-title">' + escapeHtml(adata.title) + '</div>' +
+                    (ameta ? '<div class="thr-anime-msg-meta">' + escapeHtml(ameta) + '</div>' : '') +
+                    '</div>' +
+                    '<div class="thr-anime-msg-arrow"><i class="fas fa-external-link-alt"></i></div>' +
+                    '</a>';
+            } catch (e) {
+                attach = '<p>' + escapeHtml(m.content) + '</p>';
+            }
+        } else if (m.attachment_url) {
             if (m.kind === "image" || m.kind === "gif") {
                 attach = '<div class="thr-attach"><img src="' + escapeHtml(m.attachment_url) +
                     '" alt="attachment" loading="lazy"></div>';
@@ -494,7 +511,7 @@
         $("#pinnedStrip").classList.toggle("hidden", !pins.length);
         if (pins.length) {
             var p = pins[0];
-            var txt = p.content || (p.kind === "gif" ? "GIF" : p.kind === "image" ? "Image" : p.kind === "video" ? "Video" : "");
+            var txt = p.content || (p.kind === "gif" ? "GIF" : p.kind === "image" ? "Image" : p.kind === "video" ? "Video" : p.kind === "anime" ? (function(){try{var d=JSON.parse(p.content);return "\uD83D\uDCFA "+d.title}catch(e){return "Anime"}})() : "");
             $("#pinnedStripText").textContent = "@" + (p.sender ? p.sender.username : "") + ": " +
                 (txt.length > 70 ? txt.slice(0, 70) + "…" : txt);
         }
@@ -1093,6 +1110,126 @@
             openModal("modalGif");
             load(input.value.trim());
         });
+    }
+
+    // ---- Anime picker modal ----
+    function wireAnimeModal() {
+        var grid = $("#animeResults");
+        var input = $("#animeSearch");
+        var t;
+
+        function load(q) {
+            if (!q) { grid.innerHTML = '<div class="thr-anime-hint">Type to search 13k+ anime…</div>'; return; }
+            grid.innerHTML = '<div class="thr-gif-loading"><i class="fas fa-spinner fa-spin"></i></div>';
+            api("/api/search?q=" + encodeURIComponent(q)).then(function (res) {
+                if (!res.success || !res.results.length) {
+                    grid.innerHTML = '<div class="thr-anime-hint">No results</div>';
+                    return;
+                }
+                grid.innerHTML = res.results.map(function (a) {
+                    return '<div class="thr-anime-card" data-slug="' + escapeHtml(a.slug) +
+                        '" data-title="' + escapeHtml(a.title) +
+                        '" data-image="' + escapeHtml(a.image || '') +
+                        '" data-year="' + escapeHtml(a.year || '') +
+                        '" data-rating="' + escapeHtml(a.rating || '') + '">
+                        <img src="' + escapeHtml(a.image || '') + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">
+                        <div class="thr-anime-card-info">
+                            <div class="thr-anime-card-title">' + escapeHtml(a.title) + '</div>
+                            <div class="thr-anime-card-meta">' + escapeHtml(a.year || '') + (a.rating ? ' • ' + escapeHtml(a.rating) : '') + '</div>
+                        </div>
+                        <div class="thr-anime-card-send"><i class="fas fa-paper-plane"></i></div>
+                    </div>';
+                }).join("");
+            }).catch(function () {
+                grid.innerHTML = '<div class="thr-anime-hint">Search failed</div>';
+            });
+        }
+
+        input.addEventListener("input", function () {
+            clearTimeout(t);
+            t = setTimeout(function () { load(input.value.trim()); }, 300);
+        });
+
+        grid.addEventListener("click", function (e) {
+            var card = e.target.closest(".thr-anime-card");
+            if (!card) return;
+            var data = {
+                slug: card.dataset.slug,
+                title: card.dataset.title,
+                image: card.dataset.image,
+                year: card.dataset.year,
+                rating: card.dataset.rating,
+            };
+            // Send anime card as a message immediately
+            sendAnimeCard(data);
+            closeModal("modalAnime");
+            input.value = "";
+            grid.innerHTML = '';
+        });
+
+        $("#btnAnime").addEventListener("click", function () {
+            openModal("modalAnime");
+            input.value = "";
+            load("");
+            setTimeout(function () { input.focus(); }, 100);
+        });
+    }
+
+    function sendAnimeCard(data) {
+        var payload = {
+            kind: "anime",
+            content: JSON.stringify(data),
+            parent_message_id: null,
+        };
+        // Optimistic send
+        var tempId = -Date.now();
+        var tempMsg = {
+            id: tempId,
+            sender_id: State.me.id,
+            sender: {
+                id: State.me.id,
+                username: State.me.username || "",
+                avatar_color: State.me.avatar_color || "",
+                avatar: State.me.avatar || null,
+            },
+            kind: "anime",
+            content: payload.content,
+            attachment_url: null,
+            attachment_preview: null,
+            parent_message_id: null,
+            parent: null,
+            created_at: new Date().toISOString().replace("T", " ").slice(0, 19),
+            temp: true,
+        };
+        appendMessages([tempMsg]);
+        api("/threads/api/messages", { json: payload }).then(function (res) {
+            if (!res.success) {
+                handleApiError(res);
+                removeTempMsg(tempId);
+                return;
+            }
+            replaceTempMsg(tempId, res.message);
+            markActiveRead();
+        });
+    }
+
+    function removeTempMsg(tempId) {
+        State.messages = State.messages.filter(function (m) { return m.id !== tempId; });
+        renderMessages(false);
+    }
+
+    function replaceTempMsg(tempId, real) {
+        if (State.seenIds[real.id]) { removeTempMsg(tempId); return; }
+        var idx = -1;
+        State.messages.forEach(function (m, i) { if (m.id === tempId) idx = i; });
+        if (idx >= 0) {
+            State.messages[idx] = real;
+            State.seenIds[real.id] = true;
+            State.afterId = Math.max(State.afterId, real.id);
+            renderMessages(true);
+        } else {
+            appendMessages([real]);
+        }
     }
 
     // ---- Members modal ----
@@ -2082,7 +2219,7 @@
                 if (!res.success) return;
                 var pins = res.pins || [];
                 list.innerHTML = pins.length ? pins.map(function (p) {
-                    var txt = p.content || (p.kind === "gif" ? "GIF" : p.kind === "image" ? "Image" : p.kind === "video" ? "Video" : "");
+                    var txt = p.content || (p.kind === "gif" ? "GIF" : p.kind === "image" ? "Image" : p.kind === "video" ? "Video" : p.kind === "anime" ? (function(){try{var d=JSON.parse(p.content);return "\uD83D\uDCFA "+d.title}catch(e){return "Anime"}})() : "");
                     return '<div class="thr-pin-row">' +
                         '<i class="fas fa-thumbtack"></i>' +
                         '<div><div class="thr-pin-user">@' + escapeHtml(p.sender ? p.sender.username : "") + "</div>" +
@@ -2383,6 +2520,7 @@
         wireGroupModal();
         wireGifModal();
         wireMembersModal();
+        wireAnimeModal();
         wirePinsModal();
         wireSettingsModal();
         wireCommunities();

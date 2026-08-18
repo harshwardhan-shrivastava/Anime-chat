@@ -47,7 +47,7 @@ def post_message(anime_slug):
     if reply_to is not None and reply_to <= 0:
         reply_to = None
 
-    if kind not in ("text", "gif"):
+    if kind not in ("text", "gif", "anime"):
         return jsonify({"success": False, "error": "Invalid message type."}), 400
 
     if not content:
@@ -58,6 +58,9 @@ def post_message(anime_slug):
 
     if kind == "gif" and not content.startswith(("http://", "https://")):
         return jsonify({"success": False, "error": "Invalid gif."}), 400
+
+    if kind == "anime" and not content:
+        return jsonify({"success": False, "error": "Anime slug required."}), 400
 
     # Single DB connection for message + presence (saves ~800 ms).
     message = database.add_chat_message_with_presence(
