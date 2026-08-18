@@ -850,14 +850,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
         <input id="modalGifSearch" class="gif-search" type="text" placeholder="Search anything... Naruto, Gojo, Absolute Cinema...">
         <div id="modalGifGrid" class="gif-grid"></div>
     </div>
-    <div id="modalAnimePanel" class="anime-panel hidden">
-        <div class="anime-panel-head">
-            <input id="modalAnimeSearch" type="text" placeholder="Search anime..." autocomplete="off">
-            <button id="modalAnimePanelClose" class="anime-panel-close"><i class="fas fa-times"></i></button>
-        </div>
-        <div id="modalAnimeResults" class="anime-results"></div>
-    </div>
-    <div class="chat-modal-composer">
+    <div class="chat-modal-composer" style="position:relative">
         <div class="composer-tools">
             <button id="modalPlusBtn" class="tool-btn plus-btn" title="Share">
                 <i class="fas fa-plus"></i>
@@ -867,6 +860,13 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
                 <button class="plus-menu-item" data-action="gif">🎬 GIF</button>
                 <button class="plus-menu-item" data-action="anime">📺 Anime</button>
             </div>
+        </div>
+        <div id="modalAnimePanel" class="anime-panel hidden">
+            <div class="anime-panel-head">
+                <input id="modalAnimeSearch" type="text" placeholder="Search anime..." autocomplete="off">
+                <button id="modalAnimePanelClose" class="anime-panel-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="modalAnimeResults" class="anime-results"></div>
         </div>
         <div class="composer-input">
             <textarea id="modalMessageInput" rows="1" placeholder="Share your thoughts with the {{ anime_name }} community..."></textarea>

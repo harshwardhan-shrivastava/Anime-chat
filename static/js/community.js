@@ -332,8 +332,13 @@ if (animePanelClose) {
 async function sendAnimeCard(slug, title, image, year, rating) {
     if (!CURRENT_USER) return;
     closePanels();
-    animePanel.classList.add("hidden");
-    plusBtn.classList.remove("active");
+    if (typeof animePanel !== 'undefined' && animePanel) animePanel.classList.add("hidden");
+    if (typeof plusBtn !== 'undefined' && plusBtn) plusBtn.classList.remove("active");
+    // Also close modal panels if open
+    var mAnimeP = document.getElementById("modalAnimePanel");
+    var mPlusM = document.getElementById("modalPlusMenu");
+    if (mAnimeP) mAnimeP.classList.add("hidden");
+    if (mPlusM) mPlusM.classList.add("hidden");
 
     var payload = { kind: "anime", content: JSON.stringify({ slug: slug, title: title, image: image, year: year || "", rating: rating || "" }) };
 
@@ -1088,10 +1093,14 @@ setInterval(refreshPresence, 8000);
         var now = new Date();
         var ts = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
         var color = CURRENT_USER.avatar_color || "#3b82f6";
+        var avatar = CURRENT_USER.avatar || null;
+        var avatarHtml = avatar
+            ? '<div class="avatar" style="background:' + color + '"><img class="avatar-img" src="/static/images/avatars/' + escapeHtml(avatar) + '" alt=""></div>'
+            : '<div class="avatar" style="background:' + color + '">' + initials(CURRENT_USER.username) + '</div>';
         var g = document.createElement("div");
         g.className = "msg-group mine";
         g.innerHTML =
-            '<div class="msg-group-head">' +
+            '<div class="msg-group-head">' + avatarHtml +
             '<span class="msg-group-name" style="color:' + color + '">' + escapeHtml(CURRENT_USER.username) + '</span>' +
             '<span class="msg-group-time">' + ts + '</span></div>' +
             '<div class="msg-lines"><div class="msg-line" data-message-id="' + tempId + '">' +
@@ -1112,8 +1121,14 @@ setInterval(refreshPresence, 8000);
                 modalSeen.add(data.message.id);
                 modalLastId = Math.max(modalLastId, data.message.id);
                 renderIncomingMessage(data.message);
+            } else {
+                removeTemp(tempId);
+                showToast(data.error || "Couldn't send.");
             }
-        }).catch(function () {});
+        }).catch(function () {
+            removeTemp(tempId);
+            showToast("Network error.");
+        });
     }
 
     function startModalPoll() {
