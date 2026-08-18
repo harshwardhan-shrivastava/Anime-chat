@@ -8,6 +8,7 @@ from database import (
     create_user_list,
     get_user_lists,
     ensure_default_lists,
+    ensure_and_get_lists,
     get_user_list,
     rename_user_list,
     delete_user_list,
@@ -58,9 +59,12 @@ def _require_user_json():
 
 
 def _user_lists(user_id):
-    """Seed the default List 1-10 on first access, then return the lists."""
-    ensure_default_lists(user_id)
-    return get_user_lists(user_id)
+    """Seed the default List 1-10 on first access, then return the lists.
+
+    Uses a single DB connection instead of two separate ones (ensure →
+    close → get → close), saving ~800 ms of Turso round-trip latency.
+    """
+    return ensure_and_get_lists(user_id)
 
 
 def _list_pub(lst):
@@ -241,9 +245,9 @@ def api_list_add_item(list_id):
         return jsonify({"success": False, "error": "slug"}), 400
 
     added = add_to_user_list(list_id, user["id"], slug)
-    if added is False:
+    if added is None:
         return jsonify({"success": False, "error": "not_found"}), 404
-    return jsonify({"success": True, "added": added, "contains": True})
+    return jsonify({"success": True, "added": bool(added), "contains": True})
 
 
 @bp.route("/api/lists/<int:list_id>/items/<anime_slug>", methods=["DELETE"])

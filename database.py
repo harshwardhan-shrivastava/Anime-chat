@@ -1,6 +1,8 @@
 import os
 import sqlite3
 import random
+import threading
+import time
 
 DATABASE = "animechat.db"
 AVATAR_COLORS = ["#00c16a", "#3b82f6", "#f59e0b", "#ec4899", "#9333ea", "#06b6d4", "#ef4444"]
@@ -36,6 +38,44 @@ TURSO_BROKEN = False
 
 if TURSO_ENABLED:
     print("ANIMECHAT DB: using Turso (persistent) database")
+    # The bundled driver posts every statement over a brand-new urllib
+    # connection (fresh TCP + TLS handshake per call), which turns each
+    # small query into a full round trip. Patch its transport to reuse a
+    # pooled keep-alive connection so chat polls, list saves and page
+    # loads stay fast on the deployed site.
+    import json as _json
+    import requests as _requests
+    from turso_serverless.session import Session as _TursoSession
+    from turso_serverless.protocol import ProtocolError as _TursoProtocolError
+
+    _turso_http = _requests.Session()
+
+    def _turso_post_keepalive(self, path, body):
+        url = f"{self._base_url}{path}"
+        data = _json.dumps(body, allow_nan=False).encode("utf-8")
+        try:
+            resp = _turso_http.post(url, data=data, headers=self._headers(), timeout=30)
+        except _requests.exceptions.RequestException as e:
+            self._reset_stream()
+            raise _TursoProtocolError(f"request to {url} failed: {e!r}") from None
+        if resp.status_code != 200:
+            self._reset_stream()
+            message = None
+            try:
+                parsed = resp.json()
+                if isinstance(parsed, dict):
+                    for key in ("error", "message"):
+                        if isinstance(parsed.get(key), str):
+                            message = parsed[key]
+                            break
+            except ValueError:
+                pass
+            if message is not None:
+                raise _TursoProtocolError(f"HTTP status {resp.status_code}: {message}") from None
+            raise _TursoProtocolError(f"HTTP status {resp.status_code}") from None
+        return resp.content
+
+    _TursoSession._post = _turso_post_keepalive
 else:
     print("ANIMECHAT DB: using local file animechat.db (accounts/history/lists can be lost if the app folder is recreated)")
 
@@ -401,6 +441,8 @@ def update_user_profile(user_id, username, avatar):
     conn.commit()
     changed = cursor.rowcount > 0
     conn.close()
+    if changed:
+        _drop_user_cache(user_id)
     return changed
 
 
@@ -414,6 +456,11 @@ def update_password(email, password_hash):
     )
     conn.commit()
     changed = cursor.rowcount > 0
+    if changed:
+        cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+        row = cursor.fetchone()
+        if row:
+            _drop_user_cache(row["id"])
     conn.close()
     return changed
 
@@ -436,13 +483,43 @@ def get_user_by_username(username):
     return dict(row) if row else None
 
 
+# ---- Per-request user cache -------------------------------------------------
+# Every request loads the logged-in user (app.before_request) and chat
+# messages resolve their senders, so user rows are the hottest reads in the
+# app. On the remote Turso DB each lookup is a network round trip; caching
+# them briefly turns those into in-memory hits. Profile updates invalidate
+# the entry immediately.
+_USER_CACHE_TTL = 20
+_user_cache = {}
+_user_cache_lock = threading.Lock()
+
+
+def _cache_user(user_id, row):
+    with _user_cache_lock:
+        _user_cache[user_id] = (time.time() + _USER_CACHE_TTL, row)
+
+
+def _drop_user_cache(user_id):
+    with _user_cache_lock:
+        _user_cache.pop(user_id, None)
+
+
 def get_user_by_id(user_id):
+    if not user_id:
+        return None
+    now = time.time()
+    with _user_cache_lock:
+        hit = _user_cache.get(user_id)
+        if hit and hit[0] > now:
+            return dict(hit[1]) if hit[1] is not None else None
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
     row = cursor.fetchone()
     conn.close()
-    return dict(row) if row else None
+    result = dict(row) if row else None
+    _cache_user(user_id, result)
+    return result
 
 
 def mark_user_verified(user_id):
@@ -451,6 +528,7 @@ def mark_user_verified(user_id):
     cursor.execute("UPDATE users SET is_verified = 1 WHERE id = ?", (user_id,))
     conn.commit()
     conn.close()
+    _drop_user_cache(user_id)
 
 
 def _attach_reply_info(messages):
@@ -526,6 +604,17 @@ def _attach_reactions(messages, user_id=None):
 
 
 def add_chat_message(anime_slug, user_id, username, avatar_color, kind, content, reply_to=None):
+    """Insert a new chat message and return the fully-formed message dict.
+
+    Everything runs on a single DB connection (zero extra round trips):
+      1. Validate reply_to (one query)
+      2. INSERT the message (one query)
+      3. Fetch the user's avatar (one query — same connection)
+      4. Fetch reply snippet if applicable (one query — same connection)
+
+    Reactions are skipped entirely: a brand-new message always has zero
+    reactions, so querying chat_reactions was pure waste (~800 ms over Turso).
+    """
     conn = get_connection()
     cursor = conn.cursor()
     if reply_to:
@@ -539,22 +628,138 @@ def add_chat_message(anime_slug, user_id, username, avatar_color, kind, content,
         """,
         (anime_slug, user_id, username, avatar_color, kind, content, reply_to)
     )
-    conn.commit()
     message_id = cursor.lastrowid
+
+    # Fetch the user avatar in the same connection.
+    cursor.execute("SELECT avatar FROM users WHERE id = ?", (user_id,))
+    avatar_row = cursor.fetchone()
+    avatar = (dict(avatar_row)["avatar"] if avatar_row else "profile1.png")
+
+    # Build the message dict directly — no need to re-SELECT the row we just
+    # inserted; we already know every column value.
+    from datetime import datetime, timezone
+    msg = {
+        "id": message_id,
+        "anime_slug": anime_slug,
+        "user_id": user_id,
+        "username": username,
+        "avatar_color": avatar_color,
+        "avatar": avatar,
+        "kind": kind,
+        "content": content,
+        "reply_to": reply_to,
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "reactions": [],
+        "my_reactions": [],
+    }
+
+    # Attach reply snippet in the same connection if needed.
+    if reply_to:
+        cursor.execute(
+            "SELECT username, content, kind FROM chat_messages WHERE id = ?",
+            (reply_to,),
+        )
+        rrow = cursor.fetchone()
+        if rrow:
+            rc = dict(rrow)
+            text = rc["content"] or ""
+            if len(text) > 180:
+                text = text[:180] + "…"
+            msg["reply_to_username"] = rc["username"]
+            msg["reply_to_content"] = text
+            msg["reply_to_kind"] = rc["kind"]
+        else:
+            msg["reply_to_username"] = None
+            msg["reply_to_content"] = None
+            msg["reply_to_kind"] = None
+    else:
+        msg["reply_to_username"] = None
+        msg["reply_to_content"] = None
+        msg["reply_to_kind"] = None
+
+    conn.close()
+    return msg
+
+
+def add_chat_message_with_presence(anime_slug, user_id, username, avatar_color, kind, content, reply_to=None):
+    """Insert a chat message AND touch presence in a single DB connection.
+
+    Same as add_chat_message but also updates the user's presence in the
+    same connection — avoids the extra Turso round-trip that a separate
+    touch_presence() call would cost (~800 ms).
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    if reply_to:
+        cursor.execute("SELECT id FROM chat_messages WHERE id = ?", (reply_to,))
+        if cursor.fetchone() is None:
+            reply_to = None
     cursor.execute(
         """
-        SELECT m.*, u.avatar AS avatar
-        FROM chat_messages m
-        JOIN users u ON u.id = m.user_id
-        WHERE m.id = ?
+        INSERT INTO chat_messages (anime_slug, user_id, username, avatar_color, kind, content, reply_to)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (message_id,),
+        (anime_slug, user_id, username, avatar_color, kind, content, reply_to)
     )
-    row = cursor.fetchone()
+    message_id = cursor.lastrowid
+
+    # Fetch the user avatar in the same connection.
+    cursor.execute("SELECT avatar FROM users WHERE id = ?", (user_id,))
+    avatar_row = cursor.fetchone()
+    avatar = (dict(avatar_row)["avatar"] if avatar_row else "profile1.png")
+
+    # Touch presence in the same connection.
+    cursor.execute(
+        """
+        INSERT INTO chat_presence (anime_slug, user_id, username, avatar_color, last_seen)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(anime_slug, user_id)
+        DO UPDATE SET last_seen = CURRENT_TIMESTAMP, username = excluded.username, avatar_color = excluded.avatar_color
+        """,
+        (anime_slug, user_id, username, avatar_color)
+    )
+    conn.commit()
+
+    from datetime import datetime, timezone
+    msg = {
+        "id": message_id,
+        "anime_slug": anime_slug,
+        "user_id": user_id,
+        "username": username,
+        "avatar_color": avatar_color,
+        "avatar": avatar,
+        "kind": kind,
+        "content": content,
+        "reply_to": reply_to,
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "reactions": [],
+        "my_reactions": [],
+    }
+
+    if reply_to:
+        cursor.execute(
+            "SELECT username, content, kind FROM chat_messages WHERE id = ?",
+            (reply_to,),
+        )
+        rrow = cursor.fetchone()
+        if rrow:
+            rc = dict(rrow)
+            text = rc["content"] or ""
+            if len(text) > 180:
+                text = text[:180] + "…"
+            msg["reply_to_username"] = rc["username"]
+            msg["reply_to_content"] = text
+            msg["reply_to_kind"] = rc["kind"]
+        else:
+            msg["reply_to_username"] = None
+            msg["reply_to_content"] = None
+            msg["reply_to_kind"] = None
+    else:
+        msg["reply_to_username"] = None
+        msg["reply_to_content"] = None
+        msg["reply_to_kind"] = None
+
     conn.close()
-    msg = dict(row)
-    _attach_reply_info([msg])
-    _attach_reactions([msg], user_id)
     return msg
 
 
@@ -602,7 +807,6 @@ def get_chat_messages(anime_slug, after_id=0, limit=200, user_id=None):
             (anime_slug, limit)
         )
     rows = [dict(row) for row in cursor.fetchall()]
-    conn.close()
     for m in rows:
         if m.get("reply_username"):
             content = m.get("reply_content") or ""
@@ -615,7 +819,45 @@ def get_chat_messages(anime_slug, after_id=0, limit=200, user_id=None):
             m["reply_to_username"] = None
             m["reply_to_content"] = None
             m["reply_to_kind"] = None
-    _attach_reactions(rows, user_id)
+    # Inline reactions query on the SAME connection — avoids opening a
+    # second Turso connection (~800 ms round-trip saved per poll).
+    if rows and user_id:
+        ids = [m["id"] for m in rows]
+        marks = ",".join("?" * len(ids))
+        cursor.execute(
+            f"""
+            SELECT message_id, emoji, COUNT(*) AS cnt
+            FROM chat_reactions
+            WHERE message_id IN ({marks})
+            GROUP BY message_id, emoji
+            ORDER BY cnt DESC
+            """,
+            ids,
+        )
+        grouped = {}
+        for rr in cursor.fetchall():
+            grouped.setdefault(rr["message_id"], []).append(
+                {"emoji": rr["emoji"], "count": rr["cnt"]}
+            )
+        my = {}
+        cursor.execute(
+            f"""
+            SELECT message_id, emoji
+            FROM chat_reactions
+            WHERE message_id IN ({marks}) AND user_id = ?
+            """,
+            ids + [user_id],
+        )
+        for rr in cursor.fetchall():
+            my.setdefault(rr["message_id"]).append(rr["emoji"]) if rr["message_id"] in my else my.setdefault(rr["message_id"], [rr["emoji"]])
+        for m in rows:
+            m["reactions"] = grouped.get(m["id"], [])
+            m["my_reactions"] = my.get(m["id"], [])
+    elif rows:
+        for m in rows:
+            m["reactions"] = []
+            m["my_reactions"] = []
+    conn.close()
     return rows
 
 
@@ -747,7 +989,17 @@ def get_online_users(anime_slug, active_seconds=60):
     return rows
 
 
+# Rating aggregates are re-rendered on every catalog page; cache them
+# briefly so browse/home loads don't each re-scan the whole reviews table
+# over the remote DB.
+_STATS_CACHE_TTL = 10
+_stats_cache = {"at": 0.0, "data": None}
+
+
 def get_all_anime_stats():
+    now = time.time()
+    if now - _stats_cache["at"] < _STATS_CACHE_TTL and _stats_cache["data"] is not None:
+        return _stats_cache["data"]
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -759,13 +1011,16 @@ def get_all_anime_stats():
     )
     rows = cursor.fetchall()
     conn.close()
-    return {
+    result = {
         row["anime_slug"]: {
             "votes": row["votes"],
             "average": round(row["avg_rating"], 2) if row["avg_rating"] is not None else 0,
         }
         for row in rows
     }
+    _stats_cache["at"] = time.time()
+    _stats_cache["data"] = result
+    return result
 
 
 def get_anime_stats(anime_slug):
@@ -1030,6 +1285,56 @@ def ensure_default_lists(user_id):
     conn.close()
 
 
+def ensure_and_get_lists(user_id):
+    """Seed default lists if needed AND return them — one DB connection.
+
+    The old path opened two separate Turso connections (ensure → close →
+    get → close), costing ~1.6 s of round-trip latency on every list
+    picker open. This fuses them into a single connection.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) AS n FROM user_lists WHERE user_id = ?", (user_id,))
+    if cursor.fetchone()["n"] == 0:
+        for i in range(1, MAX_USER_LISTS + 1):
+            cursor.execute(
+                "INSERT INTO user_lists (user_id, name) VALUES (?, ?)",
+                (user_id, f"List {i}"),
+            )
+        conn.commit()
+
+    # Now fetch lists in the same connection.
+    cursor.execute(
+        """
+        SELECT l.id, l.name, l.created_at, l.updated_at, i.anime_slug
+        FROM user_lists l
+        LEFT JOIN user_list_items i ON i.list_id = l.id
+        WHERE l.user_id = ?
+        ORDER BY l.updated_at DESC, l.id ASC
+        """,
+        (user_id,),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    by_id, order = {}, []
+    for r in rows:
+        lst_id = r["id"]
+        if lst_id not in by_id:
+            by_id[lst_id] = {
+                "id": lst_id,
+                "name": r["name"],
+                "created_at": r["created_at"],
+                "updated_at": r["updated_at"],
+                "slugs": [],
+            }
+            order.append(lst_id)
+        slug = r["anime_slug"]
+        if slug:
+            by_id[lst_id]["slugs"].append(slug)
+    return [by_id[i] for i in order]
+
+
 def get_user_lists(user_id):
     """All of a user's lists with their anime slugs attached.
 
@@ -1132,42 +1437,52 @@ def _touch_list(list_id, cursor):
 
 
 def add_to_user_list(list_id, user_id, anime_slug):
+    """Add an anime to a list owned by the user.
+
+    Returns True if newly added, False if it was already in the list, or
+    None if the list doesn't exist / isn't owned by the user.
+
+    The ownership check is folded into the INSERT (SELECT ... WHERE EXISTS)
+    so the common case costs one remote round trip instead of three.
+    """
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT id FROM user_lists WHERE id = ? AND user_id = ?",
-        (list_id, user_id),
-    )
-    if not cursor.fetchone():
-        conn.close()
-        return False
     cursor.execute(
         """
         INSERT OR IGNORE INTO user_list_items (list_id, anime_slug)
-        VALUES (?, ?)
+        SELECT ?, ?
+        WHERE EXISTS (SELECT 1 FROM user_lists WHERE id = ? AND user_id = ?)
         """,
-        (list_id, anime_slug),
+        (list_id, anime_slug, list_id, user_id),
     )
-    added = cursor.rowcount > 0
+    inserted = cursor.rowcount
+    if inserted == 0:
+        # rowcount 0 means duplicate row OR unowned list; disambiguate once.
+        cursor.execute(
+            "SELECT id FROM user_lists WHERE id = ? AND user_id = ?",
+            (list_id, user_id),
+        )
+        if not cursor.fetchone():
+            conn.close()
+            return None
     _touch_list(list_id, cursor)
     conn.commit()
     conn.close()
-    return added
+    return bool(inserted)
 
 
 def remove_from_user_list(list_id, user_id, anime_slug):
+    """Remove an anime from a list the user owns. Returns True when a row
+    was actually deleted, False otherwise (not in the list or not owned)."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id FROM user_lists WHERE id = ? AND user_id = ?",
-        (list_id, user_id),
-    )
-    if not cursor.fetchone():
-        conn.close()
-        return False
-    cursor.execute(
-        "DELETE FROM user_list_items WHERE list_id = ? AND anime_slug = ?",
-        (list_id, anime_slug),
+        """
+        DELETE FROM user_list_items
+        WHERE anime_slug = ?
+          AND list_id IN (SELECT id FROM user_lists WHERE id = ? AND user_id = ?)
+        """,
+        (anime_slug, list_id, user_id),
     )
     removed = cursor.rowcount > 0
     if removed:
