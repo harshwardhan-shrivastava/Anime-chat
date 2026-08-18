@@ -812,17 +812,27 @@ async function pollMessages() {
 // ===============================
 
 async function sendMessage() {
-    // If there's a pending GIF or Anime, send that
+    // If there's a pending GIF or Anime, send it (plus any text after)
     if (pendingGif) {
         const url = pendingGif.url;
+        const leftover = input.value.trim();
         clearPendingPreview();
         await sendGif(url);
+        if (leftover) {
+            input.value = leftover;
+            await sendMessage();
+        }
         return;
     }
     if (pendingAnime) {
         const a = pendingAnime;
+        const leftover = input.value.trim();
         clearPendingPreview();
         await sendAnimeCard(a.slug, a.title, a.image, a.year, a.rating);
+        if (leftover) {
+            input.value = leftover;
+            await sendMessage();
+        }
         return;
     }
 
@@ -1143,11 +1153,11 @@ setInterval(refreshPresence, 8000);
     });
 
     function sendModalMsg() {
-        // If there's a pending GIF or Anime, send that
+        // If there's a pending GIF or Anime, send it (plus any text after)
         if (pendingGif) {
             var url = pendingGif.url;
+            var leftover = (modalInput.value || "").trim();
             clearPendingPreview();
-            // Send GIF from modal context
             fetch("/community/" + ANIME_SLUG + "/messages", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1155,13 +1165,19 @@ setInterval(refreshPresence, 8000);
             }).then(function (r) { return r.json(); }).then(function (data) {
                 if (data.success) renderIncomingMessage(data.message);
                 else showToast(data.error || "Couldn't send GIF.");
-            }).catch(function () { showToast("Network error."); });
+                if (leftover) { modalInput.value = leftover; sendModalMsg(); }
+            }).catch(function () {
+                showToast("Network error.");
+                if (leftover) { modalInput.value = leftover; sendModalMsg(); }
+            });
             return;
         }
         if (pendingAnime) {
             var a = pendingAnime;
+            var leftover = (modalInput.value || "").trim();
             clearPendingPreview();
             sendAnimeCard(a.slug, a.title, a.image, a.year, a.rating);
+            if (leftover) { modalInput.value = leftover; sendModalMsg(); }
             return;
         }
 
