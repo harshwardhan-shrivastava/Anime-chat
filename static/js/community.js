@@ -812,31 +812,103 @@ async function pollMessages() {
 // ===============================
 
 async function sendMessage() {
-    // If there's a pending GIF or Anime, send it (plus any text after)
-    if (pendingGif) {
-        const url = pendingGif.url;
-        const leftover = input.value.trim();
+    const text = input.value.trim();
+
+    // --- Combined media + text: render ONE connected message group ---
+    if ((pendingGif || pendingAnime) && text) {
+        const mediaType = pendingGif ? "gif" : "anime";
+        const mediaData = pendingGif ? { url: pendingGif.url } : { slug: pendingAnime.slug, title: pendingAnime.title, image: pendingAnime.image, year: pendingAnime.year, rating: pendingAnime.rating };
+        const leftover = text;
         clearPendingPreview();
-        await sendGif(url);
-        if (leftover) {
-            input.value = leftover;
-            await sendMessage();
+        input.value = "";
+        resizeInput();
+        cancelReply();
+        closePanels();
+
+        // Build one optimistic group: avatar + name, then media card, then text
+        const tempId = -Date.now();
+        const color = CURRENT_USER.avatar_color || "#3b82f6";
+        const avatar = CURRENT_USER.avatar || null;
+        const avatarHtml = avatar
+            ? '<div class="avatar" style="background:' + color + '"><img class="avatar-img" src="/static/images/avatars/' + escapeHtml(avatar) + '" alt=""></div>'
+            : '<div class="avatar" style="background:' + color + '">' + initials(CURRENT_USER.username) + '</div>';
+        const ts = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+        var mediaHtml = "";
+        if (mediaType === "gif") {
+            mediaHtml = '<div class="gif-attachment"><img src="' + escapeHtml(mediaData.url) + '" alt="sent gif" loading="lazy"></div>';
+        } else {
+            var img = mediaData.image ? '<img src="' + escapeHtml(mediaData.image) + '" alt="" loading="lazy">' : '';
+            var meta = [mediaData.year, mediaData.rating].filter(Boolean).join(' \u2022 ');
+            mediaHtml = '<a href="/anime/' + escapeHtml(mediaData.slug) + '" target="_blank" class="anime-card-msg">' +
+                '<div class="anime-card-msg-img">' + img + '</div>' +
+                '<div class="anime-card-msg-info"><div class="anime-card-msg-title">' + escapeHtml(mediaData.title) + '</div>' +
+                (meta ? '<div class="anime-card-msg-meta">' + escapeHtml(meta) + '</div>' : '') +
+                '</div><div class="anime-card-msg-arrow"><i class="fas fa-external-link-alt"></i></div></a>';
         }
-        return;
-    }
-    if (pendingAnime) {
-        const a = pendingAnime;
-        const leftover = input.value.trim();
-        clearPendingPreview();
-        await sendAnimeCard(a.slug, a.title, a.image, a.year, a.rating);
-        if (leftover) {
-            input.value = leftover;
-            await sendMessage();
+
+        const group = document.createElement("div");
+        group.className = "msg-group mine";
+        group.innerHTML =
+            '<div class="msg-group-head">' + avatarHtml +
+            '<span class="msg-group-name" style="color:' + color + '">' + escapeHtml(CURRENT_USER.username) + '</span>' +
+            '<span class="msg-group-time">' + ts + '</span></div>' +
+            '<div class="msg-lines"><div class="msg-line" data-message-id="' + tempId + '">' +
+            '<span class="msg-line-time">' + ts + '</span>' +
+            '<div class="msg-line-body"><div class="msg-content">' + mediaHtml +
+            '<p class="msg-text">' + escapeHtml(leftover) + '</p></div>' +
+            '<div class="reaction-chips"></div></div></div></div>';
+        chatBox.appendChild(group);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        removeWelcome();
+
+        // Send media + text in background
+        try {
+            const mediaPayload = mediaType === "gif"
+                ? { kind: "gif", content: mediaData.url }
+                : { kind: "anime", content: JSON.stringify(mediaData) };
+            const res1 = await fetch("/community/" + ANIME_SLUG + "/messages", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(mediaPayload),
+            });
+            const d1 = await res1.json();
+            if (d1.success) {
+                renderedIds.add(d1.message.id);
+                lastMessageId = Math.max(lastMessageId, d1.message.id);
+            }
+
+            const res2 = await fetch("/community/" + ANIME_SLUG + "/messages", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ kind: "text", content: leftover }),
+            });
+            const d2 = await res2.json();
+            if (d2.success) {
+                renderedIds.add(d2.message.id);
+                lastMessageId = Math.max(lastMessageId, d2.message.id);
+            }
+        } catch (err) {
+            showToast("Network error.");
         }
         return;
     }
 
-    const text = input.value.trim();
+    // --- Media only (no text) ---
+    if (pendingGif) {
+        const url = pendingGif.url;
+        clearPendingPreview();
+        await sendGif(url);
+        return;
+    }
+    if (pendingAnime) {
+        const a = pendingAnime;
+        clearPendingPreview();
+        await sendAnimeCard(a.slug, a.title, a.image, a.year, a.rating);
+        return;
+    }
+
+    // --- Text only ---
     if (text === "" || !CURRENT_USER) return;
 
     const payload = { kind: "text", content: text };
@@ -1153,41 +1225,96 @@ setInterval(refreshPresence, 8000);
     });
 
     function sendModalMsg() {
-        // If there's a pending GIF or Anime, send it (plus any text after)
+        var text = (modalInput.value || "").trim();
+
+        // --- Combined media + text: render ONE connected message group ---
+        if ((pendingGif || pendingAnime) && text) {
+            var mediaType = pendingGif ? "gif" : "anime";
+            var mediaData = pendingGif ? { url: pendingGif.url } : { slug: pendingAnime.slug, title: pendingAnime.title, image: pendingAnime.image, year: pendingAnime.year, rating: pendingAnime.rating };
+            var leftover = text;
+            clearPendingPreview();
+            modalInput.value = "";
+
+            var tempId = -Date.now();
+            var ts = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+            var color = CURRENT_USER.avatar_color || "#3b82f6";
+            var avatar = CURRENT_USER.avatar || null;
+            var avatarHtml = avatar
+                ? '<div class="avatar" style="background:' + color + '"><img class="avatar-img" src="/static/images/avatars/' + escapeHtml(avatar) + '" alt=""></div>'
+                : '<div class="avatar" style="background:' + color + '">' + initials(CURRENT_USER.username) + '</div>';
+
+            var mediaHtml = "";
+            if (mediaType === "gif") {
+                mediaHtml = '<div class="gif-attachment"><img src="' + escapeHtml(mediaData.url) + '" alt="sent gif" loading="lazy"></div>';
+            } else {
+                var img = mediaData.image ? '<img src="' + escapeHtml(mediaData.image) + '" alt="" loading="lazy">' : '';
+                var meta = [mediaData.year, mediaData.rating].filter(Boolean).join(' \u2022 ');
+                mediaHtml = '<a href="/anime/' + escapeHtml(mediaData.slug) + '" target="_blank" class="anime-card-msg">' +
+                    '<div class="anime-card-msg-img">' + img + '</div>' +
+                    '<div class="anime-card-msg-info"><div class="anime-card-msg-title">' + escapeHtml(mediaData.title) + '</div>' +
+                    (meta ? '<div class="anime-card-msg-meta">' + escapeHtml(meta) + '</div>' : '') +
+                    '</div><div class="anime-card-msg-arrow"><i class="fas fa-external-link-alt"></i></div></a>';
+            }
+
+            var g = document.createElement("div");
+            g.className = "msg-group mine";
+            g.innerHTML =
+                '<div class="msg-group-head">' + avatarHtml +
+                '<span class="msg-group-name" style="color:' + color + '">' + escapeHtml(CURRENT_USER.username) + '</span>' +
+                '<span class="msg-group-time">' + ts + '</span></div>' +
+                '<div class="msg-lines"><div class="msg-line" data-message-id="' + tempId + '">' +
+                '<span class="msg-line-time">' + ts + '</span>' +
+                '<div class="msg-line-body"><div class="msg-content">' + mediaHtml +
+                '<p class="msg-text">' + escapeHtml(leftover) + '</p></div>' +
+                '<div class="reaction-chips"></div></div></div></div>';
+            modalBox.appendChild(g);
+            modalBox.scrollTop = modalBox.scrollHeight;
+
+            // Send both in background
+            var mediaPayload = mediaType === "gif"
+                ? { kind: "gif", content: mediaData.url }
+                : { kind: "anime", content: JSON.stringify(mediaData) };
+            fetch("/community/" + ANIME_SLUG + "/messages", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(mediaPayload),
+            }).then(function (r) { return r.json(); }).then(function (d) {
+                if (d.success) { modalSeen.add(d.message.id); modalLastId = Math.max(modalLastId, d.message.id); }
+            }).catch(function () {});
+            fetch("/community/" + ANIME_SLUG + "/messages", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ kind: "text", content: leftover }),
+            }).then(function (r) { return r.json(); }).then(function (d) {
+                if (d.success) { modalSeen.add(d.message.id); modalLastId = Math.max(modalLastId, d.message.id); }
+            }).catch(function () {});
+            return;
+        }
+
+        // --- Media only (no text) ---
         if (pendingGif) {
             var url = pendingGif.url;
-            var leftover = (modalInput.value || "").trim();
             clearPendingPreview();
             fetch("/community/" + ANIME_SLUG + "/messages", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
+                method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ kind: "gif", content: url }),
             }).then(function (r) { return r.json(); }).then(function (data) {
                 if (data.success) renderIncomingMessage(data.message);
                 else showToast(data.error || "Couldn't send GIF.");
-                if (leftover) { modalInput.value = leftover; sendModalMsg(); }
-            }).catch(function () {
-                showToast("Network error.");
-                if (leftover) { modalInput.value = leftover; sendModalMsg(); }
-            });
+            }).catch(function () { showToast("Network error."); });
             return;
         }
         if (pendingAnime) {
             var a = pendingAnime;
-            var leftover = (modalInput.value || "").trim();
             clearPendingPreview();
             sendAnimeCard(a.slug, a.title, a.image, a.year, a.rating);
-            if (leftover) { modalInput.value = leftover; sendModalMsg(); }
             return;
         }
 
-        var text = (modalInput.value || "").trim();
+        // --- Text only ---
         if (!text || !CURRENT_USER) return;
         modalInput.value = "";
 
         var tempId = -Date.now();
-        var now = new Date();
-        var ts = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        var ts = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
         var color = CURRENT_USER.avatar_color || "#3b82f6";
         var avatar = CURRENT_USER.avatar || null;
         var avatarHtml = avatar
@@ -1207,8 +1334,7 @@ setInterval(refreshPresence, 8000);
         modalBox.scrollTop = modalBox.scrollHeight;
 
         fetch("/community/" + ANIME_SLUG + "/messages", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ kind: "text", content: text }),
         }).then(function (r) { return r.json(); }).then(function (data) {
             if (data.success) {
