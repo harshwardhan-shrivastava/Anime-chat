@@ -37,6 +37,41 @@ let lastMessageTime = null;
 let lastMessageId = 0;
 let lastReactionId = 0;
 let replyTarget = null;
+let pendingGif = null;   // { url } or null
+let pendingAnime = null; // { slug, title, image, year, rating } or null
+
+function showPendingPreview(type, data) {
+    var el = document.getElementById("pendingPreview");
+    if (!el) return;
+    el.style.display = "block";
+    if (type === "gif") {
+        el.innerHTML =
+            '<div style="display:flex;align-items:center;gap:10px">' +
+            '<img class="pending-gif" src="' + escapeHtml(data.url) + '" alt="GIF">' +
+            '<button class="pending-remove" onclick="clearPendingPreview()"><i class="fas fa-times"></i></button>' +
+            '</div>';
+    } else if (type === "anime") {
+        var img = data.image ? '<img src="' + escapeHtml(data.image) + '" alt="">' : '';
+        var meta = [data.year, data.rating].filter(Boolean).join(' \u2022 ');
+        el.innerHTML =
+            '<div class="pending-anime">' + img +
+            '<div><div class="pending-anime-title">' + escapeHtml(data.title) + '</div>' +
+            (meta ? '<div class="pending-anime-meta">' + escapeHtml(meta) + '</div>' : '') +
+            '</div>' +
+            '<button class="pending-remove" onclick="clearPendingPreview()"><i class="fas fa-times"></i></button>' +
+            '</div>';
+    }
+}
+
+function clearPendingPreview() {
+    pendingGif = null;
+    pendingAnime = null;
+    var el = document.getElementById("pendingPreview");
+    if (el) { el.style.display = "none"; el.innerHTML = ""; }
+    // Also clear modal preview
+    var mel = document.getElementById("modalPendingPreview");
+    if (mel) { mel.style.display = "none"; mel.innerHTML = ""; }
+}
 const renderedIds = new Set();
 
 // ===============================
@@ -151,8 +186,11 @@ function renderGifResults(gifs) {
         img.alt = gif.title || "gif";
         img.loading = "lazy";
         img.addEventListener("click", function () {
-            sendGif(gif.url);
+            pendingAnime = null;
+            pendingGif = { url: gif.url };
+            showPendingPreview("gif", { url: gif.url });
             closePanels();
+            input.focus();
         });
         gifGrid.appendChild(img);
     });
@@ -305,12 +343,12 @@ if (animeSearch) {
                             '<div class="anime-result-meta">' + escapeHtml(item.year || "") + (item.rating ? ' • ' + escapeHtml(item.rating) : "") + '</div>' +
                             '</div>' +
                             '<button class="anime-result-send" title="Send"><i class="fas fa-paper-plane"></i></button>';
-                        card.querySelector(".anime-result-send").addEventListener("click", function (e) {
-                            e.stopPropagation();
-                            sendAnimeCard(item.slug, item.title, item.image, item.year, item.rating);
-                        });
                         card.addEventListener("click", function () {
-                            sendAnimeCard(item.slug, item.title, item.image, item.year, item.rating);
+                            pendingGif = null;
+                            pendingAnime = { slug: item.slug, title: item.title, image: item.image, year: item.year, rating: item.rating };
+                            showPendingPreview("anime", pendingAnime);
+                            closePanels();
+                            input.focus();
                         });
                         animeResults.appendChild(card);
                     });
@@ -768,6 +806,20 @@ async function pollMessages() {
 // ===============================
 
 async function sendMessage() {
+    // If there's a pending GIF or Anime, send that
+    if (pendingGif) {
+        const url = pendingGif.url;
+        clearPendingPreview();
+        await sendGif(url);
+        return;
+    }
+    if (pendingAnime) {
+        const a = pendingAnime;
+        clearPendingPreview();
+        await sendAnimeCard(a.slug, a.title, a.image, a.year, a.rating);
+        return;
+    }
+
     const text = input.value.trim();
     if (text === "" || !CURRENT_USER) return;
 
@@ -1085,6 +1137,28 @@ setInterval(refreshPresence, 8000);
     });
 
     function sendModalMsg() {
+        // If there's a pending GIF or Anime, send that
+        if (pendingGif) {
+            var url = pendingGif.url;
+            clearPendingPreview();
+            // Send GIF from modal context
+            fetch("/community/" + ANIME_SLUG + "/messages", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ kind: "gif", content: url }),
+            }).then(function (r) { return r.json(); }).then(function (data) {
+                if (data.success) renderIncomingMessage(data.message);
+                else showToast(data.error || "Couldn't send GIF.");
+            }).catch(function () { showToast("Network error."); });
+            return;
+        }
+        if (pendingAnime) {
+            var a = pendingAnime;
+            clearPendingPreview();
+            sendAnimeCard(a.slug, a.title, a.image, a.year, a.rating);
+            return;
+        }
+
         var text = (modalInput.value || "").trim();
         if (!text || !CURRENT_USER) return;
         modalInput.value = "";
@@ -1223,8 +1297,11 @@ setInterval(refreshPresence, 8000);
                 img.alt = gif.title || "gif";
                 img.loading = "lazy";
                 img.addEventListener("click", function () {
-                    sendGif(gif.url);
+                    pendingAnime = null;
+                    pendingGif = { url: gif.url };
+                    showPendingPreview("gif", { url: gif.url });
                     closeModalPanels();
+                    if (modalInput) modalInput.focus();
                 });
                 modalGifGrid.appendChild(img);
             });
@@ -1268,11 +1345,14 @@ setInterval(refreshPresence, 8000);
                                 '<div class="anime-result-meta">' + escapeHtml(item.year || '') + (item.rating ? ' • ' + escapeHtml(item.rating) : '') + '</div>' +
                                 '</div>' +
                                 '<button class="anime-result-send" title="Send"><i class="fas fa-paper-plane"></i></button>';
-                            // Make the entire card clickable to send
+                            // Make the entire card clickable to preview
                             card.style.cursor = 'pointer';
                             card.addEventListener('click', function (e) {
-                                sendAnimeCard(item.slug, item.title, item.image, item.year, item.rating);
+                                pendingGif = null;
+                                pendingAnime = { slug: item.slug, title: item.title, image: item.image, year: item.year, rating: item.rating };
+                                showPendingPreview("anime", pendingAnime);
                                 closeModalPanels();
+                                if (modalInput) modalInput.focus();
                             });
                             modalAnimeResults.appendChild(card);
                         });

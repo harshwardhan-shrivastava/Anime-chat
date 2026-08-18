@@ -3937,3 +3937,59 @@ input:focus-visible{
     font-size: 22px;
     color: var(--green, #27d07d);
 }
+
+/* Pending media preview above composer */
+.pending-preview {
+    margin: 0 16px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    position: relative;
+}
+.pending-preview .pending-gif {
+    max-height: 100px;
+    border-radius: 8px;
+    object-fit: contain;
+}
+.pending-preview .pending-anime {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.pending-preview .pending-anime img {
+    width: 36px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+.pending-preview .pending-anime-title {
+    font-size: 14px;
+    color: #fff;
+    flex: 1;
+}
+.pending-preview .pending-anime-meta {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+}
+.pending-preview .pending-remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.6);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+.pending-preview .pending-remove:hover {
+    background: rgba(239,68,68,0.3);
+    color: #fff;
+}
