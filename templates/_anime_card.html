@@ -100,12 +100,22 @@
                 <i class="far fa-heart"></i>
             </span>
 
+            {% if quiz_plus %}
+            <button type="button" class="card-list-btn quiz-plus-btn"
+                    data-slug="{{ anime.slug }}"
+                    data-title="{{ anime.title }}"
+                    title="Add to list">
+                <i class="fas fa-plus"></i>
+                Add to List
+            </button>
+            {% else %}
             <button type="button" class="card-list-btn"
                     data-slug="{{ anime.slug }}"
                     data-title="{{ anime.title }}"
                     title="Add to list">
                 <i class="fas fa-bookmark"></i>
             </button>
+            {% endif %}
 
             <a href="/community/{{ anime.slug }}" class="enter-chat">
                 Enter Chat
