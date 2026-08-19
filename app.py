@@ -683,16 +683,29 @@ def home():
     latest = _catalog_entries(sort="latest", limit=48)
     user = g.get("user")
     signals = get_user_recommendation_signals(user["id"]) if user else None
-    recommended = build_recommendations(
+    recommendation_result = build_recommendations(
         anime_database,
         signals=signals,
         user_id=user["id"] if user else None,
         limit=12,
     )
+    recommended = recommendation_result["picks"]
+    recommendations_personalized = recommendation_result["personalized"]
+    recommendation_prompt = (
+        "Based on what you've been watching and saving."
+        if recommendations_personalized
+        else (
+            "Watch a few shows or save some anime to unlock personalized picks."
+            if user
+            else "Log in and watch a few shows to unlock personalized picks."
+        )
+    )
     return render_template(
         "index.html",
         anime_list=latest,
         recommended=recommended,
+        recommendations_personalized=recommendations_personalized,
+        recommendation_prompt=recommendation_prompt,
         page_title="Latest Releases",
         genres=_genre_list(),
     )

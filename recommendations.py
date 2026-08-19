@@ -113,7 +113,7 @@ def _reason(entry, profile, sources):
     return f"Matches your {genre} taste"
 
 
-def _card(slug, entry, reason):
+def _card(slug, entry, reason, personalized):
     return {
         "slug": slug,
         "title": entry.get("title") or slug,
@@ -130,7 +130,7 @@ def _card(slug, entry, reason):
             for d in (entry.get("dub") or [])
         ),
         "arc_count": len(entry.get("watch_order") or []) or len(entry.get("seasons") or []),
-        "badge_label": "For You",
+        "badge_label": "For You" if personalized else "Popular",
         "reason": reason,
     }
 
@@ -170,20 +170,24 @@ def build_recommendations(catalog, signals=None, user_id=None, limit=12, now=Non
         key=lambda item: (item[0], item[1]),
     )
     if not pool:
-        return []
+        return {"picks": [], "personalized": personalized}
     pool = pool[:_TOP_POOL_SIZE]
     bucket = int((time.time() if now is None else now) // _TIME_BUCKET_SECONDS)
     rng = random.Random(f"{user_id or 'anonymous'}:{bucket}")
     rng.shuffle(pool)
     slugs = _diverse_top(pool, limit)
 
-    return [
-        _card(
-            slug,
-            catalog[slug],
-            _reason(catalog[slug], profile, sources)
-            if personalized
-            else "Popular with fans right now",
-        )
-        for slug in slugs
-    ]
+    return {
+        "picks": [
+            _card(
+                slug,
+                catalog[slug],
+                _reason(catalog[slug], profile, sources)
+                if personalized
+                else "Popular with fans right now",
+                personalized,
+            )
+            for slug in slugs
+        ],
+        "personalized": personalized,
+    }
