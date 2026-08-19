@@ -1508,6 +1508,39 @@ def record_view(user_id, anime_slug):
     conn.close()
 
 
+def get_taste_slugs(user_id, limit=80):
+    """Slugs the user has shown interest in, most recent first.
+
+    Merges view history with everything saved in their lists in a single
+    query/connection so the homepage stays one round trip. List entries
+    count as a stronger signal than a passive view, which the caller uses
+    to weight genres.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT anime_slug, MAX(at) AS at, MAX(saved) AS saved FROM (
+            SELECT h.anime_slug AS anime_slug, h.viewed_at AS at, 0 AS saved
+            FROM view_history h
+            WHERE h.user_id = ?
+            UNION ALL
+            SELECT i.anime_slug AS anime_slug, i.added_at AS at, 1 AS saved
+            FROM user_list_items i
+            JOIN user_lists l ON l.id = i.list_id
+            WHERE l.user_id = ?
+        )
+        GROUP BY anime_slug
+        ORDER BY at DESC
+        LIMIT ?
+        """,
+        (user_id, user_id, limit),
+    )
+    rows = [{"slug": r["anime_slug"], "saved": bool(r["saved"])} for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
 def get_history_count(user_id):
     """Fast COUNT(*) for the profile header - avoids fetching every row
     just to show a number (that was a huge query on heavy watchers)."""
