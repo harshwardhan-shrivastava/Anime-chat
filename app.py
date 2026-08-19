@@ -6,6 +6,7 @@ import random
 import re
 import threading
 import time
+import traceback
 from datetime import timedelta
 
 import requests
@@ -316,6 +317,9 @@ def _save_fresh_airing_cache(fresh):
             print(f"[schedule] failed to persist airing cache: {exc}", flush=True)
 
 
+_episode_state_import_warned = False
+
+
 def _apply_episode_state(entry, st, nxt):
     """Mirror apply_airing's released/TBC logic on the in-memory catalog.
 
@@ -324,9 +328,14 @@ def _apply_episode_state(entry, st, nxt):
     without loading a second copy of the catalog (safe on Render's 512MB
     free tier, where the heavy disk-based enrichment is disabled).
     """
+    global _episode_state_import_warned
     try:
         from scripts.enrich_airing import _global_number, _is_placeholder
-    except Exception:
+    except Exception as exc:
+        if not _episode_state_import_warned:
+            _episode_state_import_warned = True
+            print(f"[schedule] episode-state helpers unavailable, "
+                  f"skipping released/TBC updates: {exc}", flush=True)
         return
 
     if st == "Ongoing":
@@ -407,7 +416,9 @@ def _refresh_airing_schedule_worker():
                     entry["start_month"] = sd["month"]
 
                 _apply_episode_state(entry, st, nxt)
-        except Exception:
+        except Exception as exc:
+            print(f"[schedule] airing refresh failed for batch at offset {i}: {exc}",
+                  flush=True)
             continue
         time.sleep(1.0)
 
@@ -504,6 +515,7 @@ def _full_enrich_worker():
         print("[auto-enrich] Full enrichment completed successfully", flush=True)
     except Exception as exc:
         print(f"[auto-enrich] Error during enrichment: {exc}", flush=True)
+        traceback.print_exc()
     finally:
         with _enrich_lock:
             _enrich_state["last"] = time.time()

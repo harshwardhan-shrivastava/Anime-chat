@@ -139,7 +139,7 @@ class CompatCursor:
             return None
         try:
             return [column[0] for column in description]
-        except Exception:
+        except (TypeError, IndexError):
             return None
 
     def _normalize(self, row):

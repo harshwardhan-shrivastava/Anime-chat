@@ -94,8 +94,8 @@ def _log_dev_code(to_email, code):
         os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
         with open(LOG_PATH, "a", encoding="utf-8") as f:
             f.write(f"{to_email} | {code}\n")
-    except OSError:
-        pass
+    except OSError as exc:
+        print(f"[AnimeChat][DEV MAIL] could not write {LOG_PATH}: {exc}")
 
 
 def _message_parts(username, code, purpose):

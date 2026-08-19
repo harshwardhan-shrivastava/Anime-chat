@@ -128,7 +128,9 @@ def _enrich_parties(parties):
     """Attach anime title/image to watch-party rows for display."""
     try:
         from anime_data import anime_database
-    except Exception:
+    except Exception as exc:
+        print(f"[threads] anime catalog unavailable, party titles degraded: {exc}",
+              flush=True)
         anime_database = {}
     out = []
     for p in parties:

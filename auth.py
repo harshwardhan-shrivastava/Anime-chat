@@ -1,6 +1,8 @@
 import os
 import random
 import re
+import sqlite3
+import traceback
 from datetime import datetime, timedelta
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, g
@@ -176,9 +178,8 @@ def verify_email():
                 pending["password"],
                 avatar=pending["avatar"],
             )
-        except Exception:
-            # Unique-constraint hits (email/username already registered) or
-            # any other DB hiccup here should show a clear message, not a 500.
+        except sqlite3.IntegrityError:
+            # Unique-constraint hits: the email/username is already registered.
             session.pop("pending_registration", None)
             flash(
                 "Couldn't create the account - that email or username may "
@@ -186,6 +187,13 @@ def verify_email():
                 "error",
             )
             return redirect(url_for("auth.login"))
+        except Exception as exc:
+            # Transient DB hiccup: log it and let the user retry with the
+            # same code instead of bouncing them back to signup.
+            print(f"[auth] create_user failed for {email}: {exc}", flush=True)
+            traceback.print_exc()
+            flash("Couldn't create the account right now. Please try again.", "error")
+            return render_template("verify_email.html", email=email, purpose="verify", dev_code=None, resent=False)
         # The account is only created after the code checks out, so it's
         # verified by construction.
         database.mark_user_verified(user_id)
