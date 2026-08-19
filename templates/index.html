@@ -104,6 +104,34 @@
 
 </section>
 
+{% if recommended %}
+<!-- ================= RECOMMENDED ================= -->
+
+<section class="section-title">
+
+    <h2>
+        {% if recommendations_personalized %}
+            Recommended for You
+        {% else %}
+            Popular Right Now
+        {% endif %}
+    </h2>
+
+    <p class="browse-sub">{{ recommendation_prompt }}</p>
+
+</section>
+
+<section class="anime-grid">
+
+{% for anime in recommended %}
+
+{% include "_anime_card.html" %}
+
+{% endfor %}
+
+</section>
+{% endif %}
+
 <!-- ================= LATEST RELEASES ================= -->
 
 <section class="section-title">

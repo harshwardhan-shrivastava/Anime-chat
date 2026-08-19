@@ -38,8 +38,10 @@ from database import (
     remove_from_user_list,
     record_view,
     get_view_history,
+    get_user_recommendation_signals,
     MAX_USER_LISTS,
 )
+from recommendations import _FRANCHISE_RE, _diverse_top, build_recommendations
 from auth import auth, load_logged_in_user
 from chat import chat_bp
 from profile_routes import bp as profile_bp
@@ -679,9 +681,31 @@ def _decorate(entries, sort):
 @app.route("/")
 def home():
     latest = _catalog_entries(sort="latest", limit=48)
+    user = g.get("user")
+    signals = get_user_recommendation_signals(user["id"]) if user else None
+    recommendation_result = build_recommendations(
+        anime_database,
+        signals=signals,
+        user_id=user["id"] if user else None,
+        limit=12,
+    )
+    recommended = recommendation_result["picks"]
+    recommendations_personalized = recommendation_result["personalized"]
+    recommendation_prompt = (
+        "Based on what you've been watching and saving."
+        if recommendations_personalized
+        else (
+            "Watch a few shows or save some anime to unlock personalized picks."
+            if user
+            else "Log in and watch a few shows to unlock personalized picks."
+        )
+    )
     return render_template(
         "index.html",
         anime_list=latest,
+        recommended=recommended,
+        recommendations_personalized=recommendations_personalized,
+        recommendation_prompt=recommendation_prompt,
         page_title="Latest Releases",
         genres=_genre_list(),
     )
@@ -1409,11 +1433,6 @@ for _q in [_TASTE_Q, _MOOD_Q] + [
         _OPTION_WEIGHTS[_o["value"]] = _o.get("weights", {})
 
 
-_FRANCHISE_RE = re.compile(
-    r"-(?:2nd|3rd|4th|5th|s\d+|season|part|ova|movie|film|special|tv|remake|rebirth|the-movie|the-movie-.*|\d+).*$"
-)
-
-
 def _pub_question(q):
     """Strip scoring weights so the client only gets display data."""
     return {
@@ -1468,22 +1487,6 @@ def _quiz_score_entry(entry, weights):
     popularity = entry.get("member_count", 0) or 0
     total += rating * 3 + min(popularity / 100000.0, 10)
     return total
-
-
-def _diverse_top(pool, n):
-    """Top-n picks with light franchise dedupe so a single show's seasons
-    don't hog every recommendation slot."""
-    picked = []
-    seen = set()
-    for score, slug in pool:
-        if len(picked) >= n:
-            break
-        base = _FRANCHISE_RE.sub("", slug)
-        if base in seen:
-            continue
-        seen.add(base)
-        picked.append(slug)
-    return picked
 
 
 def _run_quiz(answers):

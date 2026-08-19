@@ -1375,6 +1375,59 @@ def get_user_lists(user_id):
     return [by_id[i] for i in order]
 
 
+def get_user_recommendation_signals(user_id, history_limit=60):
+    """Fetch homepage recommendation signals with one database connection."""
+    import json
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT anime_slug, viewed_at FROM view_history
+        WHERE user_id = ?
+        ORDER BY viewed_at DESC
+        LIMIT ?
+        """,
+        (user_id, history_limit),
+    )
+    history = [dict(row) for row in cursor.fetchall()]
+
+    cursor.execute(
+        """
+        SELECT DISTINCT i.anime_slug
+        FROM user_list_items i
+        JOIN user_lists l ON l.id = i.list_id
+        WHERE l.user_id = ?
+        """,
+        (user_id,),
+    )
+    list_slugs = {row["anime_slug"] for row in cursor.fetchall() if row["anime_slug"]}
+
+    cursor.execute(
+        """
+        SELECT top_genres FROM quiz_results
+        WHERE user_id = ?
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (user_id,),
+    )
+    quiz_row = cursor.fetchone()
+    conn.close()
+
+    top_genres = []
+    if quiz_row:
+        try:
+            top_genres = json.loads(quiz_row["top_genres"]) or []
+        except (TypeError, ValueError, json.JSONDecodeError):
+            top_genres = []
+    return {
+        "history": history,
+        "list_slugs": list_slugs,
+        "top_genres": top_genres,
+    }
+
+
 def get_user_list(list_id, user_id):
     conn = get_connection()
     cursor = conn.cursor()

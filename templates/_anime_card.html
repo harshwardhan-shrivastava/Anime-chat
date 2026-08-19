@@ -52,7 +52,11 @@
     </h3>
 
     <p class="anime-description">
-        {{ anime.genre | default("Join the community, discuss theories, memes, fights, endings and your favorite characters.") }}
+        {% if anime.reason %}
+            {{ anime.reason }}
+        {% else %}
+            {{ anime.genre | default("Join the community, discuss theories, memes, fights, endings and your favorite characters.") }}
+        {% endif %}
     </p>
 
     <div class="card-meta">
