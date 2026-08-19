@@ -20,7 +20,6 @@ and re-run to continue, progress is saved every 25 titles):
 """
 
 import argparse
-import json
 import os
 import sys
 import time
@@ -30,9 +29,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import requests
 
+from scripts.common import read_json as _read_json, save_json  # noqa: E402
 from scripts.enrich_ep_thumbnails import (
     KITSU,
     KITSU_HEADERS,
+    _kitsu_get,
     _kitsu_search,
     _norm,
 )
@@ -78,33 +79,8 @@ def _title_ratio(title, attrs):
 
 
 def load_json(path):
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, ValueError):
-        return {}
-
-
-def save_json(path, obj):
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False)
-    os.replace(tmp, path)
-
-
-def _kitsu_get(url, params=None, retries=4):
-    for attempt in range(retries):
-        try:
-            r = requests.get(url, params=params, headers=KITSU_HEADERS, timeout=25)
-            if r.status_code == 200:
-                return r.json()
-            if r.status_code == 429:
-                time.sleep(6 + attempt * 4)
-                continue
-            time.sleep(2 + attempt * 2)
-        except Exception:
-            time.sleep(3)
-    return None
+    """Unreadable/corrupt cache reads as empty so a run can just continue."""
+    return _read_json(path, {})
 
 
 def _poster_url(kitsu_id, attrs=None):

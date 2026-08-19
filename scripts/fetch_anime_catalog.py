@@ -31,6 +31,15 @@ import time
 
 import requests
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from scripts.common import (  # noqa: E402
+    STATUS_MAP,
+    STREAM_SITES,
+    load_json as _load_json,
+    save_json,
+)
+
 API_URL = "https://graphql.anilist.co"
 RAW_CACHE = "anime_catalog_raw.json"
 OFFICIAL_CACHE = "anime_official_images.json"
@@ -45,10 +54,9 @@ MAX_RAW = 45000        # stop fetching once we have this many raw candidates
 PAGE_SIZE = 50
 SLEEP = 1.0            # seconds between API calls (rate limit is 90/min)
 
-QUERY = """
-query ($page: Int, $perPage: Int, $sort: [MediaSort]) {
-  Page(page: $page, perPage: $perPage) {
-    media(sort: $sort, type: ANIME, isAdult: false) {
+# The catalog fields every listing query pulls, shared so the three paging
+# strategies below can never drift apart.
+MEDIA_FIELDS = """
       id
       title { romaji english }
       coverImage { extraLarge large }
@@ -64,10 +72,15 @@ query ($page: Int, $perPage: Int, $sort: [MediaSort]) {
       source
       format
       favourites
-    }
+"""
+
+QUERY = """
+query ($page: Int, $perPage: Int, $sort: [MediaSort]) {
+  Page(page: $page, perPage: $perPage) {
+    media(sort: $sort, type: ANIME, isAdult: false) {%s}
   }
 }
-"""
+""" % MEDIA_FIELDS
 
 # AniList caps plain Page() paging at 5000 entries total ("Page depth
 # exceeds maximum allowed"). To walk the ENTIRE database we paginate by
@@ -76,51 +89,19 @@ query ($page: Int, $perPage: Int, $sort: [MediaSort]) {
 ID_QUERY = """
 query ($page: Int, $perPage: Int, $after: Int) {
   Page(page: $page, perPage: $perPage) {
-    media(id_greater_than: $after, sort: ID_ASC, type: ANIME, isAdult: false) {
-      id
-      title { romaji english }
-      coverImage { extraLarge large }
-      bannerImage
-      description
-      averageScore
-      episodes
-      duration
-      status
-      seasonYear
-      genres
-      studios(isMain: true) { nodes { name } }
-      source
-      format
-      favourites
-    }
+    media(id_greater_than: $after, sort: ID_ASC, type: ANIME, isAdult: false) {%s}
   }
 }
-"""
+""" % MEDIA_FIELDS
 
 SEASON_QUERY = """
 query ($page: Int, $perPage: Int, $season: MediaSeason, $year: Int) {
   Page(page: $page, perPage: $perPage) {
     media(season: $season, seasonYear: $year, sort: POPULARITY_DESC,
-          type: ANIME, isAdult: false) {
-      id
-      title { romaji english }
-      coverImage { extraLarge large }
-      bannerImage
-      description
-      averageScore
-      episodes
-      duration
-      status
-      seasonYear
-      genres
-      studios(isMain: true) { nodes { name } }
-      source
-      format
-      favourites
-    }
+          type: ANIME, isAdult: false) {%s}
   }
 }
-"""
+""" % MEDIA_FIELDS
 
 SEARCH_QUERY = """
 query ($q: String) {
@@ -168,22 +149,6 @@ query ($ids: [Int]) {
 }
 """
 
-# Platforms we recognise as legitimate streaming services (sub/dub flags are
-# a reasonable generalisation: these services carry English dubs broadly).
-STREAM_SITES = {
-    "crunchyroll": ("Crunchyroll", True),
-    "netflix": ("Netflix", True),
-    "hulu": ("Hulu", True),
-    "hidive": ("HIDIVE", True),
-    "funimation": ("Funimation", True),
-    "amazon": ("Amazon Prime Video", True),
-    "primevideo": ("Amazon Prime Video", True),
-    "disneyplus": ("Disney+", True),
-    "disney+": ("Disney+", True),
-    "youtube": ("YouTube", False),
-    "bilibili": ("Bilibili", False),
-}
-
 TYPE_MAP = {
     "TV": "TV Anime",
     "MOVIE": "Movie",
@@ -192,14 +157,6 @@ TYPE_MAP = {
     "SPECIAL": "Special",
     "TV_SHORT": "TV Short",
     "MUSIC": "Music",
-}
-
-STATUS_MAP = {
-    "FINISHED": "Completed",
-    "RELEASING": "Ongoing",
-    "NOT_YET_RELEASED": "Upcoming",
-    "CANCELLED": "Cancelled",
-    "HIATUS": "On Hiatus",
 }
 
 SOURCE_MAP = {
@@ -351,19 +308,8 @@ def search_title(title):
 
 
 def load_json(path):
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-
-def save_json(path, obj):
-    # Atomic write: dump to a temp file then rename, so a process kill can
-    # never leave a truncated/poisoned cache behind.
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False)
-    os.replace(tmp, path)
+    """Cache loader used by the whole script family: missing file -> {}."""
+    return _load_json(path, {})
 
 
 def build_entry(m):

@@ -32,7 +32,6 @@ catalog most-popular-first and Phase B covers the most popular characters
 first, so the character page fills with well-known shows before obscure
 ones.
 """
-import json
 import os
 import re
 import sys
@@ -42,6 +41,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+from scripts.common import load_json, save_json as _save_json  # noqa: E402
+
 ANIME_DATA = os.path.join(ROOT, "anime_data.json")
 CHARS = os.path.join(ROOT, "anime_characters.json")
 CHAR_PROGRESS = os.path.join(ROOT, "anime_characters_progress.json")
@@ -142,19 +145,9 @@ def _clean_desc(desc):
     return text
 
 
-def load_json(path, default):
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return default
-
-
 def save_json(path, data):
-    """Atomic write (tmp + rename) so a mid-write kill can't corrupt the file."""
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
-    os.replace(tmp, path)
+    """Character caches are huge, so they're written without whitespace."""
+    _save_json(path, data, compact=True)
 
 
 def _anime_todo(anime, chars, progress):

@@ -47,11 +47,7 @@
 
     // ---- helpers ----------------------------------------
 
-    function esc(text) {
-        const div = document.createElement("div");
-        div.textContent = text == null ? "" : String(text);
-        return div.innerHTML;
-    }
+    const esc = window.AnimeUtils.escapeHtml;
 
     function keyFor(e) {
         return (e.slug || "") + "|" + (e.id || "");
