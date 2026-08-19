@@ -50,7 +50,7 @@ def _reset_conn():
     try:
         if _conn is not None:
             _conn.close()
-    except Exception:
+    except sqlite3.Error:
         pass
     _conn = None
     _conn_ready = False

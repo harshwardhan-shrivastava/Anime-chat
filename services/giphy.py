@@ -65,20 +65,28 @@ def simplify(giphy_json):
 
     for gif in giphy_json.get("data", []):
 
-        original = gif["images"]["original"]
+        images = gif.get("images") or {}
+        original = images.get("original") or {}
 
-        preview = gif["images"].get(
-            "fixed_width_small",
-            original
-        )
+        # Skip malformed entries instead of blowing up the whole response.
+        if not gif.get("id") or not original.get("url"):
+            continue
+
+        preview = images.get("fixed_width_small") or original
+
+        try:
+            width = int(original.get("width") or 0)
+            height = int(original.get("height") or 0)
+        except (TypeError, ValueError):
+            width = height = 0
 
         results.append({
             "id": gif["id"],
             "title": gif.get("title", ""),
             "url": original["url"],
-            "preview": preview["url"],
-            "width": int(original["width"]),
-            "height": int(original["height"]),
+            "preview": preview.get("url") or original["url"],
+            "width": width,
+            "height": height,
         })
 
     return {
