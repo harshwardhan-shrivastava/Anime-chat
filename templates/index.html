@@ -104,6 +104,29 @@
 
 </section>
 
+{% if recommended %}
+<!-- ================= RECOMMENDED ================= -->
+
+<section class="section-title">
+
+    <h2>Recommended for You</h2>
+
+    <p class="browse-sub">Based on what you've been watching and saving.</p>
+
+</section>
+
+<section class="anime-grid">
+
+{% set badge_label = "FOR YOU" %}
+{% for anime in recommended %}
+
+{% include "_anime_card.html" %}
+
+{% endfor %}
+
+</section>
+{% endif %}
+
 <!-- ================= LATEST RELEASES ================= -->
 
 <section class="section-title">
