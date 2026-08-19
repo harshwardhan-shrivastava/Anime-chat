@@ -1172,7 +1172,7 @@ setInterval(refreshPresence, 8000);
     enterOverlay.className = "chat-enter-overlay";
     enterOverlay.innerHTML =
         '<button class="chat-enter-btn" id="chatEnterBtn">' +
-        '<i class="fas fa-comments"></i>' +
+        💬' +
         'Enter Chat' +
         '</button>';
     tabPanel.style.position = "relative";

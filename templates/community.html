@@ -557,7 +557,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
                         title="Share">
 
-                        <i class="fas fa-plus"></i>
+                        <span style="font-size:24px;line-height:1;font-family:sans-serif">+</span>
 
                     </button>
 
@@ -579,7 +579,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
                         <input id="animeSearch" type="text" placeholder="Search anime..." autocomplete="off">
 
-                        <button id="animePanelClose" class="anime-panel-close"><i class="fas fa-times"></i></button>
+                        <button id="animePanelClose" class="anime-panel-close">✕</button>
 
                     </div>
 
@@ -822,7 +822,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
             <span class="pulse-dot"></span>
             <span id="modalOnlineCount">0</span> Online
         </div>
-        <button class="chat-modal-close" id="chatModalClose"><i class="fas fa-times"></i></button>
+        <button class="chat-modal-close" id="chatModalClose"><span style="font-size:20px;line-height:1;font-family:sans-serif">✕</span></button>
     </div>
     <div class="chat-modal-feed" id="modalChatBox">
         <div class="welcome-box">
@@ -855,7 +855,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
         <div id="modalAnimePanel" class="anime-panel hidden">
             <div class="anime-panel-head">
                 <input id="modalAnimeSearch" type="text" placeholder="Search anime..." autocomplete="off">
-                <button id="modalAnimePanelClose" class="anime-panel-close"><i class="fas fa-times"></i></button>
+                <button id="modalAnimePanelClose" class="anime-panel-close">✕</button>
             </div>
             <div id="modalAnimeResults" class="anime-results"></div>
         </div>
