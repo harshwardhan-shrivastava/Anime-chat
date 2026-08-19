@@ -740,11 +740,9 @@
 
         <div class="review-box">
 
-            <input
-                type="text"
-                id="reviewUsername"
-                placeholder="Your name (optional — defaults to Anonymous)"
-                maxlength="40">
+            <p class="review-as">
+                Posting as <strong>{{ current_user.username if current_user else "Anonymous" }}</strong>
+            </p>
 
             <textarea
                 id="reviewComment"

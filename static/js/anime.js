@@ -15,7 +15,6 @@ const heroVotesLabel = document.getElementById("heroVotesLabel");
 
 const userStars = document.querySelectorAll("#userStars i");
 const selectedRatingLabel = document.getElementById("selectedRatingLabel");
-const reviewUsername = document.getElementById("reviewUsername");
 const reviewComment = document.getElementById("reviewComment");
 const postReviewBtn = document.getElementById("postReviewBtn");
 const reviewError = document.getElementById("reviewError");
@@ -208,7 +207,6 @@ function postReview() {
         body: JSON.stringify({
             anime_slug: animeSlug,
             rating: selectedRating,
-            username: reviewUsername.value.trim(),
             comment: reviewComment.value.trim()
         })
     })
@@ -227,7 +225,6 @@ function postReview() {
             selectedRating = 0;
             paintUserStars(0);
             selectedRatingLabel.textContent = "Tap a star to choose your rating";
-            reviewUsername.value = "";
             reviewComment.value = "";
         })
         .catch(() => {

@@ -501,7 +501,7 @@ function showToast(text) {
 
 function buildBodyHtml(message) {
     if (message.kind === "gif") {
-        return `<div class="gif-attachment"><img src="${message.content}" alt="sent gif" loading="lazy"></div>`;
+        return `<div class="gif-attachment"><img src="${escapeHtml(message.content)}" alt="sent gif" loading="lazy"></div>`;
     }
 
     if (message.kind === "anime") {
@@ -1061,7 +1061,7 @@ async function loadGallery() {
         data.gifs.forEach(function (gif) {
             const item = document.createElement("div");
             item.className = "gallery-item";
-            item.innerHTML = `<img src="${gif.url}" alt="community gif" loading="lazy">`;
+            item.innerHTML = `<img src="${escapeHtml(gif.url)}" alt="community gif" loading="lazy">`;
             item.title = "Click to copy the GIF link";
             item.addEventListener("click", function () {
                 if (navigator.clipboard && navigator.clipboard.writeText) {

@@ -3,6 +3,7 @@ import re
 from flask import Blueprint, render_template, request, jsonify, g, url_for, flash, redirect, session
 
 from anime_data import anime_database
+from auth import valid_avatar
 from database import (
     get_anime_stats,
     create_user_list,
@@ -93,7 +94,7 @@ def profile():
         username = (request.form.get("username") or "").strip()
         # Sanitize hidden control characters and trim to 100 - any name works.
         username = re.sub(r"[\x00-\x1f\x7f\u200b-\u200d\ufeff]", "", username).strip()[:100]
-        avatar = (request.form.get("avatar") or "profile1.png").strip()
+        avatar = valid_avatar(request.form.get("avatar"))
         password = request.form.get("password") or ""
 
         full = db.get_user_by_id(user["id"])

@@ -1255,6 +1255,14 @@ nav{
 
 }
 
+.review-box .review-as{
+
+    margin:0;
+    font-size:14px;
+    opacity:.75;
+
+}
+
 .review-box textarea{
 
     width:100%;

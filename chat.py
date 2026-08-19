@@ -1,3 +1,5 @@
+import re
+
 from flask import Blueprint, request, jsonify, g
 
 import database
@@ -6,6 +8,10 @@ from services import giphy
 chat_bp = Blueprint("chat_bp", __name__)
 
 MAX_MESSAGE_LENGTH = 800
+MAX_GIF_URL_LENGTH = 500
+# A gif URL is rendered straight into an <img src>, so keep it to a plain
+# https URL: no quotes, angle brackets, whitespace or javascript:/data: URIs.
+GIF_URL_RE = re.compile(r"^https://[^\s\"'<>\\]+$")
 
 
 @chat_bp.route("/community/<anime_slug>/messages", methods=["GET"])
@@ -56,7 +62,7 @@ def post_message(anime_slug):
     if kind == "text" and len(content) > MAX_MESSAGE_LENGTH:
         content = content[:MAX_MESSAGE_LENGTH]
 
-    if kind == "gif" and not content.startswith(("http://", "https://")):
+    if kind == "gif" and (len(content) > MAX_GIF_URL_LENGTH or not GIF_URL_RE.match(content)):
         return jsonify({"success": False, "error": "Invalid gif."}), 400
 
     if kind == "anime" and not content:
