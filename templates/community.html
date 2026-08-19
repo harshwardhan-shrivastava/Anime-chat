@@ -557,7 +557,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
                         title="Share">
 
-                        <span style="font-size:24px;line-height:1;font-family:sans-serif">+</span>
+                        +
 
                     </button>
 
@@ -843,9 +843,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
     </div>
     <div class="chat-modal-composer" style="position:relative">
         <div class="composer-tools">
-            <button id="modalPlusBtn" class="tool-btn plus-btn" title="Share">
-                <i class="fas fa-plus"></i>
-            </button>
+            <button id="modalPlusBtn" class="tool-btn plus-btn" title="Share">+</button>
             <div id="modalPlusMenu" class="plus-menu hidden">
                 <button class="plus-menu-item" data-action="emoji">😊 Emoji</button>
                 <button class="plus-menu-item" data-action="gif">🎬 GIF</button>

@@ -3496,19 +3496,20 @@ input:focus-visible{
    ========================================== */
 
 .plus-btn {
-    font-size: 22px;
-    font-weight: 400;
+    font-size: 24px !important;
+    font-weight: 700 !important;
     width: 44px;
     height: 44px;
     border-radius: 14px;
     background: rgba(39,208,125,0.12);
     border: 1px solid rgba(39,208,125,0.3);
-    color: #ffffff;
+    color: #ffffff !important;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: transform 0.15s, background 0.15s, border-radius 0.15s;
     flex-shrink: 0;
+    line-height: 1;
 }
 .plus-btn i, .plus-btn .fa-plus {
     color: inherit;
