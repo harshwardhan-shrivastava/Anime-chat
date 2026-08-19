@@ -29,7 +29,6 @@ Usage:
 """
 
 import argparse
-import json
 import os
 import re
 import sys
@@ -38,20 +37,21 @@ import time
 import requests
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+from scripts.common import (  # noqa: E402
+    STATUS_MAP,
+    get_json,
+    load_json as _load_json,
+    save_json,
+)
+
 DATA_FILE = os.path.join(ROOT, "anime_data.json")
 MAL_FILE = os.path.join(ROOT, "anime_mal_episodes.json")
 CACHE_PATTERNS = ("anime_airing_a*.json",)
 
 API = "https://graphql.anilist.co"
 TVM_API = "https://api.tvmaze.com"
-
-STATUS_MAP = {
-    "FINISHED": "Completed",
-    "RELEASING": "Ongoing",
-    "NOT_YET_RELEASED": "Upcoming",
-    "CANCELLED": "Cancelled",
-    "HIATUS": "On Hiatus",
-}
 
 PAGE_QUERY = """
 query ($ids: [Int]) {
@@ -85,17 +85,8 @@ _SEASON_SUFFIX_RE = re.compile(r"[-\s]?(?:season|part|cour|s)\s*(\d+)$", re.I)
 
 
 def load_json(path):
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-
-def save_json(path, obj):
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False)
-    os.replace(tmp, path)
+    """Cache loader used by the whole script family: missing file -> {}."""
+    return _load_json(path, {})
 
 
 def plan_todo(todo_path):
@@ -293,13 +284,7 @@ def _search_tvmaze(title, year):
 
 
 def _tvmaze_episodes(sid):
-    try:
-        r = requests.get("%s/shows/%s/episodes" % (TVM_API, sid), timeout=8)
-        if r.status_code != 200:
-            return []
-        return r.json() or []
-    except Exception:
-        return []
+    return get_json("%s/shows/%s/episodes" % (TVM_API, sid), timeout=8, default=[]) or []
 
 
 # Verified alternate-name aliases: TVmaze lists some shows under a different

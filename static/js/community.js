@@ -101,11 +101,7 @@ function initials(name) {
     return name.trim().slice(0, 2).toUpperCase();
 }
 
-function escapeHtml(str) {
-    const div = document.createElement("div");
-    div.textContent = str;
-    return div.innerHTML;
-}
+const escapeHtml = window.AnimeUtils.escapeHtml;
 
 // ===============================
 // ONLINE MEMBERS SIDEBAR (real presence)

@@ -264,11 +264,7 @@
         }
     }
 
-    function escapeHtml(s) {
-        const div = document.createElement("div");
-        div.textContent = s;
-        return div.innerHTML;
-    }
+    const escapeHtml = window.AnimeUtils.escapeHtml;
 
     function wire() {
         document.querySelectorAll(".card-list-btn, .anime-add-list-btn").forEach(function (btn) {

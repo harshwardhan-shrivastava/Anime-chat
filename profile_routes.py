@@ -3,8 +3,8 @@ import re
 from flask import Blueprint, render_template, request, jsonify, g, url_for, flash, redirect, session
 
 from anime_data import anime_database
+from cards import build_card
 from database import (
-    get_anime_stats,
     create_user_list,
     get_user_lists,
     ensure_default_lists,
@@ -21,33 +21,6 @@ from database import (
 )
 
 bp = Blueprint("profile", __name__)
-
-
-def _pick_card(slug):
-    """Build a pick dict shaped for the homepage _anime_card.html partial."""
-    entry = anime_database.get(slug)
-    if entry is None:
-        return None
-    stats = get_anime_stats(slug)
-    live_rating = stats["average"] if stats["votes"] > 0 else entry.get("rating", "N/A")
-    return {
-        "slug": slug,
-        "title": entry.get("title") or slug,
-        "image": entry.get("image") or "",
-        "rating": entry.get("rating") or "N/A",
-        "year": entry.get("release") or "",
-        "genre": entry.get("genre") or "",
-        "total_episodes": entry.get("total_episodes", 0) or 0,
-        "member_count": entry.get("member_count", 0) or 0,
-        "has_sub": bool(entry.get("subtitles")),
-        "has_dub": any(
-            str(d).strip().lower() == "english"
-            for d in (entry.get("dub") or [])
-        ),
-        "arc_count": len(entry.get("watch_order") or []) or len(entry.get("seasons") or []),
-        "live_rating": live_rating,
-        "badge_label": "In List",
-    }
 
 
 def _require_user_json():
@@ -122,10 +95,9 @@ def profile():
     history = []
     if tab == "history":
         for row in get_view_history(user["id"], 60):
-            pick = _pick_card(row["anime_slug"])
+            pick = build_card(row["anime_slug"], "Visited")
             if pick is None:
                 continue
-            pick["badge_label"] = "Visited"
             pick["visited_at"] = row["viewed_at"]
             history.append(pick)
 
@@ -158,7 +130,7 @@ def profile_list(list_id):
 
     items = []
     for slug in lst["slugs"]:
-        pick = _pick_card(slug)
+        pick = build_card(slug, "In List")
         if pick is not None:
             items.append(pick)
 

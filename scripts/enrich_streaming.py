@@ -46,6 +46,10 @@ import time
 
 import requests
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from scripts.common import load_json, save_json as _save_json  # noqa: E402
+
 GQL = "https://apis.justwatch.com/graphql"
 HEADERS = {
     "Content-Type": "application/json",
@@ -80,18 +84,9 @@ IGNORE_PROVIDERS = {
 }
 
 
-def load_json(path):
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return None
-
-
 def save_json(path, obj):
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))
-    os.replace(tmp, path)
+    """Streaming caches are huge, so they're written without whitespace."""
+    _save_json(path, obj, compact=True)
 
 
 def gql(query, retries=3):

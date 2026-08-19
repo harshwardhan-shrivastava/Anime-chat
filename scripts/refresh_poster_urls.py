@@ -18,7 +18,6 @@ and re-run to continue, progress is saved every batch):
 """
 
 import argparse
-import json
 import os
 import sys
 import time
@@ -26,6 +25,10 @@ import time
 import requests
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+from scripts.common import read_json as _read_json, save_json  # noqa: E402
+
 DATA_FILE = os.path.join(ROOT, "anime_data.json")
 CACHE_FILE = os.path.join(ROOT, "anime_poster_refresh.json")
 
@@ -43,18 +46,8 @@ query ($ids: [Int]) {
 
 
 def load_json(path):
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, ValueError):
-        return {}
-
-
-def save_json(path, obj):
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False)
-    os.replace(tmp, path)
+    """Unreadable/corrupt cache reads as empty so a run can just continue."""
+    return _read_json(path, {})
 
 
 def best_cover(cover):

@@ -16,6 +16,7 @@ load_dotenv()
 from flask import Flask, render_template, request, jsonify, g, url_for, flash, redirect
 
 from anime_data import anime_database
+from cards import build_card
 from characters_data import search_characters, index_stats, reload_characters
 from database import (
     create_tables,
@@ -1513,33 +1514,6 @@ def _run_quiz(answers):
     return top_genres, _diverse_top(pool, 4)
 
 
-def _pick_card(slug):
-    """Build a pick dict shaped for the homepage _anime_card.html partial."""
-    entry = anime_database.get(slug)
-    if entry is None:
-        return None
-    stats = get_anime_stats(slug)
-    live_rating = stats["average"] if stats["votes"] > 0 else entry.get("rating", "N/A")
-    return {
-        "slug": slug,
-        "title": entry.get("title") or slug,
-        "image": entry.get("image") or "",
-        "rating": entry.get("rating") or "N/A",
-        "year": entry.get("release") or "",
-        "genre": entry.get("genre") or "",
-        "total_episodes": entry.get("total_episodes", 0) or 0,
-        "member_count": entry.get("member_count", 0) or 0,
-        "has_sub": bool(entry.get("subtitles")),
-        "has_dub": any(
-            str(d).strip().lower() == "english"
-            for d in (entry.get("dub") or [])
-        ),
-        "arc_count": len(entry.get("watch_order") or []) or len(entry.get("seasons") or []),
-        "live_rating": live_rating,
-        "badge_label": "Your Match",
-    }
-
-
 # ==========================================================
 # PERSONALIZED HOMEPAGE PICKS
 # ==========================================================
@@ -1720,7 +1694,10 @@ def quiz():
         if all(answers.get(s) for s in steps):
             top_genres, slugs = _run_quiz(answers)
             save_quiz_result(user["id"], answers, top_genres, slugs)
-            picks = [p for slug in slugs if (p := _pick_card(slug)) is not None]
+            picks = [
+                p for slug in slugs
+                if (p := build_card(slug, "Your Match")) is not None
+            ]
             show_results = True
         else:
             flash("Please answer every question before getting your picks.", "error")

@@ -35,7 +35,6 @@ Usage:
 
 import argparse
 import glob
-import json
 import os
 import re
 import sys
@@ -46,6 +45,14 @@ from difflib import SequenceMatcher
 import requests
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+from scripts.common import (  # noqa: E402
+    load_json as _load_json,
+    request_json,
+    save_json,
+)
+
 DATA_FILE = os.path.join(ROOT, "anime_data.json")
 TODO_FILE = os.path.join(ROOT, "anime_ep_thumbs_todo.json")
 
@@ -102,18 +109,7 @@ def _ordinal(n):
 
 
 def _kitsu_get(url, params=None, retries=4):
-    for attempt in range(retries):
-        try:
-            r = requests.get(url, params=params, headers=KITSU_HEADERS, timeout=25)
-            if r.status_code == 200:
-                return r.json()
-            if r.status_code == 429:
-                time.sleep(6 + attempt * 4)
-                continue
-            time.sleep(2 + attempt * 2)
-        except Exception:
-            time.sleep(3)
-    return None
+    return request_json(url, params=params, headers=KITSU_HEADERS, retries=retries)
 
 
 def _kitsu_search(query):
@@ -227,17 +223,8 @@ _SLUG_CLEAN = re.compile(r"[^a-z0-9]+")
 
 
 def load_json(path):
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-
-def save_json(path, obj):
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False)
-    os.replace(tmp, path)
+    """Cache loader used by the whole script family: missing file -> {}."""
+    return _load_json(path, {})
 
 
 def _norm(s):

@@ -44,6 +44,14 @@ import time
 
 import requests
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from scripts.common import (  # noqa: E402
+    STREAM_SITES,
+    load_json as _load_json,
+    save_json,
+)
+
 API_URL = "https://graphql.anilist.co"
 STREAMING_CACHE = "anime_streaming.json"
 # anime_data.py is now a thin loader over this JSON file (a giant Python
@@ -57,22 +65,6 @@ EPISODE_CAP = 48       # keep at most this many real episode titles per title
 # so by default we only fetch ids with NO cached data at all. Pass --upgrade
 # to also re-fetch thin caches (fewer than UPGRADE_THRESHOLD real titles).
 UPGRADE_THRESHOLD = 24
-
-# Platforms we recognise as legitimate streaming services (sub/dub flags are a
-# reasonable generalisation: these services carry English dubs broadly).
-STREAM_SITES = {
-    "crunchyroll": ("Crunchyroll", True),
-    "netflix": ("Netflix", True),
-    "hulu": ("Hulu", True),
-    "hidive": ("HIDIVE", True),
-    "funimation": ("Funimation", True),
-    "amazon": ("Amazon Prime Video", True),
-    "primevideo": ("Amazon Prime Video", True),
-    "disneyplus": ("Disney+", True),
-    "disney+": ("Disney+", True),
-    "youtube": ("YouTube", False),
-    "bilibili": ("Bilibili", False),
-}
 
 # Typical audio languages available when a dub-carrying platform has the title.
 DUB_LANGS = ["English", "Japanese"]
@@ -97,19 +89,8 @@ query ($ids: [Int]) {
 
 
 def load_json(path):
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-
-def save_json(path, obj):
-    # Atomic write: dump to a temp file then rename, so a process kill can
-    # never leave a truncated/poisoned cache behind.
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False)
-    os.replace(tmp, path)
+    """Cache loader used by the whole script family: missing file -> {}."""
+    return _load_json(path, {})
 
 
 def fetch_streaming_batch(ids):

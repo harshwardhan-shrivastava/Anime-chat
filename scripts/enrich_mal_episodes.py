@@ -34,7 +34,6 @@ No API key needed.
 import argparse
 import glob
 import html
-import json
 import os
 import re
 import sys
@@ -43,6 +42,10 @@ import time
 import requests
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+from scripts.common import load_json as _load_json, save_json  # noqa: E402
+
 DATA_FILE = os.path.join(ROOT, "anime_data.json")
 MAL_IDS_CACHE = os.path.join(ROOT, "anime_mal_ids.json")
 EPISODES_CACHE = os.path.join(ROOT, "anime_mal_episodes.json")
@@ -72,18 +75,8 @@ _BLOCK_MARKERS = (
 
 
 def load_json(path):
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-
-def save_json(path, obj):
-    # Atomic write so a killed run can never leave a truncated cache behind.
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False)
-    os.replace(tmp, path)
+    """Cache loader used by the whole script family: missing file -> {}."""
+    return _load_json(path, {})
 
 
 def title_is_real(t):

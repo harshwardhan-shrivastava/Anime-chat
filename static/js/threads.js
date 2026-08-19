@@ -49,11 +49,7 @@
     function $(sel) { return document.querySelector(sel); }
     function $$(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
 
-    function escapeHtml(s) {
-        var div = document.createElement("div");
-        div.textContent = s == null ? "" : String(s);
-        return div.innerHTML;
-    }
+    var escapeHtml = window.AnimeUtils.escapeHtml;
 
     function parseIso(iso) {
         if (!iso) return null;
