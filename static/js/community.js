@@ -23,6 +23,8 @@ const chatHeader = document.getElementById("chatHeader");
 const memberList = document.getElementById("memberList");
 const onlineCountEl = document.getElementById("onlineCount");
 const sidebarOnlineCountEl = document.getElementById("sidebarOnlineCount");
+const heroOnlineCountEl = document.getElementById("heroOnlineCount");
+const modalOnlineCountEl = document.getElementById("modalOnlineCount");
 
 // ===============================
 // CONTEXT (slug + who's logged in, from the template)
@@ -129,15 +131,24 @@ function renderMembers(members) {
     });
 }
 
+// Every place the count is shown, so the hero stat and the full-screen modal
+// don't sit on their hardcoded 0 while the sidebar updates.
+function setOnlineCount(count) {
+    [onlineCountEl, sidebarOnlineCountEl, heroOnlineCountEl, modalOnlineCountEl]
+        .forEach(function (el) {
+            if (el) el.textContent = count;
+        });
+}
+
 async function refreshPresence() {
     try {
         const res = await fetch(`/community/${ANIME_SLUG}/presence`);
         const data = await res.json();
         if (!data.success) return;
 
-        if (onlineCountEl) onlineCountEl.textContent = data.count;
-        if (sidebarOnlineCountEl) sidebarOnlineCountEl.textContent = data.count;
-        renderMembers(data.members);
+        const members = data.members || [];
+        setOnlineCount(typeof data.count === "number" ? data.count : members.length);
+        renderMembers(members);
     } catch (err) {
         // presence is best-effort, fail quietly
     }
@@ -1180,8 +1191,6 @@ setInterval(refreshPresence, 8000);
     var modalBox = document.getElementById("modalChatBox");
     var modalInput = document.getElementById("modalMessageInput");
     var modalSend = document.getElementById("modalSendBtn");
-    var modalOnline = document.getElementById("modalOnlineCount");
-
     var modalLastId = 0;
     var modalSeen = new Set();
     var modalPoll = null;

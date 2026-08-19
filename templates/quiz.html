@@ -115,7 +115,7 @@
             </div>
             <div class="quiz-results-grid">
                 {% for pick in picks %}
-                {% with anime=pick %}
+                {% with anime=pick, quiz_plus=true %}
                 {% include "_anime_card.html" %}
                 {% endwith %}
                 {% endfor %}

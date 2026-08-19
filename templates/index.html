@@ -104,6 +104,39 @@
 
 </section>
 
+<!-- ================= RECOMMENDED FOR YOU ================= -->
+
+{% if recommended %}
+
+<section class="section-title">
+
+    <h2>
+
+        Recommended For You
+
+    </h2>
+
+    <p class="browse-sub">
+        Picked from your history and lists{% if recommended_genres %} —
+        a mix of
+        {% for genre in recommended_genres %}<a href="{{ url_for('category', genre=genre) }}"
+            style="color:#8F5BFF;">{{ genre }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}.
+    </p>
+
+</section>
+
+<section class="anime-grid">
+
+{% for anime in recommended %}
+
+{% include "_anime_card.html" %}
+
+{% endfor %}
+
+</section>
+
+{% endif %}
+
 <!-- ================= LATEST RELEASES ================= -->
 
 <section class="section-title">

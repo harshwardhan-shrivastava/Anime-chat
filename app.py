@@ -39,6 +39,7 @@ from database import (
     remove_from_user_list,
     record_view,
     get_view_history,
+    get_taste_slugs,
     MAX_USER_LISTS,
 )
 from auth import auth, load_logged_in_user
@@ -680,11 +681,14 @@ def _decorate(entries, sort):
 @app.route("/")
 def home():
     latest = _catalog_entries(sort="latest", limit=48)
+    recommended, recommended_genres = _home_picks()
     return render_template(
         "index.html",
         anime_list=latest,
         page_title="Latest Releases",
         genres=_genre_list(),
+        recommended=recommended,
+        recommended_genres=recommended_genres,
     )
 
 
@@ -1508,6 +1512,163 @@ def _run_quiz(answers):
 
     top_genres = [g for g, w in sorted(weights.items(), key=lambda kv: -kv[1]) if w > 0][:5]
     return top_genres, _diverse_top(pool, 4)
+
+
+# ==========================================================
+# PERSONALIZED HOMEPAGE PICKS
+# ==========================================================
+
+RECO_COUNT = 12
+RECO_MIX_GENRES = 5
+RECO_POOL_PER_GENRE = 120
+
+
+def _entry_genres(entry):
+    return [
+        g.strip()
+        for g in (entry.get("genre") or "").split(" • ")
+        if g.strip() and g.strip().lower() != "anime"
+    ]
+
+
+@functools.lru_cache(maxsize=1)
+def _genre_index():
+    """genre -> slugs ranked by rating then popularity, built once per process."""
+    buckets = {}
+    for slug, entry in anime_database.items():
+        if not entry.get("image"):
+            continue
+        try:
+            rating = float(entry.get("rating") or 0)
+        except (TypeError, ValueError):
+            rating = 0.0
+        rank = (rating, entry.get("member_count") or 0)
+        for genre in _entry_genres(entry):
+            buckets.setdefault(genre, []).append((rank, slug))
+    return {
+        genre: [slug for _, slug in sorted(items, reverse=True)]
+        for genre, items in buckets.items()
+    }
+
+
+def _taste_genres(seeds):
+    """Rank genres by how much the user's history/lists lean on them.
+
+    A saved list entry weighs double a passive view, recent activity weighs
+    more than old activity, and each title spreads its weight across its own
+    genres so an 8-genre show doesn't drown out a focused one.
+    """
+    weights = {}
+    for position, seed in enumerate(seeds):
+        entry = anime_database.get(seed["slug"])
+        if entry is None:
+            continue
+        genres = _entry_genres(entry)
+        if not genres:
+            continue
+        weight = (2.0 if seed["saved"] else 1.0) / (1.0 + position / 8.0)
+        share = weight / len(genres)
+        for genre in genres:
+            weights[genre] = weights.get(genre, 0.0) + share
+    return sorted(weights.items(), key=lambda kv: (-kv[1], kv[0]))
+
+
+def _mix_by_genre(seeds, ranked_genres, count, rotation=0):
+    """Round-robin across the user's top genres so the row is a real mix.
+
+    Taking the single best-scoring pool would fill every slot from whichever
+    genre the user watches most; one pick per genre per pass keeps all of
+    their tastes represented. `rotation` offsets each genre's pool so the row
+    refreshes over time instead of showing the same twelve titles forever.
+    """
+    index = _genre_index()
+    excluded = {_FRANCHISE_RE.sub("", seed["slug"]) for seed in seeds}
+    # _FRANCHISE_RE only strips numbered/season suffixes, so a subtitled
+    # sequel ("code-geass" -> "code-geass-lelouch-...") survives it.
+    prefixes = tuple(base + "-" for base in excluded)
+    queues = []
+    for genre, _ in ranked_genres:
+        pool = (index.get(genre) or [])[:RECO_POOL_PER_GENRE]
+        if not pool:
+            continue
+        offset = rotation % len(pool)
+        queues.append(iter(pool[offset:] + pool[:offset]))
+
+    picks, picked = [], set()
+    while queues and len(picks) < count:
+        progressed = False
+        for queue in queues:
+            if len(picks) >= count:
+                break
+            for slug in queue:
+                base = _FRANCHISE_RE.sub("", slug)
+                if base in excluded or base in picked:
+                    continue
+                if prefixes and base.startswith(prefixes):
+                    continue
+                picked.add(base)
+                picks.append(slug)
+                progressed = True
+                break
+        if not progressed:
+            break
+    return picks
+
+
+def _reco_cards(slugs, badge):
+    """Shape slugs for the shared _anime_card.html partial (no per-slug query)."""
+    all_stats = get_all_anime_stats()
+    cards = []
+    for slug in slugs:
+        entry = anime_database.get(slug)
+        if entry is None:
+            continue
+        stats = all_stats.get(slug) or {"votes": 0, "average": 0}
+        cards.append({
+            "slug": slug,
+            "title": entry.get("title") or slug,
+            "image": entry.get("image") or "",
+            "genre": entry.get("genre") or "",
+            "rating": entry.get("rating") or "N/A",
+            "live_rating": stats["average"] if stats["votes"] > 0 else entry.get("rating", "N/A"),
+            "member_count": entry.get("member_count", 0) or 0,
+            "total_episodes": entry.get("total_episodes", 0) or 0,
+            "has_sub": bool(entry.get("subtitles")),
+            "has_dub": any(
+                str(d).strip().lower() == "english"
+                for d in (entry.get("dub") or [])
+            ),
+            "arc_count": len(entry.get("watch_order") or []) or len(entry.get("seasons") or []),
+            "badge_label": badge,
+        })
+    return cards
+
+
+def _home_picks():
+    """(cards, genres) for the logged-in user's homepage row.
+
+    Returns empty lists for guests, brand-new accounts with no activity yet,
+    and on any data error — the homepage then renders exactly as before.
+    """
+    user = g.get("user")
+    if user is None:
+        return [], []
+    try:
+        seeds = get_taste_slugs(user["id"])
+    except Exception:
+        return [], []
+    if not seeds:
+        return [], []
+
+    ranked_genres = _taste_genres(seeds)[:RECO_MIX_GENRES]
+    if not ranked_genres:
+        return [], []
+
+    rotation = int(time.time() // 3600) + user["id"]
+    slugs = _mix_by_genre(seeds, ranked_genres, RECO_COUNT, rotation=rotation)
+    if not slugs:
+        return [], []
+    return _reco_cards(slugs, "FOR YOU"), [genre for genre, _ in ranked_genres]
 
 
 @app.route("/quiz", methods=["GET", "POST"])
