@@ -40,6 +40,9 @@ from database import (
     get_view_history,
     get_taste_slugs,
     MAX_USER_LISTS,
+    get_site_stats,
+    get_community_chat_stats,
+    is_community_member,
 )
 from auth import auth, load_logged_in_user
 from chat import chat_bp
@@ -685,7 +688,7 @@ def _decorate(entries, sort):
 def home():
     latest = _catalog_entries(sort="latest", limit=48)
     recommended, recommended_genres = _home_picks()
-    site_stats = database.get_site_stats()
+    site_stats = get_site_stats()
     return render_template(
         "index.html",
         anime_list=latest,
@@ -862,10 +865,10 @@ def community(anime_slug):
     entry = anime_database.get(anime_slug)
     if entry is None:
         return "Anime not found", 404
-    chat_stats = database.get_community_chat_stats(anime_slug)
+    chat_stats = get_community_chat_stats(anime_slug)
     is_member = False
     if g.get("user"):
-        is_member = database.is_community_member(anime_slug, g.user["id"])
+        is_member = is_community_member(anime_slug, g.user["id"])
     return render_template(
         "community.html",
         anime_name=entry.get("title", anime_slug),
