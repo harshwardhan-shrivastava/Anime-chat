@@ -1598,84 +1598,58 @@ setInterval(refreshPresence, 8000);
 
 })();
 
+
 // ========================================================
-//  JOIN COMMUNITY BUTTON — global scope, always runs
+//  JOIN + MEMBERS — event delegation (always works)
 // ========================================================
-(function () {
-    var joinBtn = document.getElementById("joinCommunityBtn");
-    if (!joinBtn) return;
-    joinBtn.addEventListener("click", function () {
-        var slug = joinBtn.dataset.slug;
-        var joined = joinBtn.dataset.joined === "true";
-        var endpoint = joined ? "/community/" + slug + "/leave" : "/community/" + slug + "/join";
-        fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" } })
+document.addEventListener("click", function (e) {
+    // Join Community button
+    var btn = e.target.closest("#joinCommunityBtn");
+    if (btn) {
+        e.preventDefault();
+        var slug = btn.dataset.slug;
+        var joined = btn.dataset.joined === "true";
+        var url = joined ? "/community/" + slug + "/leave" : "/community/" + slug + "/join";
+        fetch(url, { method: "POST", headers: { "Content-Type": "application/json" } })
             .then(function (r) { return r.json(); })
             .then(function (data) {
-                if (!data.success) {
-                    if (data.error) alert(data.error);
-                    return;
-                }
-                joinBtn.dataset.joined = data.joined ? "true" : "false";
+                if (!data.success) { if (data.error) alert(data.error); return; }
+                btn.dataset.joined = data.joined ? "true" : "false";
                 document.body.dataset.isMember = data.joined ? "true" : "false";
-                if (data.joined) {
-                    joinBtn.textContent = "Joined \u2713";
-                    joinBtn.classList.add("joined");
-                } else {
-                    joinBtn.textContent = "Join Community";
-                    joinBtn.classList.remove("joined");
-                }
-                var heroStat = document.querySelector(".hero-right .stat-number");
-                if (heroStat) heroStat.textContent = data.member_count + "+";
-                var membersLabel = document.getElementById("membersCountLabel");
-                if (membersLabel) membersLabel.textContent = data.member_count + " members";
-            })
-            .catch(function (err) { console.error("[JOIN] error:", err); });
-    });
-    if (joinBtn.dataset.joined === "true") {
-        joinBtn.classList.add("joined");
-    }
-})();
-
-// ========================================================
-//  MEMBERS TAB — global scope, always runs
-// ========================================================
-(function () {
-    var membersLoaded = false;
-    var membersTabBtn = document.querySelector('[data-tab="members"]');
-    var membersGrid = document.getElementById("membersGrid");
-    var membersCountLabel = document.getElementById("membersCountLabel");
-    if (!membersTabBtn || !membersGrid) return;
-
-    function loadMembers() {
-        var slug = window.location.pathname.split("/").pop();
-        fetch("/community/" + slug + "/members")
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (!data.success || !membersGrid) return;
-                if (membersCountLabel) membersCountLabel.textContent = data.count + " members";
-                if (data.members.length === 0) {
-                    membersGrid.innerHTML = '<p class="panel-placeholder">No members yet. Be the first to join!</p>';
-                    return;
-                }
-                var html = "";
-                data.members.forEach(function (m) {
-                    var avatarHtml = m.avatar && m.avatar !== 'profile1.png'
-                        ? '<img src="/static/images/avatars/' + m.avatar + '" alt="">'
-                        : m.username.substring(0, 2).toUpperCase();
-                    var joinedDate = m.joined_at ? new Date(m.joined_at + 'Z').toLocaleDateString() : '';
-                    html += '<div class="member-card">'
-                        + '<div class="member-avatar" style="background:' + (m.avatar_color || '#3b82f6') + '">' + avatarHtml + '</div>'
-                        + '<div><div class="member-name">' + m.username + '</div>'
-                        + (joinedDate ? '<div class="member-joined">Joined ' + joinedDate + '</div>' : '')
-                        + '</div></div>';
-                });
-                membersGrid.innerHTML = html;
-                membersLoaded = true;
+                btn.textContent = data.joined ? "Joined \u2713" : "Join Community";
+                btn.classList.toggle("joined", data.joined);
+                var hs = document.querySelector(".hero-right .stat-number");
+                if (hs) hs.textContent = data.member_count + "+";
+                var ml = document.getElementById("membersCountLabel");
+                if (ml) ml.textContent = data.member_count + " members";
             })
             .catch(function () {});
+        return;
     }
 
-    membersTabBtn.addEventListener("click", function () {
-        if (!membersLoaded) loadMembers();
-    });
-})();
+    // Members tab
+    var tab = e.target.closest('[data-tab="members"]');
+    if (tab) {
+        var grid = document.getElementById("membersGrid");
+        if (grid && !grid.dataset.loaded) {
+            var slug2 = window.location.pathname.split("/").pop();
+            fetch("/community/" + slug2 + "/members")
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (!d.success || !grid) return;
+                    var lbl = document.getElementById("membersCountLabel");
+                    if (lbl) lbl.textContent = d.count + " members";
+                    if (!d.members.length) { grid.innerHTML = '<p class="panel-placeholder">No members yet. Be the first to join!</p>'; return; }
+                    var h = "";
+                    d.members.forEach(function (m) {
+                        var av = m.avatar && m.avatar !== "profile1.png" ? '<img src="/static/images/avatars/' + m.avatar + '" alt="">' : m.username.substring(0, 2).toUpperCase();
+                        var jd = m.joined_at ? new Date(m.joined_at + "Z").toLocaleDateString() : "";
+                        h += '<div class="member-card"><div class="member-avatar" style="background:' + (m.avatar_color || "#3b82f6") + '">' + av + '</div><div><div class="member-name">' + m.username + '</div>' + (jd ? '<div class="member-joined">Joined ' + jd + "</div>" : "") + "</div></div>";
+                    });
+                    grid.innerHTML = h;
+                    grid.dataset.loaded = "1";
+                })
+                .catch(function () {});
+        }
+    }
+});
