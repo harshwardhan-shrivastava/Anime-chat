@@ -74,6 +74,14 @@ class _LazyCatalog(dict):
 anime_database = _LazyCatalog()
 
 
+def preload_catalog():
+    """Start loading the catalog in a background thread so the first
+    request doesn't block for the full 58 MB parse."""
+    if not anime_database._loaded:
+        t = threading.Thread(target=anime_database._ensure, daemon=True)
+        t.start()
+
+
 def _rss_mb():
     try:
         import resource

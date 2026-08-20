@@ -15,7 +15,7 @@ load_dotenv()
 
 from flask import Flask, render_template, request, jsonify, g, url_for, flash, redirect
 
-from anime_data import anime_database
+from anime_data import anime_database, preload_catalog
 from characters_data import search_characters, index_stats, reload_characters
 from database import (
     create_tables,
@@ -65,6 +65,10 @@ init_threads(app)
 # Make sure the profile/history/list tables exist even if the app is
 # imported (not only when run as __main__). Idempotent.
 create_tables()
+
+# Kick off catalog preload in background so the first request isn't blocked
+# by the 58 MB JSON parse (avoids Render health-check timeouts).
+preload_catalog()
 
 
 @app.before_request
