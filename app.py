@@ -859,12 +859,16 @@ def community(anime_slug):
     if entry is None:
         return "Anime not found", 404
     chat_stats = database.get_community_chat_stats(anime_slug)
+    is_member = False
+    if g.get("user"):
+        is_member = database.is_community_member(anime_slug, g.user["id"])
     return render_template(
         "community.html",
         anime_name=entry.get("title", anime_slug),
         anime_image=entry.get("image", ""),
         anime_slug=anime_slug,
         chat_stats=chat_stats,
+        is_member=is_member,
     )
 
 

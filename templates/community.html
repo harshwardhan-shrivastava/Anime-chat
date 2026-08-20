@@ -231,9 +231,15 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
             <div class="hero-actions">
 
-                <button class="primary-button">
+                <button class="primary-button" id="joinCommunityBtn"
+                        data-slug="{{ anime_slug }}"
+                        data-joined="{{ 'true' if is_member else 'false' }}">
 
-                    Join Discussion
+                    {% if is_member %}
+                        Joined ✓
+                    {% else %}
+                        Join Community
+                    {% endif %}
 
                 </button>
 
@@ -369,27 +375,11 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
                     </button>
 
-                    <button class="sidebar-item" data-tab="trending">
+                    <button class="sidebar-item" data-tab="members">
 
-                        <i class="fas fa-fire"></i>
+                        <i class="fas fa-users"></i>
 
-                        Trending
-
-                    </button>
-
-                    <button class="sidebar-item" data-tab="gallery">
-
-                        <i class="fas fa-images"></i>
-
-                        GIF Gallery
-
-                    </button>
-
-                    <button class="sidebar-item" data-tab="guides">
-
-                        <i class="fas fa-book"></i>
-
-                        Guides
+                        Members
 
                     </button>
 
@@ -640,55 +630,21 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
         </div><!-- /panel-discussion -->
 
-        <!-- ================= GIF GALLERY PANEL ================= -->
+        <!-- ================= MEMBERS PANEL ================= -->
 
-        <div class="tab-panel gallery-panel" id="panel-gallery" hidden>
+        <div class="tab-panel" id="panel-members" hidden>
 
             <div class="gallery-head">
 
-                <h2>
+                <h2>Community Members</h2>
 
-                    GIF Gallery
-
-                </h2>
-
-                <span>
-
-                    Every GIF shared in this community
-
-                </span>
+                <span id="membersCountLabel">{{ chat_stats.member_count }} members</span>
 
             </div>
 
-            <div class="gallery-grid" id="galleryGrid"></div>
+            <div class="members-grid" id="membersGrid">
 
-        </div>
-
-        <!-- ================= TRENDING / GUIDES PLACEHOLDERS ================= -->
-
-        <div class="tab-panel" id="panel-trending" hidden>
-
-            <div class="panel-placeholder">
-
-                <i class="fas fa-fire"></i>
-
-                <h2>Trending</h2>
-
-                <p>The most talked-about moments in this community are coming soon.</p>
-
-            </div>
-
-        </div>
-
-        <div class="tab-panel" id="panel-guides" hidden>
-
-            <div class="panel-placeholder">
-
-                <i class="fas fa-book"></i>
-
-                <h2>Guides</h2>
-
-                <p>Community guides and watch-order resources are coming soon.</p>
+                <p class="panel-placeholder">Loading members...</p>
 
             </div>
 

@@ -1557,4 +1557,86 @@ setInterval(refreshPresence, 8000);
     document.addEventListener("keydown", function (e) {
         if (e.key === "Escape" && modal.classList.contains("active")) closeModal();
     });
+
+    // ========================================================
+    //  JOIN COMMUNITY BUTTON
+    // ========================================================
+    var joinBtn = document.getElementById("joinCommunityBtn");
+    if (joinBtn) {
+        joinBtn.addEventListener("click", function () {
+            var slug = joinBtn.dataset.slug;
+            var joined = joinBtn.dataset.joined === "true";
+            var endpoint = joined ? "/community/" + slug + "/leave" : "/community/" + slug + "/join";
+            fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" } })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data.success) {
+                        if (data.error) alert(data.error);
+                        return;
+                    }
+                    joinBtn.dataset.joined = data.joined ? "true" : "false";
+                    if (data.joined) {
+                        joinBtn.textContent = "Joined \u2713";
+                        joinBtn.classList.add("joined");
+                    } else {
+                        joinBtn.textContent = "Join Community";
+                        joinBtn.classList.remove("joined");
+                    }
+                    // Update hero member count
+                    var heroStat = document.querySelector(".hero-right .stat-number");
+                    if (heroStat) heroStat.textContent = data.member_count + "+";
+                    // Update members panel count
+                    var membersLabel = document.getElementById("membersCountLabel");
+                    if (membersLabel) membersLabel.textContent = data.member_count + " members";
+                })
+                .catch(function () {});
+        });
+        // Initial state styling
+        if (joinBtn.dataset.joined === "true") {
+            joinBtn.classList.add("joined");
+        }
+    }
+
+    // ========================================================
+    //  MEMBERS TAB — load member list when opened
+    // ========================================================
+    var membersLoaded = false;
+    var membersTabBtn = document.querySelector('[data-tab="members"]');
+    var membersGrid = document.getElementById("membersGrid");
+    var membersCountLabel = document.getElementById("membersCountLabel");
+
+    function loadMembers() {
+        var slug = window.location.pathname.split("/").pop();
+        fetch("/community/" + slug + "/members")
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.success || !membersGrid) return;
+                membersCountLabel.textContent = data.count + " members";
+                if (data.members.length === 0) {
+                    membersGrid.innerHTML = '<p class="panel-placeholder">No members yet. Be the first to join!</p>';
+                    return;
+                }
+                var html = "";
+                data.members.forEach(function (m) {
+                    var avatarHtml = m.avatar && m.avatar !== 'profile1.png'
+                        ? '<img src="/static/images/avatars/' + m.avatar + '" alt="">'
+                        : m.username.substring(0, 2).toUpperCase();
+                    var joinedDate = m.joined_at ? new Date(m.joined_at + 'Z').toLocaleDateString() : '';
+                    html += '<div class="member-card">'
+                        + '<div class="member-avatar" style="background:' + (m.avatar_color || '#3b82f6') + '">' + avatarHtml + '</div>'
+                        + '<div><div class="member-name">' + m.username + '</div>'
+                        + (joinedDate ? '<div class="member-joined">Joined ' + joinedDate + '</div>' : '')
+                        + '</div></div>';
+                });
+                membersGrid.innerHTML = html;
+                membersLoaded = true;
+            })
+            .catch(function () {});
+    }
+
+    if (membersTabBtn) {
+        membersTabBtn.addEventListener("click", function () {
+            if (!membersLoaded) loadMembers();
+        });
+    }
 })();

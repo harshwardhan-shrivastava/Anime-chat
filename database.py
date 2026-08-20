@@ -404,6 +404,16 @@ def create_tables():
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS community_members(
+            anime_slug TEXT NOT NULL,
+            user_id INTEGER NOT NULL,
+            joined_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (anime_slug, user_id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
     # Migration: replies need a reply_to column on chat_messages.
     cols = [row[1] for row in cursor.execute("PRAGMA table_info(chat_messages)").fetchall()]
     if "reply_to" not in cols:
@@ -987,6 +997,87 @@ def get_online_users(anime_slug, active_seconds=60):
     rows = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return rows
+
+
+# ------------------------------------------------------------------
+#  Community membership
+# ------------------------------------------------------------------
+
+def join_community(anime_slug, user_id):
+    """Add a user to a community. Idempotent."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT OR IGNORE INTO community_members (anime_slug, user_id)
+        VALUES (?, ?)
+        """,
+        (anime_slug, user_id),
+    )
+    conn.commit()
+    joined = cursor.rowcount > 0
+    conn.close()
+    return joined
+
+
+def leave_community(anime_slug, user_id):
+    """Remove a user from a community."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM community_members WHERE anime_slug = ? AND user_id = ?",
+        (anime_slug, user_id),
+    )
+    conn.commit()
+    left = cursor.rowcount > 0
+    conn.close()
+    return left
+
+
+def is_community_member(anime_slug, user_id):
+    """Check if a user has joined a community."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT 1 FROM community_members WHERE anime_slug = ? AND user_id = ?",
+        (anime_slug, user_id),
+    )
+    found = cursor.fetchone() is not None
+    conn.close()
+    return found
+
+
+def get_community_members(anime_slug, limit=200):
+    """Return the list of members who joined a community."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT u.username, u.avatar, u.avatar_color, cm.joined_at
+        FROM community_members cm
+        JOIN users u ON u.id = cm.user_id
+        WHERE cm.anime_slug = ?
+        ORDER BY cm.joined_at DESC
+        LIMIT ?
+        """,
+        (anime_slug, limit),
+    )
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
+def get_community_member_count(anime_slug):
+    """Return the number of members in a community."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT COUNT(*) FROM community_members WHERE anime_slug = ?",
+        (anime_slug,),
+    )
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count
 
 
 # Rating aggregates are re-rendered on every catalog page; cache them
@@ -1603,10 +1694,6 @@ def get_community_chat_stats(anime_slug):
         (anime_slug,),
     )
     message_count = cursor.fetchone()[0]
-    cursor.execute(
-        "SELECT COUNT(DISTINCT user_id) FROM chat_messages WHERE anime_slug = ?",
-        (anime_slug,),
-    )
-    member_count = cursor.fetchone()[0]
     conn.close()
+    member_count = get_community_member_count(anime_slug)
     return {"message_count": message_count, "member_count": member_count}

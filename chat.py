@@ -37,6 +37,9 @@ def post_message(anime_slug):
     if not g.user["is_verified"]:
         return jsonify({"success": False, "error": "Verify your email before chatting."}), 403
 
+    if not database.is_community_member(anime_slug, g.user["id"]):
+        return jsonify({"success": False, "error": "Join this community first to chat."}), 403
+
     data = request.get_json(silent=True) or {}
     kind = data.get("kind", "text")
     content = (data.get("content") or "").strip()
@@ -162,4 +165,43 @@ def gif_search():
     return jsonify({
         "success": True,
         **giphy.simplify(raw)
+    })
+
+
+# ------------------------------------------------------------------
+#  Community membership
+# ------------------------------------------------------------------
+
+@chat_bp.route("/community/<anime_slug>/join", methods=["POST"])
+def join_community_route(anime_slug):
+    if not g.get("user"):
+        return jsonify({"success": False, "error": "Login required."}), 401
+    if not g.user["is_verified"]:
+        return jsonify({"success": False, "error": "Verify your email first."}), 403
+    database.join_community(anime_slug, g.user["id"])
+    count = database.get_community_member_count(anime_slug)
+    return jsonify({"success": True, "member_count": count, "joined": True})
+
+
+@chat_bp.route("/community/<anime_slug>/leave", methods=["POST"])
+def leave_community_route(anime_slug):
+    if not g.get("user"):
+        return jsonify({"success": False, "error": "Login required."}), 401
+    database.leave_community(anime_slug, g.user["id"])
+    count = database.get_community_member_count(anime_slug)
+    return jsonify({"success": True, "member_count": count, "joined": False})
+
+
+@chat_bp.route("/community/<anime_slug>/members", methods=["GET"])
+def get_members_route(anime_slug):
+    members = database.get_community_members(anime_slug)
+    count = len(members)
+    is_member = False
+    if g.get("user"):
+        is_member = database.is_community_member(anime_slug, g.user["id"])
+    return jsonify({
+        "success": True,
+        "members": members,
+        "count": count,
+        "is_member": is_member,
     })
