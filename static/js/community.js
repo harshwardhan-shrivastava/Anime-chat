@@ -1608,22 +1608,38 @@ document.addEventListener("click", function (e) {
     if (btn) {
         e.preventDefault();
         var slug = btn.dataset.slug;
-        var joined = btn.dataset.joined === "true";
-        var url = joined ? "/community/" + slug + "/leave" : "/community/" + slug + "/join";
+        var wasJoined = btn.dataset.joined === "true";
+        var nowJoined = !wasJoined;
+        // Instant optimistic UI update
+        btn.dataset.joined = nowJoined ? "true" : "false";
+        document.body.dataset.isMember = nowJoined ? "true" : "false";
+        btn.textContent = nowJoined ? "Joined \u2713" : "Join Community";
+        btn.classList.toggle("joined", nowJoined);
+        var url = wasJoined ? "/community/" + slug + "/leave" : "/community/" + slug + "/join";
         fetch(url, { method: "POST", headers: { "Content-Type": "application/json" } })
             .then(function (r) { return r.json(); })
             .then(function (data) {
-                if (!data.success) { if (data.error) alert(data.error); return; }
-                btn.dataset.joined = data.joined ? "true" : "false";
-                document.body.dataset.isMember = data.joined ? "true" : "false";
-                btn.textContent = data.joined ? "Joined \u2713" : "Join Community";
-                btn.classList.toggle("joined", data.joined);
+                if (!data.success) {
+                    // Revert on error
+                    btn.dataset.joined = wasJoined ? "true" : "false";
+                    document.body.dataset.isMember = wasJoined ? "true" : "false";
+                    btn.textContent = wasJoined ? "Joined \u2713" : "Join Community";
+                    btn.classList.toggle("joined", wasJoined);
+                    if (data.error) alert(data.error);
+                    return;
+                }
                 var hs = document.querySelector(".hero-right .stat-number");
                 if (hs) hs.textContent = data.member_count + "+";
                 var ml = document.getElementById("membersCountLabel");
                 if (ml) ml.textContent = data.member_count + " members";
             })
-            .catch(function () {});
+            .catch(function () {
+                // Revert on network error
+                btn.dataset.joined = wasJoined ? "true" : "false";
+                document.body.dataset.isMember = wasJoined ? "true" : "false";
+                btn.textContent = wasJoined ? "Joined \u2713" : "Join Community";
+                btn.classList.toggle("joined", wasJoined);
+            });
         return;
     }
 
