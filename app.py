@@ -43,6 +43,7 @@ from database import (
     get_site_stats,
     get_community_chat_stats,
     is_community_member,
+    get_all_community_member_counts,
 )
 from auth import auth, load_logged_in_user
 from chat import chat_bp
@@ -591,6 +592,7 @@ def _sort_value(entry, sort):
 def _catalog_entries(sort="latest", genre=None, limit=None):
     all_stats = get_all_anime_stats()
     _ensure_airing_schedule()
+    real_members = get_all_community_member_counts()
 
     entries = []
     for slug, entry in anime_database.items():
@@ -616,7 +618,7 @@ def _catalog_entries(sort="latest", genre=None, limit=None):
             "image": entry.get("image", ""),
             "live_rating": live_rating,
             "live_votes": stats["votes"],
-            "member_count": entry.get("member_count", 0) or 0,
+            "member_count": real_members.get(slug, 0),
             "rating": entry.get("rating", "N/A"),
             "release": entry.get("release", ""),
             "genre": entry.get("genre", ""),
@@ -1535,6 +1537,7 @@ def _pick_card(slug):
         return None
     stats = get_anime_stats(slug)
     live_rating = stats["average"] if stats["votes"] > 0 else entry.get("rating", "N/A")
+    real_members = get_all_community_member_counts()
     return {
         "slug": slug,
         "title": entry.get("title") or slug,
@@ -1543,7 +1546,7 @@ def _pick_card(slug):
         "year": entry.get("release") or "",
         "genre": entry.get("genre") or "",
         "total_episodes": entry.get("total_episodes", 0) or 0,
-        "member_count": entry.get("member_count", 0) or 0,
+        "member_count": real_members.get(slug, 0),
         "has_sub": bool(entry.get("subtitles")),
         "has_dub": any(
             str(d).strip().lower() == "english"
@@ -1659,6 +1662,7 @@ def _mix_by_genre(seeds, ranked_genres, count, rotation=0):
 def _reco_cards(slugs, badge):
     """Shape slugs for the shared _anime_card.html partial (no per-slug query)."""
     all_stats = get_all_anime_stats()
+    real_members = get_all_community_member_counts()
     cards = []
     for slug in slugs:
         entry = anime_database.get(slug)
@@ -1672,7 +1676,7 @@ def _reco_cards(slugs, badge):
             "genre": entry.get("genre") or "",
             "rating": entry.get("rating") or "N/A",
             "live_rating": stats["average"] if stats["votes"] > 0 else entry.get("rating", "N/A"),
-            "member_count": entry.get("member_count", 0) or 0,
+            "member_count": real_members.get(slug, 0),
             "total_episodes": entry.get("total_episodes", 0) or 0,
             "has_sub": bool(entry.get("subtitles")),
             "has_dub": any(

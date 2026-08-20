@@ -1663,6 +1663,18 @@ def get_view_history(user_id, limit=60):
     return rows
 
 
+def get_all_community_member_counts():
+    """Return {slug: count} for every community that has members."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT anime_slug, COUNT(*) AS cnt FROM community_members GROUP BY anime_slug"
+    )
+    result = {row["anime_slug"]: row["cnt"] for row in cursor.fetchall()}
+    conn.close()
+    return result
+
+
 # ------------------------------------------------------------------
 #  Site-wide real stats (for homepage / community hero sections)
 # ------------------------------------------------------------------
