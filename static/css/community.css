@@ -4086,15 +4086,34 @@ input:focus-visible{
    ============================================================ */
 .msg-system {
     text-align: center;
-    padding: 8px 16px;
-    margin: 8px auto;
-    max-width: 400px;
+    padding: 14px 24px;
+    margin: 12px auto;
+    max-width: 480px;
     font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    background: linear-gradient(135deg, rgba(39,208,125,0.08), rgba(59,130,246,0.08));
+    border-radius: 16px;
+    border: 1px solid rgba(39,208,125,0.15);
+    line-height: 1.5;
+}
+.msg-system .sys-icon {
+    font-size: 18px;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+.msg-system .sys-user {
+    color: #27d07d;
+    font-weight: 600;
+}
+.msg-system .sys-action {
     color: rgba(255,255,255,0.45);
+}
+.msg-system .sys-welcome {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
     font-style: italic;
-    background: rgba(255,255,255,0.03);
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.05);
 }
 
 /* ============================================================

@@ -782,7 +782,15 @@ function renderMessage(message) {
     if (message.kind === "system") {
         var sysDiv = document.createElement("div");
         sysDiv.className = "msg-system";
-        sysDiv.textContent = message.content;
+        var parts = message.content.split(" joined the community");
+        if (parts.length === 2) {
+            sysDiv.innerHTML = '<span class="sys-icon">\u{1F44B}</span>' +
+                '<span class="sys-user">' + escapeHtml(parts[0]) + '</span> ' +
+                '<span class="sys-action">joined the community</span>' +
+                '<span class="sys-welcome">Welcome to the conversation! \u{1F389}</span>';
+        } else {
+            sysDiv.innerHTML = '<span class="sys-icon">\u{1F514}</span> ' + escapeHtml(message.content);
+        }
         chatBox.appendChild(sysDiv);
         chatBox.scrollTop = chatBox.scrollHeight;
         return;
@@ -1414,7 +1422,15 @@ setInterval(refreshPresence, 8000);
         if (msg.kind === "system") {
             var sysDiv = document.createElement("div");
             sysDiv.className = "msg-system";
-            sysDiv.textContent = msg.content;
+            var parts2 = msg.content.split(" joined the community");
+            if (parts2.length === 2) {
+                sysDiv.innerHTML = '<span class="sys-icon">\u{1F44B}</span>' +
+                    '<span class="sys-user">' + escapeHtml(parts2[0]) + '</span> ' +
+                    '<span class="sys-action">joined the community</span>' +
+                    '<span class="sys-welcome">Welcome to the conversation! \u{1F389}</span>';
+            } else {
+                sysDiv.innerHTML = '<span class="sys-icon">\u{1F514}</span> ' + escapeHtml(msg.content);
+            }
             modalBox.appendChild(sysDiv);
             modalBox.scrollTop = modalBox.scrollHeight;
             return;
