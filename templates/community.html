@@ -255,7 +255,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
                     <span class="stat-number">
 
-                        12K+
+                        {{ chat_stats.member_count }}+
 
                     </span>
 
@@ -305,13 +305,13 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
                     <span class="stat-number">
 
-                        ∞
+                        {{ chat_stats.message_count }}
 
                     </span>
 
                     <span class="stat-label">
 
-                        Conversations
+                        Messages
 
                     </span>
 

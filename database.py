@@ -1570,3 +1570,43 @@ def get_view_history(user_id, limit=60):
     rows = [dict(r) for r in cursor.fetchall()]
     conn.close()
     return rows
+
+
+# ------------------------------------------------------------------
+#  Site-wide real stats (for homepage / community hero sections)
+# ------------------------------------------------------------------
+
+def get_site_stats():
+    """Return real counts: total_users, total_messages, total_communities."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM users")
+    total_users = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM chat_messages")
+    total_messages = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(DISTINCT anime_slug) FROM chat_messages")
+    total_communities = cursor.fetchone()[0]
+    conn.close()
+    return {
+        "total_users": total_users,
+        "total_messages": total_messages,
+        "total_communities": total_communities,
+    }
+
+
+def get_community_chat_stats(anime_slug):
+    """Return real member + message counts for one community."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT COUNT(*) FROM chat_messages WHERE anime_slug = ?",
+        (anime_slug,),
+    )
+    message_count = cursor.fetchone()[0]
+    cursor.execute(
+        "SELECT COUNT(DISTINCT user_id) FROM chat_messages WHERE anime_slug = ?",
+        (anime_slug,),
+    )
+    member_count = cursor.fetchone()[0]
+    conn.close()
+    return {"message_count": message_count, "member_count": member_count}

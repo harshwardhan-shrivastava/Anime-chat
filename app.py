@@ -681,6 +681,7 @@ def _decorate(entries, sort):
 def home():
     latest = _catalog_entries(sort="latest", limit=48)
     recommended, recommended_genres = _home_picks()
+    site_stats = database.get_site_stats()
     return render_template(
         "index.html",
         anime_list=latest,
@@ -688,6 +689,7 @@ def home():
         genres=_genre_list(),
         recommended=recommended,
         recommended_genres=recommended_genres,
+        site_stats=site_stats,
     )
 
 
@@ -856,11 +858,13 @@ def community(anime_slug):
     entry = anime_database.get(anime_slug)
     if entry is None:
         return "Anime not found", 404
+    chat_stats = database.get_community_chat_stats(anime_slug)
     return render_template(
         "community.html",
         anime_name=entry.get("title", anime_slug),
         anime_image=entry.get("image", ""),
-        anime_slug=anime_slug
+        anime_slug=anime_slug,
+        chat_stats=chat_stats,
     )
 
 
