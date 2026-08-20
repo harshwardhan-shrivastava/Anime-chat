@@ -1709,3 +1709,19 @@ def get_community_chat_stats(anime_slug):
     conn.close()
     member_count = get_community_member_count(anime_slug)
     return {"message_count": message_count, "member_count": member_count}
+
+def insert_system_message(anime_slug, content):
+    """Insert a system message (e.g. 'X joined the community') into chat."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO chat_messages (anime_slug, user_id, username, avatar_color, kind, content)
+        VALUES (?, 0, 'System', '#6b7280', 'system', ?)
+        """,
+        (anime_slug, content),
+    )
+    conn.commit()
+    msg_id = cursor.lastrowid
+    conn.close()
+    return msg_id

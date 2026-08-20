@@ -778,6 +778,16 @@ function appendLine(group, message, isMine, messageDate) {
 function renderMessage(message) {
     removeWelcome();
 
+    // System messages (join/leave notifications)
+    if (message.kind === "system") {
+        var sysDiv = document.createElement("div");
+        sysDiv.className = "msg-system";
+        sysDiv.textContent = message.content;
+        chatBox.appendChild(sysDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return;
+    }
+
     const isMine = CURRENT_USER && message.user_id === CURRENT_USER.id;
     const messageDate = new Date(message.created_at + "Z");
 
@@ -1199,8 +1209,28 @@ setInterval(refreshPresence, 8000);
     var modalSeen = new Set();
     var modalPoll = null;
 
-    // Open modal
+    // Open modal (or show lock if not a member)
     enterOverlay.addEventListener("click", function () {
+        var isMember = document.body.dataset.isMember === "true";
+        if (!isMember) {
+            // Show lock animation
+            var btn = enterOverlay.querySelector(".chat-enter-btn") || enterOverlay;
+            var original = btn.innerHTML;
+            btn.innerHTML = "🔒 Join community first";
+            btn.style.background = "rgba(239,68,68,0.25)";
+            btn.style.borderColor = "rgba(239,68,68,0.4)";
+            btn.style.color = "#ef4444";
+            setTimeout(function () {
+                btn.innerHTML = original;
+                btn.style.background = "";
+                btn.style.borderColor = "";
+                btn.style.color = "";
+            }, 2000);
+            // Scroll to join button
+            var joinBtn = document.getElementById("joinCommunityBtn");
+            if (joinBtn) joinBtn.scrollIntoView({ behavior: "smooth", block: "center" });
+            return;
+        }
         modal.classList.add("active");
         document.body.style.overflow = "hidden";
         // Copy current messages
@@ -1381,6 +1411,14 @@ setInterval(refreshPresence, 8000);
     }
 
     function renderModalMsg(msg) {
+        if (msg.kind === "system") {
+            var sysDiv = document.createElement("div");
+            sysDiv.className = "msg-system";
+            sysDiv.textContent = msg.content;
+            modalBox.appendChild(sysDiv);
+            modalBox.scrollTop = modalBox.scrollHeight;
+            return;
+        }
         var isMine = CURRENT_USER && msg.user_id === CURRENT_USER.id;
         var color = isMine ? "#3b82f6" : (msg.avatar_color || colorForName(msg.username));
         var now = new Date(msg.created_at + "Z");
@@ -1575,6 +1613,7 @@ setInterval(refreshPresence, 8000);
                         return;
                     }
                     joinBtn.dataset.joined = data.joined ? "true" : "false";
+                    document.body.dataset.isMember = data.joined ? "true" : "false";
                     if (data.joined) {
                         joinBtn.textContent = "Joined \u2713";
                         joinBtn.classList.add("joined");

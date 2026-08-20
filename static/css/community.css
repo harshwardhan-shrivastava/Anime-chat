@@ -4080,3 +4080,19 @@ input:focus-visible{
     border-color: rgba(239,68,68,0.3) !important;
     color: #ef4444 !important;
 }
+
+/* ============================================================
+   SYSTEM MESSAGES  (join/leave notifications)
+   ============================================================ */
+.msg-system {
+    text-align: center;
+    padding: 8px 16px;
+    margin: 8px auto;
+    max-width: 400px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    font-style: italic;
+    background: rgba(255,255,255,0.03);
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.05);
+}

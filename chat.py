@@ -180,6 +180,7 @@ def join_community_route(anime_slug):
         return jsonify({"success": False, "error": "Verify your email first."}), 403
     database.join_community(anime_slug, g.user["id"])
     count = database.get_community_member_count(anime_slug)
+    database.insert_system_message(anime_slug, g.user["username"] + " joined the community")
     return jsonify({"success": True, "member_count": count, "joined": True})
 
 

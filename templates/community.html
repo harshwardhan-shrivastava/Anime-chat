@@ -54,6 +54,8 @@
 
 data-anime-slug="{{ anime_slug }}"
 
+data-is-member="{{ 'true' if is_member else 'false' }}"
+
 data-user='{{ current_user | tojson if current_user else "null" }}'>
 
 <!-- ====================================================== -->
@@ -343,25 +345,15 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
     <main class="chat-area">
 
-        <div class="tab-panel" id="panel-discussion">
-
-        <div class="chat-container">
-
+        <!-- Tab bar stays OUTSIDE panels so it's always visible -->
+        <div class="chat-container" style="border-radius:0;">
             <header class="chat-header" id="chatHeader">
 
                 <div class="chat-header-left">
 
-                    <h2>
+                    <h2>Community Discussion</h2>
 
-                        Community Discussion
-
-                    </h2>
-
-                    <span>
-
-                        Live public discussion
-
-                    </span>
+                    <span>Live public discussion</span>
 
                 </div>
 
@@ -400,6 +392,11 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
                 </div>
 
             </header>
+        </div>
+
+        <div class="tab-panel" id="panel-discussion">
+
+        <div class="chat-container">
 
             <div
                 class="chat-feed"
