@@ -341,12 +341,9 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
     
 
-    <!-- ================= CHAT ================= -->
-
-    <main class="chat-area">
+    <!-- ================= CHAT ================= -->    <main class="chat-area">
 
         <!-- Tab bar stays OUTSIDE panels so it's always visible -->
-        <div class="chat-container" style="border-radius:0;">
             <header class="chat-header" id="chatHeader">
 
                 <div class="chat-header-left">
@@ -356,6 +353,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
                     <span>Live public discussion</span>
 
                 </div>
+
 
                 <div class="chat-header-tabs">
 
@@ -392,7 +390,6 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
                 </div>
 
             </header>
-        </div>
 
         <div class="tab-panel" id="panel-discussion">
 

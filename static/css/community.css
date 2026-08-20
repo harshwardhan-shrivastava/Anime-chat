@@ -4096,3 +4096,40 @@ input:focus-visible{
     border-radius: 20px;
     border: 1px solid rgba(255,255,255,0.05);
 }
+
+/* ============================================================
+   FIX: Panels share the same visual box, no double-box
+   ============================================================ */
+.chat-area {
+    display: flex;
+    flex-direction: column;
+    border-radius: 18px;
+    background: #151a2d;
+    border: 1px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+}
+/* The header wrapper should blend into the chat-area */
+.chat-area > .chat-container:first-child {
+    border-radius: 0;
+    border: none;
+    background: transparent;
+    height: auto;
+    overflow: visible;
+}
+/* Both panels share the same space */
+.chat-area .tab-panel:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.chat-area .tab-panel#panel-discussion:not([hidden]) .chat-container {
+    border-radius: 0;
+    border: none;
+    height: 500px;
+}
+/* Members panel fills naturally */
+.chat-area .tab-panel#panel-members:not([hidden]) {
+    padding: 24px;
+    max-height: 500px;
+    overflow-y: auto;
+}
