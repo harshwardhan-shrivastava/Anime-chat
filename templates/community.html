@@ -545,18 +545,6 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
 
                     </button>
 
-                    <button
-
-                        id="aiChatBtn"
-
-                        class="tool-btn ai-chat-btn"
-
-                        title="Ask AnimeBot AI">
-
-                        🤖
-
-                    </button>
-
                     <div id="plusMenu" class="plus-menu hidden">
 
                         <button class="plus-menu-item" data-action="emoji">😊 Emoji</button>
@@ -806,7 +794,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'>
     <div class="chat-modal-composer" style="position:relative">
         <div class="composer-tools">
             <button id="modalPlusBtn" class="tool-btn plus-btn" title="Share">+</button>
-            <button id="modalAiChatBtn" class="tool-btn ai-chat-btn" title="Ask AnimeBot AI">🤖</button>
+
             <div id="modalPlusMenu" class="plus-menu hidden">
                 <button class="plus-menu-item" data-action="emoji">😊 Emoji</button>
                 <button class="plus-menu-item" data-action="gif">🎬 GIF</button>

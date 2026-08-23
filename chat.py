@@ -1,5 +1,3 @@
-import os
-import requests as http_requests
 from flask import Blueprint, request, jsonify, g
 
 import database
@@ -208,59 +206,3 @@ def get_members_route(anime_slug):
         "count": count,
         "is_member": is_member,
     })
-
-
-@chat_bp.route("/api/ai-chat", methods=["POST"])
-def ai_chat():
-    """AI anime assistant endpoint."""
-    if not g.get("user"):
-        return jsonify({"success": False, "error": "Login required."}), 401
-
-    api_key = os.environ.get("AI_CHATBOT_KEY", "")
-    if not api_key:
-        return jsonify({"success": False, "error": "AI assistant not configured."}), 503
-
-    data = request.get_json(silent=True) or {}
-    user_message = (data.get("message") or "").strip()
-    anime_slug = data.get("anime_slug", "")
-
-    if not user_message:
-        return jsonify({"success": False, "error": "Message can't be empty."}), 400
-
-    system_prompt = (
-        "You are AnimeBot, a friendly AI assistant inside an anime community chat. "
-        "You help fans discuss anime, share recommendations, explain plot points, "
-        "and keep the conversation fun and respectful. "
-        "Keep responses concise (2-4 sentences max). Use anime emoji occasionally. "
-        "You can discuss any anime topic — episodes, characters, theories, recommendations."
-    )
-    if anime_slug:
-        title = anime_slug.replace("-", " ").title()
-        system_prompt += f" The current community is for: {title}."
-
-    try:
-        resp = http_requests.post(
-            "https://gorouter.app/v1/chat/completions",
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}",
-            },
-            json={
-                "model": "claude-opus-5-thinking",
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_message},
-                ],
-                "max_tokens": 300,
-                "temperature": 0.8,
-            },
-            timeout=30,
-        )
-        resp.raise_for_status()
-        result = resp.json()
-        ai_reply = result["choices"][0]["message"]["content"].strip()
-        return jsonify({"success": True, "reply": ai_reply})
-    except http_requests.exceptions.Timeout:
-        return jsonify({"success": False, "error": "AI took too long to respond."}), 504
-    except Exception:
-        return jsonify({"success": False, "error": "AI assistant unavailable."}), 500
