@@ -1769,6 +1769,10 @@ footer p{
     display:flex;
     align-items:center;
     gap:2px;
+    font-size:28px;
+    font-weight:800;
+    text-decoration:none;
+    color:inherit;
 
 }
 

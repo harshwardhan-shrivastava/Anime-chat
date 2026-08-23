@@ -158,13 +158,19 @@ nav{
 
     display:flex;
 
-    font-size:22px;
+    align-items:center;
+
+    font-size:28px;
 
     font-weight:800;
 
     white-space:nowrap;
 
     flex-shrink:0;
+
+    text-decoration:none;
+
+    color:inherit;
 
 }
 
