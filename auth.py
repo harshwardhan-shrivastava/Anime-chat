@@ -1,6 +1,7 @@
+import hmac
 import os
-import random
 import re
+import secrets
 from datetime import datetime, timedelta
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, g
@@ -13,12 +14,48 @@ auth = Blueprint("auth", __name__)
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 DEFAULT_AVATAR = "profile1.png"
+AVATAR_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          "static", "images", "avatars")
 CODE_TTL = timedelta(minutes=5)
 RESEND_COOLDOWN = timedelta(seconds=30)
+# A 6-digit code is only ~1M guesses, so cap the tries per issued code.
+MAX_CODE_ATTEMPTS = 5
 
 
 def _new_code():
-    return str(random.randint(100000, 999999))
+    """Cryptographically random 6-digit code.
+
+    random.randint uses the Mersenne Twister, whose state (and therefore
+    every future code) can be recovered from a handful of observed codes.
+    """
+    return f"{secrets.randbelow(1000000):06d}"
+
+
+def _code_matches(expected, entered):
+    return hmac.compare_digest(str(expected or ""), str(entered or ""))
+
+
+def valid_avatar(name):
+    """Only filenames that actually exist in static/images/avatars.
+
+    Anything else (../../ paths, remote URLs, injected markup) falls back
+    to the default avatar instead of being echoed into an <img src>.
+    """
+    name = (name or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", name) or name.startswith("."):
+        return DEFAULT_AVATAR
+    if not os.path.isfile(os.path.join(AVATAR_DIR, name)):
+        return DEFAULT_AVATAR
+    return name
+
+
+def safe_next_url(target):
+    """Only same-origin relative paths — '//evil.com' and 'https://evil.com'
+    are valid redirect targets for a browser, so they must be rejected."""
+    target = (target or "").strip()
+    if not target.startswith("/") or target.startswith(("//", "/\\")):
+        return None
+    return target
 
 
 def _public_user(user):
@@ -82,7 +119,7 @@ def signup():
     email = (request.form.get("email") or "").strip().lower()
     password = request.form.get("password") or ""
     confirm = request.form.get("confirm_password") or ""
-    avatar = (request.form.get("avatar") or DEFAULT_AVATAR).strip()
+    avatar = valid_avatar(request.form.get("avatar") or DEFAULT_AVATAR)
 
     # A stale/re-submitted signup form (browser back, double-click, cached
     # tab) can POST with an empty username after the flow already moved on.
@@ -125,6 +162,7 @@ def signup():
         "verification_code": code,
         "expires_at": (datetime.now() + CODE_TTL).isoformat(),
         "last_sent_at": datetime.now().isoformat(),
+        "attempts": 0,
     }
 
     mail_result = _send_code_email(email, username, code, purpose="verify")
@@ -165,7 +203,13 @@ def verify_email():
             flash("That verification code expired. Please sign up again.", "error")
             return redirect(url_for("auth.signup"))
 
-        if entered != pending["verification_code"]:
+        if not _code_matches(pending["verification_code"], entered):
+            pending["attempts"] = int(pending.get("attempts") or 0) + 1
+            if pending["attempts"] >= MAX_CODE_ATTEMPTS:
+                session.pop("pending_registration", None)
+                flash("Too many wrong codes. Please sign up again.", "error")
+                return redirect(url_for("auth.signup"))
+            session["pending_registration"] = pending
             flash("That code isn't right — check it and try again.", "error")
             return render_template("verify_email.html", email=email, purpose="verify", dev_code=None, resent=False)
 
@@ -227,6 +271,7 @@ def resend_verification_code():
     pending["verification_code"] = code
     pending["expires_at"] = (datetime.now() + CODE_TTL).isoformat()
     pending["last_sent_at"] = datetime.now().isoformat()
+    pending["attempts"] = 0
     session["pending_registration"] = pending
 
     mail_result = _send_code_email(pending["email"], pending["username"], code, purpose="verify")
@@ -282,8 +327,9 @@ def login():
     session["user_id"] = user["id"]
     flash(f"Welcome back, {user['username']}!", "success")
 
-    if next_url and next_url.startswith("/"):
-        return redirect(next_url)
+    safe_next = safe_next_url(next_url)
+    if safe_next:
+        return redirect(safe_next)
     return redirect(url_for("home"))
 
 
@@ -304,6 +350,7 @@ def forgot_password():
                 "verification_code": code,
                 "expires_at": (datetime.now() + CODE_TTL).isoformat(),
                 "last_sent_at": datetime.now().isoformat(),
+                "attempts": 0,
             }
             mail_result = _send_code_email(email, user["username"], code, purpose="reset")
             return render_template(
@@ -347,7 +394,13 @@ def verify_password_reset():
             flash("That code expired. Request a new one.", "error")
             return redirect(url_for("auth.forgot_password"))
 
-        if entered != reset["verification_code"]:
+        if not _code_matches(reset["verification_code"], entered):
+            reset["attempts"] = int(reset.get("attempts") or 0) + 1
+            if reset["attempts"] >= MAX_CODE_ATTEMPTS:
+                session.pop("password_reset", None)
+                flash("Too many wrong codes. Request a new one.", "error")
+                return redirect(url_for("auth.forgot_password"))
+            session["password_reset"] = reset
             flash("That code isn't right — check it and try again.", "error")
             return render_template("verify_email.html", email=email, purpose="reset", dev_code=None, resent=False)
 
@@ -385,6 +438,7 @@ def resend_password_reset_code():
     reset["verification_code"] = code
     reset["expires_at"] = (datetime.now() + CODE_TTL).isoformat()
     reset["last_sent_at"] = datetime.now().isoformat()
+    reset["attempts"] = 0
     session["password_reset"] = reset
 
     user = database.get_user_by_email(reset["email"])
@@ -424,6 +478,9 @@ def reset_password():
             return render_template("reset_password.html")
 
         database.update_password(reset["email"], generate_password_hash(new_password))
+        # Invalidate the current session so a stolen/shared cookie can't keep
+        # riding the reset flow.
+        session.pop("user_id", None)
         session.pop("password_reset", None)
         session.pop("password_reset_verified", None)
         flash("Password updated! Log in with your new password.", "success")

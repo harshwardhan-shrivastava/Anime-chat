@@ -4,6 +4,7 @@ import json
 import os
 import random
 import re
+import secrets
 import threading
 import time
 from datetime import timedelta
@@ -53,10 +54,34 @@ from threads import init_threads
 
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-insecure-change-me")
+
+# Debug mode exposes the Werkzeug console (remote code execution), so it is
+# opt-in through the environment and never on by default.
+DEBUG = os.environ.get("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
+
+_secret_key = os.environ.get("SECRET_KEY", "").strip()
+if not _secret_key:
+    if not DEBUG:
+        raise RuntimeError(
+            "SECRET_KEY is not set. Session cookies and verification tokens "
+            "are signed with it, so a known/shared value lets anyone forge a "
+            "login. Set SECRET_KEY to a long random string."
+        )
+    # Dev only: a fresh random key per boot (logs everyone out on restart)
+    # instead of a guessable hardcoded fallback.
+    _secret_key = secrets.token_hex(32)
+app.secret_key = _secret_key
 
 # Sessions last 10 years, so users stay logged in across devices/visits.
 app.permanent_session_lifetime = timedelta(days=3650)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=not DEBUG,
+    # Reject oversized request bodies before they are buffered (see the
+    # 25 MB upload limit in threads.py).
+    MAX_CONTENT_LENGTH=26 * 1024 * 1024,
+)
 
 app.register_blueprint(auth)
 app.register_blueprint(chat_bp)
@@ -900,7 +925,10 @@ def rate_anime():
     data = request.get_json(silent=True) or {}
     anime_slug = data.get("anime_slug")
     rating = data.get("rating")
-    username = (data.get("username") or "Anonymous").strip()[:40] or "Anonymous"
+    # The author comes from the session, never from the request body: a
+    # client-supplied username let anyone post reviews as somebody else.
+    user = g.get("user")
+    username = user["username"] if user else "Anonymous"
     comment = (data.get("comment") or "").strip()[:1000]
 
     if not anime_slug or anime_slug not in anime_database:
@@ -1797,6 +1825,6 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=int(os.environ.get("PORT", "5000")),
-        debug=True,
+        debug=DEBUG,
         use_reloader=False,
     )
