@@ -70,12 +70,18 @@ body{
 
 nav{
 
-    width:90%;
+    width:94%;
     max-width:1400px;
-    margin:30px auto;
+    margin:20px auto;
+    padding:16px 28px;
     display:flex;
     justify-content:space-between;
     align-items:center;
+    background:rgba(18,24,34,.72);
+    backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:24px;
+    box-shadow:0 15px 45px rgba(0,0,0,.35);
 
 }
 
