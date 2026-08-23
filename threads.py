@@ -1,5 +1,5 @@
 """
-Threads — the new chat system for AnimeChat (Phase 1: Messages tab).
+Threads — the new chat system for Otakul (Phase 1: Messages tab).
 
 A single blueprint that owns:
   • GET /threads            — the full-screen Threads app (Discord-style shell)

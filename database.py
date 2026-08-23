@@ -37,7 +37,7 @@ TURSO_ENABLED = bool(
 TURSO_BROKEN = False
 
 if TURSO_ENABLED:
-    print("ANIMECHAT DB: using Turso (persistent) database")
+    print("OTAKUL DB: using Turso (persistent) database")
     # The bundled driver posts every statement over a brand-new urllib
     # connection (fresh TCP + TLS handshake per call), which turns each
     # small query into a full round trip. Patch its transport to reuse a
@@ -77,7 +77,7 @@ if TURSO_ENABLED:
 
     _TursoSession._post = _turso_post_keepalive
 else:
-    print("ANIMECHAT DB: using local file animechat.db (accounts/history/lists can be lost if the app folder is recreated)")
+    print("OTAKUL DB: using local file animechat.db (accounts/history/lists can be lost if the app folder is recreated)")
 
 
 def _mark_turso_broken(error):

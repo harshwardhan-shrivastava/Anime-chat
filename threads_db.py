@@ -1,5 +1,5 @@
 """
-Threads — the NEW messaging engine for AnimeChat.
+Threads — the NEW messaging engine for Otakul.
 
 Completely separate from the legacy chat system (chat.py / chat_messages /
 chat_presence). Everything lives in its own `thr_*` tables inside the same

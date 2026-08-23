@@ -88,7 +88,7 @@ LOG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs", "ema
 
 
 def _log_dev_code(to_email, code):
-    print(f"[AnimeChat][DEV MAIL] Verification code for {to_email}: {code}")
+    print(f"[Otakul][DEV MAIL] Verification code for {to_email}: {code}")
 
     try:
         os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
@@ -100,25 +100,25 @@ def _log_dev_code(to_email, code):
 
 def _message_parts(username, code, purpose):
     if purpose == "reset":
-        subject = "AnimeChat password reset code"
+        subject = "Otakul password reset code"
         body = (
             f"Hey {username},\n\n"
-            f"We got a request to reset your AnimeChat password. Your "
+            f"We got a request to reset your Otakul password. Your "
             f"6-digit code is:\n\n"
             f"   {code}\n\n"
             f"This code expires in 5 minutes. If you didn't request a "
             f"password reset, just ignore this email.\n\n"
-            f"-- AnimeChat"
+            f"-- Otakul"
         )
     else:
-        subject = "Your AnimeChat verification code"
+        subject = "Your Otakul verification code"
         body = (
             f"Hey {username},\n\n"
-            f"Welcome to AnimeChat! Your 6-digit verification code is:\n\n"
+            f"Welcome to Otakul! Your 6-digit verification code is:\n\n"
             f"   {code}\n\n"
             f"This code expires in 5 minutes. If you didn't create this "
             f"account, just ignore this email.\n\n"
-            f"-- AnimeChat"
+            f"-- Otakul"
         )
     return subject, body
 
@@ -154,7 +154,7 @@ def _send_via_sendgrid(to_email, subject, body, api_key):
         if response.status != 202:
             raise RuntimeError("SendGrid returned status %s" % response.status)
 
-    print("[AnimeChat] EMAIL SENT THROUGH SENDGRID")
+    print("[Otakul] EMAIL SENT THROUGH SENDGRID")
 
 
 def _send_via_gmail_api(to_email, subject, body):
@@ -217,7 +217,7 @@ def _send_via_gmail_api(to_email, subject, body):
     except Exception as exc:
         raise RuntimeError(f"Gmail API error: {exc}") from exc
 
-    print("[AnimeChat] EMAIL SENT THROUGH GMAIL API")
+    print("[Otakul] EMAIL SENT THROUGH GMAIL API")
 
 
 def _send_via_smtp(to_email, subject, body):
@@ -245,7 +245,7 @@ def _send_via_smtp(to_email, subject, body):
         with _Ipv4FirstSMTP_SSL(host, port, context=context, timeout=10) as server:
             server.login(user, password)
             server.sendmail(sender, [to_email], msg.as_string())
-        print("[AnimeChat] EMAIL SENT THROUGH SMTP (SSL)")
+        print("[Otakul] EMAIL SENT THROUGH SMTP (SSL)")
         return
     except Exception as exc:
         errors.append(f"ssl/{port}: {exc}")
@@ -257,7 +257,7 @@ def _send_via_smtp(to_email, subject, body):
             server.starttls(context=context)
             server.login(user, password)
             server.sendmail(sender, [to_email], msg.as_string())
-        print("[AnimeChat] EMAIL SENT THROUGH SMTP (STARTTLS)")
+        print("[Otakul] EMAIL SENT THROUGH SMTP (STARTTLS)")
         return
     except Exception as exc:
         errors.append(f"starttls/587: {exc}")
@@ -293,11 +293,11 @@ def send_verification_email(to_email, username, code, purpose="verify"):
             return {"sent": True, "dev_code": None, "dev_reason": None, "dev_error": None}
         except Exception as exc:
             gmail_api_error = str(exc)
-            print(f"[AnimeChat][MAIL ERROR] Gmail API failed for {to_email}: {exc}")
+            print(f"[Otakul][MAIL ERROR] Gmail API failed for {to_email}: {exc}")
 
     if smtp_configured and (not smtp_user or not smtp_pass):
         smtp_error = "SMTP_USER/SMTP_PASS are empty on the server"
-        print(f"[AnimeChat][MAIL ERROR] {smtp_error}")
+        print(f"[Otakul][MAIL ERROR] {smtp_error}")
     elif smtp_configured:
         try:
             # Fallback: Gmail/plain SMTP (works on local dev).
@@ -305,7 +305,7 @@ def send_verification_email(to_email, username, code, purpose="verify"):
             return {"sent": True, "dev_code": None, "dev_reason": None, "dev_error": None}
         except Exception as exc:
             smtp_error = str(exc)
-            print(f"[AnimeChat][MAIL ERROR] SMTP failed for {to_email}: {exc}")
+            print(f"[Otakul][MAIL ERROR] SMTP failed for {to_email}: {exc}")
 
     api_key = os.environ.get("SENDGRID_API_KEY")
     if api_key:
@@ -315,7 +315,7 @@ def send_verification_email(to_email, username, code, purpose="verify"):
             return {"sent": True, "dev_code": None, "dev_reason": None, "dev_error": None}
         except Exception as exc:
             sendgrid_error = str(exc)
-            print(f"[AnimeChat][MAIL ERROR] SendGrid failed for {to_email}: {exc}")
+            print(f"[Otakul][MAIL ERROR] SendGrid failed for {to_email}: {exc}")
 
     _log_dev_code(to_email, code)
 

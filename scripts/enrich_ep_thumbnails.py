@@ -50,7 +50,7 @@ DATA_FILE = os.path.join(ROOT, "anime_data.json")
 TODO_FILE = os.path.join(ROOT, "anime_ep_thumbs_todo.json")
 
 API = "https://api.tvmaze.com"
-HEADERS = {"User-Agent": "AnimeChat/1.0 (episode-thumbnail enrichment)"}
+HEADERS = {"User-Agent": "Otakul/1.0 (episode-thumbnail enrichment)"}
 SLEEP = 0.55  # TVmaze guidance: ~20 requests / 10 seconds, keep it polite
 
 # Kitsu (kitsu.io) is the anime-specific fallback: free, keyless JSON:API with
@@ -59,7 +59,7 @@ SLEEP = 0.55  # TVmaze guidance: ~20 requests / 10 seconds, keep it polite
 KITSU = "https://kitsu.io/api/edge"
 KITSU_HEADERS = {
     "Accept": "application/vnd.api+json",
-    "User-Agent": "AnimeChat/1.0 (episode-thumbnail enrichment)",
+    "User-Agent": "Otakul/1.0 (episode-thumbnail enrichment)",
 }
 _ORDINALS = {"1": "1st", "2": "2nd", "3": "3rd"}
 

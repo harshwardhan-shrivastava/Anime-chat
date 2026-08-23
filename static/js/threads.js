@@ -1,6 +1,6 @@
 // ============================================================
 // THREADS — Messages tab (Phase 1)
-// Full-screen chat client for AnimeChat. Pure vanilla JS, no
+// Full-screen chat client for Otakul. Pure vanilla JS, no
 // build step. Polls the /threads/api/* endpoints (the app has
 // no websockets), mirrors the legacy chat's polling approach.
 // ============================================================
@@ -219,7 +219,7 @@
             (filter ? "No conversations match." : "No conversations yet — start one!") + "</div>";
 
         var unread = unreadTotal;
-        document.title = unread > 0 ? "(" + unread + ") Threads | AnimeChat" : "Threads | AnimeChat";
+        document.title = unread > 0 ? "(" + unread + ") Threads | Otakul" : "Threads | Otakul";
     }
 
     // State.convMemberName: name a member of a group conversation
