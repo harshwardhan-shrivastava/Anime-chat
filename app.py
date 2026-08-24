@@ -44,6 +44,10 @@ from database import (
     get_community_chat_stats,
     is_community_member,
     get_all_community_member_counts,
+    get_show_rankings,
+    get_episode_rankings_for_anime,
+    get_user_episode_rating,
+    rate_episode,
 )
 from auth import auth, load_logged_in_user
 from chat import chat_bp
@@ -1816,6 +1820,76 @@ def for_you():
         top_genres=(quiz_result or {}).get("top_genres") or [],
         genres=_genre_list(),
     )
+
+
+
+# ================================================================
+#  RANKINGS — Show & Episode Leaderboard
+# ================================================================
+
+@app.route("/rankings")
+def rankings():
+    genre = request.args.get("genre")
+    shows = get_show_rankings(limit=50, genre=genre or None)
+    for i, show in enumerate(shows):
+        rank = i + 1
+        if rank == 1:
+            show["tier"] = "S+"
+        elif rank <= 3:
+            show["tier"] = "S"
+        elif rank <= 10:
+            show["tier"] = "A"
+        elif rank <= 25:
+            show["tier"] = "B"
+        elif rank <= 50:
+            show["tier"] = "C"
+        else:
+            show["tier"] = "D"
+        show["rank"] = rank
+    return render_template(
+        "rankings.html",
+        shows=shows,
+        genres=_genre_list(),
+        active_genre=genre or "",
+    )
+
+
+@app.route("/api/rate-episode", methods=["POST"])
+def api_rate_episode():
+    user = g.get("user")
+    if not user:
+        return jsonify({"error": "Login required"}), 401
+    data = request.get_json(force=True, silent=True) or {}
+    anime_slug = data.get("anime_slug", "").strip()
+    season_name = data.get("season_name", "").strip()
+    episode_number = data.get("episode_number")
+    rating = data.get("rating")
+    if not all([anime_slug, season_name, episode_number is not None, rating is not None]):
+        return jsonify({"error": "Missing fields"}), 400
+    try:
+        episode_number = int(episode_number)
+        rating = int(rating)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid number"}), 400
+    if rating < 1 or rating > 10:
+        return jsonify({"error": "Rating must be 1-10"}), 400
+    rate_episode(
+        user_id=user["id"],
+        username=user["username"],
+        avatar_color=user.get("avatar_color", "#00c16a"),
+        anime_slug=anime_slug,
+        season_name=season_name,
+        episode_number=episode_number,
+        rating=rating,
+    )
+    return jsonify({"success": True, "rating": rating})
+
+
+@app.route("/api/episode-ratings/<anime_slug>")
+def api_episode_ratings(anime_slug):
+    rankings = get_episode_rankings_for_anime(anime_slug, limit=20)
+    return jsonify({"rankings": rankings})
+
 
 
 if __name__ == "__main__":

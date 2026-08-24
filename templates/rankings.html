@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rankings — Otakul</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/rankings.css') }}">
+</head>
+<body>
+    {% include '_navbar.html' %}
+
+    <main class="rankings-page">
+        <!-- Hero -->
+        <section class="rankings-hero">
+            <h1><span class="rank-icon">⚔️</span> Anime Rankings</h1>
+            <p>Community-powered leaderboard. Rate episodes to climb the ranks.</p>
+        </section>
+
+        <!-- Tier Legend -->
+        <section class="tier-legend">
+            <div class="tier-badge tier-sp">S+ <span class="tier-label">#1</span></div>
+            <div class="tier-badge tier-s">S <span class="tier-label">#2-3</span></div>
+            <div class="tier-badge tier-a">A <span class="tier-label">#4-10</span></div>
+            <div class="tier-badge tier-b">B <span class="tier-label">#11-25</span></div>
+            <div class="tier-badge tier-c">C <span class="tier-label">#26-50</span></div>
+            <div class="tier-badge tier-d">D <span class="tier-label">51+</span></div>
+        </section>
+
+        <!-- Filter Tabs -->
+        <section class="rankings-filters">
+            <a href="{{ url_for('rankings') }}" class="filter-tab {% if not active_genre %}active{% endif %}">All</a>
+            <a href="{{ url_for('rankings', genre='Action') }}" class="filter-tab {% if active_genre == 'Action' %}active{% endif %}">Action</a>
+            <a href="{{ url_for('rankings', genre='Comedy') }}" class="filter-tab {% if active_genre == 'Comedy' %}active{% endif %}">Comedy</a>
+            <a href="{{ url_for('rankings', genre='Drama') }}" class="filter-tab {% if active_genre == 'Drama' %}active{% endif %}">Drama</a>
+            <a href="{{ url_for('rankings', genre='Fantasy') }}" class="filter-tab {% if active_genre == 'Fantasy' %}active{% endif %}">Fantasy</a>
+            <a href="{{ url_for('rankings', genre='Romance') }}" class="filter-tab {% if active_genre == 'Romance' %}active{% endif %}">Romance</a>
+            <a href="{{ url_for('rankings', genre='Sci-Fi') }}" class="filter-tab {% if active_genre == 'Sci-Fi' %}active{% endif %}">Sci-Fi</a>
+            <a href="{{ url_for('rankings', genre='Horror') }}" class="filter-tab {% if active_genre == 'Horror' %}active{% endif %}">Horror</a>
+            <a href="{{ url_for('rankings', genre='Slice of Life') }}" class="filter-tab {% if active_genre == 'Slice of Life' %}active{% endif %}">Slice of Life</a>
+        </section>
+
+        <!-- Rankings Board -->
+        {% if shows %}
+        <section class="rankings-board">
+            {% for show in shows %}
+            <a href="/anime/{{ show.slug }}" class="rank-row rank-tier-{{ show.tier | lower | replace('+', 'p') }}">
+                <div class="rank-position">
+                    <span class="rank-number">{{ show.rank }}</span>
+                    <span class="rank-tier-badge tier-{{ show.tier | lower | replace('+', 'p') }}">{{ show.tier }}</span>
+                </div>
+                <div class="rank-image">
+                    <img src="{{ show.image }}" alt="{{ show.title }}" loading="lazy">
+                </div>
+                <div class="rank-info">
+                    <h3 class="rank-title">{{ show.title }}</h3>
+                    <p class="rank-genre">{{ show.genre }}</p>
+                </div>
+                <div class="rank-score">
+                    <span class="score-number">{{ show.avg_rating }}</span>
+                    <span class="score-label">{{ show.total_reviews }} vote{{ 's' if show.total_reviews != 1 }}</span>
+                </div>
+            </a>
+            {% endfor %}
+        </section>
+        {% else %}
+        <section class="rankings-empty">
+            <i class="fas fa-trophy"></i>
+            <h2>No rankings yet</h2>
+            <p>Be the first to rate episodes! Head to any anime page and start rating.</p>
+            <a href="{{ url_for('browse', sort='popular') }}" class="btn-browse">Browse Anime</a>
+        </section>
+        {% endif %}
+    </main>
+
+    <script src="{{ url_for('static', filename='js/search.js') }}"></script>
+</body>
+</html>

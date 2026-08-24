@@ -254,3 +254,76 @@ document.querySelectorAll(".expand-btn").forEach(btn => {
         btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
     });
 });
+
+// ===============================
+// INLINE EPISODE QUICK-RATE
+// ===============================
+
+document.querySelectorAll(".episode-rate-btn").forEach(btn => {
+    btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var link = btn.closest(".episode-link");
+        if (!link) return;
+
+        // Remove any existing popup
+        var existing = document.querySelector(".quick-rate-popup");
+        if (existing) existing.remove();
+
+        // Parse season and episode from the link href
+        var href = link.getAttribute("href") || "";
+        var parts = href.split("/");
+        var seasonIdx = parts[parts.length - 2] || "1";
+        var epNum = parts[parts.length - 1] || "1";
+        var slug = window.location.pathname.split("/").pop();
+
+        // Build popup
+        var popup = document.createElement("div");
+        popup.className = "quick-rate-popup";
+        var html = '<div class="quick-rate-inner"><span class="quick-rate-title">Rate Episode ' + epNum + '</span><div class="quick-rate-stars">';
+        for (var i = 1; i <= 10; i++) {
+            html += '<button class="qr-star" data-val="' + i + '">' + i + '</button>';
+        }
+        html += '</div></div>';
+        popup.innerHTML = html;
+        btn.parentElement.appendChild(popup);
+
+        // Handle star clicks
+        popup.querySelectorAll(".qr-star").forEach(star => {
+            star.addEventListener("click", function () {
+                var val = parseInt(star.dataset.val);
+                fetch("/api/rate-episode", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        anime_slug: slug,
+                        season_name: "Season " + seasonIdx,
+                        episode_number: parseInt(epNum),
+                        rating: val
+                    })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        btn.innerHTML = '<i class="fas fa-star"></i> ' + val;
+                        btn.classList.add("rated");
+                        popup.remove();
+                    } else {
+                        alert(data.error || "Failed to rate");
+                    }
+                })
+                .catch(() => alert("Network error"));
+            });
+        });
+
+        // Close on outside click
+        setTimeout(function () {
+            document.addEventListener("click", function closePopup(ev) {
+                if (!popup.contains(ev.target) && ev.target !== btn) {
+                    popup.remove();
+                    document.removeEventListener("click", closePopup);
+                }
+            });
+        }, 10);
+    });
+});

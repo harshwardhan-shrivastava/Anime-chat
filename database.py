@@ -1725,3 +1725,119 @@ def insert_system_message(anime_slug, content, user_id=1):
     msg_id = cursor.lastrowid
     conn.close()
     return msg_id
+
+
+# ================================================================
+#  RANKINGS — Show & Episode Leaderboards
+# ================================================================
+
+def get_show_rankings(limit=50, genre=None, season=None):
+    """Return top anime ranked by average episode rating."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    query = """
+        SELECT
+            er.anime_slug,
+            COUNT(DISTINCT er.id) AS total_reviews,
+            AVG(er.rating) AS avg_rating
+        FROM episode_reviews er
+        GROUP BY er.anime_slug
+        HAVING total_reviews >= 1
+    """
+    params = []
+    if genre:
+        query += " HAVING total_reviews >= 1 AND er.anime_slug IN (SELECT slug FROM anime_list WHERE genre LIKE ?)"
+        params.append(f"%{genre}%")
+
+    query += " ORDER BY avg_rating DESC, total_reviews DESC"
+    query += " LIMIT ?"
+    params.append(limit)
+
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+
+    results = []
+    for row in rows:
+        slug = row["anime_slug"]
+        entry = anime_database.get(slug)
+        if not entry:
+            continue
+        results.append({
+            "slug": slug,
+            "title": entry.get("title") or slug,
+            "image": entry.get("image") or "",
+            "genre": entry.get("genre") or "",
+            "rating": entry.get("rating") or "N/A",
+            "avg_rating": round(row["avg_rating"], 1),
+            "total_reviews": row["total_reviews"],
+        })
+    conn.close()
+    return results
+
+
+def get_episode_rankings_for_anime(anime_slug, limit=20):
+    """Return top-rated episodes for a specific anime."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT season_name, episode_number, AVG(rating) AS avg_rating, COUNT(*) AS total_votes
+        FROM episode_reviews
+        WHERE anime_slug = ?
+        GROUP BY season_name, episode_number
+        HAVING total_votes >= 1
+        ORDER BY avg_rating DESC, total_votes DESC
+        LIMIT ?""",
+        (anime_slug, limit),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [
+        {
+            "season_name": r["season_name"],
+            "episode_number": r["episode_number"],
+            "avg_rating": round(r["avg_rating"], 1),
+            "total_votes": r["total_votes"],
+        }
+        for r in rows
+    ]
+
+
+def get_user_episode_rating(user_id, anime_slug, season_name, episode_number):
+    """Return the user's existing rating for an episode, or None."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT rating FROM episode_reviews
+        WHERE user_id=? AND anime_slug=? AND season_name=? AND episode_number=?""",
+        (user_id, anime_slug, season_name, episode_number),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    return row["rating"] if row else None
+
+
+def rate_episode(user_id, username, avatar_color, anime_slug, season_name, episode_number, rating):
+    """Insert or update a user's episode rating."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT id FROM episode_reviews
+        WHERE user_id=? AND anime_slug=? AND season_name=? AND episode_number=?""",
+        (user_id, anime_slug, season_name, episode_number),
+    )
+    existing = cursor.fetchone()
+    if existing:
+        cursor.execute(
+            "UPDATE episode_reviews SET rating=? WHERE id=?",
+            (rating, existing["id"]),
+        )
+    else:
+        cursor.execute(
+            """INSERT INTO episode_reviews
+            (anime_slug, season_name, episode_number, user_id, username, avatar_color, rating)
+            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (anime_slug, season_name, episode_number, user_id, username, avatar_color, rating),
+        )
+    conn.commit()
+    conn.close()
