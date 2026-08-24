@@ -941,8 +941,6 @@
                         action = '<button class="thr-btn thr-btn-sm thr-btn-primary" data-msg-id="' + u.id + '">Message</button>';
                     } else if (u.friend_status === "outgoing") {
                         action = '<span class="thr-count-chip">Requested</span>';
-                    } else if (u.friend_status === "incoming") {
-                        action = '<button class="thr-btn thr-btn-sm thr-btn-primary" data-accept-in="' + (u.friend_req_id || "") + '">Accept</button>';
                     } else {
                         action = '<button class="thr-btn thr-btn-sm" data-add-id="' + u.id + '">Add friend</button>';
                     }
@@ -968,25 +966,6 @@
                         toast("Friend request sent \u2713");
                         search();
                     });
-                return;
-            }
-            // Accept an incoming request straight from search results
-            var accBtn = e.target.closest("[data-accept-in]");
-            if (accBtn && accBtn.getAttribute("data-accept-in")) {
-                accBtn.disabled = true;
-                api("/threads/api/friends/requests/" + accBtn.getAttribute("data-accept-in") + "/respond",
-                    { json: { accept: true } }).then(function (res) {
-                    if (!res.success) { handleApiError(res); return; }
-                    toast("Friend request accepted \u{1F389}");
-                    closeModal("modalNewDm");
-                    input.value = "";
-                    results.innerHTML = "";
-                    if (res.conversation) {
-                        upsertConversation(res.conversation);
-                        openConversation(res.conversation.type, res.conversation.id);
-                    }
-                    refreshRequestBadge();
-                });
                 return;
             }
             // Open DM with an existing friend
