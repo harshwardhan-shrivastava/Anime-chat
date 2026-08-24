@@ -106,27 +106,56 @@
 
 <!-- ================= RECOMMENDED FOR YOU ================= -->
 
-<!-- ================= DISCOVER ANIME ================= -->
+{% if for_you_list %}
+<!-- ================= FOR YOU ================= -->
 
 <section class="section-title">
 
     <h2>
 
-        Discover Anime
+        For You
 
     </h2>
 
     <p class="browse-sub">
-        A mix of picks made for you and the freshest releases.
+        Personalized picks based on your taste and activity.
+        <a href="{{ url_for('quiz') }}" style="color:#8F5BFF;">Retake Quiz</a> to refresh.
+    </p>
+
+</section>
+
+<section class="anime-grid for-you-grid">
+
+{% for anime in for_you_list %}
+
+{% include "_anime_card.html" %}
+
+{% endfor %}
+
+</section>
+{% endif %}
+
+<!-- ================= NEW ================= -->
+
+<section class="section-title">
+
+    <h2>
+
+        New
+
+    </h2>
+
+    <p class="browse-sub">
+        The freshest releases — airing now and just dropped.
         <a href="{{ url_for('browse', sort='popular') }}" style="color:#8F5BFF;">Browse all</a> or
         <a href="{{ url_for('browse', sort='critics') }}" style="color:#8F5BFF;">Critics' picks</a>.
     </p>
 
 </section>
 
-<section class="anime-grid">
+<section class="anime-grid new-grid">
 
-{% for anime in anime_list %}
+{% for anime in new_list %}
 
 {% include "_anime_card.html" %}
 

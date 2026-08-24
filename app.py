@@ -700,9 +700,7 @@ def home():
     recommended, recommended_genres = _home_picks()
     site_stats = get_site_stats()
 
-    # --- Mix recommended + latest into one unified list ---
-    # Tag recommended anime as 'FOR YOU', latest as 'NEW'
-    # Interleave: place a FOR YOU card every ~4 NEW cards
+    # --- For You cards first, then New cards ---
     rec_list = []
     new_list = []
     seen = set()
@@ -710,31 +708,25 @@ def home():
         slug = a.get("slug")
         if slug and slug not in seen:
             a["badge_label"] = "FOR YOU"
+            a["_section"] = "for_you"
             rec_list.append(a)
             seen.add(slug)
     for a in (latest or []):
         slug = a.get("slug")
         if slug and slug not in seen:
             a["badge_label"] = "NEW"
+            a["_section"] = "new"
             new_list.append(a)
             seen.add(slug)
 
-    # Interleave: place one FOR YOU card after every 4 NEW cards
-    mixed = []
-    ri = 0
-    for i, card in enumerate(new_list):
-        mixed.append(card)
-        if (i + 1) % 4 == 0 and ri < len(rec_list):
-            mixed.append(rec_list[ri])
-            ri += 1
-    # Append any remaining FOR YOU cards at the end
-    while ri < len(rec_list):
-        mixed.append(rec_list[ri])
-        ri += 1
+    # For You section first, then New section
+    ordered = rec_list + new_list
 
     return render_template(
         "index.html",
-        anime_list=mixed,
+        anime_list=ordered,
+        for_you_list=rec_list,
+        new_list=new_list,
         page_title="Discover Anime",
         genres=_genre_list(),
         site_stats=site_stats,
