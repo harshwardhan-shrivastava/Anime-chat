@@ -691,13 +691,29 @@ def home():
     latest = _catalog_entries(sort="latest", limit=48)
     recommended, recommended_genres = _home_picks()
     site_stats = get_site_stats()
+
+    # --- Mix recommended + latest into one unified list ---
+    # Tag recommended anime as 'FOR YOU', latest as 'NEW'
+    seen = set()
+    mixed = []
+    for a in (recommended or []):
+        slug = a.get("slug")
+        if slug and slug not in seen:
+            a["badge_label"] = "FOR YOU"
+            mixed.append(a)
+            seen.add(slug)
+    for a in (latest or []):
+        slug = a.get("slug")
+        if slug and slug not in seen:
+            a["badge_label"] = "NEW"
+            mixed.append(a)
+            seen.add(slug)
+
     return render_template(
         "index.html",
-        anime_list=latest,
-        page_title="Latest Releases",
+        anime_list=mixed,
+        page_title="Discover Anime",
         genres=_genre_list(),
-        recommended=recommended,
-        recommended_genres=recommended_genres,
         site_stats=site_stats,
     )
 

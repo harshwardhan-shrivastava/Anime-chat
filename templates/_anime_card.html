@@ -20,7 +20,7 @@
 
         <!-- Badge -->
 
-        <div class="anime-badge">
+        <div class="anime-badge{% if anime.badge_label == 'FOR YOU' %} badge-foryou{% endif %}{% if anime.badge_label == 'NEW' %} badge-new{% endif %}{% if anime.badge_label == 'AIRING NOW' %} badge-airing{% endif %}">
 
             {% if anime.badge_label %}
                 {{ anime.badge_label }}

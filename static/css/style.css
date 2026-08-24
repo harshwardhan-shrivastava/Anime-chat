@@ -610,6 +610,19 @@ nav{
 
 }
 
+.badge-foryou {
+    background:#27d07d !important;
+    color:#fff !important;
+}
+.badge-new {
+    background:#ff3b6b !important;
+    color:#fff !important;
+}
+.badge-airing {
+    background:#3b82f6 !important;
+    color:#fff !important;
+}
+
 .rating-badge{
 
     top:15px;

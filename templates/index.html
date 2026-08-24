@@ -106,177 +106,31 @@
 
 <!-- ================= RECOMMENDED FOR YOU ================= -->
 
-{% if recommended %}
+<!-- ================= DISCOVER ANIME ================= -->
 
 <section class="section-title">
 
     <h2>
 
-        Recommended For You
+        Discover Anime
 
     </h2>
 
     <p class="browse-sub">
-        Picked from your history and lists{% if recommended_genres %} —
-        a mix of
-        {% for genre in recommended_genres %}<a href="{{ url_for('category', genre=genre) }}"
-            style="color:#8F5BFF;">{{ genre }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}.
+        A mix of picks made for you and the freshest releases.
+        <a href="{{ url_for('browse', sort='popular') }}" style="color:#8F5BFF;">Browse all</a> or
+        <a href="{{ url_for('browse', sort='critics') }}" style="color:#8F5BFF;">Critics' picks</a>.
     </p>
 
 </section>
 
 <section class="anime-grid">
 
-{% for anime in recommended %}
-
-{% include "_anime_card.html" %}
-
-{% endfor %}
-
-</section>
-
-{% endif %}
-
-<!-- ================= LATEST RELEASES ================= -->
-
-<section class="section-title">
-
-    <h2>
-
-        Latest Releases
-
-    </h2>
-
-    <p class="browse-sub">
-        Fresh from the calendar — explore the full library via
-        <a href="{{ url_for('browse', sort='popular') }}" style="color:#8F5BFF;">Popular</a>,
-        <a href="{{ url_for('browse', sort='critics') }}" style="color:#8F5BFF;">Critics</a> or
-        <a href="{{ url_for('browse') }}" style="color:#8F5BFF;">Categories</a>.
-    </p>
-
-</section>
-
-<!-- ================= GRID ================= -->
-
-<section class="anime-grid">
-
-{% set badge_label = "NEW" %}
 {% for anime in anime_list %}
 
 {% include "_anime_card.html" %}
 
 {% endfor %}
-
-</section>
-
-<!-- ================= COMMUNITY STATS ================= -->
-
-<section class="stats-section">
-
-    <div class="stat-card">
-
-        <h2>{{ anime_list | length }}+</h2>
-
-        <p>Anime Communities</p>
-
-    </div>
-
-    <div class="stat-card">
-
-        <h2>{{ site_stats.total_users }}+</h2>
-
-        <p>Active Fans</p>
-
-    </div>
-
-    <div class="stat-card">
-
-        <h2>{{ site_stats.total_messages }}+</h2>
-
-        <p>Messages Shared</p>
-
-    </div>
-
-    <div class="stat-card">
-
-        <h2>24/7</h2>
-
-        <p>Community Online</p>
-
-    </div>
-
-</section>
-
-<!-- ================= WHY SECTION ================= -->
-
-<section class="why-section">
-
-    <h2>
-
-        Why Otakul?
-
-    </h2>
-
-    <div class="why-grid">
-
-        <div class="why-card">
-
-            <i class="fas fa-comments"></i>
-
-            <h3>
-
-                One Chatroom
-
-            </h3>
-
-            <p>
-
-                Every anime has one giant community chat where fans
-                can discuss anything—from memes to theories.
-
-            </p>
-
-        </div>
-
-        <div class="why-card">
-
-            <i class="fas fa-fire"></i>
-
-            <h3>
-
-                Live Discussions
-
-            </h3>
-
-            <p>
-
-                Talk while watching episodes and join conversations
-                happening in real time.
-
-            </p>
-
-        </div>
-
-        <div class="why-card">
-
-            <i class="fas fa-user-friends"></i>
-
-            <h3>
-
-                Meet Fans
-
-            </h3>
-
-            <p>
-
-                Make friends who enjoy the same anime as you and
-                build your own profile.
-
-            </p>
-
-        </div>
-
-    </div>
 
 </section>
 
