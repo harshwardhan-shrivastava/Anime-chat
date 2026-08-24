@@ -125,10 +125,19 @@
             opts.headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
             opts.body = JSON.stringify(opts.json);
         }
+        opts.credentials = "include";
         return fetch(path, opts).then(function (r) {
-            if (!r.ok) throw new Error("HTTP " + r.status);
+            if (!r.ok) {
+                if (r.status === 401 || r.status === 403) {
+                    toast("Session expired — redirecting to login", "error");
+                    setTimeout(function () { window.location.href = "/login?next=" + encodeURIComponent(window.location.pathname); }, 1200);
+                    throw new Error("Auth " + r.status);
+                }
+                throw new Error("HTTP " + r.status);
+            }
             return r.json();
         }).catch(function (err) {
+            if (err.message && err.message.indexOf("Auth") === 0) throw err;
             toast("Network error — please refresh", "error");
             console.error("API error:", path, err);
             throw err;
