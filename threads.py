@@ -200,7 +200,74 @@ def search_users():
     if len(q) < 1:
         return jsonify({"success": True, "users": []})
     results = threads_db.search_users(q, exclude_id=user["id"], limit=10)
+    # Attach friendship status so the UI can show the right action per user.
+    for u in results:
+        fs = threads_db.friendship_status(user["id"], u["id"])
+        u["friend_status"] = fs["status"]
+        if fs["req_id"]:
+            u["friend_req_id"] = fs["req_id"]
     return jsonify({"success": True, "users": results})
+
+
+# ---------------------------------------------------------------------------
+# Friend requests
+# ---------------------------------------------------------------------------
+
+@bp.route("/threads/api/friends/request", methods=["POST"])
+def friend_request_send():
+    user, err = _json_user()
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    target = None
+    if data.get("user_id"):
+        try:
+            target = site_db.get_user_by_id(int(data["user_id"]))
+        except (TypeError, ValueError):
+            target = None
+    elif (data.get("username") or "").strip():
+        target = site_db.get_user_by_username(data["username"].strip())
+    if not target:
+        return jsonify({"success": False, "error": "no_such_user"}), 404
+    if target["id"] == user["id"]:
+        return jsonify({"success": False, "error": "That's you!"}), 400
+    ok, reason = threads_db.send_friend_request(user["id"], target["id"])
+    if ok:
+        return jsonify({"success": True, "status": reason,
+                        "pending_count": threads_db.pending_friend_request_count(target["id"])})
+    return jsonify({"success": False, "error": reason}), 409
+
+
+@bp.route("/threads/api/friends/requests")
+def friend_requests_list():
+    user, err = _json_user()
+    if err:
+        return err
+    incoming, outgoing = threads_db.list_friend_requests(user["id"])
+    return jsonify({
+        "success": True,
+        "incoming": incoming,
+        "outgoing": outgoing,
+        "count": len(incoming),
+    })
+
+
+@bp.route("/threads/api/friends/requests/<int:rid>/respond", methods=["POST"])
+def friend_request_respond(rid):
+    user, err = _json_user()
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    accept = bool(data.get("accept"))
+    ok, msg, other_id = threads_db.respond_friend_request(rid, user["id"], accept)
+    if not ok:
+        return jsonify({"success": False, "error": msg}), 404 if msg == "no_such_request" else 409
+    resp = {"success": True, "action": msg}
+    if accept and other_id:
+        conv_id = threads_db.get_or_create_dm(user["id"], other_id)
+        convs = threads_db.get_user_conversations(user["id"])
+        resp["conversation"] = next((c for c in convs if c["id"] == conv_id), None)
+    return jsonify(resp)
 
 
 # ---------------------------------------------------------------------------
@@ -235,6 +302,18 @@ def open_dm():
         return jsonify({"success": False, "error": "no_such_user"}), 404
     if other_id == user["id"]:
         return jsonify({"success": False, "error": "self_dm"}), 400
+    # DMs require an accepted friend request (an existing DM keeps working).
+    if not threads_db.are_friends(user["id"], other_id):
+        has_dm = False
+        convs = threads_db.get_user_conversations(user["id"])
+        for c in convs:
+            if (c["type"] == "dm" and c.get("other")
+                    and c["other"]["id"] == other_id):
+                has_dm = True
+                break
+        if not has_dm:
+            return jsonify({"success": False, "error": "not_friends",
+                            "hint": "Send a friend request first."}), 403
     conv_id = threads_db.get_or_create_dm(user["id"], other_id)
     convs = threads_db.get_user_conversations(user["id"])
     conv = next((c for c in convs if c["id"] == conv_id), None)

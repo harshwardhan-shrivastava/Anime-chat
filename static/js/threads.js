@@ -31,6 +31,9 @@
         notifUnread: 0,
         convFilter: "",
         lastSeenText: "",
+        reqCount: 0,
+        reqIncoming: [],
+        reqOutgoing: [],
         activeTab: "messages",
         communities: [],
         activeCommunity: null,
@@ -807,10 +810,15 @@
         list.innerHTML = items.map(function (n) {
             var icon = n.type === "mention" ? "at"
                 : n.type === "reply" ? "reply"
-                : n.type === "dm" ? "comment-dots" : "bell";
+                : n.type === "dm" ? "comment-dots"
+                : n.type === "friend_request" ? "user-plus"
+                : n.type === "friend_accept" ? "user-check"
+                : "bell";
             var text = n.type === "mention" ? " mentioned you"
                 : n.type === "reply" ? " replied to your message"
-                : n.type === "dm" ? " sent you a message" : "";
+                : n.type === "dm" ? " sent you a message"
+                : n.type === "friend_request" ? " sent you a friend request"
+                : n.type === "friend_accept" ? " accepted your friend request" : "";
             var ago = fmtConvTime(n.created_at);
             return '<div class="thr-notif' + (n.read ? " read" : "") + '" data-ntype="' + n.type + '" data-nctx="' +
                 (n.context_type ? n.context_type + ":" + n.context_id : "") + '">' +
@@ -928,10 +936,20 @@
             api("/threads/api/users/search?q=" + encodeURIComponent(q)).then(function (res) {
                 if (!res.success) { handleApiError(res); return; }
                 results.innerHTML = res.users.map(function (u) {
-                    return '<div class="thr-user-row" data-uid="' + u.id + '">' +
+                    var action;
+                    if (u.friend_status === "friends") {
+                        action = '<button class="thr-btn thr-btn-sm thr-btn-primary" data-msg-id="' + u.id + '">Message</button>';
+                    } else if (u.friend_status === "outgoing") {
+                        action = '<span class="thr-count-chip">Requested</span>';
+                    } else if (u.friend_status === "incoming") {
+                        action = '<button class="thr-btn thr-btn-sm thr-btn-primary" data-accept-in="' + (u.friend_req_id || "") + '">Accept</button>';
+                    } else {
+                        action = '<button class="thr-btn thr-btn-sm" data-add-id="' + u.id + '">Add friend</button>';
+                    }
+                    return '<div class="thr-user-row" data-uid="' + u.id + '" data-fstatus="' + u.friend_status + '">' +
                         '<span class="thr-avatar thr-avatar-md" style="background:' + escapeHtml(u.avatar_color) + '">' +
                         avatarInner(u) + "</span>" +
-                        "<span>" + escapeHtml(u.username) + "</span></div>";
+                        "<span>" + escapeHtml(u.username) + "</span>" + action + "</div>";
                 }).join("") || '<div class="thr-dropdown-empty">No users found</div>';
             });
         }
@@ -940,16 +958,137 @@
             t = setTimeout(search, 250);
         });
         results.addEventListener("click", function (e) {
+            // Add friend
+            var addBtn = e.target.closest("[data-add-id]");
+            if (addBtn) {
+                addBtn.disabled = true;
+                api("/threads/api/friends/request", { json: { user_id: parseInt(addBtn.getAttribute("data-add-id"), 10) } })
+                    .then(function (res) {
+                        if (!res.success) { handleApiError(res); search(); return; }
+                        toast("Friend request sent \u2713");
+                        search();
+                    });
+                return;
+            }
+            // Accept an incoming request straight from search results
+            var accBtn = e.target.closest("[data-accept-in]");
+            if (accBtn && accBtn.getAttribute("data-accept-in")) {
+                accBtn.disabled = true;
+                api("/threads/api/friends/requests/" + accBtn.getAttribute("data-accept-in") + "/respond",
+                    { json: { accept: true } }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    toast("Friend request accepted \u{1F389}");
+                    closeModal("modalNewDm");
+                    input.value = "";
+                    results.innerHTML = "";
+                    if (res.conversation) {
+                        upsertConversation(res.conversation);
+                        openConversation(res.conversation.type, res.conversation.id);
+                    }
+                    refreshRequestBadge();
+                });
+                return;
+            }
+            // Open DM with an existing friend
+            var msgBtn = e.target.closest("[data-msg-id]");
             var row = e.target.closest(".thr-user-row");
             if (!row) return;
             var uid = parseInt(row.getAttribute("data-uid"), 10);
+            var fstatus = row.getAttribute("data-fstatus");
+            if (fstatus === "outgoing") return;
             api("/threads/api/conversations/dm", { json: { user_id: uid } }).then(function (res) {
-                if (!res.success) { handleApiError(res); return; }
+                if (!res.success) {
+                    if (res.error === "not_friends") {
+                        toast("Send a friend request first", "error");
+                    } else {
+                        handleApiError(res);
+                    }
+                    return;
+                }
                 closeModal("modalNewDm");
                 input.value = "";
                 results.innerHTML = "";
                 upsertConversation(res.conversation);
                 openConversation(res.conversation.type, res.conversation.id);
+            });
+        });
+    }
+
+    function sendFriendRequestById(uid, btn) {
+        if (btn) btn.disabled = true;
+        api("/threads/api/friends/request", { json: { user_id: uid } }).then(function (res) {
+            if (!res.success) { handleApiError(res); return; }
+            toast("Friend request sent \u2713");
+        });
+    }
+
+    function refreshRequestBadge() {
+        api("/threads/api/friends/requests").then(function (res) {
+            if (!res.success) return;
+            var n = res.count || 0;
+            var badge = $("#reqBadge");
+            badge.textContent = n > 99 ? "99+" : n;
+            badge.classList.toggle("hidden", !n);
+            State.reqCount = n;
+            State.reqIncoming = res.incoming || [];
+            State.reqOutgoing = res.outgoing || [];
+        });
+    }
+
+    function renderRequestsModal() {
+        var inc = $("#reqIncoming");
+        var out = $("#reqOutgoing");
+        function rowHtml(u, incomingSide) {
+            var action = incomingSide
+                ? '<button class="thr-btn thr-btn-sm thr-btn-primary" data-accept="' + u.id + '">Accept</button>' +
+                  '<button class="thr-btn thr-btn-sm thr-btn-danger" data-reject="' + u.id + '">Reject</button>'
+                : '<span class="thr-count-chip">Pending</span>';
+            return '<div class="thr-user-row" data-req-row="' + u.user_id + '">' +
+                '<span class="thr-avatar thr-avatar-md" style="background:' + escapeHtml(u.avatar_color || "#8b5cf6") + '">' +
+                avatarInner(u) + "</span><span>" + escapeHtml(u.username) + "</span>" + action + "</div>";
+        }
+        inc.innerHTML = (State.reqIncoming || []).map(function (u) { return rowHtml(u, true); }).join("")
+            || '<div class="thr-dropdown-empty">No pending requests</div>';
+        out.innerHTML = (State.reqOutgoing || []).map(function (u) { return rowHtml(u, false); }).join("")
+            || '<div class="thr-dropdown-empty">No sent requests</div>';
+    }
+
+    function openRequestsModal() {
+        api("/threads/api/friends/requests").then(function (res) {
+            if (!res.success) { handleApiError(res); return; }
+            State.reqIncoming = res.incoming || [];
+            State.reqOutgoing = res.outgoing || [];
+            renderRequestsModal();
+            openModal("modalRequests");
+        });
+    }
+
+    function wireRequestsModal() {
+        $("#btnRequests").addEventListener("click", openRequestsModal);
+        $("#modalRequests").addEventListener("click", function (e) {
+            var acc = e.target.closest("[data-accept]");
+            var rej = e.target.closest("[data-reject]");
+            if (!acc && !rej) return;
+            var uid = parseInt((acc || rej).getAttribute(acc ? "data-accept" : "data-reject"), 10);
+            var req = (State.reqIncoming || []).filter(function (u) { return u.user_id === uid; })[0];
+            if (!req) return;
+            api("/threads/api/friends/requests/" + req.id + "/respond",
+                { json: { accept: !!acc } }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                if (acc) {
+                    toast("Friend request accepted \u{1F389}");
+                    if (res.conversation) {
+                        closeModal("modalRequests");
+                        upsertConversation(res.conversation);
+                        openConversation(res.conversation.type, res.conversation.id);
+                    }
+                } else {
+                    toast("Friend request rejected");
+                }
+                State.reqIncoming = (State.reqIncoming || []).filter(function (u) { return u.user_id !== uid; });
+                renderRequestsModal();
+                refreshRequestBadge();
+                refreshConversations();
             });
         });
     }
@@ -963,98 +1102,9 @@
         renderConversations();
     }
 
-    // ---- Group modal ----
-    var GROUP_COLORS = ["#8b5cf6", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#ec4899", "#06b6d4", "#f97316"];
-    var groupPicks = {};
+    // ---- Friend requests modal ----
 
-    function wireGroupModal() {
-        var nameInput = $("#groupName");
-        var sInput = $("#groupSearch");
-        var sResults = $("#groupResults");
-        var picks = $("#groupPicks");
-        var swatches = $("#groupColors");
-        var chosenColor = GROUP_COLORS[0];
-
-        swatches.innerHTML = GROUP_COLORS.map(function (c, i) {
-            return '<span class="thr-swatch' + (i === 0 ? " chosen" : "") + '" data-color="' + c + '" style="background:' + c + '"></span>';
-        }).join("");
-        swatches.addEventListener("click", function (e) {
-            var sw = e.target.closest(".thr-swatch");
-            if (!sw) return;
-            chosenColor = sw.getAttribute("data-color");
-            $$(".thr-swatch", swatches).forEach(function (s) { s.classList.remove("chosen"); });
-            sw.classList.add("chosen");
-        });
-
-        function renderPicks() {
-            var ids = Object.keys(groupPicks);
-            picks.innerHTML = ids.map(function (uid) {
-                var u = groupPicks[uid];
-                return '<span class="thr-pick"><span class="thr-avatar thr-avatar-sm" style="background:' +
-                    escapeHtml(u.avatar_color) + '">' + avatarInner(u) + "</span>" +
-                    escapeHtml(u.username) + ' <button class="thr-link-btn" data-remove="' + uid + '">✕</button></span>';
-            }).join("");
-            return ids.length;
-        }
-
-        function search(q) {
-            if (!q) { sResults.innerHTML = ""; return; }
-            api("/threads/api/users/search?q=" + encodeURIComponent(q)).then(function (res) {
-                if (!res.success) { handleApiError(res); return; }
-                var ids = Object.keys(groupPicks);
-                sResults.innerHTML = res.users.filter(function (u) {
-                    return ids.indexOf(String(u.id)) === -1;
-                }).map(function (u) {
-                    return '<div class="thr-user-row" data-uid="' + u.id + '" data-name="' +
-                        escapeHtml(u.username) + '" data-color="' + escapeHtml(u.avatar_color) +
-                        '" data-avatar="' + escapeHtml(u.avatar || "") + '">' +
-                        '<span class="thr-avatar thr-avatar-md" style="background:' + escapeHtml(u.avatar_color) + '">' +
-                        avatarInner(u) + "</span><span>" + escapeHtml(u.username) + "</span></div>";
-                }).join("") || '<div class="thr-dropdown-empty">No more users</div>';
-            });
-        }
-
-        var t;
-        sInput.addEventListener("input", function () {
-            clearTimeout(t);
-            t = setTimeout(function () { search(sInput.value.trim()); }, 250);
-        });
-        sResults.addEventListener("click", function (e) {
-            var row = e.target.closest(".thr-user-row");
-            if (!row) return;
-            var uid = row.getAttribute("data-uid");
-            groupPicks[uid] = {
-                id: parseInt(uid, 10),
-                username: row.getAttribute("data-name"),
-                avatar_color: row.getAttribute("data-color"),
-                avatar: row.getAttribute("data-avatar"),
-            };
-            renderPicks();
-            sInput.value = "";
-            sResults.innerHTML = "";
-        });
-        picks.addEventListener("click", function (e) {
-            var b = e.target.closest("[data-remove]");
-            if (b) { delete groupPicks[b.getAttribute("data-remove")]; renderPicks(); }
-        });
-
-        $("#btnCreateGroup").addEventListener("click", function () {
-            var name = nameInput.value.trim();
-            if (!name) { toast("Give the group a name", "error"); return; }
-            var memberIds = Object.keys(groupPicks).map(Number);
-            api("/threads/api/conversations/group", {
-                json: { name: name, member_ids: memberIds, avatar_color: chosenColor },
-            }).then(function (res) {
-                if (!res.success) { handleApiError(res); return; }
-                closeModal("modalNewGroup");
-                nameInput.value = "";
-                groupPicks = {};
-                renderPicks();
-                upsertConversation(res.conversation);
-                openConversation(res.conversation.type, res.conversation.id);
-            });
-        });
-    }
+    // (group creation was replaced by the friend-request flow)
 
     // ---- GIF modal ----
     function wireGifModal() {
@@ -2302,6 +2352,11 @@
                     }
                 }
             }
+            if (item.getAttribute('data-ntype') === 'friend_request') {
+                dd.classList.add('hidden');
+                openRequestsModal();
+                return;
+            }
             if (e.target.closest("#btnNotifRead")) return;
         });
         $("#btnNotifRead").addEventListener("click", function () {
@@ -2460,10 +2515,9 @@
             });
         });
 
-        // new DM / group buttons (header + empty state)
+        // new DM + friend-requests buttons (header + empty state)
         $("#btnNewDm").addEventListener("click", function () { openModal("modalNewDm"); });
         $("#btnEmptyDm").addEventListener("click", function () { openModal("modalNewDm"); });
-        $("#btnNewGroup").addEventListener("click", function () { openModal("modalNewGroup"); });
 
         // tabs
         $$(".thr-tab").forEach(function (t) {
@@ -2517,7 +2571,8 @@
         parseUser();
         wireModalClose();
         wireDmModal();
-        wireGroupModal();
+        wireRequestsModal();
+        refreshRequestBadge();
         wireGifModal();
         wireMembersModal();
         wireAnimeModal();
@@ -2542,6 +2597,7 @@
         setInterval(refreshCommunities, 5000);
         setInterval(refreshPresence, 10000);
         setInterval(refreshNotifications, 15000);
+        setInterval(refreshRequestBadge, 15000);
 
         // presence away/back
         document.addEventListener("visibilitychange", function () {

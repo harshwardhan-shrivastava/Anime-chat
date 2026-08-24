@@ -286,6 +286,21 @@ def create_tables():
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_thr_reports_status ON thr_reports(status)")
 
+    # ---- Friend requests ---------------------------------------------------------
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS thr_friend_requests(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            from_user_id INTEGER NOT NULL,
+            to_user_id INTEGER NOT NULL,
+            status TEXT DEFAULT 'pending',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_thr_freq_to ON thr_friend_requests(to_user_id, status)"
+    )
+
     # ---- Notifications -----------------------------------------------------------
     cur.execute("""
         CREATE TABLE IF NOT EXISTS thr_notifications(
@@ -328,6 +343,185 @@ def search_users(query, exclude_id, limit=10):
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
     return rows
+
+
+# ---------------------------------------------------------------------------
+# Friend requests (DMs require friendship)
+# ---------------------------------------------------------------------------
+
+def are_friends(a, b):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT 1 FROM thr_friend_requests
+        WHERE status = 'accepted'
+          AND ((from_user_id = ? AND to_user_id = ?)
+            OR (from_user_id = ? AND to_user_id = ?))
+        LIMIT 1
+        """,
+        (a, b, b, a),
+    )
+    ok = cur.fetchone() is not None
+    conn.close()
+    return ok
+
+
+def friendship_status(user_id, other_id):
+    """{'status': 'friends'|'outgoing'|'incoming'|'none', 'req_id': int|None}."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT id, from_user_id, status FROM thr_friend_requests
+        WHERE ((from_user_id = ? AND to_user_id = ?)
+            OR (from_user_id = ? AND to_user_id = ?))
+        ORDER BY id DESC LIMIT 1
+        """,
+        (user_id, other_id, other_id, user_id),
+    )
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return {"status": "none", "req_id": None}
+    if row["status"] == "accepted":
+        return {"status": "friends", "req_id": row["id"]}
+    if row["status"] == "pending":
+        st = "incoming" if row["from_user_id"] == other_id else "outgoing"
+        return {"status": st, "req_id": row["id"]}
+    return {"status": "none", "req_id": None}
+
+
+def send_friend_request(from_id, to_id):
+    """Create a pending request. Returns (ok, reason)."""
+    if are_friends(from_id, to_id):
+        return False, "already_friends"
+    fs = friendship_status(from_id, to_id)
+    st = fs["status"]
+    if st == "outgoing":
+        return False, "request_pending"
+    if st == "incoming":
+        # They already asked us — auto-accept instead of erroring.
+        return accept_friend_request_by_users(to_id, from_id)[0], "accepted"
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO thr_friend_requests (from_user_id, to_user_id) VALUES (?, ?)",
+        (from_id, to_id),
+    )
+    req_id = cur.lastrowid
+    cur.execute(
+        """
+        INSERT INTO thr_notifications (user_id, type, context_type, context_id, from_user_id)
+        VALUES (?, 'friend_request', NULL, NULL, ?)
+        """,
+        (to_id, from_id),
+    )
+    conn.commit()
+    conn.close()
+    return True, "sent"
+
+
+def respond_friend_request(req_id, user_id, accept):
+    """Accept/reject a pending incoming request.
+    Returns (ok, message, other_user_id_or_None)."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT * FROM thr_friend_requests WHERE id = ? AND to_user_id = ?",
+        (req_id, user_id),
+    )
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return False, "no_such_request", None
+    if row["status"] != "pending":
+        conn.close()
+        return False, "already_handled", row["from_user_id"]
+    new_status = "accepted" if accept else "rejected"
+    cur.execute(
+        "UPDATE thr_friend_requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        (new_status, req_id),
+    )
+    conn.commit()
+    conn.close()
+    from_user_id = row["from_user_id"]
+    conv_id = None
+    if accept:
+        # Create the DM right away so both users see each other in chat.
+        conv_id = get_or_create_dm(user_id, from_user_id)
+        conn2 = get_connection()
+        cur2 = conn2.cursor()
+        cur2.execute(
+            """
+            INSERT INTO thr_notifications (user_id, type, context_type, context_id, from_user_id)
+            VALUES (?, 'friend_accept', 'dm', ?, ?)
+            """,
+            (from_user_id, conv_id, user_id),
+        )
+        conn2.commit()
+        conn2.close()
+    verb = "accepted" if accept else "rejected"
+    return True, verb, from_user_id
+
+
+def accept_friend_request_by_users(requester_id, target_id):
+    """Accept the pending request requester->target directly."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT id FROM thr_friend_requests
+        WHERE from_user_id = ? AND to_user_id = ? AND status = 'pending'
+        ORDER BY id DESC LIMIT 1
+        """,
+        (requester_id, target_id),
+    )
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return False, "no_such_request"
+    ok, msg, _other = respond_friend_request(row["id"], target_id, True)
+    return ok, msg
+
+
+def list_friend_requests(user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT r.id, r.from_user_id AS user_id, u.username, u.avatar_color, u.avatar, r.created_at
+        FROM thr_friend_requests r JOIN users u ON u.id = r.from_user_id
+        WHERE r.to_user_id = ? AND r.status = 'pending'
+        ORDER BY r.id DESC
+        """,
+        (user_id,),
+    )
+    incoming = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT r.id, r.to_user_id AS user_id, u.username, u.avatar_color, u.avatar, r.created_at
+        FROM thr_friend_requests r JOIN users u ON u.id = r.to_user_id
+        WHERE r.from_user_id = ? AND r.status = 'pending'
+        ORDER BY r.id DESC
+        """,
+        (user_id,),
+    )
+    outgoing = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return incoming, outgoing
+
+
+def pending_friend_request_count(user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT COUNT(*) AS n FROM thr_friend_requests WHERE to_user_id = ? AND status = 'pending'",
+        (user_id,),
+    )
+    n = cur.fetchone()["n"]
+    conn.close()
+    return n
 
 
 # ---------------------------------------------------------------------------

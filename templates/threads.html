@@ -134,8 +134,9 @@
                     <button id="btnNewDm" class="thr-new-btn" title="New message (DM)">
                         <i class="fas fa-pen"></i>
                     </button>
-                    <button id="btnNewGroup" class="thr-new-btn" title="New group">
-                        <i class="fas fa-users"></i>
+                    <button id="btnRequests" class="thr-new-btn" title="Friend requests">
+                        <i class="fas fa-user-plus"></i>
+                        <span id="reqBadge" class="thr-badge hidden">0</span>
                     </button>
                 </div>
             </div>
@@ -270,26 +271,18 @@
     </div>
 </div>
 
-<!-- ===================== NEW GROUP MODAL ===================== -->
-<div class="thr-modal hidden" id="modalNewGroup">
+<!-- ===================== FRIEND REQUESTS MODAL ===================== -->
+<div class="thr-modal hidden" id="modalRequests">
     <div class="thr-modal-card">
         <div class="thr-modal-head">
-            <h3>New group</h3>
-            <button class="thr-modal-close" data-close="modalNewGroup"><i class="fas fa-times"></i></button>
+            <h3>Friend requests</h3>
+            <button class="thr-modal-close" data-close="modalRequests"><i class="fas fa-times"></i></button>
         </div>
         <div class="thr-modal-body">
-            <input id="groupName" class="thr-text-input" type="text" placeholder="Group name" maxlength="40">
-            <div class="thr-search thr-modal-search">
-                <i class="fas fa-search"></i>
-                <input id="groupSearch" type="text" placeholder="Add members…" autocomplete="off">
-            </div>
-            <div id="groupPicks" class="thr-group-picks"></div>
-            <div id="groupResults" class="thr-user-results"></div>
-            <div class="thr-color-row">
-                <span class="thr-label">Icon color</span>
-                <div id="groupColors" class="thr-color-swatches"></div>
-            </div>
-            <button id="btnCreateGroup" class="thr-btn thr-btn-primary thr-btn-block">Create group</button>
+            <div class="thr-channel-section-label">Received</div>
+            <div id="reqIncoming" class="thr-user-results"></div>
+            <div class="thr-channel-section-label">Sent</div>
+            <div id="reqOutgoing" class="thr-user-results"></div>
         </div>
     </div>
 </div>
