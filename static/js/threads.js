@@ -1048,9 +1048,9 @@
                 avatarInner(u) + "</span><span>" + escapeHtml(u.username) + "</span>" + action + "</div>";
         }
         inc.innerHTML = (State.reqIncoming || []).map(function (u) { return rowHtml(u, true); }).join("")
-            || '<div class="thr-dropdown-empty">No pending requests</div>';
+            || '<div class="thr-dropdown-empty">No message requests yet</div>';
         out.innerHTML = (State.reqOutgoing || []).map(function (u) { return rowHtml(u, false); }).join("")
-            || '<div class="thr-dropdown-empty">No sent requests</div>';
+            || '<div class="thr-dropdown-empty">No sent requests yet</div>';
     }
 
     function openRequestsModal() {
@@ -1069,8 +1069,8 @@
             var acc = e.target.closest("[data-accept]");
             var rej = e.target.closest("[data-reject]");
             if (!acc && !rej) return;
-            var uid = parseInt((acc || rej).getAttribute(acc ? "data-accept" : "data-reject"), 10);
-            var req = (State.reqIncoming || []).filter(function (u) { return u.user_id === uid; })[0];
+            var reqId = parseInt((acc || rej).getAttribute(acc ? "data-accept" : "data-reject"), 10);
+            var req = (State.reqIncoming || []).filter(function (u) { return u.id === reqId; })[0];
             if (!req) return;
             api("/threads/api/friends/requests/" + req.id + "/respond",
                 { json: { accept: !!acc } }).then(function (res) {
@@ -1085,7 +1085,7 @@
                 } else {
                     toast("Friend request rejected");
                 }
-                State.reqIncoming = (State.reqIncoming || []).filter(function (u) { return u.user_id !== uid; });
+                State.reqIncoming = (State.reqIncoming || []).filter(function (u) { return u.id !== reqId; });
                 renderRequestsModal();
                 refreshRequestBadge();
                 refreshConversations();
