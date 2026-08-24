@@ -688,7 +688,7 @@ def _decorate(entries, sort):
 
 @app.route("/")
 def home():
-    latest = _catalog_entries(sort="latest", limit=48)
+    latest = _catalog_entries(sort="latest", limit=64)
     recommended, recommended_genres = _home_picks()
     site_stats = get_site_stats()
 
