@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ target.username }} — Otakul</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/rankings.css') }}">
+</head>
+<body>
+    {% include '_navbar.html' %}
+
+    <main class="profile-page">
+        <section class="profile-header">
+            <div class="profile-avatar">
+                <img src="{{ url_for('static', filename='images/avatars/' ~ target.avatar) }}"
+                     alt="{{ target.username }}'s avatar" class="settings-avatar-img">
+            </div>
+            <div class="profile-info">
+                <h1>{{ target.username }}</h1>
+                <div class="profile-rank-badge rank-badge-{{ user_rank | lower | replace('+', 'p') }}">
+                    {{ user_rank }} Rank
+                    <span class="rank-xp">{{ user_xp }} XP</span>
+                </div>
+                <p class="profile-meta">{{ history_count }} anime visited</p>
+            </div>
+        </section>
+
+        <section class="profile-tabs">
+            <span class="profile-tab active">Reviews</span>
+        </section>
+
+        {% if reviews %}
+        <section class="review-history-list">
+            {% for r in reviews %}
+            <div class="review-history-item">
+                <a href="/anime/{{ r.anime_slug }}" class="review-anime-link">
+                    {{ r.anime_title }}
+                </a>
+                <div class="review-meta">
+                    {% if r.type == 'episode' %}
+                        <span class="review-type-badge episode-badge">Ep {{ r.episode_number }}</span>
+                    {% else %}
+                        <span class="review-type-badge anime-badge">Anime</span>
+                    {% endif %}
+                    <span class="review-rating">
+                        {% for i in range(1, 6) %}
+                            {% if i <= r.rating %}★{% else %}☆{% endif %}
+                        {% endfor %}
+                        {{ r.rating }}/5
+                    </span>
+                    <span class="review-likes">
+                        <i class="fas fa-thumbs-up"></i> {{ r.likes }}
+                        <i class="fas fa-thumbs-down"></i> {{ r.dislikes }}
+                    </span>
+                </div>
+                {% if r.comment %}
+                <p class="review-comment">{{ r.comment }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </section>
+        {% else %}
+        <section class="rankings-empty">
+            <i class="fas fa-pen"></i>
+            <h2>No reviews yet</h2>
+            <p>This user hasn't posted any reviews.</p>
+        </section>
+        {% endif %}
+    </main>
+
+    <script src="{{ url_for('static', filename='js/search.js') }}"></script>
+</body>
+</html>

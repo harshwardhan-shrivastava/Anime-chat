@@ -116,7 +116,7 @@ def profile():
         return redirect(url_for("profile.profile", tab="settings"))
 
     tab = request.args.get("tab", "history")
-    if tab not in ("history", "lists", "settings"):
+    if tab not in ("history", "lists", "settings", "reviews"):
         tab = "history"
 
     history = []
@@ -129,6 +129,18 @@ def profile():
             pick["visited_at"] = row["viewed_at"]
             history.append(pick)
 
+    reviews = []
+    if tab == "reviews":
+        from database import get_user_review_history, get_user_xp, get_user_rank, get_bulk_review_likes
+        reviews = get_user_review_history(user["id"], 50)
+        # Attach like counts
+        for r in reviews:
+            likes_data = get_bulk_review_likes(r["type"], [r["id"]])
+            r["likes"] = likes_data.get(r["id"], {}).get("likes", 0)
+            r["dislikes"] = likes_data.get(r["id"], {}).get("dislikes", 0)
+
+    user_xp = get_user_xp(user["id"])
+    user_rank = get_user_rank(user["id"])
     lists = [_list_pub(lst) for lst in _user_lists(user["id"])]
     history_count = get_history_count(user["id"])
 
@@ -138,6 +150,9 @@ def profile():
         tab=tab,
         history=history,
         history_count=history_count,
+        reviews=reviews,
+        user_xp=user_xp,
+        user_rank=user_rank,
         lists=lists,
         max_lists=MAX_USER_LISTS,
         genres=_genre_list(),
@@ -170,6 +185,42 @@ def profile_list(list_id):
         genres=_genre_list(),
     )
 
+
+@bp.route("/user/<username>")
+def public_profile(username):
+    """Public profile view for any user."""
+    import database as db
+    target = db.get_user_by_username(username)
+    if target is None:
+        flash("User not found.", "error")
+        return redirect(url_for("home"))
+
+    is_owner = g.get("user") and g.get("user")["id"] == target["id"]
+
+    # Check if profile is public (or owner viewing own profile)
+    if not is_owner and not target.get("is_public"):
+        flash("This profile is private.", "error")
+        return redirect(url_for("home"))
+
+    reviews = db.get_user_review_history(target["id"], 30)
+    for r in reviews:
+        likes_data = db.get_bulk_review_likes(r["type"], [r["id"]])
+        r["likes"] = likes_data.get(r["id"], {}).get("likes", 0)
+        r["dislikes"] = likes_data.get(r["id"], {}).get("dislikes", 0)
+
+    user_xp = db.get_user_xp(target["id"])
+    user_rank = db.get_user_rank(target["id"])
+    history_count = db.get_history_count(target["id"])
+
+    return render_template(
+        "public_profile.html",
+        target=target,
+        reviews=reviews,
+        user_xp=user_xp,
+        user_rank=user_rank,
+        history_count=history_count,
+        genres=_genre_list(),
+    )
 
 @bp.route("/api/lists", methods=["GET", "POST"])
 def api_lists():

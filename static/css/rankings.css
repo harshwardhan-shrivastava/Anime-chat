@@ -58,6 +58,7 @@
 .tier-badge.tier-b  { border-color: #a78bfa; color: #a78bfa; background: rgba(167,139,250,.07); }
 .tier-badge.tier-c  { border-color: rgba(255,255,255,.25); color: rgba(255,255,255,.45); }
 .tier-badge.tier-d  { border-color: rgba(255,255,255,.12); color: rgba(255,255,255,.3); }
+.tier-badge.tier-f  { border-color: rgba(239,68,68,.2); color: rgba(239,68,68,.5); background: rgba(239,68,68,.05); }
 
 /* ---- Filters ---- */
 .rankings-filters {
@@ -137,6 +138,11 @@
     border-color: rgba(167,139,250,.12);
     background: rgba(167,139,250,.02);
 }
+.rank-row.rank-tier-f {
+    border-color: rgba(239,68,68,.1);
+    background: rgba(239,68,68,.02);
+    opacity: .7;
+}
 
 /* ---- Rank Position ---- */
 .rank-position {
@@ -168,6 +174,7 @@
 .rank-tier-badge.tier-b  { background: rgba(167,139,250,.2); color: #a78bfa; }
 .rank-tier-badge.tier-c  { background: rgba(255,255,255,.08); color: rgba(255,255,255,.4); }
 .rank-tier-badge.tier-d  { background: rgba(255,255,255,.04); color: rgba(255,255,255,.25); }
+.rank-tier-badge.tier-f  { background: rgba(239,68,68,.12); color: #ef4444; }
 
 /* ---- Rank Image ---- */
 .rank-image {

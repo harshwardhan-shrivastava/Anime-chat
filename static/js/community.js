@@ -696,7 +696,36 @@ function jumpToMessage(id) {
 // MESSAGE GROUPING RENDERER
 // ===============================
 
-function startNewGroup(sender, isMine, avatarColor, avatar) {
+/* Rank badge lookup cache */
+const _rankCache = {};
+function rankBadgeHtml(userId, rank) {
+    if (!rank) return "";
+    const cls = "rank-badge-" + rank.toLowerCase().replace("+", "p");
+    return `<span class="chat-rank-badge ${cls}">${rank}</span>`;
+}
+function fetchRanksForMessages(messages) {
+    const ids = [];
+    messages.forEach(m => {
+        if (m.user_id && !_rankCache[m.user_id]) ids.push(m.user_id);
+    });
+    if (!ids.length) return Promise.resolve();
+    return fetch("/api/user-ranks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_ids: ids })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ranks) {
+            Object.keys(data.ranks).forEach(uid => {
+                _rankCache[uid] = data.ranks[uid];
+            });
+        }
+    })
+    .catch(() => {});
+}
+
+function startNewGroup(sender, isMine, avatarColor, avatar, userId) {
     const group = document.createElement("div");
     group.className = "msg-group" + (isMine ? " mine" : "");
 
@@ -705,10 +734,14 @@ function startNewGroup(sender, isMine, avatarColor, avatar) {
         ? `<div class="avatar" style="background:${color}"><img class="avatar-img" src="/static/images/avatars/${escapeHtml(avatar)}" alt=""></div>`
         : `<div class="avatar" style="background:${color}">${initials(sender)}</div>`;
 
+    const userRank = (userId && _rankCache[userId]) ? _rankCache[userId].rank : null;
+    const rankHtml = rankBadgeHtml(userId, userRank);
+
     group.innerHTML = `
         <div class="msg-group-head">
             ${avatarEl}
             <span class="msg-group-name" style="color:${color}">${escapeHtml(sender)}</span>
+            ${rankHtml}
             <span class="msg-group-time"></span>
         </div>
         <div class="msg-lines"></div>
@@ -805,7 +838,7 @@ function renderMessage(message) {
     if (lastSender === message.username && lastGroupEl) {
         group = lastGroupEl;
     } else {
-        group = startNewGroup(message.username, isMine, message.avatar_color, message.avatar);
+        group = startNewGroup(message.username, isMine, message.avatar_color, message.avatar, message.user_id);
     }
 
     appendLine(group, message, isMine, messageDate);
@@ -830,7 +863,11 @@ async function pollMessages() {
         const data = await res.json();
         if (!data.success) return;
 
-        data.messages.forEach(renderIncomingMessage);
+        if (data.messages.length) {
+            await fetchRanksForMessages(data.messages);
+            // Re-render groups with updated rank badges
+            data.messages.forEach(renderIncomingMessage);
+        }
     } catch (err) {
         // network hiccup -- just try again on the next tick
     }

@@ -691,3 +691,167 @@
         font-size: 12.5px;
     }
 }
+
+/* =====================================================
+   RANK BADGES — S+ / S / A / B / C / D / F
+   ===================================================== */
+
+.profile-rank-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 6px;
+}
+.rank-xp {
+    font-size: 11px;
+    opacity: .7;
+    font-weight: 400;
+}
+
+/* F Rank — Red glitch */
+.rank-badge-f {
+    background: rgba(239,68,68,.12);
+    color: #ef4444;
+    border: 1px solid rgba(239,68,68,.3);
+    animation: rankF 2s ease-in-out infinite;
+}
+@keyframes rankF {
+    0%, 100% { opacity: .7; }
+    50% { opacity: 1; box-shadow: 0 0 8px rgba(239,68,68,.3); }
+}
+
+/* D Rank — Gray subtle */
+.rank-badge-d {
+    background: rgba(255,255,255,.06);
+    color: rgba(255,255,255,.5);
+    border: 1px solid rgba(255,255,255,.1);
+}
+
+/* C Rank — Blue glow */
+.rank-badge-c {
+    background: rgba(56,189,248,.08);
+    color: #38bdf8;
+    border: 1px solid rgba(56,189,248,.2);
+    animation: rankGlow 3s ease-in-out infinite;
+}
+@keyframes rankGlow {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: 0 0 12px rgba(56,189,248,.15); }
+}
+
+/* B Rank — Purple pulse */
+.rank-badge-b {
+    background: rgba(167,139,250,.08);
+    color: #a78bfa;
+    border: 1px solid rgba(167,139,250,.2);
+    animation: rankPulse 2.5s ease-in-out infinite;
+}
+@keyframes rankPulse {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: 0 0 14px rgba(167,139,250,.2); }
+}
+
+/* A Rank — Cyan shimmer */
+.rank-badge-a {
+    background: rgba(34,211,238,.08);
+    color: #22d3ee;
+    border: 1px solid rgba(34,211,238,.25);
+    animation: rankShimmer 3s ease-in-out infinite;
+}
+@keyframes rankShimmer {
+    0%, 100% { box-shadow: none; border-color: rgba(34,211,238,.25); }
+    50% { box-shadow: 0 0 18px rgba(34,211,238,.2); border-color: rgba(34,211,238,.4); }
+}
+
+/* S Rank — Green glow */
+.rank-badge-s {
+    background: rgba(39,208,125,.1);
+    color: #27d07d;
+    border: 1px solid rgba(39,208,125,.3);
+    animation: rankSGlow 2s ease-in-out infinite;
+}
+@keyframes rankSGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(39,208,125,.1); }
+    50% { box-shadow: 0 0 22px rgba(39,208,125,.25); }
+}
+
+/* S+ Rank — Green pulsing aura */
+.rank-badge-sp {
+    background: linear-gradient(135deg, rgba(39,208,125,.15), rgba(34,197,94,.1));
+    color: #27d07d;
+    border: 1px solid rgba(39,208,125,.4);
+    animation: rankSP 1.8s ease-in-out infinite;
+    font-size: 14px;
+}
+@keyframes rankSP {
+    0%, 100% { box-shadow: 0 0 15px rgba(39,208,125,.15); transform: scale(1); }
+    50% { box-shadow: 0 0 30px rgba(39,208,125,.3); transform: scale(1.02); }
+}
+
+/* =====================================================
+   REVIEW HISTORY
+   ===================================================== */
+
+.review-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.review-history-item {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 10px;
+    padding: 14px 16px;
+}
+.review-anime-link {
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+    font-size: .95rem;
+}
+.review-anime-link:hover {
+    color: #27d07d;
+}
+.review-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+.review-type-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+.review-type-badge.episode-badge {
+    background: rgba(56,189,248,.15);
+    color: #38bdf8;
+}
+.review-type-badge.anime-badge {
+    background: rgba(167,139,250,.15);
+    color: #a78bfa;
+}
+.review-rating {
+    font-size: 13px;
+    color: #ffd54a;
+}
+.review-likes {
+    font-size: 12px;
+    color: rgba(255,255,255,.4);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.review-likes i { font-size: 11px; }
+.review-comment {
+    margin-top: 8px;
+    font-size: 13px;
+    color: rgba(255,255,255,.5);
+    line-height: 1.5;
+}

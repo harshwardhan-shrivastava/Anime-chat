@@ -46,6 +46,10 @@
             </div>
             <div class="profile-id">
                 <h1>{{ user.username }}</h1>
+                <div class="profile-rank-badge rank-badge-{{ user_rank | lower | replace('+', 'p') }}">
+                    {{ user_rank }} Rank
+                    <span class="rank-xp">{{ user_xp }} XP</span>
+                </div>
                 <p>
                     <i class="fas fa-calendar-alt"></i>
                     Member since {{ user.created_at | nice_date }}
@@ -67,6 +71,10 @@
         <a href="{{ url_for('profile.profile', tab='lists') }}"
            class="profile-tab {% if tab == 'lists' %}active{% endif %}">
             LISTS
+        </a>
+        <a href="{{ url_for('profile.profile', tab='reviews') }}"
+           class="profile-tab {% if tab == 'reviews' %}active{% endif %}">
+            REVIEWS
         </a>
         <a href="{{ url_for('profile.profile', tab='settings') }}"
            class="profile-tab {% if tab == 'settings' %}active{% endif %}">
@@ -102,6 +110,47 @@
             <a href="{{ url_for('home') }}" class="pick-btn-solid empty-cta">
                 <i class="fas fa-compass"></i> Start exploring
             </a>
+        </div>
+        {% endif %}
+    </section>
+    {% elif tab == 'reviews' %}
+    <!-- ================= REVIEWS ================= -->
+    <section class="profile-section">
+        <div class="profile-section-head">
+            <h2>Your Reviews</h2>
+            <p>All your anime and episode ratings in one place.</p>
+        </div>
+        {% if reviews %}
+        <div class="review-history-list">
+            {% for r in reviews %}
+            <div class="review-history-item">
+                <a href="/anime/{{ r.anime_slug }}" class="review-anime-link">{{ r.anime_title }}</a>
+                <div class="review-meta">
+                    {% if r.type == 'episode' %}
+                        <span class="review-type-badge episode-badge">Ep {{ r.episode_number }}</span>
+                    {% else %}
+                        <span class="review-type-badge anime-badge">Anime</span>
+                    {% endif %}
+                    <span class="review-rating">
+                        {% for i in range(1, 6) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}
+                        {{ r.rating }}/5
+                    </span>
+                    <span class="review-likes">
+                        <i class="fas fa-thumbs-up"></i> {{ r.likes }}
+                        <i class="fas fa-thumbs-down"></i> {{ r.dislikes }}
+                    </span>
+                </div>
+                {% if r.comment %}
+                <p class="review-comment">{{ r.comment }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-pen"></i>
+            <h3>No reviews yet</h3>
+            <p>Rate some anime or episodes to see them here!</p>
         </div>
         {% endif %}
     </section>

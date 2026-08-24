@@ -56,7 +56,9 @@ data-anime-slug="{{ anime_slug }}"
 
 data-is-member="{{ 'true' if is_member else 'false' }}"
 
-data-user='{{ current_user | tojson if current_user else "null" }}'>
+data-user='{{ current_user | tojson if current_user else "null" }}'
+    data-rank='{{ user_rank }}'
+    data-xp='{{ user_xp }}'>
 
 <!-- ====================================================== -->
 <!-- BACKGROUND -->

@@ -419,6 +419,37 @@ def create_tables():
     if "reply_to" not in cols:
         cursor.execute("ALTER TABLE chat_messages ADD COLUMN reply_to INTEGER")
 
+    # Migration: reviews may have user_id column
+    review_cols = [row[1] for row in cursor.execute("PRAGMA table_info(reviews)").fetchall()]
+    if "user_id" not in review_cols:
+        cursor.execute("ALTER TABLE reviews ADD COLUMN user_id INTEGER DEFAULT NULL")
+
+    # Migration: users may have is_public column
+    user_cols = [row[1] for row in cursor.execute("PRAGMA table_info(users)").fetchall()]
+    if "is_public" not in user_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN is_public INTEGER DEFAULT 0")
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_xp(
+            user_id INTEGER PRIMARY KEY,
+            xp INTEGER DEFAULT 0,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS review_likes(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            review_type TEXT NOT NULL,
+            review_id INTEGER NOT NULL,
+            is_like INTEGER NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, review_type, review_id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -1160,15 +1191,15 @@ def get_anime_stats(anime_slug):
     }
 
 
-def add_review(anime_slug, username, rating, comment):
+def add_review(anime_slug, username, rating, comment, user_id=None):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
         """
-        INSERT INTO reviews (anime_slug, username, rating, comment)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO reviews (anime_slug, username, rating, comment, user_id)
+        VALUES (?, ?, ?, ?, ?)
         """,
-        (anime_slug, username or "Anonymous", rating, comment or "")
+        (anime_slug, username or "Anonymous", rating, comment or "", user_id)
     )
     conn.commit()
     conn.close()
@@ -1839,5 +1870,232 @@ def rate_episode(user_id, username, avatar_color, anime_slug, season_name, episo
             VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (anime_slug, season_name, episode_number, user_id, username, avatar_color, rating),
         )
+    conn.commit()
+    conn.close()
+
+
+# ================================================================
+#  XP & RANK SYSTEM
+# ================================================================
+
+# Rank thresholds: XP required to reach each rank
+RANK_THRESHOLDS = {
+    "F": -1,    # Below 0 XP
+    "D": 0,     # New users start here
+    "C": 100,
+    "B": 500,
+    "A": 1500,
+    "S": 5000,
+    "S+": 15000,
+}
+
+def get_xp_tier(xp):
+    """Return the rank tier string for a given XP value."""
+    if xp >= 15000:
+        return "S+"
+    elif xp >= 5000:
+        return "S"
+    elif xp >= 1500:
+        return "A"
+    elif xp >= 500:
+        return "B"
+    elif xp >= 100:
+        return "C"
+    elif xp >= 0:
+        return "D"
+    else:
+        return "F"
+
+
+def get_user_xp(user_id):
+    """Get a user's current XP. Returns 0 if no record exists."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT xp FROM user_xp WHERE user_id=?", (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return row["xp"] if row else 0
+
+
+def get_user_rank(user_id):
+    """Return the rank tier string for a user."""
+    return get_xp_tier(get_user_xp(user_id))
+
+
+def add_xp(user_id, amount):
+    """Add (or subtract) XP for a user. Creates record if needed."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT xp FROM user_xp WHERE user_id=?", (user_id,))
+    row = cursor.fetchone()
+    if row:
+        new_xp = row["xp"] + amount
+        cursor.execute("UPDATE user_xp SET xp=? WHERE user_id=?", (new_xp, user_id))
+    else:
+        cursor.execute("INSERT INTO user_xp (user_id, xp) VALUES (?, ?)", (user_id, amount))
+    conn.commit()
+    conn.close()
+
+
+def get_all_user_ranks(user_ids):
+    """Return {user_id: {xp, rank}} for a list of user IDs."""
+    if not user_ids:
+        return {}
+    conn = get_connection()
+    cursor = conn.cursor()
+    placeholders = ",".join("?" * len(user_ids))
+    cursor.execute(f"SELECT user_id, xp FROM user_xp WHERE user_id IN ({placeholders})", user_ids)
+    result = {}
+    for row in cursor.fetchall():
+        result[row["user_id"]] = {
+            "xp": row["xp"],
+            "rank": get_xp_tier(row["xp"]),
+        }
+    conn.close()
+    return result
+
+
+def toggle_review_like(user_id, review_type, review_id, is_like):
+    """Toggle a like/dislike on a review. Returns (new_is_like, removed)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, is_like FROM review_likes WHERE user_id=? AND review_type=? AND review_id=?",
+        (user_id, review_type, review_id),
+    )
+    existing = cursor.fetchone()
+
+    # Find the review author to adjust XP
+    review_author_id = None
+    if review_type == "episode":
+        cursor.execute("SELECT user_id FROM episode_reviews WHERE id=?", (review_id,))
+        r = cursor.fetchone()
+        if r:
+            review_author_id = r["user_id"]
+    elif review_type == "anime":
+        cursor.execute("SELECT user_id FROM anime_ratings WHERE id=?", (review_id,))
+        r = cursor.fetchone()
+        if r:
+            review_author_id = r["user_id"]
+
+    removed = False
+    new_is_like = is_like
+
+    if existing:
+        if existing["is_like"] == is_like:
+            # Same vote → remove it
+            cursor.execute("DELETE FROM review_likes WHERE id=?", (existing["id"],))
+            removed = True
+            if review_author_id:
+                add_xp(review_author_id, 10 if is_like else 5)  # Undo: reverse the penalty/bonus
+        else:
+            # Different vote → switch
+            cursor.execute("UPDATE review_likes SET is_like=? WHERE id=?", (is_like, existing["id"]))
+            if review_author_id:
+                add_xp(review_author_id, 15 if is_like else -15)  # Swing from dislike to like or vice versa
+    else:
+        # New vote
+        cursor.execute(
+            "INSERT INTO review_likes (user_id, review_type, review_id, is_like) VALUES (?, ?, ?, ?)",
+            (user_id, review_type, review_id, is_like),
+        )
+        if review_author_id:
+            add_xp(review_author_id, 10 if is_like else -5)
+
+    conn.commit()
+    conn.close()
+    return new_is_like, removed
+
+
+def get_review_likes(review_type, review_id):
+    """Return {likes: N, dislikes: N, user_vote: 1|-1|0} for a review."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT SUM(CASE WHEN is_like=1 THEN 1 ELSE 0 END) as likes, "
+        "SUM(CASE WHEN is_like=0 THEN 1 ELSE 0 END) as dislikes "
+        "FROM review_likes WHERE review_type=? AND review_id=?",
+        (review_type, review_id),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    return {
+        "likes": row["likes"] or 0,
+        "dislikes": row["dislikes"] or 0,
+    }
+
+
+def get_bulk_review_likes(review_type, review_ids):
+    """Return {review_id: {likes, dislikes}} for multiple reviews."""
+    if not review_ids:
+        return {}
+    conn = get_connection()
+    cursor = conn.cursor()
+    placeholders = ",".join("?" * len(review_ids))
+    cursor.execute(
+        f"""SELECT review_id,
+        SUM(CASE WHEN is_like=1 THEN 1 ELSE 0 END) as likes,
+        SUM(CASE WHEN is_like=0 THEN 1 ELSE 0 END) as dislikes
+        FROM review_likes WHERE review_type=? AND review_id IN ({placeholders})
+        GROUP BY review_id""",
+        [review_type] + list(review_ids),
+    )
+    result = {}
+    for row in cursor.fetchall():
+        result[row["review_id"]] = {"likes": row["likes"] or 0, "dislikes": row["dislikes"] or 0}
+    conn.close()
+    return result
+
+
+def get_user_review_history(user_id, limit=50):
+    """Return all reviews by a user (episode + anime)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    reviews = []
+    # Episode reviews
+    cursor.execute(
+        "SELECT id, anime_slug, season_name, episode_number, rating, comment, created_at "
+        "FROM episode_reviews WHERE user_id=? ORDER BY id DESC LIMIT ?",
+    )
+    for row in cursor.fetchall():
+        entry = anime_database.get(row["anime_slug"])
+        reviews.append({
+            "type": "episode",
+            "id": row["id"],
+            "anime_slug": row["anime_slug"],
+            "anime_title": (entry.get("title") if entry else None) or row["anime_slug"],
+            "season_name": row["season_name"],
+            "episode_number": row["episode_number"],
+            "rating": row["rating"],
+            "comment": row["comment"] or "",
+            "created_at": row["created_at"],
+        })
+    # Anime reviews
+    cursor.execute(
+        "SELECT id, anime_slug, rating, comment, created_at "
+        "FROM anime_ratings WHERE user_id=? ORDER BY id DESC LIMIT ?",
+        (user_id, limit),
+    )
+    for row in cursor.fetchall():
+        entry = anime_database.get(row["anime_slug"])
+        reviews.append({
+            "type": "anime",
+            "id": row["id"],
+            "anime_slug": row["anime_slug"],
+            "anime_title": (entry.get("title") if entry else None) or row["anime_slug"],
+            "rating": row["rating"],
+            "comment": row["comment"] or "",
+            "created_at": row["created_at"],
+        })
+    conn.close()
+    reviews.sort(key=lambda r: r["created_at"] or "", reverse=True)
+    return reviews[:limit]
+
+
+def set_profile_public(user_id, is_public):
+    """Set a user profile visibility."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET is_public=? WHERE id=?", (1 if is_public else 0, user_id))
     conn.commit()
     conn.close()

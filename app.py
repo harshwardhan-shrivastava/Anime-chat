@@ -48,6 +48,14 @@ from database import (
     get_episode_rankings_for_anime,
     get_user_episode_rating,
     rate_episode,
+    get_user_xp,
+    get_user_rank,
+    get_all_user_ranks,
+    toggle_review_like,
+    get_review_likes,
+    get_bulk_review_likes,
+    get_user_review_history,
+    set_profile_public,
 )
 from auth import auth, load_logged_in_user
 from chat import chat_bp
@@ -904,8 +912,12 @@ def community(anime_slug):
         return "Anime not found", 404
     chat_stats = get_community_chat_stats(anime_slug)
     is_member = False
+    user_rank = "D"
+    user_xp = 0
     if g.get("user"):
         is_member = is_community_member(anime_slug, g.user["id"])
+        user_xp = get_user_xp(g.user["id"])
+        user_rank = get_user_rank(g.user["id"])
     return render_template(
         "community.html",
         anime_name=entry.get("title", anime_slug),
@@ -913,6 +925,8 @@ def community(anime_slug):
         anime_slug=anime_slug,
         chat_stats=chat_stats,
         is_member=is_member,
+        user_xp=user_xp,
+        user_rank=user_rank,
     )
 
 
@@ -932,11 +946,19 @@ def anime_reviews(anime_slug):
 
 @app.route("/rate-anime", methods=["POST"])
 def rate_anime():
+    user = g.get("user")
     data = request.get_json(silent=True) or {}
     anime_slug = data.get("anime_slug")
     rating = data.get("rating")
-    username = (data.get("username") or "Anonymous").strip()[:40] or "Anonymous"
     comment = (data.get("comment") or "").strip()[:1000]
+
+    # Use logged-in user info
+    if user:
+        username = user["username"]
+        user_id = user["id"]
+    else:
+        username = (data.get("username") or "Anonymous").strip()[:40] or "Anonymous"
+        user_id = None
 
     if not anime_slug or anime_slug not in anime_database:
         return jsonify({"success": False, "error": "Unknown anime"}), 404
@@ -947,7 +969,7 @@ def rate_anime():
     if rating < 1 or rating > 5:
         return jsonify({"success": False, "error": "Rating must be between 1 and 5"}), 400
 
-    add_review(anime_slug, username, rating, comment)
+    add_review(anime_slug, username, rating, comment, user_id=user_id)
     stats = get_anime_stats(anime_slug)
     return jsonify({
         "success": True,
@@ -1843,8 +1865,10 @@ def rankings():
             show["tier"] = "B"
         elif rank <= 50:
             show["tier"] = "C"
-        else:
+        elif rank <= 100:
             show["tier"] = "D"
+        else:
+            show["tier"] = "F"
         show["rank"] = rank
     return render_template(
         "rankings.html",
@@ -1889,6 +1913,85 @@ def api_rate_episode():
 def api_episode_ratings(anime_slug):
     rankings = get_episode_rankings_for_anime(anime_slug, limit=20)
     return jsonify({"rankings": rankings})
+
+
+
+
+# ================================================================
+#  LIKE / DISLIKE & USER RANK ENDPOINTS
+# ================================================================
+
+@app.route("/api/toggle-like", methods=["POST"])
+def api_toggle_like():
+    user = g.get("user")
+    if not user:
+        return jsonify({"error": "Login required"}), 401
+    data = request.get_json(force=True, silent=True) or {}
+    review_type = data.get("review_type", "")
+    review_id = data.get("review_id")
+    is_like = data.get("is_like")
+    if review_type not in ("episode", "anime") or review_id is None or is_like is None:
+        return jsonify({"error": "Missing fields"}), 400
+    try:
+        review_id = int(review_id)
+        is_like = int(is_like)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid number"}), 400
+    new_vote, removed = toggle_review_like(user["id"], review_type, review_id, is_like)
+    likes_data = get_review_likes(review_type, review_id)
+    return jsonify({
+        "success": True,
+        "user_vote": 0 if removed else new_vote,
+        "likes": likes_data["likes"],
+        "dislikes": likes_data["dislikes"],
+    })
+
+
+@app.route("/api/user-rank/<int:user_id>")
+def api_user_rank(user_id):
+    xp = get_user_xp(user_id)
+    rank = get_user_rank(user_id)
+    return jsonify({"xp": xp, "rank": rank})
+
+
+@app.route("/api/user-ranks", methods=["POST"])
+def api_user_ranks():
+    data = request.get_json(force=True, silent=True) or {}
+    user_ids = data.get("user_ids", [])
+    if not user_ids:
+        return jsonify({"ranks": {}})
+    try:
+        user_ids = [int(uid) for uid in user_ids]
+    except (TypeError, ValueError):
+        return jsonify({"ranks": {}})
+    ranks = get_all_user_ranks(user_ids)
+    return jsonify({"ranks": ranks})
+
+
+@app.route("/api/bulk-likes", methods=["POST"])
+def api_bulk_likes():
+    data = request.get_json(force=True, silent=True) or {}
+    review_type = data.get("review_type", "episode")
+    review_ids = data.get("review_ids", [])
+    if not review_ids:
+        return jsonify({"likes": {}})
+    try:
+        review_ids = [int(rid) for rid in review_ids]
+    except (TypeError, ValueError):
+        return jsonify({"likes": {}})
+    likes = get_bulk_review_likes(review_type, review_ids)
+    return jsonify({"likes": likes})
+
+
+@app.route("/api/set-profile-public", methods=["POST"])
+def api_set_profile_public():
+    user = g.get("user")
+    if not user:
+        return jsonify({"error": "Login required"}), 401
+    data = request.get_json(force=True, silent=True) or {}
+    is_public = bool(data.get("is_public", False))
+    set_profile_public(user["id"], is_public)
+    return jsonify({"success": True, "is_public": is_public})
 
 
 
