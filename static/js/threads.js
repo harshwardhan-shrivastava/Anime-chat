@@ -125,7 +125,14 @@
             opts.headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
             opts.body = JSON.stringify(opts.json);
         }
-        return fetch(path, opts).then(function (r) { return r.json(); });
+        return fetch(path, opts).then(function (r) {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.json();
+        }).catch(function (err) {
+            toast("Network error — please refresh", "error");
+            console.error("API error:", path, err);
+            throw err;
+        });
     }
 
     function handleApiError(res) {
@@ -1039,7 +1046,7 @@
             State.reqOutgoing = res.outgoing || [];
             renderRequestsModal();
             openModal("modalRequests");
-        });
+        }).catch(function () {});
     }
 
     function wireRequestsModal() {
