@@ -133,5 +133,25 @@
     </main>
 
     <script src="{{ url_for('static', filename='js/search.js') }}"></script>
+    <script>
+    /* Force ranking images to 50x50 — JS fallback for CSS issues */
+    document.querySelectorAll(".rk-img img").forEach(function(img) {
+        img.style.width = "50px";
+        img.style.height = "50px";
+        img.style.maxWidth = "50px";
+        img.style.maxHeight = "50px";
+        img.style.objectFit = "cover";
+        img.style.display = "block";
+    });
+    document.querySelectorAll(".rk-img").forEach(function(el) {
+        el.style.width = "50px";
+        el.style.height = "50px";
+        el.style.maxWidth = "50px";
+        el.style.maxHeight = "50px";
+        el.style.overflow = "hidden";
+        el.style.borderRadius = "8px";
+        el.style.flexShrink = "0";
+    });
+    </script>
 </body>
 </html>
