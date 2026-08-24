@@ -1181,14 +1181,14 @@
                         '" data-title="' + escapeHtml(a.title) +
                         '" data-image="' + escapeHtml(a.image || '') +
                         '" data-year="' + escapeHtml(a.year || '') +
-                        '" data-rating="' + escapeHtml(a.rating || '') + '">
-                        <img src="' + escapeHtml(a.image || '') + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">
-                        <div class="thr-anime-card-info">
-                            <div class="thr-anime-card-title">' + escapeHtml(a.title) + '</div>
-                            <div class="thr-anime-card-meta">' + escapeHtml(a.year || '') + (a.rating ? ' • ' + escapeHtml(a.rating) : '') + '</div>
-                        </div>
-                        <div class="thr-anime-card-send"><i class="fas fa-paper-plane"></i></div>
-                    </div>';
+                        '" data-rating="' + escapeHtml(a.rating || '') + '"' +
+                        '<img src="' + escapeHtml(a.image || '') + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+                        '<div class="thr-anime-card-info">' +
+                            '<div class="thr-anime-card-title">' + escapeHtml(a.title) + '</div>' +
+                            '<div class="thr-anime-card-meta">' + escapeHtml(a.year || '') + (a.rating ? ' \u2022 ' + escapeHtml(a.rating) : '') + '</div>' +
+                        '</div>' +
+                        '<div class="thr-anime-card-send"><i class="fas fa-paper-plane"></i></div>' +
+                    '</div>';
                 }).join("");
             }).catch(function () {
                 grid.innerHTML = '<div class="thr-anime-hint">Search failed</div>';
