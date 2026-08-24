@@ -2587,6 +2587,11 @@
         renderConversations();
         refreshNotifications();
 
+        // Fallback: inline onclick dispatches 'req-click' on document
+        document.addEventListener("req-click", function () {
+            openRequestsModal();
+        });
+
         // heartbeat + polling
         refreshPresence();
         refreshCommunities();

@@ -134,7 +134,7 @@
                     <button id="btnNewDm" class="thr-new-btn" title="New message (DM)">
                         <i class="fas fa-pen"></i>
                     </button>
-                    <button id="btnRequests" class="thr-new-btn" title="Friend requests">
+                    <button id="btnRequests" class="thr-new-btn" title="Friend requests" onclick="document.dispatchEvent(new Event('req-click'))">
                         <i class="fas fa-user-plus"></i>
                         <span id="reqBadge" class="thr-badge hidden">0</span>
                     </button>
@@ -526,6 +526,6 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260827"></script>
+<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260828"></script>
 </body>
 </html>
