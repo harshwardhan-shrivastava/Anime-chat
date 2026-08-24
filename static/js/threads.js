@@ -129,16 +129,14 @@
         return fetch(path, opts).then(function (r) {
             if (!r.ok) {
                 if (r.status === 401 || r.status === 403) {
-                    toast("Session expired — redirecting to login", "error");
-                    setTimeout(function () { window.location.href = "/login?next=" + encodeURIComponent(window.location.pathname); }, 1200);
-                    throw new Error("Auth " + r.status);
+                    window.location.href = "/login?next=" + encodeURIComponent(window.location.pathname);
+                    return Promise.reject(new Error("auth"));
                 }
                 throw new Error("HTTP " + r.status);
             }
             return r.json();
         }).catch(function (err) {
-            if (err.message && err.message.indexOf("Auth") === 0) throw err;
-            toast("Network error — please refresh", "error");
+            if (err && err.message === "auth") throw err;
             console.error("API error:", path, err);
             throw err;
         });
@@ -981,6 +979,9 @@
                         if (!res.success) { handleApiError(res); search(); return; }
                         toast("Friend request sent \u2713");
                         search();
+                    }).catch(function (e) {
+                        if (e && e.message !== "auth") toast("Couldn't send request", "error");
+                        search();
                     });
                 return;
             }
@@ -1055,7 +1056,9 @@
             State.reqOutgoing = res.outgoing || [];
             renderRequestsModal();
             openModal("modalRequests");
-        }).catch(function () {});
+        }).catch(function (e) {
+            if (e && e.message !== "auth") toast("Couldn't load requests", "error");
+        });
     }
 
     function wireRequestsModal() {
