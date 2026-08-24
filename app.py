@@ -13,7 +13,7 @@ import requests
 from dotenv import load_dotenv
 load_dotenv()
 
-from flask import Flask, render_template, request, jsonify, g, url_for, flash, redirect
+from flask import make_response, Flask, render_template, request, jsonify, g, url_for, flash, redirect
 
 from anime_data import anime_database, preload_catalog
 from characters_data import search_characters, index_stats, reload_characters
@@ -1870,12 +1870,14 @@ def rankings():
         else:
             show["tier"] = "F"
         show["rank"] = rank
-    return render_template(
+    resp = make_response(render_template(
         "rankings.html",
         shows=shows,
         genres=_genre_list(),
         active_genre=genre or "",
-    )
+    ))
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return resp
 
 
 @app.route("/api/rate-episode", methods=["POST"])
