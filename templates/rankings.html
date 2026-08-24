@@ -47,13 +47,13 @@
         {% if shows %}
         <section class="rankings-board">
             {% for show in shows %}
-            <a href="/anime/{{ show.slug }}" class="rank-row rank-tier-{{ show.tier | lower | replace('+', 'p') }}">
+            <a href="/anime/{{ show.slug }}" class="rank-row rank-tier-{{ show.tier | lower | replace('+', 'p') }}" style="display:flex !important;align-items:center !important;width:100%;box-sizing:border-box;overflow:hidden;">
                 <div class="rank-position">
                     <span class="rank-number">{{ show.rank }}</span>
                     <span class="rank-tier-badge tier-{{ show.tier | lower | replace('+', 'p') }}">{{ show.tier }}</span>
                 </div>
-                <div class="rank-image">
-                    <img src="{{ show.image }}" alt="{{ show.title }}" loading="lazy">
+                <div class="rank-image" style="width:50px;height:50px;min-width:50px;max-width:50px;min-height:50px;max-height:50px;overflow:hidden;border-radius:8px;flex-shrink:0;">
+                    <img src="{{ show.image }}" alt="{{ show.title }}" loading="lazy" style="width:50px;height:50px;max-width:50px;max-height:50px;object-fit:cover;display:block;">
                 </div>
                 <div class="rank-info">
                     <h3 class="rank-title">{{ show.title }}</h3>
