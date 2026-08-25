@@ -1232,6 +1232,12 @@ def get_anime_stats(anime_slug):
     return result
 
 
+def _invalidate_anime_stats_cache(anime_slug):
+    """Drop cached stats so new/deleted reviews show up immediately."""
+    _anime_stats_cache.pop(anime_slug, None)
+    _anime_stats_cache_times.pop(anime_slug, None)
+
+
 def add_review(anime_slug, username, rating, comment, user_id=None):
     conn = get_connection()
     cursor = conn.cursor()
@@ -1244,6 +1250,40 @@ def add_review(anime_slug, username, rating, comment, user_id=None):
     )
     conn.commit()
     conn.close()
+    _invalidate_anime_stats_cache(anime_slug)
+
+
+def get_all_reviews(limit=200):
+    """Return the most recent reviews across ALL anime (for the /reviews page)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT r.id, r.anime_slug, r.username, r.rating, r.comment,
+               r.created_at, r.user_id, u.avatar, u.avatar_color
+        FROM reviews r
+        LEFT JOIN users u ON u.id = r.user_id
+        ORDER BY r.id DESC
+        LIMIT ?
+        """,
+        (limit,)
+    )
+    reviews = [
+        {
+            "id": row["id"],
+            "anime_slug": row["anime_slug"],
+            "username": row["username"],
+            "rating": row["rating"],
+            "comment": row["comment"] or "",
+            "created_at": row["created_at"],
+            "user_id": row["user_id"],
+            "avatar": row["avatar"] if "avatar" in row.keys() else None,
+            "avatar_color": row["avatar_color"] if "avatar_color" in row.keys() else None,
+        }
+        for row in cursor.fetchall()
+    ]
+    conn.close()
+    return reviews
 
 
 def get_user_review(anime_slug, user_id):
@@ -1273,12 +1313,21 @@ def delete_user_review(review_id, user_id):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
+        "SELECT anime_slug FROM reviews WHERE id=? AND user_id=?",
+        (review_id, user_id),
+    )
+    row = cursor.fetchone()
+    if not row:
+        return False
+    cursor.execute(
         "DELETE FROM reviews WHERE id=? AND user_id=?",
         (review_id, user_id),
     )
     deleted = cursor.rowcount > 0
     conn.commit()
     conn.close()
+    if deleted:
+        _invalidate_anime_stats_cache(row["anime_slug"])
     return deleted
 
 

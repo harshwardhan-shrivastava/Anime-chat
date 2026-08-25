@@ -240,6 +240,7 @@ function renderStats(data) {
 
             // 3-dot menu on your own review: Delete / Share
             if (currentUserId && review.user_id === currentUserId) {
+                card.style.borderColor = "#22c55e";
                 header.appendChild(buildReviewMenu(review.id, card));
             }
 
@@ -346,6 +347,9 @@ function postReview() {
             }
 
             renderStats(data);
+
+            // Swap the form for the one-review notice right away.
+            hideReviewFormFor({ rating: selectedRating, comment: reviewComment.value.trim() });
 
             selectedRating = 0;
             paintUserStars(0);

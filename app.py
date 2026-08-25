@@ -24,6 +24,7 @@ from database import (
     get_all_anime_stats,
     add_review,
     add_episode_review,
+    get_all_reviews,
     get_episode_stats,
     get_user_episode_review,
     get_all_episode_stats,
@@ -919,6 +920,19 @@ def community(anime_slug):
         user_xp=user_xp,
         user_rank=user_rank,
     )
+
+
+@app.route("/reviews")
+def reviews_page():
+    """Global reviews feed — every review across all anime, newest first."""
+    raw = get_all_reviews(limit=200)
+    reviews = []
+    for r in raw:
+        entry = anime_database.get(r["anime_slug"])
+        r["anime_title"] = entry.get("title", r["anime_slug"]) if entry else r["anime_slug"]
+        r["anime_image"] = entry.get("image") if entry else None
+        reviews.append(r)
+    return render_template("reviews.html", reviews=reviews, current_user=g.get("user"))
 
 
 @app.route("/anime-reviews/<anime_slug>", methods=["GET"])
