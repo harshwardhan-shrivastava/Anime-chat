@@ -3,14 +3,40 @@ __pycache__/
 .env
 logs/*.log
 instance/
-# Raw API cache from scripts/fetch_anime_catalog.py (regenerable)
+*.bak
+
+# --- Build / enrichment caches (regenerable, not needed at runtime) ---
 anime_catalog_raw.json
 anime_official_images.json
 anime_streaming.json
+anime_streaming_jw_*.json
 anime_schedule.json
-# Transient MAL episode-fetch worker caches (resume state lives in the base cache + todo)
+anime_mal_ids.json
+anime_mal_todo.json
+anime_characters.json
+anime_characters_index.json
+anime_characters_progress.json
+anime_character_va.json
+anime_character_va_progress.json
+anime_poster_*.json
+anime_backfill_progress.json
 anime_mal_episodes_w*.json
-# Transient TVmaze thumbnail-fetch worker caches (resume state lives in the base cache + todo)
 anime_ep_thumbs_w*.json
+anime_ep_thumbs_fx*.json
+anime_ep_thumbs_k*.json
+anime_ep_thumbs_m*.json
+anime_ep_thumbs_r*.json
+anime_ep_thumbs_ma*.json
+anime_ep_thumbs_remain.json
+anime_ep_thumbs_retry.json
+anime_ep_thumbs_todo.json
+anime_ep_thumbs_crosstodo.json
+anime_ep_thumbs_fixtodo.json
+anime_ep_thumbs_match_todo.json
+anime_thumb_mismatch.json
+anime_airing_thumbs_todo.json
+anime_airing_todo.json
+anime_mal_episodes.json
+
 # Runtime SQLite database (dev fallback only — production uses Turso)
 animechat.db
