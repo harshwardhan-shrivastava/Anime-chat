@@ -229,25 +229,37 @@ class CompatConnection:
             return self._fallback_local().rollback()
 
     def close(self):
-        try:
-            return self._connection.close()
-        except Exception as error:
-            _mark_turso_broken(error)
-            return self._fallback_local().close()
+        # Don't close the persistent Turso connection — it's reused
+        # across requests to avoid re-establishing TLS + auth each time.
+        if isinstance(self._connection, sqlite3.Connection):
+            try:
+                return self._connection.close()
+            except Exception:
+                pass
 
+
+# Persistent Turso connection — reuse instead of creating a new one
+# per request, which eliminates the TLS handshake + auth round-trip
+# that was making every page take 5-10+ seconds.
+_turso_conn = None
+_turso_conn_lock = threading.Lock()
 
 def get_connection():
+    global _turso_conn
     if TURSO_ENABLED and not TURSO_BROKEN:
+        with _turso_conn_lock:
+            if _turso_conn is not None:
+                return _turso_conn
         try:
-            # isolation_level=None runs every statement in autocommit mode, so
-            # writes are saved immediately and no BEGIN/COMMIT transaction is
-            # sent through the remote HTTP protocol.
             connection = turso_serverless.connect(
                 TURSO_DATABASE_URL,
                 auth_token=TURSO_AUTH_TOKEN,
                 isolation_level=None,
             )
-            return CompatConnection(connection)
+            conn = CompatConnection(connection)
+            with _turso_conn_lock:
+                _turso_conn = conn
+            return conn
         except Exception as error:
             _mark_turso_broken(error)
 
@@ -1145,7 +1157,16 @@ def get_all_anime_stats():
     return result
 
 
+# Simple in-memory cache for anime stats (avoids repeated Turso queries)
+_anime_stats_cache = {}
+_anime_stats_cache_ttl = 120  # seconds
+_anime_stats_cache_times = {}
+
 def get_anime_stats(anime_slug):
+    now = time.time()
+    cached = _anime_stats_cache.get(anime_slug)
+    if cached and now - _anime_stats_cache_times.get(anime_slug, 0) < _anime_stats_cache_ttl:
+        return cached
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -1182,13 +1203,15 @@ def get_anime_stats(anime_slug):
         }
         for row in cursor.fetchall()
     ]
-    conn.close()
-    return {
+    result = {
         "average": average,
         "votes": total_votes,
         "breakdown": breakdown,
         "reviews": reviews,
     }
+    _anime_stats_cache[anime_slug] = result
+    _anime_stats_cache_times[anime_slug] = time.time()
+    return result
 
 
 def add_review(anime_slug, username, rating, comment, user_id=None):
@@ -1268,13 +1291,15 @@ def get_episode_stats(anime_slug, season_name, episode_number):
         }
         for row in cursor.fetchall()
     ]
-    conn.close()
-    return {
+    result = {
         "average": average,
         "votes": total_votes,
         "breakdown": breakdown,
         "reviews": reviews,
     }
+    _anime_stats_cache[anime_slug] = result
+    _anime_stats_cache_times[anime_slug] = time.time()
+    return result
 
 
 def get_user_episode_review(anime_slug, season_name, episode_number, user_id):
