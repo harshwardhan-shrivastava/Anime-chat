@@ -12,6 +12,9 @@
     <link rel="stylesheet"
     href="{{ url_for('static', filename='css/style.css') }}">
 
+    <link rel="stylesheet"
+    href="{{ url_for('static', filename='css/auth.css') }}">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
@@ -82,6 +85,15 @@
             font-size: 1.1rem;
             color: #fff;
             background: #374151;
+            position: relative;
+            overflow: hidden;
+        }
+        .review-avatar-initial img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         .grc-user {
             font-weight: 700;
@@ -150,12 +162,7 @@
                 <i class="fas fa-arrow-right" style="font-size:0.7rem;"></i>
             </a>
             <div class="grc-top">
-                {% if r.avatar %}
-                <img class="review-avatar-initial" src="/static/images/avatars/{{ r.avatar }}" alt="{{ r.username }}"
-                     onerror="this.outerHTML='<div class=\'review-avatar-initial\' style=\'background:{{ r.avatar_color or "#374151" }}\'>{{ r.username[0]|upper }}</div>';">
-                {% else %}
-                <div class="review-avatar-initial" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[0]|upper }}</div>
-                {% endif %}
+                <div class="review-avatar-initial" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[0]|upper }}{% if r.avatar %}<img src="/static/images/avatars/{{ r.avatar }}" alt="{{ r.username }}" onerror="this.remove()">{% endif %}</div>
                 <div>
                     <p class="grc-user">{{ r.username }}</p>
                     <p class="grc-meta">
