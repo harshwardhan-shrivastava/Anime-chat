@@ -107,17 +107,13 @@ function buildReviewMenu(reviewId, card) {
 function buildVoteBar(review) {
     const bar = document.createElement("div");
     bar.className = "review-vote-bar";
-    bar.style.cssText = "display:flex;gap:10px;margin-top:14px;align-items:center;";
 
     function makeBtn(kind) {
         const active = review.user_vote === (kind === "like" ? 1 : 0);
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "review-vote-btn" + (active ? " vote-active" : "");
         btn.dataset.kind = kind;
-        btn.style.cssText = "background:#0d1420;border:1px solid #1f2937;border-radius:20px;padding:6px 14px;cursor:pointer;font-size:0.85rem;color:" +
-            (active ? (kind === "like" ? "#22c55e" : "#f87171") : "#9ca3af") + ";" +
-            "transition:all 0.15s;display:inline-flex;align-items:center;gap:6px;";
+        btn.className = "review-vote-btn" + (active ? (kind === "like" ? " vote-active voted-like" : " vote-active voted-dislike") : "");
         btn.innerHTML = (kind === "like" ? "\ud83d\udc4d" : "\ud83d\udc4e") +
             ' <span class="vote-count">' + (kind === "like" ? (review.likes || 0) : (review.dislikes || 0)) + "</span>";
         return btn;
@@ -162,7 +158,9 @@ function buildVoteBar(review) {
 
     function wire() {
         bar.querySelectorAll(".review-vote-btn").forEach(btn => {
-            btn.addEventListener("click", () => vote(btn.dataset.kind === "like"));
+            btn.addEventListener("click", () => {
+                vote(btn.dataset.kind === "like");
+            });
         });
     }
     wire();
@@ -304,7 +302,7 @@ function renderStats(data) {
                 const rankBadge = document.createElement("span");
                 rankBadge.textContent = review.rank;
                 rankBadge.title = `Rank ${review.rank}`;
-                rankBadge.style.cssText = `margin-left:8px;padding:2px 10px;border-radius:20px;color:#0a0e14;font-weight:800;font-size:0.72rem;letter-spacing:0.5px;background:${review.rank_color || "#9ca3af"};vertical-align:middle;`;
+                rankBadge.className = `rank-badge rank-${review.rank}`;
                 nameEl.appendChild(rankBadge);
             }
             const ratingEl = document.createElement("span");
