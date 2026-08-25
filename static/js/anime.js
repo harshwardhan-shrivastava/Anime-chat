@@ -299,6 +299,14 @@ function renderStats(data) {
             const infoWrap = document.createElement("div");
             const nameEl = document.createElement("h3");
             nameEl.textContent = review.username;
+            // Reviewer rank badge (D through S+, F for dislike-ratio abusers)
+            if (review.rank) {
+                const rankBadge = document.createElement("span");
+                rankBadge.textContent = review.rank;
+                rankBadge.title = `Rank ${review.rank}`;
+                rankBadge.style.cssText = `margin-left:8px;padding:2px 10px;border-radius:20px;color:#0a0e14;font-weight:800;font-size:0.72rem;letter-spacing:0.5px;background:${review.rank_color || "#9ca3af"};vertical-align:middle;`;
+                nameEl.appendChild(rankBadge);
+            }
             const ratingEl = document.createElement("span");
             ratingEl.textContent = `\u2605 ${review.rating}/5 \u00b7 ${timeAgo(review.created_at)}`;
             infoWrap.appendChild(nameEl);

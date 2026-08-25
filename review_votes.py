@@ -1,5 +1,76 @@
-"""Like/dislike voting for anime reviews (stored in the shared review_likes table)."""
+"""Like/dislike voting + reviewer ranks for anime reviews.
+
+Uses the shared review_likes table. Rank tiers: everyone starts at D;
+S+ is intentionally almost impossible (50,000 XP). A reviewer whose
+received votes are overwhelmingly dislikes drops to F regardless of XP.
+"""
 from database import get_connection, add_xp
+
+
+# ---- Rank tiers (authoritative for reviews) ----
+
+def review_rank_for_xp(xp):
+    if xp >= 50000:
+        return "S+"
+    if xp >= 10000:
+        return "S"
+    if xp >= 3000:
+        return "A"
+    if xp >= 1000:
+        return "B"
+    if xp >= 250:
+        return "C"
+    if xp >= 0:
+        return "D"
+    return "F"
+
+
+RANK_COLORS = {
+    "S+": "#FFD700",
+    "S": "#FF9F43",
+    "A": "#FECA57",
+    "B": "#54A0FF",
+    "C": "#a78bfa",
+    "D": "#9ca3af",
+    "F": "#ef4444",
+}
+
+
+def get_bulk_reviewer_ranks(user_ids):
+    """Return {user_id: rank} for reviewers.
+
+    Rank is the XP tier, EXCEPT it becomes 'F' for reviewers whose received
+    review votes are overwhelmingly dislikes (5+ votes, <=20% likes).
+    """
+    if not user_ids:
+        return {}
+    user_ids = list({uid for uid in user_ids if uid})
+    if not user_ids:
+        return {}
+    conn = get_connection()
+    cursor = conn.cursor()
+    placeholders = ",".join("?" * len(user_ids))
+    cursor.execute(
+        f"SELECT user_id, xp FROM user_xp WHERE user_id IN ({placeholders})",
+        user_ids,
+    )
+    xp_map = {row["user_id"]: row["xp"] for row in cursor.fetchall()}
+    ranks = {uid: review_rank_for_xp(xp_map.get(uid, 0)) for uid in user_ids}
+    cursor.execute(
+        f"""SELECT r.user_id,
+        SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) as likes,
+        SUM(CASE WHEN rl.is_like=0 THEN 1 ELSE 0 END) as dislikes
+        FROM review_likes rl JOIN reviews r ON r.id = rl.review_id
+        WHERE rl.review_type='anime' AND r.user_id IN ({placeholders})
+        GROUP BY r.user_id""",
+        user_ids,
+    )
+    for row in cursor.fetchall():
+        total = (row["likes"] or 0) + (row["dislikes"] or 0)
+        if total >= 5 and (row["likes"] or 0) / total <= 0.2:
+            ranks[row["user_id"]] = "F"
+    conn.close()
+    return ranks
 
 
 def toggle_anime_review_vote(user_id, review_id, is_like):

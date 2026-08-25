@@ -57,7 +57,12 @@ from database import (
     set_profile_public,
 )
 from auth import auth, load_logged_in_user
-from review_votes import toggle_anime_review_vote, get_user_anime_review_votes
+from review_votes import (
+    toggle_anime_review_vote,
+    get_user_anime_review_votes,
+    get_bulk_reviewer_ranks,
+    RANK_COLORS,
+)
 from chat import chat_bp
 from profile_routes import bp as profile_bp
 
@@ -931,6 +936,7 @@ def reviews_page():
     review_ids = [r["id"] for r in raw]
     like_counts = get_bulk_review_likes("anime", review_ids)
     user_votes = get_user_anime_review_votes(review_ids, user["id"]) if user else {}
+    rank_map = get_bulk_reviewer_ranks([r["user_id"] for r in raw])
     reviews = []
     for r in raw:
         entry = anime_database.get(r["anime_slug"])
@@ -940,6 +946,8 @@ def reviews_page():
         r["likes"] = counts["likes"]
         r["dislikes"] = counts["dislikes"]
         r["user_vote"] = user_votes.get(r["id"])
+        r["rank"] = rank_map.get(r["user_id"], "D")
+        r["rank_color"] = RANK_COLORS.get(r["rank"], "#9ca3af")
         reviews.append(r)
     return render_template("reviews.html", reviews=reviews, current_user=user)
 
@@ -958,11 +966,14 @@ def anime_reviews(anime_slug):
     review_ids = [r["id"] for r in stats["reviews"] if r.get("id")]
     like_counts = get_bulk_review_likes("anime", review_ids)
     user_votes = get_user_anime_review_votes(review_ids, user["id"]) if user else {}
+    rank_map = get_bulk_reviewer_ranks([r.get("user_id") for r in stats["reviews"]])
     for r in stats["reviews"]:
         counts = like_counts.get(r.get("id"), {"likes": 0, "dislikes": 0})
         r["likes"] = counts["likes"]
         r["dislikes"] = counts["dislikes"]
         r["user_vote"] = user_votes.get(r.get("id"))
+        r["rank"] = rank_map.get(r.get("user_id"), "D")
+        r["rank_color"] = RANK_COLORS.get(r["rank"], "#9ca3af")
 
     return jsonify({
         "success": True,
