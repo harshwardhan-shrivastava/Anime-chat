@@ -42,7 +42,7 @@ function buildReviewMenu(reviewId, card) {
     dotBtn.type = "button";
     dotBtn.className = "review-menu-btn";
     dotBtn.setAttribute("aria-label", "Review options");
-    dotBtn.style.cssText = "background:none;border:none;color:#9ca3af;cursor:pointer;font-size:1.1rem;padding:2px 8px;border-radius:6px;";
+    dotBtn.style.cssText = "background:none;border:none;color:#9ca3af;cursor:pointer;font-size:1.6rem;padding:4px 12px;border-radius:8px;line-height:1;";
     dotBtn.textContent = "\u22ee";
 
     const menu = document.createElement("div");
@@ -112,7 +112,7 @@ function showReviewForm() {
 }
 
 function hideReviewFormFor(myReview) {
-    // User already reviewed: swap the form for their review notice.
+    // User already reviewed: swap the form for a one-review notice.
     const box = document.querySelector(".review-box");
     if (!box) return;
     box.style.display = "none";
@@ -122,12 +122,8 @@ function hideReviewFormFor(myReview) {
     msg.id = "alreadyReviewedMsg";
     msg.style.cssText = "background:#111827;border:1px solid #374151;border-radius:12px;padding:20px;margin-bottom:20px;";
     msg.innerHTML = `
-        <p style="margin:0 0 6px;color:#22c55e;font-weight:600;">
-            <i class=\"fas fa-check-circle\"></i> You already reviewed this anime
-        </p>
-        <p style="margin:0;color:#9ca3af;font-size:0.95rem;">
-            \u2605 ${myReview.rating}/5 \u00b7 ${myReview.comment ? myReview.comment : "(rating only)"}
-            — use the \u22ee menu on your review below to delete it and write a new one.
+        <p style="margin:0;color:#22c55e;font-weight:600;">
+            <i class="fas fa-check-circle"></i> You can only review an anime one time.
         </p>
     `;
     box.parentNode.insertBefore(msg, box);
