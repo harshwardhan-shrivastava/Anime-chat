@@ -23,13 +23,16 @@ from database import (
 bp = Blueprint("profile", __name__)
 
 
-def _pick_card(slug):
+def _pick_card(slug, skip_stats=False):
     """Build a pick dict shaped for the homepage _anime_card.html partial."""
     entry = anime_database.get(slug)
     if entry is None:
         return None
-    stats = get_anime_stats(slug)
-    live_rating = stats["average"] if stats["votes"] > 0 else entry.get("rating", "N/A")
+    if skip_stats:
+        live_rating = entry.get("rating", "N/A")
+    else:
+        stats = get_anime_stats(slug)
+        live_rating = stats["average"] if stats["votes"] > 0 else entry.get("rating", "N/A")
     return {
         "slug": slug,
         "title": entry.get("title") or slug,
@@ -124,7 +127,7 @@ def profile():
     if tab == "history":
         try:
             for row in get_view_history(user["id"], 60):
-                pick = _pick_card(row["anime_slug"])
+                pick = _pick_card(row["anime_slug"], skip_stats=True)
                 if pick is None:
                     continue
                 pick["badge_label"] = "Visited"

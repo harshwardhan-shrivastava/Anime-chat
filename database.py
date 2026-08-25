@@ -1688,21 +1688,39 @@ def get_taste_slugs(user_id, limit=80):
     return rows
 
 
-def get_history_count(user_id):
-    """Fast COUNT(*) for the profile header - avoids fetching every row
-    just to show a number (that was a huge query on heavy watchers)."""
+_query_cache = {}
+_query_cache_time = {}
+_QUERY_CACHE_TTL = 60  # seconds
+
+def _cached_query(key, sql, params=(), one=False):
+    """Run a query with a short TTL cache to avoid repeated Turso round-trips."""
+    now = time.time()
+    if key in _query_cache and now - _query_cache_time.get(key, 0) < _QUERY_CACHE_TTL:
+        return _query_cache[key]
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
+    cursor.execute(sql, params)
+    result = cursor.fetchone() if one else cursor.fetchall()
+    _query_cache[key] = result
+    _query_cache_time[key] = now
+    return result
+
+def get_history_count(user_id):
+    """Fast COUNT(*) for the profile header."""
+    row = _cached_query(
+        f"hcount:{user_id}",
         "SELECT COUNT(*) AS n FROM view_history WHERE user_id = ?",
         (user_id,),
+        one=True,
     )
-    n = cursor.fetchone()["n"]
-    conn.close()
-    return n
+    return row["n"] if row else 0
 
 
 def get_view_history(user_id, limit=60):
+    key = f"vhist:{user_id}:{limit}"
+    now = time.time()
+    if key in _query_cache and now - _query_cache_time.get(key, 0) < _QUERY_CACHE_TTL:
+        return _query_cache[key]
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -1715,7 +1733,8 @@ def get_view_history(user_id, limit=60):
         (user_id, limit),
     )
     rows = [dict(r) for r in cursor.fetchall()]
-    conn.close()
+    _query_cache[key] = rows
+    _query_cache_time[key] = now
     return rows
 
 
@@ -1934,11 +1953,12 @@ def get_xp_tier(xp):
 
 def get_user_xp(user_id):
     """Get a user's current XP. Returns 0 if no record exists."""
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT xp FROM user_xp WHERE user_id=?", (user_id,))
-    row = cursor.fetchone()
-    conn.close()
+    row = _cached_query(
+        f"xp:{user_id}",
+        "SELECT xp FROM user_xp WHERE user_id=?",
+        (user_id,),
+        one=True,
+    )
     return row["xp"] if row else 0
 
 
