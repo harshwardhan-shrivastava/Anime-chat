@@ -21,11 +21,117 @@ const reviewError = document.getElementById("reviewError");
 const reviewsContainer = document.getElementById("reviewsContainer");
 const noReviewsMsg = document.getElementById("noReviewsMsg");
 
+// Injected from the server: logged-in user id (or null for guests).
+const currentUserId = document.body.dataset.userId
+    ? parseInt(document.body.dataset.userId, 10)
+    : null;
+
 let selectedRating = 0;
 
 // ===============================
-// STAR RENDERING HELPERS
+// 3-DOT REVIEW MENU (Delete / Share)
 // ===============================
+
+function buildReviewMenu(reviewId, card) {
+    const wrap = document.createElement("div");
+    wrap.className = "review-menu-wrap";
+    wrap.style.marginLeft = "auto";
+    wrap.style.position = "relative";
+
+    const dotBtn = document.createElement("button");
+    dotBtn.type = "button";
+    dotBtn.className = "review-menu-btn";
+    dotBtn.setAttribute("aria-label", "Review options");
+    dotBtn.style.cssText = "background:none;border:none;color:#9ca3af;cursor:pointer;font-size:1.1rem;padding:2px 8px;border-radius:6px;";
+    dotBtn.textContent = "\u22ee";
+
+    const menu = document.createElement("div");
+    menu.className = "review-menu";
+    menu.style.cssText = "display:none;position:absolute;right:0;top:100%;background:#1f2937;border:1px solid #374151;border-radius:8px;min-width:130px;z-index:20;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.4);";
+
+    const deleteOpt = document.createElement("button");
+    deleteOpt.type = "button";
+    deleteOpt.textContent = "\ud83d\uddd1 Delete";
+    deleteOpt.style.cssText = "display:block;width:100%;text-align:left;background:none;border:none;color:#f87171;padding:10px 14px;cursor:pointer;font-size:0.9rem;";
+    deleteOpt.addEventListener("mouseenter", () => deleteOpt.style.background = "#374151");
+    deleteOpt.addEventListener("mouseleave", () => deleteOpt.style.background = "none");
+    deleteOpt.addEventListener("click", () => {
+        if (!confirm("Delete your review? You can write a new one after.")) return;
+        fetch("/delete-review", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ review_id: reviewId })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Review deleted — bring the review form back and reload stats.
+                    showReviewForm();
+                    loadStats();
+                } else {
+                    alert(data.error || "Could not delete review.");
+                }
+            })
+            .catch(() => alert("Network error. Please try again."));
+    });
+
+    const shareOpt = document.createElement("button");
+    shareOpt.type = "button";
+    shareOpt.textContent = "\ud83d\udd17 Share";
+    shareOpt.style.cssText = "display:block;width:100%;text-align:left;background:none;border:none;color:#e5e7eb;padding:10px 14px;cursor:pointer;font-size:0.9rem;";
+    shareOpt.addEventListener("mouseenter", () => shareOpt.style.background = "#374151");
+    shareOpt.addEventListener("mouseleave", () => shareOpt.style.background = "none");
+    shareOpt.addEventListener("click", () => {
+        // Share is a placeholder for now.
+        alert("Sharing coming soon!");
+        menu.style.display = "none";
+    });
+
+    menu.appendChild(deleteOpt);
+    menu.appendChild(shareOpt);
+
+    dotBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        menu.style.display = menu.style.display === "none" ? "block" : "none";
+    });
+    document.addEventListener("click", () => {
+        menu.style.display = "none";
+    });
+
+    wrap.appendChild(dotBtn);
+    wrap.appendChild(menu);
+    return wrap;
+}
+
+// Show/hide the review form (used when a review is deleted).
+function showReviewForm() {
+    const box = document.querySelector(".review-box");
+    const existing = document.getElementById("alreadyReviewedMsg");
+    if (box) box.style.display = "block";
+    if (existing) existing.remove();
+}
+
+function hideReviewFormFor(myReview) {
+    // User already reviewed: swap the form for their review notice.
+    const box = document.querySelector(".review-box");
+    if (!box) return;
+    box.style.display = "none";
+
+    if (document.getElementById("alreadyReviewedMsg")) return;
+    const msg = document.createElement("div");
+    msg.id = "alreadyReviewedMsg";
+    msg.style.cssText = "background:#111827;border:1px solid #374151;border-radius:12px;padding:20px;margin-bottom:20px;";
+    msg.innerHTML = `
+        <p style="margin:0 0 6px;color:#22c55e;font-weight:600;">
+            <i class=\"fas fa-check-circle\"></i> You already reviewed this anime
+        </p>
+        <p style="margin:0;color:#9ca3af;font-size:0.95rem;">
+            \u2605 ${myReview.rating}/5 \u00b7 ${myReview.comment ? myReview.comment : "(rating only)"}
+            — use the \u22ee menu on your review below to delete it and write a new one.
+        </p>
+    `;
+    box.parentNode.insertBefore(msg, box);
+}
 
 function starsForValue(value) {
     const rounded = Math.round(value * 2) / 2;
@@ -42,11 +148,26 @@ function starsForValue(value) {
     return out;
 }
 
-function initialsAvatar(username) {
+function initialsAvatar(username, avatar, avatarColor) {
+    // Real profile picture when the reviewer has one, initials otherwise.
+    if (avatar) {
+        const img = document.createElement("img");
+        img.className = "review-avatar-initial";
+        img.style.objectFit = "cover";
+        img.src = `/static/images/avatars/${avatar}`;
+        img.alt = username || "";
+        img.onerror = function () { img.replaceWith(initialsFallback(username, avatarColor)); };
+        return img;
+    }
+    return initialsFallback(username, avatarColor);
+}
+
+function initialsFallback(username, avatarColor) {
     const letter = (username || "A").trim().charAt(0).toUpperCase() || "A";
     const div = document.createElement("div");
     div.className = "review-avatar-initial";
     div.textContent = letter;
+    if (avatarColor) div.style.background = avatarColor;
     return div;
 }
 
@@ -110,7 +231,7 @@ function renderStats(data) {
 
             const header = document.createElement("div");
             header.className = "review-header";
-            header.appendChild(initialsAvatar(review.username));
+            header.appendChild(initialsAvatar(review.username, review.avatar, review.avatar_color));
 
             const infoWrap = document.createElement("div");
             const nameEl = document.createElement("h3");
@@ -120,6 +241,11 @@ function renderStats(data) {
             infoWrap.appendChild(nameEl);
             infoWrap.appendChild(ratingEl);
             header.appendChild(infoWrap);
+
+            // 3-dot menu on your own review: Delete / Share
+            if (currentUserId && review.user_id === currentUserId) {
+                header.appendChild(buildReviewMenu(review.id, card));
+            }
 
             const commentEl = document.createElement("p");
             commentEl.textContent = review.comment && review.comment.length > 0
@@ -143,6 +269,9 @@ function loadStats() {
         .then(data => {
             if (data.success) {
                 renderStats(data);
+                if (data.my_review) {
+                    hideReviewFormFor(data.my_review);
+                }
             }
         })
         .catch(() => {

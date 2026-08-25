@@ -51,6 +51,8 @@ from database import (
     get_review_likes,
     get_bulk_review_likes,
     get_user_review_history,
+    get_user_review,
+    delete_user_review,
     set_profile_public,
 )
 from auth import auth, load_logged_in_user
@@ -924,12 +926,18 @@ def anime_reviews(anime_slug):
     if anime_slug not in anime_database:
          return jsonify({"success": False, "error": "Anime not found"}), 404
     stats = get_anime_stats(anime_slug)
+    user = g.get("user")
+    my_review = None
+    if user:
+        my_review = get_user_review(anime_slug, user["id"])
     return jsonify({
         "success": True,
         "average": stats["average"],
         "votes": stats["votes"],
         "breakdown": stats["breakdown"],
         "reviews": stats["reviews"],
+        "my_review": my_review,
+        "logged_in": bool(user),
     })
 
 
@@ -946,6 +954,10 @@ def rate_anime():
         return jsonify({"success": False, "error": "Please log in to post a review."}), 401
     username = user["username"]
     user_id = user["id"]
+
+    # One review per user per anime.
+    if get_user_review(anime_slug, user_id):
+        return jsonify({"success": False, "error": "You already reviewed this anime."}), 409
 
     if not anime_slug or anime_slug not in anime_database:
         return jsonify({"success": False, "error": "Unknown anime"}), 404
@@ -965,6 +977,20 @@ def rate_anime():
         "breakdown": stats["breakdown"],
         "reviews": stats["reviews"],
     })
+
+
+@app.route("/delete-review", methods=["POST"])
+def delete_review():
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in."}), 401
+    data = request.get_json(silent=True) or {}
+    review_id = data.get("review_id")
+    if not review_id:
+        return jsonify({"success": False, "error": "Missing review id."}), 400
+    if not delete_user_review(review_id, user["id"]):
+        return jsonify({"success": False, "error": "Review not found."}), 404
+    return jsonify({"success": True})
 
 
 def _char_public(entries):

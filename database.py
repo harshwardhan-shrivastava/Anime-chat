@@ -1200,10 +1200,12 @@ def get_anime_stats(anime_slug):
 
     cursor.execute(
         """
-        SELECT username, rating, comment, created_at
-        FROM reviews
-        WHERE anime_slug=?
-        ORDER BY id DESC
+        SELECT r.username, r.rating, r.comment, r.created_at, r.user_id,
+               u.avatar, u.avatar_color
+        FROM reviews r
+        LEFT JOIN users u ON u.id = r.user_id
+        WHERE r.anime_slug=?
+        ORDER BY r.id DESC
         """,
         (anime_slug,)
     )
@@ -1213,6 +1215,9 @@ def get_anime_stats(anime_slug):
             "rating": row["rating"],
             "comment": row["comment"] or "",
             "created_at": row["created_at"],
+            "user_id": row["user_id"],
+            "avatar": row["avatar"] if "avatar" in row.keys() else None,
+            "avatar_color": row["avatar_color"] if "avatar_color" in row.keys() else None,
         }
         for row in cursor.fetchall()
     ]
@@ -1239,6 +1244,42 @@ def add_review(anime_slug, username, rating, comment, user_id=None):
     )
     conn.commit()
     conn.close()
+
+
+def get_user_review(anime_slug, user_id):
+    """Return the user's existing review for an anime, or None."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, username, rating, comment, created_at FROM reviews "
+        "WHERE anime_slug=? AND user_id=? LIMIT 1",
+        (anime_slug, user_id),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return {
+        "id": row["id"],
+        "username": row["username"],
+        "rating": row["rating"],
+        "comment": row["comment"] or "",
+        "created_at": row["created_at"],
+    }
+
+
+def delete_user_review(review_id, user_id):
+    """Delete a review only if it belongs to the given user."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM reviews WHERE id=? AND user_id=?",
+        (review_id, user_id),
+    )
+    deleted = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return deleted
 
 
 def add_episode_review(anime_slug, season_name, episode_number, user_id,
