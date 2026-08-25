@@ -120,29 +120,50 @@ def profile():
         tab = "history"
 
     history = []
+    history_count = 0
     if tab == "history":
-        for row in get_view_history(user["id"], 60):
-            pick = _pick_card(row["anime_slug"])
-            if pick is None:
-                continue
-            pick["badge_label"] = "Visited"
-            pick["visited_at"] = row["viewed_at"]
-            history.append(pick)
+        try:
+            for row in get_view_history(user["id"], 60):
+                pick = _pick_card(row["anime_slug"])
+                if pick is None:
+                    continue
+                pick["badge_label"] = "Visited"
+                pick["visited_at"] = row["viewed_at"]
+                history.append(pick)
+            history_count = get_history_count(user["id"])
+        except Exception:
+            history = []
+            history_count = 0
 
     reviews = []
     if tab == "reviews":
-        from database import get_user_review_history, get_user_xp, get_user_rank, get_bulk_review_likes
-        reviews = get_user_review_history(user["id"], 50)
-        # Attach like counts
-        for r in reviews:
-            likes_data = get_bulk_review_likes(r["type"], [r["id"]])
-            r["likes"] = likes_data.get(r["id"], {}).get("likes", 0)
-            r["dislikes"] = likes_data.get(r["id"], {}).get("dislikes", 0)
+        try:
+            from database import get_user_review_history, get_bulk_review_likes
+            reviews = get_user_review_history(user["id"], 50)
+            for r in reviews:
+                likes_data = get_bulk_review_likes(r["type"], [r["id"]])
+                r["likes"] = likes_data.get(r["id"], {}).get("likes", 0)
+                r["dislikes"] = likes_data.get(r["id"], {}).get("dislikes", 0)
+        except Exception:
+            reviews = []
 
-    user_xp = get_user_xp(user["id"])
-    user_rank = get_user_rank(user["id"])
-    lists = [_list_pub(lst) for lst in _user_lists(user["id"])]
-    history_count = get_history_count(user["id"])
+    try:
+        user_xp = get_user_xp(user["id"])
+    except Exception:
+        user_xp = 0
+    try:
+        user_rank = get_user_rank(user["id"])
+    except Exception:
+        user_rank = "D"
+    try:
+        lists = [_list_pub(lst) for lst in _user_lists(user["id"])]
+    except Exception:
+        lists = []
+    if tab != "history":
+        try:
+            history_count = get_history_count(user["id"])
+        except Exception:
+            history_count = 0
 
     return render_template(
         "profile.html",
