@@ -29,7 +29,7 @@
         <a href="{{ url_for('browse', sort='underrated') }}">Underrated</a>
         <a href="{{ url_for('characters') }}">Characters</a>
         <a href="{{ url_for('threads.index') }}">Threads</a>
-        <a href="{{ url_for('reviews.reviews_page') }}">&#11088; Reviews</a>
+        {% if reviews_enabled %}<a href="{{ url_for('reviews.reviews_page') }}">&#11088; Reviews</a>{% endif %}
     </div>
     <div class="nav-right">
         <a href="{{ url_for('for_you') }}" class="mood-btn">

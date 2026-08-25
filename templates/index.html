@@ -163,6 +163,7 @@
 
 </section>
 
+{% if reviews_enabled %}
 <!-- ================= LATEST REVIEWS ================= -->
 
 <section class="section-title">
@@ -214,6 +215,7 @@
 </div>
 
 </section>
+{% endif %}
 
 <script src="{{ url_for('static', filename='js/search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/list_picker.js') }}"></script>

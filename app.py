@@ -116,7 +116,7 @@ def _no_store_html(response):
 
 @app.context_processor
 def _inject_user():
-    return {"current_user": g.get("user")}
+    return {"current_user": g.get("user"), "reviews_enabled": _reviews_bp_available}
 
 
 def _hd_anilist_url(image):
