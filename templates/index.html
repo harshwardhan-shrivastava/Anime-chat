@@ -163,60 +163,6 @@
 
 </section>
 
-{% if reviews_enabled %}
-<!-- ================= LATEST REVIEWS ================= -->
-
-<section class="section-title">
-
-    <h2>Latest Reviews</h2>
-
-    <p class="browse-sub">
-        See what the community thinks.
-        <a href="{{ url_for('reviews.reviews_page') }}" style="color:#8F5BFF;">All Reviews</a> or
-        <a href="/rate_anime" style="color:#8F5BFF;">Write a Review</a>.
-    </p>
-
-</section>
-
-<section class="anime-grid" style="padding:0 20px 60px;max-width:1300px;margin:0 auto;">
-
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px;">
-
-{% if latest_reviews %}
-    {% for review in latest_reviews %}
-    <div style="background:#fff;padding:15px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1);border-left:4px solid #6c5ce7;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-                <strong>{{ review.author.username }}</strong>
-                <span style="padding:2px 8px;border-radius:12px;color:#fff;font-size:11px;font-weight:bold;background:{% if review.author.rank == 'S+' %}#FF6B6B{% elif review.author.rank == 'S' %}#FF9F43{% elif review.author.rank == 'A' %}#FECA57{% elif review.author.rank == 'B' %}#54A0FF{% elif review.author.rank == 'C' %}#5F27CD{% else %}#2C3E50{% endif %};">
-                    {{ review.author.rank }}
-                </span>
-            </div>
-            <span style="color:#FFD93D;font-size:1.1rem;">
-                {% for i in range(1,6) %}{% if i <= review.rating %}★{% else %}☆{% endif %}{% endfor %}
-            </span>
-        </div>
-        <p style="margin:5px 0;color:#555;font-size:0.9em;">{{ review.content[:150] }}{% if review.content|length > 150 %}...{% endif %}</p>
-        <small style="color:#999;">Anime #{{ review.anime_id }}{% if review.episode_id %} · Episode {{ review.episode_id }}{% endif %}</small>
-    </div>
-    {% endfor %}
-{% else %}
-    <div style="text-align:center;padding:20px;color:#6b7280;grid-column:1/-1;">
-        <p>No reviews yet. Be the first to review!</p>
-    </div>
-{% endif %}
-
-<div style="text-align:center;padding:20px;color:#6b7280;grid-column:1/-1;">
-    <a href="{{ url_for('reviews.reviews_page') }}" style="color:#8F5BFF;text-decoration:none;font-weight:600;font-size:0.95rem;">
-        <i class="fas fa-star"></i> View All Reviews
-    </a>
-</div>
-
-</div>
-
-</section>
-{% endif %}
-
 <script src="{{ url_for('static', filename='js/search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/list_picker.js') }}"></script>
 </body>

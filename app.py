@@ -58,16 +58,6 @@ from chat import chat_bp
 from profile_routes import bp as profile_bp
 
 from threads import init_threads
-try:
-    from reviews import reviews_bp
-    _reviews_bp_available = True
-except Exception:
-    _reviews_bp_available = False
-try:
-    from models import db, Review
-    _reviews_available = True
-except Exception:
-    _reviews_available = False
 
 
 app = Flask(__name__)
@@ -79,8 +69,7 @@ app.permanent_session_lifetime = timedelta(days=3650)
 app.register_blueprint(auth)
 app.register_blueprint(chat_bp)
 app.register_blueprint(profile_bp)
-if _reviews_bp_available:
-    app.register_blueprint(reviews_bp)
+
 
 
 init_threads(app)
@@ -116,7 +105,7 @@ def _no_store_html(response):
 
 @app.context_processor
 def _inject_user():
-    return {"current_user": g.get("user"), "reviews_enabled": _reviews_bp_available}
+    return {"current_user": g.get("user")}
 
 
 def _hd_anilist_url(image):
@@ -734,21 +723,11 @@ def home():
     # For You section first, then New section
     ordered = rec_list + new_list
 
-    # Fetch latest reviews for homepage
-    try:
-        if _reviews_available:
-            latest_reviews = Review.query.order_by(Review.created_at.desc()).limit(5).all()
-        else:
-            latest_reviews = []
-    except Exception:
-        latest_reviews = []
-
     return render_template(
         "index.html",
         anime_list=ordered,
         for_you_list=rec_list,
         new_list=new_list,
-        latest_reviews=latest_reviews,
         page_title="Discover Anime",
         genres=_genre_list(),
         site_stats=site_stats,
