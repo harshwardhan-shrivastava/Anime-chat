@@ -59,6 +59,7 @@ from profile_routes import bp as profile_bp
 
 from threads import init_threads
 from reviews import reviews_bp
+from models import db, Review
 
 
 app = Flask(__name__)
@@ -724,11 +725,18 @@ def home():
     # For You section first, then New section
     ordered = rec_list + new_list
 
+    # Fetch latest reviews for homepage
+    try:
+        latest_reviews = Review.query.order_by(Review.created_at.desc()).limit(5).all()
+    except Exception:
+        latest_reviews = []
+
     return render_template(
         "index.html",
         anime_list=ordered,
         for_you_list=rec_list,
         new_list=new_list,
+        latest_reviews=latest_reviews,
         page_title="Discover Anime",
         genres=_genre_list(),
         site_stats=site_stats,
