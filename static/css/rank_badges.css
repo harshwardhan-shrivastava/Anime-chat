@@ -262,114 +262,14 @@
 }
 
 .rank-badge.rank-S {
-    /* Dark interior — the badge body */
+    /* Dark interior — canvas fire_badge.js handles the flames */
     background: #0c1220;
     color: #93c5fd;
     border: none;
     text-shadow: 0 0 8px rgba(147,197,253,0.7), 0 0 16px rgba(59,130,246,0.5);
     overflow: visible;
 }
-
-/* Rotating fire ring — the whole border is fire + ash trail */
-.rank-badge.rank-S::before {
-    content: "";
-    position: absolute;
-    /* Extend well beyond the badge so flames are tall */
-    top: -12px;
-    left: -12px;
-    right: -12px;
-    bottom: -12px;
-    border-radius: inherit;
-    z-index: -1;
-
-    /* Conic gradient = bright blue fire head + dark ash tail */
-    background: conic-gradient(
-        from var(--s-fire-angle, 0deg),
-        /* Ash trail (most of the ring) */
-        #1a1512 0%,
-        #201a15 5%,
-        #2a1f18 10%,
-        /* Transition to fire */
-        #1a3050 20%,
-        #1e5a8a 28%,
-        /* BRIGHT BLUE FIRE HEAD */
-        #38bdf8 33%,
-        #60a5fa 35%,
-        #93c5fd 36.5%,
-        #e0f2fe 38%,
-        #93c5fd 39.5%,
-        #60a5fa 41%,
-        #38bdf8 43%,
-        /* Fade back to ash */
-        #1e5a8a 50%,
-        #1a3050 58%,
-        #2a1f18 68%,
-        #201a15 78%,
-        #1a1512 90%,
-        #1a1512 100%
-    );
-
-    /* Mask to show ONLY the border ring (not the center) */
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    padding: 4px;
-
-    /* Glow around the fire */
-    filter: blur(0.5px);
-    animation: sFireRotate 3s linear infinite, sFireGlow 3s ease-in-out infinite;
-}
-
-/* Fallback for browsers without @property */
-@supports not (background: conic-gradient(red, blue)) {
-    .rank-badge.rank-S::before {
-        animation: sFireRotateFallback 3s linear infinite, sFireGlow 3s ease-in-out infinite;
-    }
-}
-@keyframes sFireRotateFallback {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-/* The conic gradient angle animation */
-@keyframes sFireRotate {
-    from { --s-fire-angle: 0deg; }
-    to   { --s-fire-angle: 360deg; }
-}
-
-/* Pulsing glow on the fire */
-@keyframes sFireGlow {
-    0%   { filter: blur(0.5px) brightness(0.9); }
-    50%  { filter: blur(1.5px) brightness(1.2); }
-    100% { filter: blur(0.5px) brightness(0.9); }
-}
-
-/* Flame flicker overlay — bright tips that dance at the fire head */
-.rank-badge.rank-S::after {
-    content: "";
-    position: absolute;
-    top: -16px;
-    left: -16px;
-    right: -16px;
-    bottom: -16px;
-    border-radius: inherit;
-    z-index: -2;
-
-    background:
-        /* Bright blue fire spots that flicker around the border */
-        radial-gradient(circle 8px 12px at 50% 0%, rgba(56,189,248,0.8) 0%, rgba(30,144,255,0.3) 40%, transparent 70%),
-        radial-gradient(circle 6px 10px at 100% 50%, rgba(96,165,250,0.7) 0%, rgba(59,130,246,0.2) 40%, transparent 70%),
-        radial-gradient(circle 8px 12px at 50% 100%, rgba(56,189,248,0.8) 0%, rgba(30,144,255,0.3) 40%, transparent 70%),
-        radial-gradient(circle 6px 10px at 0% 50%, rgba(96,165,250,0.7) 0%, rgba(59,130,246,0.2) 40%, transparent 70%);
-    filter: blur(2px);
-    animation: sFlameFlicker 0.3s ease-in-out infinite alternate;
-}
-
-@keyframes sFlameFlicker {
-    0%   { opacity: 0.5; transform: scale(1); }
-    100% { opacity: 1; transform: scale(1.08); }
-}
+/* No CSS pseudo-elements — fire_badge.js renders real canvas fire */
 
 /* ==========================================================================
    S+ RANK — Galaxy ✨🌌
