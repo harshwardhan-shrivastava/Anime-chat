@@ -254,121 +254,135 @@
    Behind the fire, the border turns to charred ash.
    ========================================================================== */
 
-/* Register custom property for conic gradient rotation */
-@property --s-fire-angle {
-    syntax: '<angle>';
-    initial-value: 0deg;
-    inherits: false;
-}
-
 .rank-badge.rank-S {
-    /* Dark interior — the badge body */
-    background: #0c1220;
-    color: #93c5fd;
-    border: none;
-    text-shadow: 0 0 8px rgba(147,197,253,0.7), 0 0 16px rgba(59,130,246,0.5);
-    overflow: visible;
+    /* Bigger badge for S rank */
+    padding: 6px 20px !important;
+    font-size: 0.85rem;
+    letter-spacing: 3px;
+    /* Dark interior */
+    background: linear-gradient(180deg, #0a1628 0%, #0c1220 50%, #0a1628 100%);
+    color: #e0f2fe;
+    border: 3px solid rgba(56,189,248,0.7);
+    text-shadow:
+        0 0 6px rgba(147,197,253,0.9),
+        0 0 14px rgba(96,165,250,0.7),
+        0 0 24px rgba(59,130,246,0.5),
+        0 0 36px rgba(30,144,255,0.3);
+    /* THE FIRE — massive layered box-shadows on ALL edges */
+    animation: sBlueFire 0.8s ease-in-out infinite alternate;
 }
-
-/* Rotating fire ring — the whole border is fire + ash trail */
+@keyframes sBlueFire {
+    0% {
+        border-color: rgba(56,189,248,0.5);
+        box-shadow:
+            /* Inner glow */
+            inset 0 0 10px rgba(30,144,255,0.15),
+            /* Top flames */
+            0 -5px 12px rgba(56,189,248,0.8),
+            0 -10px 24px rgba(30,144,255,0.6),
+            0 -18px 40px rgba(59,130,246,0.4),
+            0 -28px 56px rgba(30,144,255,0.2),
+            /* Bottom flames */
+            0 5px 12px rgba(56,189,248,0.7),
+            0 10px 24px rgba(30,144,255,0.5),
+            0 18px 40px rgba(59,130,246,0.35),
+            /* Left flames */
+            -5px 0 12px rgba(96,165,250,0.7),
+            -10px 0 24px rgba(59,130,246,0.5),
+            -18px 0 40px rgba(30,144,255,0.3),
+            /* Right flames */
+            5px 0 12px rgba(96,165,250,0.7),
+            10px 0 24px rgba(59,130,246,0.5),
+            18px 0 40px rgba(30,144,255,0.3),
+            /* Ambient glow */
+            0 0 30px rgba(30,144,255,0.25);
+    }
+    30% {
+        border-color: rgba(147,197,253,0.9);
+        box-shadow:
+            inset 0 0 14px rgba(59,130,246,0.2),
+            0 -8px 16px rgba(96,165,250,0.9),
+            0 -16px 32px rgba(56,189,248,0.7),
+            0 -26px 52px rgba(30,144,255,0.5),
+            0 -36px 68px rgba(59,130,246,0.25),
+            0 6px 14px rgba(96,165,250,0.85),
+            0 12px 28px rgba(56,189,248,0.6),
+            0 22px 48px rgba(30,144,255,0.4),
+            -7px 0 14px rgba(147,197,253,0.85),
+            -14px 0 30px rgba(56,189,248,0.6),
+            -22px 0 48px rgba(30,144,255,0.35),
+            7px 0 14px rgba(147,197,253,0.85),
+            14px 0 30px rgba(56,189,248,0.6),
+            22px 0 48px rgba(30,144,255,0.35),
+            0 0 40px rgba(56,189,248,0.3);
+    }
+    60% {
+        border-color: rgba(56,189,248,0.6);
+        box-shadow:
+            inset 0 0 8px rgba(30,144,255,0.1),
+            0 -4px 10px rgba(30,144,255,0.6),
+            0 -8px 20px rgba(59,130,246,0.4),
+            0 -14px 36px rgba(30,144,255,0.25),
+            0 4px 10px rgba(30,144,255,0.55),
+            0 8px 20px rgba(59,130,246,0.35),
+            0 14px 36px rgba(30,144,255,0.2),
+            -4px 0 10px rgba(56,189,248,0.55),
+            -8px 0 20px rgba(30,144,255,0.35),
+            -14px 0 36px rgba(59,130,246,0.2),
+            4px 0 10px rgba(56,189,248,0.55),
+            8px 0 20px rgba(30,144,255,0.35),
+            14px 0 36px rgba(59,130,246,0.2),
+            0 0 25px rgba(30,144,255,0.2);
+    }
+    100% {
+        border-color: rgba(147,197,253,0.8);
+        box-shadow:
+            inset 0 0 12px rgba(59,130,246,0.18),
+            0 -6px 14px rgba(56,189,248,0.85),
+            0 -12px 28px rgba(30,144,255,0.65),
+            0 -22px 48px rgba(59,130,246,0.45),
+            0 -32px 64px rgba(30,144,255,0.2),
+            0 7px 16px rgba(56,189,248,0.8),
+            0 14px 32px rgba(30,144,255,0.55),
+            0 24px 52px rgba(59,130,246,0.35),
+            -6px 0 16px rgba(96,165,250,0.8),
+            -12px 0 28px rgba(59,130,246,0.55),
+            -20px 0 46px rgba(30,144,255,0.3),
+            6px 0 16px rgba(96,165,250,0.8),
+            12px 0 28px rgba(59,130,246,0.55),
+            20px 0 46px rgba(30,144,255,0.3),
+            0 0 36px rgba(56,189,248,0.28);
+    }
+}
+/* Inner blue flame pulse */
 .rank-badge.rank-S::before {
     content: "";
     position: absolute;
-    /* Extend well beyond the badge so flames are tall */
-    top: -12px;
-    left: -12px;
-    right: -12px;
-    bottom: -12px;
+    inset: 0;
     border-radius: inherit;
-    z-index: -1;
-
-    /* Conic gradient = bright blue fire head + dark ash tail */
-    background: conic-gradient(
-        from var(--s-fire-angle, 0deg),
-        /* Ash trail (most of the ring) */
-        #1a1512 0%,
-        #201a15 5%,
-        #2a1f18 10%,
-        /* Transition to fire */
-        #1a3050 20%,
-        #1e5a8a 28%,
-        /* BRIGHT BLUE FIRE HEAD */
-        #38bdf8 33%,
-        #60a5fa 35%,
-        #93c5fd 36.5%,
-        #e0f2fe 38%,
-        #93c5fd 39.5%,
-        #60a5fa 41%,
-        #38bdf8 43%,
-        /* Fade back to ash */
-        #1e5a8a 50%,
-        #1a3050 58%,
-        #2a1f18 68%,
-        #201a15 78%,
-        #1a1512 90%,
-        #1a1512 100%
-    );
-
-    /* Mask to show ONLY the border ring (not the center) */
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    padding: 4px;
-
-    /* Glow around the fire */
-    filter: blur(0.5px);
-    animation: sFireRotate 3s linear infinite, sFireGlow 3s ease-in-out infinite;
+    background: radial-gradient(ellipse at 50% 0%, rgba(56,189,248,0.12) 0%, transparent 60%);
+    animation: sInnerFlame 0.6s ease-in-out infinite alternate;
 }
-
-/* Fallback for browsers without @property */
-@supports not (background: conic-gradient(red, blue)) {
-    .rank-badge.rank-S::before {
-        animation: sFireRotateFallback 3s linear infinite, sFireGlow 3s ease-in-out infinite;
-    }
+@keyframes sInnerFlame {
+    0%   { opacity: 0.4; }
+    100% { opacity: 1; background: radial-gradient(ellipse at 50% 0%, rgba(96,165,250,0.18) 0%, transparent 55%); }
 }
-@keyframes sFireRotateFallback {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-/* The conic gradient angle animation */
-@keyframes sFireRotate {
-    from { --s-fire-angle: 0deg; }
-    to   { --s-fire-angle: 360deg; }
-}
-
-/* Pulsing glow on the fire */
-@keyframes sFireGlow {
-    0%   { filter: blur(0.5px) brightness(0.9); }
-    50%  { filter: blur(1.5px) brightness(1.2); }
-    100% { filter: blur(0.5px) brightness(0.9); }
-}
-
-/* Flame flicker overlay — bright tips that dance at the fire head */
+/* Bright white hot spot at the fire head */
 .rank-badge.rank-S::after {
     content: "";
     position: absolute;
-    top: -16px;
-    left: -16px;
-    right: -16px;
-    bottom: -16px;
-    border-radius: inherit;
-    z-index: -2;
-
-    background:
-        /* Bright blue fire spots that flicker around the border */
-        radial-gradient(circle 8px 12px at 50% 0%, rgba(56,189,248,0.8) 0%, rgba(30,144,255,0.3) 40%, transparent 70%),
-        radial-gradient(circle 6px 10px at 100% 50%, rgba(96,165,250,0.7) 0%, rgba(59,130,246,0.2) 40%, transparent 70%),
-        radial-gradient(circle 8px 12px at 50% 100%, rgba(56,189,248,0.8) 0%, rgba(30,144,255,0.3) 40%, transparent 70%),
-        radial-gradient(circle 6px 10px at 0% 50%, rgba(96,165,250,0.7) 0%, rgba(59,130,246,0.2) 40%, transparent 70%);
+    top: -4px;
+    left: 25%;
+    right: 25%;
+    height: 6px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(224,242,254,0.9) 0%, rgba(147,197,253,0.5) 40%, transparent 70%);
     filter: blur(2px);
-    animation: sFlameFlicker 0.3s ease-in-out infinite alternate;
+    animation: sHotSpot 0.5s ease-in-out infinite alternate;
 }
-
-@keyframes sFlameFlicker {
-    0%   { opacity: 0.5; transform: scale(1); }
-    100% { opacity: 1; transform: scale(1.08); }
+@keyframes sHotSpot {
+    0%   { opacity: 0.4; transform: scaleX(0.8); }
+    100% { opacity: 1; transform: scaleX(1.2); }
 }
 
 /* ==========================================================================
