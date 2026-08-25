@@ -10,6 +10,7 @@ def reviews_page():
     reviews = Review.query.order_by(Review.created_at.desc()).all()
     return render_template('reviews.html', reviews=reviews)
 
+@reviews_bp.route('/rate_anime', defaults={'anime_id': None}, methods=['GET', 'POST'])
 @reviews_bp.route('/rate_anime/<int:anime_id>', methods=['GET', 'POST'])
 @login_required
 def rate_anime(anime_id):
