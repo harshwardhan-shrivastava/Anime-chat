@@ -163,6 +163,39 @@
 
 </section>
 
+<!-- ================= LATEST REVIEWS ================= -->
+
+<section class="section-title">
+
+    <h2>Latest Reviews</h2>
+
+    <p class="browse-sub">
+        See what the community thinks.
+        <a href="{{ url_for('reviews.reviews_page') }}" style="color:#8F5BFF;">All Reviews</a> or
+        <a href="{{ url_for('reviews.rate_anime', anime_slug='demon-slayer') }}" style="color:#8F5BFF;">Write a Review</a>.
+    </p>
+
+</section>
+
+<section class="anime-grid" style="padding:0 20px 60px;max-width:1300px;margin:0 auto;">
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px;">
+
+{% set latest_reviews = [] %}
+{% if true %}
+{% set lr_ns = namespace(reviews=[]) %}
+{% endif %}
+
+<div style="text-align:center;padding:20px;color:#6b7280;grid-column:1/-1;">
+    <a href="{{ url_for('reviews.reviews_page') }}" style="color:#8F5BFF;text-decoration:none;font-weight:600;font-size:0.95rem;">
+        <i class="fas fa-star"></i> View All Reviews
+    </a>
+</div>
+
+</div>
+
+</section>
+
 <script src="{{ url_for('static', filename='js/search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/list_picker.js') }}"></script>
 </body>

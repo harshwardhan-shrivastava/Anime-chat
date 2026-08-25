@@ -58,6 +58,7 @@ from chat import chat_bp
 from profile_routes import bp as profile_bp
 
 from threads import init_threads
+from reviews import reviews_bp
 
 
 app = Flask(__name__)
@@ -69,6 +70,7 @@ app.permanent_session_lifetime = timedelta(days=3650)
 app.register_blueprint(auth)
 app.register_blueprint(chat_bp)
 app.register_blueprint(profile_bp)
+app.register_blueprint(reviews_bp)
 
 
 init_threads(app)

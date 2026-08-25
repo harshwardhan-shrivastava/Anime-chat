@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Otakul - Admin Claims</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/list_picker.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js" crossorigin="anonymous"></script>
+    <style>
+        .admin-page { max-width: 900px; margin: 0 auto; padding: 100px 20px 60px; }
+        .admin-page h1 { font-size: 1.8rem; margin-bottom: 8px; color: #fff; }
+        .admin-page .subtitle { color: #9ca3af; margin-bottom: 30px; }
+        .claim-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px; padding: 20px; margin-bottom: 16px;
+        }
+        .claim-card.status-pending { border-left: 3px solid #f59e0b; }
+        .claim-card.status-approved { border-left: 3px solid #22c55e; }
+        .claim-card.status-rejected { border-left: 3px solid #ef4444; }
+        .claim-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .claim-user { font-weight: 600; color: #fff; }
+        .claim-status {
+            padding: 2px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+        }
+        .claim-status.pending { background: rgba(245,158,11,0.15); color: #f59e0b; }
+        .claim-status.approved { background: rgba(34,197,94,0.15); color: #22c55e; }
+        .claim-status.rejected { background: rgba(239,68,68,0.15); color: #ef4444; }
+        .claim-review-preview {
+            background: rgba(255,255,255,0.03); border-radius: 8px; padding: 12px; margin-bottom: 10px;
+        }
+        .claim-review-preview .crp-anime { color: #8F5BFF; font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }
+        .claim-review-preview .crp-rating { color: #f59e0b; font-size: 0.85rem; margin-bottom: 4px; }
+        .claim-review-preview .crp-comment { color: #9ca3af; font-size: 0.82rem; }
+        .claim-reason { color: #d1d5db; font-size: 0.88rem; margin-bottom: 12px; }
+        .claim-reason strong { color: #f59e0b; }
+        .claim-actions { display: flex; gap: 8px; }
+        .claim-actions button {
+            padding: 6px 18px; border-radius: 6px; font-size: 0.82rem;
+            font-weight: 600; cursor: pointer; border: none; transition: opacity 0.2s;
+        }
+        .claim-actions button:hover { opacity: 0.85; }
+        .approve-btn { background: #22c55e; color: #fff; }
+        .reject-btn { background: #ef4444; color: #fff; }
+        .claim-time { font-size: 0.78rem; color: #6b7280; margin-top: 8px; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #6b7280; }
+        .empty-state i { font-size: 3rem; margin-bottom: 16px; color: #374151; }
+    </style>
+</head>
+<body>
+<div class="background">
+    <div class="circle one"></div>
+    <div class="circle two"></div>
+    <div class="circle three"></div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-list" style="max-width:900px;margin:20px auto 0;width:90%;">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+{% endwith %}
+
+{% include "_navbar.html" %}
+
+<div class="admin-page">
+    <h1><i class="fas fa-shield-alt" style="color:#ef4444;"></i> Admin — Claims</h1>
+    <p class="subtitle">Review and manage user-submitted claims on reviews</p>
+
+    {% if claims %}
+        {% for claim in claims %}
+        <div class="claim-card status-{{ claim.status }}">
+            <div class="claim-header">
+                <span class="claim-user">
+                    <i class="fas fa-user"></i> {{ claim.username }}
+                    &bull; Claim #{{ claim.id }}
+                </span>
+                <span class="claim-status {{ claim.status }}">{{ claim.status }}</span>
+            </div>
+
+            <div class="claim-review-preview">
+                <div class="crp-anime"><i class="fas fa-film"></i> {{ claim.anime_title }}</div>
+                <div class="crp-rating">
+                    {% for i in range(1, 6) %}{% if i <= claim.rating %}&#9733;{% else %}&#9734;{% endif %}{% endfor %}
+                    by {{ claim.review_author }}
+                </div>
+                {% if claim.comment %}
+                <div class="crp-comment">{{ claim.comment[:200] }}{% if claim.comment|length > 200 %}...{% endif %}</div>
+                {% endif %}
+            </div>
+
+            <div class="claim-reason">
+                <strong>Reason:</strong> {{ claim.reason }}
+            </div>
+
+            {% if claim.status == 'pending' %}
+            <div class="claim-actions">
+                <form method="POST" action="{{ url_for('reviews.admin_claim_action', claim_id=claim.id) }}" style="display:inline;">
+                    <input type="hidden" name="action" value="approve">
+                    <button type="submit" class="approve-btn"><i class="fas fa-check"></i> Approve</button>
+                </form>
+                <form method="POST" action="{{ url_for('reviews.admin_claim_action', claim_id=claim.id) }}" style="display:inline;">
+                    <input type="hidden" name="action" value="reject">
+                    <button type="submit" class="reject-btn"><i class="fas fa-times"></i> Reject</button>
+                </form>
+            </div>
+            {% endif %}
+
+            <div class="claim-time">{{ claim.created_at|time_ago }}</div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>No claims submitted yet.</p>
+        </div>
+    {% endif %}
+</div>
+</body>
+</html>

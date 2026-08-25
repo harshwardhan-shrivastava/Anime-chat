@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Otakul - Reviews</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/list_picker.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js" crossorigin="anonymous"></script>
+    <style>
+        .reviews-page { max-width: 900px; margin: 0 auto; padding: 100px 20px 60px; }
+        .reviews-page h1 { font-size: 2rem; margin-bottom: 8px; color: #fff; }
+        .reviews-page .subtitle { color: #9ca3af; margin-bottom: 30px; font-size: 0.95rem; }
+        .review-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: border-color 0.2s;
+        }
+        .review-card:hover { border-color: rgba(143,91,255,0.3); }
+        .review-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .review-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem; font-weight: 700; color: #fff; flex-shrink: 0;
+        }
+        .review-avatar img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+        .review-meta { flex: 1; }
+        .review-username { font-weight: 600; color: #fff; font-size: 0.95rem; }
+        .review-rank {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .rank-S\+ { background: #ef4444; color: #fff; }
+        .rank-S { background: #f97316; color: #fff; }
+        .rank-A { background: #eab308; color: #1a1a2e; }
+        .rank-B { background: #3b82f6; color: #fff; }
+        .rank-C { background: #8b5cf6; color: #fff; }
+        .rank-D { background: #374151; color: #d1d5db; }
+        .rank-F { background: #6b7280; color: #9ca3af; }
+        .review-xp { font-size: 0.75rem; color: #6b7280; }
+        .review-anime-link { font-size: 0.85rem; color: #8F5BFF; text-decoration: none; margin-bottom: 6px; display: inline-block; }
+        .review-anime-link:hover { text-decoration: underline; }
+        .review-stars { color: #f59e0b; font-size: 1rem; margin-bottom: 8px; }
+        .review-content { color: #d1d5db; font-size: 0.92rem; line-height: 1.5; margin-bottom: 12px; }
+        .review-footer { display: flex; align-items: center; gap: 16px; }
+        .vote-btn {
+            background: none; border: 1px solid rgba(255,255,255,0.15);
+            color: #9ca3af; padding: 4px 12px; border-radius: 6px;
+            cursor: pointer; font-size: 0.82rem; transition: all 0.2s;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .vote-btn:hover { border-color: #8F5BFF; color: #8F5BFF; }
+        .vote-btn.voted-like { border-color: #22c55e; color: #22c55e; background: rgba(34,197,94,0.1); }
+        .vote-btn.voted-dislike { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.1); }
+        .claim-btn {
+            background: none; border: 1px solid rgba(255,255,255,0.1);
+            color: #6b7280; padding: 4px 10px; border-radius: 6px;
+            cursor: pointer; font-size: 0.78rem; transition: all 0.2s;
+        }
+        .claim-btn:hover { border-color: #f59e0b; color: #f59e0b; }
+        .claim-form { display: none; margin-top: 10px; }
+        .claim-form.open { display: block; }
+        .claim-form textarea {
+            width: 100%; background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+            color: #fff; padding: 10px; font-size: 0.85rem; resize: vertical;
+            min-height: 60px; font-family: inherit;
+        }
+        .claim-form button {
+            margin-top: 6px; background: #8F5BFF; color: #fff;
+            border: none; padding: 6px 16px; border-radius: 6px;
+            cursor: pointer; font-size: 0.82rem;
+        }
+        .claim-form button:hover { background: #7a4ce6; }
+        .review-time { font-size: 0.78rem; color: #6b7280; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #6b7280; }
+        .empty-state i { font-size: 3rem; margin-bottom: 16px; color: #374151; }
+    </style>
+</head>
+<body>
+<div class="background">
+    <div class="circle one"></div>
+    <div class="circle two"></div>
+    <div class="circle three"></div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-list" style="max-width:900px;margin:20px auto 0;width:90%;">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+{% endwith %}
+
+{% include "_navbar.html" %}
+
+<div class="reviews-page">
+    <h1><i class="fas fa-star" style="color:#f59e0b;"></i> Reviews</h1>
+    <p class="subtitle">Community reviews and ratings from anime fans</p>
+
+    {% if reviews %}
+        {% for review in reviews %}
+        <div class="review-card" id="review-{{ review.id }}">
+            <div class="review-header">
+                <div class="review-avatar" style="background:{{ review.avatar_color or '#6b7280' }}">
+                    {% if review.avatar %}
+                    <img src="{{ url_for('static', filename='images/avatars/' ~ review.avatar) }}" alt="">
+                    {% else %}
+                    {{ (review.username or 'A')[:2]|upper }}
+                    {% endif %}
+                </div>
+                <div class="review-meta">
+                    <span class="review-username">{{ review.username }}</span>
+                    <span class="review-rank rank-{{ review.rank }}">{{ review.rank }}</span>
+                    <span class="review-xp">{{ review.xp }} XP</span>
+                </div>
+                <span class="review-time">{{ review.created_at|time_ago }}</span>
+            </div>
+
+            <a href="{{ url_for('anime', anime_slug=review.anime_slug) }}" class="review-anime-link">
+                <i class="fas fa-film"></i> {{ review.anime_title }}
+            </a>
+
+            <div class="review-stars">
+                {% for i in range(1, 6) %}
+                    {% if i <= review.rating %}&#9733;{% else %}&#9734;{% endif %}
+                {% endfor %}
+                <span style="color:#9ca3af;font-size:0.8rem;margin-left:4px;">{{ review.rating }}/5</span>
+            </div>
+
+            {% if review.comment %}
+            <div class="review-content">{{ review.comment }}</div>
+            {% endif %}
+
+            <div class="review-footer">
+                <button class="vote-btn" onclick="voteReview({{ review.id }}, 'like', this)" data-review-id="{{ review.id }}">
+                    <i class="fas fa-thumbs-up"></i>
+                    <span class="vote-count">{{ review.likes }}</span>
+                </button>
+                <button class="vote-btn" onclick="voteReview({{ review.id }}, 'dislike', this)" data-review-id="{{ review.id }}">
+                    <i class="fas fa-thumbs-down"></i>
+                    <span class="vote-count">{{ review.dislikes }}</span>
+                </button>
+
+                {% if current_user %}
+                <button class="claim-btn" onclick="toggleClaimForm({{ review.id }})">
+                    <i class="fas fa-flag"></i> Claim
+                </button>
+                {% endif %}
+            </div>
+
+            {% if current_user %}
+            <div class="claim-form" id="claim-form-{{ review.id }}">
+                <form method="POST" action="{{ url_for('reviews.submit_claim', review_id=review.id) }}">
+                    <textarea name="reason" placeholder="Why should this review be reviewed?" required></textarea>
+                    <button type="submit">Submit Claim</button>
+                    <button type="button" class="claim-btn" onclick="toggleClaimForm({{ review.id }})" style="margin-left:6px;">Cancel</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-comment-slash"></i>
+            <p>No reviews yet. Be the first to review an anime!</p>
+            <a href="{{ url_for('browse', sort='popular') }}" style="color:#8F5BFF;">Browse Anime</a>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function voteReview(reviewId, voteType, btn) {
+    fetch('/api/review/' + reviewId + '/vote', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({vote_type: voteType})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (!data.success) {
+            if (data.error === 'Log in to vote') {
+                window.location.href = '/auth/login';
+            }
+            return;
+        }
+        // Update all vote buttons for this review
+        var card = document.getElementById('review-' + reviewId);
+        var buttons = card.querySelectorAll('.vote-btn');
+        buttons.forEach(function(b) {
+            b.classList.remove('voted-like', 'voted-dislike');
+            var type = b.getAttribute('onclick').includes("'like'") ? 'like' : 'dislike';
+            var count = type === 'like' ? data.likes : data.dislikes;
+            b.querySelector('.vote-count').textContent = count;
+        });
+        if (data.user_vote === 'like') {
+            buttons[0].classList.add('voted-like');
+        } else if (data.user_vote === 'dislike') {
+            buttons[1].classList.add('voted-dislike');
+        }
+    });
+}
+function toggleClaimForm(reviewId) {
+    var form = document.getElementById('claim-form-' + reviewId);
+    form.classList.toggle('open');
+}
+</script>
+</body>
+</html>
