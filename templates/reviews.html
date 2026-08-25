@@ -163,10 +163,8 @@
             </a>
             <div class="grc-top">
                 <div class="review-avatar-initial" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[0]|upper }}{% if r.avatar %}<img src="/static/images/avatars/{{ r.avatar }}" alt="{{ r.username }}" onerror="this.remove()">{% endif %}</div>
-                <div>
-                    <p class="grc-user">{{ r.username }}
-                        {% if r.rank %}                        <span class="rank-badge rank-{{ r.rank }}">{{ r.rank }}</span>{% endif %}
-                    </p>
+                <div>                    <p class="grc-user">{{ r.username }}</p>
+                    {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:1rem;padding:4px 18px;letter-spacing:2px;">{{ r.rank }}</span>{% endif %}
                     <p class="grc-meta">
                         <span class="stars">{% for i in range(1,6) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
                         {{ r.rating }}/5 · {{ r.created_at }}
@@ -191,6 +189,20 @@
         </div>
         {% endfor %}
     </div>
+
+    {% if current_user %}
+    <script>
+    // ?rank=S+ in URL forces all badges to that rank (for preview)
+    const params = new URLSearchParams(window.location.search);
+    const previewRank = params.get("rank");
+    if (previewRank) {
+        document.querySelectorAll(".rank-badge").forEach(b => {
+            b.className = `rank-badge rank-${previewRank}`;
+            b.textContent = previewRank;
+        });
+    }
+    </script>
+    {% endif %}
 
     {% if current_user %}
     <script>

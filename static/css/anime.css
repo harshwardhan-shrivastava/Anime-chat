@@ -2672,11 +2672,11 @@ footer p{
 .rank-badge {
     display: inline-block;
     margin-left: 8px;
-    padding: 2px 14px;
+    padding: 4px 18px;
     border-radius: 20px;
     font-weight: 900;
-    font-size: 0.72rem;
-    letter-spacing: 1px;
+    font-size: 0.85rem;
+    letter-spacing: 2px;
     vertical-align: middle;
     position: relative;
     overflow: hidden;
