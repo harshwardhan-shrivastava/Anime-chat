@@ -1,0 +1,455 @@
+/* ==========================================================================
+   ELEMENTAL RANK BADGES — Pure CSS animated effects
+   Ranks: F (poop), D (wind), C (earth), B (water), A (lightning),
+          S (fire), S+ (galaxy)
+   ========================================================================== */
+
+/* --- Base badge --- */
+.rank-badge {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 14px;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    overflow: hidden;
+    isolation: isolate;
+    vertical-align: middle;
+    border: 2px solid transparent;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+.rank-badge:hover {
+    transform: scale(1.08);
+}
+
+/* ==========================================================================
+   F RANK — Poop 💩
+   ========================================================================== */
+.rank-badge.rank-F {
+    background: linear-gradient(135deg, #5c3a1e 0%, #8B4513 40%, #6b3410 100%);
+    color: #f5deb3;
+    border-color: #6b3410;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.rank-badge.rank-F::before {
+    content: "💩";
+    position: absolute;
+    left: 4px;
+    font-size: 1.1em;
+    animation: fPooBounce 2s ease-in-out infinite;
+    filter: drop-shadow(0 0 3px rgba(139,69,19,0.6));
+}
+@keyframes fPooBounce {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-3px) rotate(-8deg); }
+    75% { transform: translateY(2px) rotate(5deg); }
+}
+/* Brown bubble particles */
+.rank-badge.rank-F::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle 3px at 20% 80%, #8B4513 0%, transparent 100%),
+        radial-gradient(circle 2px at 70% 70%, #a0522d 0%, transparent 100%),
+        radial-gradient(circle 2.5px at 50% 90%, #6b3410 0%, transparent 100%);
+    animation: fBubbles 3s ease-in-out infinite;
+    opacity: 0.6;
+}
+@keyframes fBubbles {
+    0%, 100% { transform: translateY(0); opacity: 0.6; }
+    50% { transform: translateY(-4px); opacity: 0.3; }
+}
+
+/* ==========================================================================
+   D RANK — Wind 🌬️
+   Silver/gray with animated swooshing wind streaks
+   ========================================================================== */
+.rank-badge.rank-D {
+    background: linear-gradient(135deg, #3a3f47 0%, #525860 50%, #3a3f47 100%);
+    color: #c5cdd6;
+    border-color: #6b7280;
+    text-shadow: 0 0 6px rgba(197,205,214,0.3);
+}
+/* Wind streaks — diagonal lines sweeping across */
+.rank-badge.rank-D::before {
+    content: "";
+    position: absolute;
+    inset: -50% -20%;
+    background: repeating-linear-gradient(
+        -30deg,
+        transparent 0px,
+        transparent 8px,
+        rgba(197,205,214,0.08) 8px,
+        rgba(197,205,214,0.15) 10px,
+        transparent 10px,
+        transparent 18px
+    );
+    animation: windSweep 2.5s linear infinite;
+}
+@keyframes windSweep {
+    0% { transform: translateX(-30%) translateY(-10%); }
+    100% { transform: translateX(30%) translateY(10%); }
+}
+/* Subtle glow pulse */
+.rank-badge.rank-D::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 12px rgba(197,205,214,0.15);
+    animation: dGlow 3s ease-in-out infinite;
+}
+@keyframes dGlow {
+    0%, 100% { box-shadow: inset 0 0 8px rgba(197,205,214,0.1); }
+    50% { box-shadow: inset 0 0 16px rgba(197,205,214,0.25); }
+}
+
+/* ==========================================================================
+   C RANK — Earth 🪨
+   Brown/earthy with animated falling rock particles
+   ========================================================================== */
+.rank-badge.rank-C {
+    background: linear-gradient(180deg, #5a4a3a 0%, #7a6a50 50%, #4a3a2a 100%);
+    color: #d4c5a9;
+    border-color: #8B7355;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+/* Falling rock debris */
+.rank-badge.rank-C::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 4px 3px at 15% 20%, #a0906a 0%, transparent 100%),
+        radial-gradient(ellipse 3px 2px at 45% 40%, #8a7a5a 0%, transparent 100%),
+        radial-gradient(ellipse 5px 3px at 75% 15%, #b0a080 0%, transparent 100%),
+        radial-gradient(ellipse 3px 4px at 60% 60%, #9a8a6a 0%, transparent 100%);
+    animation: rockFall 2s ease-in infinite;
+}
+@keyframes rockFall {
+    0% { transform: translateY(-8px); opacity: 0.8; }
+    100% { transform: translateY(12px); opacity: 0; }
+}
+/* Earth glow */
+.rank-badge.rank-C::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 -4px 12px rgba(139,115,85,0.3);
+    animation: cRumble 4s ease-in-out infinite;
+}
+@keyframes cRumble {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-1px); }
+    75% { transform: translateX(1px); }
+}
+
+/* ==========================================================================
+   B RANK — Water 💧
+   Blue with animated bubbling/wave effect
+   ========================================================================== */
+.rank-badge.rank-B {
+    background: linear-gradient(180deg, #1a3a5c 0%, #1e5a8a 40%, #14304a 100%);
+    color: #7ec8e3;
+    border-color: #2980b9;
+    text-shadow: 0 0 8px rgba(126,200,227,0.4);
+}
+/* Active bubbling — multiple bubble layers rising at different speeds */
+.rank-badge.rank-B::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        /* Rising bubbles layer 1 (big slow) */
+        radial-gradient(circle 4px at 20% 80%, rgba(126,200,227,0.5) 0%, transparent 70%),
+        radial-gradient(circle 3px at 45% 90%, rgba(100,180,220,0.4) 0%, transparent 70%),
+        /* Rising bubbles layer 2 (small fast) */
+        radial-gradient(circle 2px at 60% 75%, rgba(180,230,255,0.45) 0%, transparent 70%),
+        radial-gradient(circle 2.5px at 35% 85%, rgba(126,200,227,0.35) 0%, transparent 70%),
+        radial-gradient(circle 1.5px at 75% 70%, rgba(200,240,255,0.4) 0%, transparent 70%),
+        radial-gradient(circle 3px at 50% 95%, rgba(100,180,220,0.3) 0%, transparent 70%),
+        /* Surface shimmer */
+        linear-gradient(180deg, rgba(180,230,255,0.2) 0%, transparent 20%);
+    animation: waterBubbles 1.8s ease-in-out infinite;
+}
+@keyframes waterBubbles {
+    0%   { transform: translateY(4px) scaleY(1); opacity: 0.7; }
+    30%  { transform: translateY(-2px) scaleY(1.05); opacity: 1; }
+    60%  { transform: translateY(-6px) scaleY(0.95); opacity: 0.8; }
+    100% { transform: translateY(4px) scaleY(1); opacity: 0.7; }
+}
+/* Water surface wave + rising bubble glow */
+.rank-badge.rank-B::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        /* Animated wave highlight at top */
+        linear-gradient(0deg, rgba(41,128,185,0.0) 0%, rgba(126,200,227,0.25) 30%, rgba(100,180,220,0.1) 50%, transparent 60%);
+    animation: bWave 1.4s ease-in-out infinite;
+}
+@keyframes bWave {
+    0%, 100% { opacity: 0.5; transform: translateY(2px); }
+    50% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* ==========================================================================
+   A RANK — Lightning ⚡
+   Yellow/electric with flash animation + glowing border after strike
+   ========================================================================== */
+.rank-badge.rank-A {
+    background: linear-gradient(135deg, #1a1a2e 0%, #2a2a4a 50%, #1a1a2e 100%);
+    color: #ffe066;
+    border-color: #ffd700;
+    text-shadow: 0 0 10px rgba(255,224,102,0.6), 0 0 20px rgba(255,215,0,0.3);
+    animation: aBaseGlow 4s ease-in-out infinite;
+}
+@keyframes aBaseGlow {
+    0%, 100% { box-shadow: 0 0 5px rgba(255,215,0,0.2); }
+    50% { box-shadow: 0 0 15px rgba(255,215,0,0.4); }
+}
+/* Lightning bolt — sweeps from right edge to left edge across the badge */
+.rank-badge.rank-A::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255,224,102,0.05) 5%,
+        rgba(255,255,255,0.7) 15%,
+        rgba(255,224,102,0.3) 25%,
+        transparent 35%,
+        transparent 100%
+    );
+    animation: lightningStrike 3.5s ease-in infinite;
+}
+@keyframes lightningStrike {
+    /* Hold hidden */
+    0%, 80% { transform: translateX(120%); opacity: 0; }
+    /* Strike flashes from right to left */
+    83%  { transform: translateX(60%); opacity: 1; }
+    86%  { transform: translateX(10%); opacity: 0.9; }
+    89%  { transform: translateX(-40%); opacity: 1; }
+    92%  { transform: translateX(-100%); opacity: 0.6; }
+    95%, 100% { transform: translateX(-120%); opacity: 0; }
+}
+/* Electric border glow — ignites right after the strike lands */
+.rank-badge.rank-A::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: inherit;
+    border: 2px solid rgba(255,215,0,0);
+    animation: electricBorder 3.5s ease-in-out infinite;
+}
+@keyframes electricBorder {
+    /* Before strike: dark */
+    0%, 80% { border-color: rgba(255,215,0,0); box-shadow: none; }
+    /* Strike hits — border ignites */
+    83%  { border-color: rgba(255,215,0,0.9); box-shadow: 0 0 14px rgba(255,215,0,0.7), 0 0 28px rgba(255,224,102,0.4), inset 0 0 8px rgba(255,215,0,0.3); }
+    /* Glow flickers */
+    86%  { border-color: rgba(255,215,0,0.5); box-shadow: 0 0 8px rgba(255,215,0,0.4), 0 0 16px rgba(255,224,102,0.2); }
+    89%  { border-color: rgba(255,215,0,0.85); box-shadow: 0 0 12px rgba(255,215,0,0.6), 0 0 24px rgba(255,224,102,0.3); }
+    92%  { border-color: rgba(255,215,0,0.4); box-shadow: 0 0 6px rgba(255,215,0,0.3); }
+    /* Fade out */
+    95%  { border-color: rgba(255,215,0,0.15); box-shadow: 0 0 3px rgba(255,215,0,0.1); }
+    100% { border-color: rgba(255,215,0,0); box-shadow: none; }
+}
+
+/* ==========================================================================
+   S RANK — Fire 🔥
+   Dark badge with animated blue fire burning the border edges
+   ========================================================================== */
+.rank-badge.rank-S {
+    background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2a 50%, #0a0a1a 100%);
+    color: #ff6b35;
+    border-color: #ff4500;
+    text-shadow: 0 0 10px rgba(255,107,53,0.6), 0 0 20px rgba(255,69,0,0.3);
+    animation: sFireGlow 2s ease-in-out infinite;
+}
+@keyframes sFireGlow {
+    0%, 100% { box-shadow: 0 0 4px rgba(30,144,255,0.15); }
+    50% { box-shadow: 0 0 8px rgba(30,144,255,0.3); }
+}
+/* Blue fire ONLY on the border edges — flickering conic gradient */
+.rank-badge.rank-S::before {
+    content: "";
+    position: absolute;
+    inset: -5px;
+    border-radius: inherit;
+    background: conic-gradient(
+        from 0deg,
+        rgba(65,105,225,0.8),
+        rgba(30,144,255,0.9),
+        rgba(135,206,235,0.7),
+        rgba(30,144,255,0.95),
+        rgba(65,105,225,0.8),
+        rgba(100,180,255,0.6),
+        rgba(30,144,255,0.9),
+        rgba(65,105,225,0.8)
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    padding: 3px;
+    border-radius: inherit;
+    filter: blur(1.5px);
+    animation: blueFireBorder 2s linear infinite;
+}
+@keyframes blueFireBorder {
+    0%   { transform: rotate(0deg); filter: blur(1.5px) brightness(0.9); }
+    25%  { filter: blur(2px) brightness(1.1); }
+    50%  { transform: rotate(180deg); filter: blur(1.5px) brightness(1); }
+    75%  { filter: blur(2.5px) brightness(1.2); }
+    100% { transform: rotate(360deg); filter: blur(1.5px) brightness(0.9); }
+}
+/* Outer blue fire glow — pulses on the border only */
+.rank-badge.rank-S::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: inherit;
+    border: 2px solid rgba(30,144,255,0.4);
+    background: transparent;
+    animation: sFireGlowOuter 2s ease-in-out infinite;
+}
+@keyframes sFireGlowOuter {
+    0%, 100% {
+        border-color: rgba(65,105,225,0.3);
+        box-shadow: 0 0 6px rgba(30,144,255,0.2), 0 0 12px rgba(65,105,225,0.1);
+    }
+    50% {
+        border-color: rgba(135,206,235,0.6);
+        box-shadow: 0 0 10px rgba(30,144,255,0.4), 0 0 20px rgba(65,105,225,0.25), 0 0 30px rgba(30,144,255,0.15);
+    }
+}
+
+/* ==========================================================================
+   S+ RANK — Galaxy ✨🌌
+   Cosmic purple/gold with animated milky way sparkles
+   ========================================================================== */
+.rank-badge.rank-S\+ {
+    background: linear-gradient(135deg, #0a0020 0%, #1a0040 30%, #2a0060 50%, #1a0040 70%, #0a0020 100%);
+    color: #ffd700;
+    border-color: #9b59b6;
+    text-shadow: 0 0 10px rgba(255,215,0,0.8), 0 0 20px rgba(155,89,182,0.5), 0 0 30px rgba(255,215,0,0.3);
+    animation: sPlusCosmic 3s ease-in-out infinite;
+    font-size: 0.8rem;
+    letter-spacing: 3px;
+}
+@keyframes sPlusCosmic {
+    0%, 100% {
+        box-shadow:
+            0 0 10px rgba(155,89,182,0.4),
+            0 0 20px rgba(255,215,0,0.2),
+            inset 0 0 15px rgba(155,89,182,0.2);
+    }
+    33% {
+        box-shadow:
+            0 0 15px rgba(255,215,0,0.5),
+            0 0 30px rgba(155,89,182,0.4),
+            0 0 45px rgba(255,215,0,0.15),
+            inset 0 0 20px rgba(255,215,0,0.1);
+    }
+    66% {
+        box-shadow:
+            0 0 20px rgba(139,100,235,0.5),
+            0 0 35px rgba(255,215,0,0.3),
+            inset 0 0 18px rgba(139,100,235,0.2);
+    }
+}
+/* Starfield sparkles */
+.rank-badge.rank-S\+::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        radial-gradient(circle 1px at 10% 20%, #fff 0%, transparent 100%),
+        radial-gradient(circle 0.8px at 30% 70%, #ffd700 0%, transparent 100%),
+        radial-gradient(circle 1.2px at 60% 30%, #fff 0%, transparent 100%),
+        radial-gradient(circle 0.7px at 80% 80%, #e8d44d 0%, transparent 100%),
+        radial-gradient(circle 1px at 45% 50%, #fff 0%, transparent 100%),
+        radial-gradient(circle 0.6px at 20% 60%, #ffd700 0%, transparent 100%),
+        radial-gradient(circle 0.9px at 75% 15%, #fff 0%, transparent 100%),
+        radial-gradient(circle 1.1px at 90% 45%, #ffd700 0%, transparent 100%);
+    animation: galaxyStars 4s ease-in-out infinite;
+}
+@keyframes galaxyStars {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    25% { opacity: 0.9; transform: scale(1.02) rotate(1deg); }
+    50% { opacity: 0.6; transform: scale(0.98) rotate(-1deg); }
+    75% { opacity: 1; transform: scale(1.01) rotate(0.5deg); }
+}
+/* Nebula glow overlay */
+.rank-badge.rank-S\+::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(155,89,182,0.3) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 50%, rgba(255,215,0,0.2) 0%, transparent 60%);
+    animation: nebulaDrift 5s ease-in-out infinite alternate;
+}
+@keyframes nebulaDrift {
+    0% { transform: translateX(-5%) translateY(-3%); opacity: 0.6; }
+    100% { transform: translateX(5%) translateY(3%); opacity: 1; }
+}
+
+/* ==========================================================================
+   Vote buttons styling (for reviews page)
+   ========================================================================== */
+.vote-btn-wrap {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+.vote-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 1px solid #374151;
+    border-radius: 10px;
+    background: #1f2937;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.vote-btn:hover {
+    background: #2a3441;
+    border-color: #4b5563;
+    color: #d1d5db;
+    transform: translateY(-1px);
+}
+.vote-btn.voted-like {
+    background: rgba(34,197,94,0.15);
+    border-color: #22c55e;
+    color: #22c55e;
+    box-shadow: 0 0 8px rgba(34,197,94,0.2);
+}
+.vote-btn.voted-dislike {
+    background: rgba(239,68,68,0.15);
+    border-color: #ef4444;
+    color: #ef4444;
+    box-shadow: 0 0 8px rgba(239,68,68,0.2);
+}
+.vote-btn .vote-count {
+    font-variant-numeric: tabular-nums;
+}
