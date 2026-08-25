@@ -1061,6 +1061,29 @@ async function sendGif(url) {
     const payload = { kind: "gif", content: url };
     if (replyTarget) payload.reply_to = replyTarget.id;
 
+    // Optimistic: render the GIF instantly so it feels immediate
+    const tempId = -Date.now();
+    const color = CURRENT_USER.avatar_color || "#3b82f6";
+    const avatar = CURRENT_USER.avatar || null;
+    const avatarHtml = avatar
+        ? '<div class="avatar" style="background:' + color + '"><img class="avatar-img" src="/static/images/avatars/' + escapeHtml(avatar) + '" alt=""></div>'
+        : '<div class="avatar" style="background:' + color + '">' + initials(CURRENT_USER.username) + '</div>';
+    const ts = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    const group = document.createElement("div");
+    group.className = "msg-group mine";
+    group.innerHTML =
+        '<div class="msg-group-head">' + avatarHtml +
+        '<span class="msg-group-name" style="color:' + color + '">' + escapeHtml(CURRENT_USER.username) + '</span>' +
+        '<span class="msg-group-time">' + ts + '</span></div>' +
+        '<div class="msg-lines"><div class="msg-line" data-message-id="' + tempId + '">' +
+        '<span class="msg-line-time">' + ts + '</span>' +
+        '<div class="msg-line-body"><div class="msg-content">' +
+        '<div class="gif-attachment"><img src="' + escapeHtml(url) + '" alt="sent gif" loading="lazy"></div>' +
+        '</div><div class="reaction-chips"></div></div></div></div>';
+    chatBox.appendChild(group);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    removeWelcome();
+
     try {
         const res = await fetch(`/community/${ANIME_SLUG}/messages`, {
             method: "POST",
@@ -1070,12 +1093,18 @@ async function sendGif(url) {
         const data = await res.json();
 
         if (data.success) {
+            // Remove optimistic and render real message
+            group.remove();
+            renderedIds.add(data.message.id);
+            lastMessageId = Math.max(lastMessageId, data.message.id);
             renderIncomingMessage(data.message);
             cancelReply();
         } else {
+            group.remove();
             showToast(data.error || "Couldn't send that gif.");
         }
     } catch (err) {
+        group.remove();
         showToast("Network error -- try again.");
     }
 }

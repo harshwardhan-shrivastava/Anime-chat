@@ -521,7 +521,7 @@ def update_password(email, password_hash):
 def get_user_by_email(email):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+    cursor.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,))
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else None

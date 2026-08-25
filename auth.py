@@ -279,7 +279,7 @@ def login():
     password = request.form.get("password") or ""
     next_url = request.form.get("next") or ""
 
-    user = database.get_user_by_email(identifier.lower()) or database.get_user_by_username(identifier)
+    user = database.get_user_by_email(identifier.lower()) or database.get_user_by_email(identifier) or database.get_user_by_username(identifier)
 
     if not user or not check_password_hash(user["password_hash"], password):
         flash("Incorrect username/email or password.", "error")
