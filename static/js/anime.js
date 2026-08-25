@@ -103,6 +103,73 @@ function buildReviewMenu(reviewId, card) {
     return wrap;
 }
 
+// Like/dislike bar under each review card.
+function buildVoteBar(review) {
+    const bar = document.createElement("div");
+    bar.className = "review-vote-bar";
+    bar.style.cssText = "display:flex;gap:10px;margin-top:14px;align-items:center;";
+
+    function makeBtn(kind) {
+        const active = review.user_vote === (kind === "like" ? 1 : 0);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "review-vote-btn" + (active ? " vote-active" : "");
+        btn.dataset.kind = kind;
+        btn.style.cssText = "background:#0d1420;border:1px solid #1f2937;border-radius:20px;padding:6px 14px;cursor:pointer;font-size:0.85rem;color:" +
+            (active ? (kind === "like" ? "#22c55e" : "#f87171") : "#9ca3af") + ";" +
+            "transition:all 0.15s;display:inline-flex;align-items:center;gap:6px;";
+        btn.innerHTML = (kind === "like" ? "\ud83d\udc4d" : "\ud83d\udc4e") +
+            ' <span class="vote-count">' + (kind === "like" ? (review.likes || 0) : (review.dislikes || 0)) + "</span>";
+        return btn;
+    }
+
+    const likeBtn = makeBtn("like");
+    const dislikeBtn = makeBtn("dislike");
+    bar.appendChild(likeBtn);
+    bar.appendChild(dislikeBtn);
+
+    function refresh(review_) {
+        review = review_;
+        bar.innerHTML = "";
+        bar.appendChild(makeBtn("like"));
+        bar.appendChild(makeBtn("dislike"));
+        wire();
+    }
+
+    function vote(isLike) {
+        if (!currentUserId) {
+            alert("Please log in to vote on reviews.");
+            return;
+        }
+        fetch(`/api/anime-review/${review.id}/vote`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ is_like: isLike })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    review.likes = data.likes;
+                    review.dislikes = data.dislikes;
+                    review.user_vote = data.user_vote;
+                    refresh(review);
+                } else {
+                    alert(data.error || "Could not vote.");
+                }
+            })
+            .catch(() => alert("Network error."));
+    }
+
+    function wire() {
+        bar.querySelectorAll(".review-vote-btn").forEach(btn => {
+            btn.addEventListener("click", () => vote(btn.dataset.kind === "like"));
+        });
+    }
+    wire();
+
+    return bar;
+}
+
 // Show/hide the review form (used when a review is deleted).
 function showReviewForm() {
     const box = document.querySelector(".review-box");
@@ -251,6 +318,7 @@ function renderStats(data) {
 
             card.appendChild(header);
             card.appendChild(commentEl);
+            card.appendChild(buildVoteBar(review));
             reviewsContainer.appendChild(card);
         });
     }

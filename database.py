@@ -1200,7 +1200,7 @@ def get_anime_stats(anime_slug):
 
     cursor.execute(
         """
-        SELECT r.username, r.rating, r.comment, r.created_at, r.user_id,
+        SELECT r.id, r.username, r.rating, r.comment, r.created_at, r.user_id,
                u.avatar, u.avatar_color
         FROM reviews r
         LEFT JOIN users u ON u.id = r.user_id

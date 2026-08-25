@@ -172,6 +172,16 @@
                 </div>
             </div>
             {% if r.comment %}<p class="grc-comment">{{ r.comment }}</p>{% endif %}
+            <div class="review-vote-bar" data-review-id="{{ r.id }}" style="display:flex;gap:10px;margin-top:14px;align-items:center;">
+                <button type="button" class="review-vote-btn gvote" data-kind="like" data-vote="{{ r.user_vote }}"
+                    style="background:#0d1420;border:1px solid #1f2937;border-radius:20px;padding:6px 14px;cursor:pointer;font-size:0.85rem;color:{{ '#22c55e' if r.user_vote == 1 else '#9ca3af' }};display:inline-flex;align-items:center;gap:6px;">
+                    👍 <span class="vote-count">{{ r.likes or 0 }}</span>
+                </button>
+                <button type="button" class="review-vote-btn gvote" data-kind="dislike" data-vote="{{ r.user_vote }}"
+                    style="background:#0d1420;border:1px solid #1f2937;border-radius:20px;padding:6px 14px;cursor:pointer;font-size:0.85rem;color:{{ '#f87171' if r.user_vote == 0 else '#9ca3af' }};display:inline-flex;align-items:center;gap:6px;">
+                    👎 <span class="vote-count">{{ r.dislikes or 0 }}</span>
+                </button>
+            </div>
         </div>
         {% else %}
         <div class="reviews-empty">
@@ -179,5 +189,36 @@
         </div>
         {% endfor %}
     </div>
+
+    {% if current_user %}
+    <script>
+    document.querySelectorAll(".review-vote-bar").forEach(bar => {
+        const reviewId = bar.dataset.reviewId;
+        bar.querySelectorAll(".gvote").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const isLike = btn.dataset.kind === "like";
+                fetch(`/api/anime-review/${reviewId}/vote`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ is_like: isLike })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (!data.success) { alert(data.error || "Could not vote."); return; }
+                        bar.querySelectorAll(".gvote").forEach(b => {
+                            const kind = b.dataset.kind;
+                            const active = data.user_vote === (kind === "like" ? 1 : 0);
+                            b.dataset.vote = data.user_vote === null ? "" : String(data.user_vote);
+                            b.style.color = active ? (kind === "like" ? "#22c55e" : "#f87171") : "#9ca3af";
+                            b.querySelector(".vote-count").textContent =
+                                kind === "like" ? data.likes : data.dislikes;
+                        });
+                    })
+                    .catch(() => alert("Network error."));
+            });
+        });
+    });
+    </script>
+    {% endif %}
 </body>
 </html>

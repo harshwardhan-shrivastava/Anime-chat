@@ -57,6 +57,7 @@ from database import (
     set_profile_public,
 )
 from auth import auth, load_logged_in_user
+from review_votes import toggle_anime_review_vote, get_user_anime_review_votes
 from chat import chat_bp
 from profile_routes import bp as profile_bp
 
@@ -926,13 +927,21 @@ def community(anime_slug):
 def reviews_page():
     """Global reviews feed — every review across all anime, newest first."""
     raw = get_all_reviews(limit=200)
+    user = g.get("user")
+    review_ids = [r["id"] for r in raw]
+    like_counts = get_bulk_review_likes("anime", review_ids)
+    user_votes = get_user_anime_review_votes(review_ids, user["id"]) if user else {}
     reviews = []
     for r in raw:
         entry = anime_database.get(r["anime_slug"])
         r["anime_title"] = entry.get("title", r["anime_slug"]) if entry else r["anime_slug"]
         r["anime_image"] = entry.get("image") if entry else None
+        counts = like_counts.get(r["id"], {"likes": 0, "dislikes": 0})
+        r["likes"] = counts["likes"]
+        r["dislikes"] = counts["dislikes"]
+        r["user_vote"] = user_votes.get(r["id"])
         reviews.append(r)
-    return render_template("reviews.html", reviews=reviews, current_user=g.get("user"))
+    return render_template("reviews.html", reviews=reviews, current_user=user)
 
 
 @app.route("/anime-reviews/<anime_slug>", methods=["GET"])
@@ -944,6 +953,17 @@ def anime_reviews(anime_slug):
     my_review = None
     if user:
         my_review = get_user_review(anime_slug, user["id"])
+
+    # Attach like/dislike counts (and the user's own votes) to each review.
+    review_ids = [r["id"] for r in stats["reviews"] if r.get("id")]
+    like_counts = get_bulk_review_likes("anime", review_ids)
+    user_votes = get_user_anime_review_votes(review_ids, user["id"]) if user else {}
+    for r in stats["reviews"]:
+        counts = like_counts.get(r.get("id"), {"likes": 0, "dislikes": 0})
+        r["likes"] = counts["likes"]
+        r["dislikes"] = counts["dislikes"]
+        r["user_vote"] = user_votes.get(r.get("id"))
+
     return jsonify({
         "success": True,
         "average": stats["average"],
@@ -952,6 +972,29 @@ def anime_reviews(anime_slug):
         "reviews": stats["reviews"],
         "my_review": my_review,
         "logged_in": bool(user),
+    })
+
+
+@app.route("/api/anime-review/<int:review_id>/vote", methods=["POST"])
+def vote_anime_review(review_id):
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in to vote."}), 401
+    data = request.get_json(silent=True) or {}
+    is_like = data.get("is_like")
+    if is_like is None:
+        return jsonify({"success": False, "error": "Missing vote type."}), 400
+    user_vote, removed, likes, dislikes = toggle_anime_review_vote(
+        user["id"], review_id, bool(is_like)
+    )
+    if user_vote is None and not removed:
+        return jsonify({"success": False, "error": "Review not found."}), 404
+    return jsonify({
+        "success": True,
+        "likes": likes,
+        "dislikes": dislikes,
+        "user_vote": user_vote,
+        "removed": removed,
     })
 
 
