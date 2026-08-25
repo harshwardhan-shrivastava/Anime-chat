@@ -1314,15 +1314,17 @@ grid-template-columns:1fr;
     z-index: -1;
 }
 
-/* S+ COSMIC — full rainbow spin + starfield + shimmer */
+/* ===============================================
+   S+ COSMIC — full rainbow nebula spin + stars
+=============================================== */
 @keyframes cosmicSpin {
     0%   { background-position: 0% 50%; }
     50%  { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
 @keyframes cosmicTwinkle {
-    0%,100% { opacity: 0.3; transform: scale(0.6) rotate(0deg); }
-    50%     { opacity: 1;   transform: scale(1.4) rotate(180deg); }
+    0%,100% { opacity: 0.2; transform: scale(0.5) rotate(0deg); }
+    50%     { opacity: 1;   transform: scale(1.5) rotate(180deg); }
 }
 @keyframes cosmicBreathe {
     0%,100% { box-shadow: 0 0 12px rgba(255,215,0,0.5), 0 0 28px rgba(168,139,250,0.3); }
@@ -1350,191 +1352,248 @@ grid-template-columns:1fr;
     animation: cosmicSpin 2.5s linear infinite reverse;
 }
 
-/* S FIRE — raging flames consuming the badge */
+/* ===============================================
+   S FIRE — realistic flames consuming the badge
+   Layers: outer flame (box-shadows), inner core (::before), embers (::after)
+=============================================== */
 @keyframes flameRise {
-    0%   { background-position: 0% 100%; }
-    33%  { background-position: 30% 40%; }
-    66%  { background-position: 70% 60%; }
-    100% { background-position: 0% 100%; }
+    0%   { background-position: 0% 100%; filter: brightness(0.9); }
+    25%  { background-position: 20% 50%; filter: brightness(1.1); }
+    50%  { background-position: 50% 20%; filter: brightness(1.3); }
+    75%  { background-position: 80% 60%; filter: brightness(1.05); }
+    100% { background-position: 0% 100%; filter: brightness(0.9); }
 }
-@keyframes flameGlow {
-    0%,100% { box-shadow: 0 0 10px 3px rgba(255,80,0,0.6), 0 0 25px rgba(255,30,0,0.3), 0 -8px 20px rgba(255,200,0,0.4); }
-    50%     { box-shadow: 0 0 18px 6px rgba(255,120,0,0.9), 0 0 40px rgba(255,50,0,0.5), 0 -12px 30px rgba(255,220,50,0.6); }
+@keyframes flameOuter {
+    0%,100% {
+        box-shadow:
+            0 0 6px 2px rgba(255,60,0,0.7),
+            0 0 15px 4px rgba(255,100,0,0.5),
+            0 -6px 12px rgba(255,180,0,0.6),
+            -4px -4px 10px rgba(255,80,0,0.4),
+            4px -4px 10px rgba(255,120,0,0.4);
+    }
+    33% {
+        box-shadow:
+            0 0 8px 3px rgba(255,80,0,0.8),
+            0 0 20px 6px rgba(255,60,0,0.5),
+            0 -10px 16px rgba(255,200,0,0.7),
+            -6px -6px 14px rgba(255,100,0,0.5),
+            6px -3px 12px rgba(255,140,0,0.5);
+    }
+    66% {
+        box-shadow:
+            0 0 10px 4px rgba(255,100,0,0.9),
+            0 0 25px 8px rgba(255,40,0,0.6),
+            0 -14px 20px rgba(255,220,50,0.8),
+            -3px -8px 16px rgba(255,120,0,0.6),
+            5px -5px 14px rgba(255,160,0,0.5);
+    }
 }
-@keyframes flameInner {
-    0%,100% { opacity: 0.6; transform: translateY(0) scaleY(1); }
-    50%     { opacity: 1;   transform: translateY(-2px) scaleY(1.15); }
+@keyframes flameCore {
+    0%,100% { opacity: 0.5; transform: translateY(1px) scaleY(0.95); }
+    50%     { opacity: 1;   transform: translateY(-2px) scaleY(1.1); }
+}
+@keyframes emberFloat {
+    0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0.8; }
+    50%  { transform: translateY(-8px) translateX(3px) scale(0.6); opacity: 0.4; }
+    100% { transform: translateY(-14px) translateX(-2px) scale(0.2); opacity: 0; }
 }
 .rank-S {
-    background: linear-gradient(0deg, #7f1d1d 0%, #b91c1c 15%, #ef4444 35%, #f97316 55%, #facc15 80%, #fffbeb 100%);
-    background-size: 100% 350%;
-    animation: flameRise 0.6s ease-in-out infinite, flameGlow 1.2s ease-in-out infinite;
+    background: linear-gradient(0deg, #450a0a 0%, #7f1d1d 10%, #b91c1c 20%, #dc2626 35%, #ef4444 45%, #f97316 60%, #fbbf24 78%, #fef3c7 95%);
+    background-size: 100% 400%;
+    animation: flameRise 0.5s ease-in-out infinite, flameOuter 0.8s ease-in-out infinite;
     color: #fffbeb;
-    text-shadow: 0 0 10px rgba(255,200,0,0.95), 0 0 20px rgba(255,100,0,0.6);
-    border: 1px solid rgba(255,150,0,0.5);
+    text-shadow:
+        0 0 8px rgba(255,200,0,0.95),
+        0 0 16px rgba(255,100,0,0.7),
+        0 0 2px #fff;
+    border: 1px solid rgba(255,150,0,0.6);
 }
 .rank-S::before {
-    background: linear-gradient(0deg, transparent 0%, rgba(255,255,255,0.2) 30%, rgba(255,220,100,0.35) 50%, rgba(255,255,255,0.2) 70%, transparent 100%);
-    background-size: 100% 250%;
-    animation: flameInner 0.5s ease-in-out infinite;
+    background: linear-gradient(0deg, transparent 0%, rgba(255,255,255,0.15) 20%, rgba(255,240,180,0.4) 45%, rgba(255,255,255,0.2) 70%, transparent 100%);
+    background-size: 100% 300%;
+    animation: flameCore 0.35s ease-in-out infinite;
 }
 .rank-S::after {
-    background: linear-gradient(0deg, transparent 0%, rgba(255,80,0,0.15) 50%, transparent 100%);
-    background-size: 100% 200%;
-    animation: flameRise 0.4s ease-in-out infinite reverse;
+    background: radial-gradient(circle at 30% 20%, rgba(255,200,50,0.6) 0.5px, transparent 1px),
+                radial-gradient(circle at 70% 15%, rgba(255,140,0,0.5) 0.5px, transparent 1px),
+                radial-gradient(circle at 50% 10%, rgba(255,220,80,0.4) 0.5px, transparent 1px);
+    animation: emberFloat 1s ease-out infinite;
 }
 
-/* A LIGHTNING — violent electric flash + bolt streak */
+/* ===============================================
+   A LIGHTNING — dark sky + electric arc + flash
+=============================================== */
 @keyframes lightningFlash {
-    0%,85%,100% { opacity: 0; }
-    87%  { opacity: 1; }
-    89%  { opacity: 0.1; }
-    91%  { opacity: 0.9; }
-    93%  { opacity: 0; }
-    95%  { opacity: 0.7; }
+    0%,80%,100% { opacity: 0; }
+    82%  { opacity: 1; }
+    84%  { opacity: 0.05; }
+    86%  { opacity: 0.95; }
+    88%  { opacity: 0; }
+    90%  { opacity: 0.6; }
 }
 @keyframes electricPulse {
-    0%,100% { box-shadow: 0 0 8px rgba(254,202,87,0.4); transform: scale(1); }
-    50%     { box-shadow: 0 0 22px rgba(254,202,87,0.9), 0 0 40px rgba(139,92,246,0.4); transform: scale(1.03); }
+    0%,100% { box-shadow: 0 0 4px rgba(254,202,87,0.3); transform: scale(1); }
+    48%     { box-shadow: 0 0 6px rgba(254,202,87,0.3); transform: scale(1); }
+    50%     { box-shadow: 0 0 20px rgba(254,202,87,0.9), 0 0 40px rgba(139,92,246,0.5), 0 0 60px rgba(255,255,255,0.2); transform: scale(1.05); }
+    52%     { box-shadow: 0 0 4px rgba(254,202,87,0.3); transform: scale(1); }
 }
-@keyframes boltSlide {
-    0%   { background-position: -100% 0; }
-    100% { background-position: 200% 0; }
+@keyframes boltTravel {
+    0%   { background-position: -120% 0; }
+    100% { background-position: 220% 0; }
 }
 .rank-A {
-    background: linear-gradient(135deg, #1a1a2e, #16213e, #FECA57 30%, #f1c40f 50%, #8b5cf6 70%, #16213e);
-    background-size: 300% 300%;
-    animation: electricPulse 1.5s ease-in-out infinite;
-    color: #FECA57;
-    text-shadow: 0 0 8px rgba(254,202,87,0.95), 0 0 16px rgba(139,92,246,0.5);
-    border: 1px solid rgba(254,202,87,0.4);
+    background: linear-gradient(160deg, #0a0a1a 0%, #111827 25%, #1e1b4b 50%, #111827 75%, #0a0a1a 100%);
+    animation: electricPulse 2s ease-in-out infinite;
+    color: #fde68a;
+    text-shadow: 0 0 10px rgba(254,202,87,0.95), 0 0 20px rgba(139,92,246,0.6);
+    border: 1px solid rgba(254,202,87,0.2);
 }
 .rank-A::before {
-    background: linear-gradient(110deg, transparent 30%, rgba(254,202,87,0.7) 48%, rgba(255,255,255,0.9) 50%, rgba(139,92,246,0.7) 52%, transparent 70%);
-    background-size: 300% 100%;
-    animation: boltSlide 1.8s ease-in-out infinite;
+    background: linear-gradient(110deg, transparent 25%, rgba(254,202,87,0.8) 46%, rgba(255,255,255,1) 50%, rgba(139,92,246,0.8) 54%, transparent 75%);
+    background-size: 350% 100%;
+    animation: boltTravel 2.5s ease-in-out infinite;
 }
 .rank-A::after {
-    background: linear-gradient(180deg, rgba(255,255,255,0.7) 0%, transparent 25%, transparent 75%, rgba(255,255,255,0.7) 100%);
-    animation: lightningFlash 3s infinite;
+    background: linear-gradient(180deg, rgba(255,255,255,0.8) 0%, transparent 20%, transparent 80%, rgba(255,255,255,0.6) 100%);
+    animation: lightningFlash 4s infinite;
 }
 
-/* B WATER — deep ocean flow + wave lines + bubble shimmer */
-@keyframes waterFlow {
+/* ===============================================
+   B WATER — real flowing water + wave surface + bubbles
+=============================================== */
+@keyframes waterDeep {
     0%   { background-position: 0% 0%; }
     50%  { background-position: 100% 100%; }
     100% { background-position: 0% 0%; }
 }
-@keyframes waveRoll {
-    0%   { background-position: 0% 0; }
-    100% { background-position: 200% 0; }
+@keyframes waveSurface {
+    0%   { clip-path: polygon(0% 0%, 5% 35%, 15% 10%, 25% 40%, 35% 15%, 50% 45%, 65% 20%, 75% 50%, 85% 25%, 95% 40%, 100% 10%, 100% 0%); }
+    50%  { clip-path: polygon(0% 10%, 10% 40%, 20% 15%, 30% 45%, 45% 20%, 55% 50%, 70% 25%, 80% 45%, 90% 30%, 95% 45%, 100% 20%, 100% 0%); }
+    100% { clip-path: polygon(0% 0%, 5% 35%, 15% 10%, 25% 40%, 35% 15%, 50% 45%, 65% 20%, 75% 50%, 85% 25%, 95% 40%, 100% 10%, 100% 0%); }
 }
 @keyframes waterShimmer {
-    0%,100% { box-shadow: 0 0 6px rgba(84,160,255,0.4), inset 0 -2px 4px rgba(125,211,252,0.2); }
-    50%     { box-shadow: 0 0 18px rgba(84,160,255,0.7), 0 0 30px rgba(59,130,246,0.3), inset 0 -4px 8px rgba(125,211,252,0.3); }
+    0%,100% { box-shadow: 0 0 6px rgba(84,160,255,0.4), inset 0 -2px 6px rgba(125,211,252,0.2); }
+    50%     { box-shadow: 0 0 16px rgba(84,160,255,0.7), 0 0 28px rgba(59,130,246,0.3), inset 0 -4px 10px rgba(125,211,252,0.35); }
 }
-@keyframes bubbleFloat {
-    0%   { transform: translateY(0) scale(1); opacity: 0.5; }
-    50%  { transform: translateY(-3px) scale(1.1); opacity: 0.9; }
-    100% { transform: translateY(-6px) scale(0.8); opacity: 0; }
+@keyframes bubbleRise {
+    0%   { transform: translateY(100%) translateX(0) scale(0.4); opacity: 0; }
+    20%  { opacity: 0.7; }
+    80%  { opacity: 0.3; }
+    100% { transform: translateY(-20%) translateX(3px) scale(1); opacity: 0; }
 }
 .rank-B {
-    background: linear-gradient(135deg, #0c1929 0%, #1e3a5f 20%, #2980b9 40%, #38bdf8 55%, #7dd3fc 70%, #2980b9 85%, #0c1929 100%);
-    background-size: 400% 400%;
-    animation: waterFlow 3s ease-in-out infinite, waterShimmer 2s ease-in-out infinite;
-    color: #e0f2fe;
-    text-shadow: 0 0 8px rgba(56,189,248,0.9), 0 0 14px rgba(84,160,255,0.5);
-    border: 1px solid rgba(84,160,255,0.4);
+    background: linear-gradient(180deg, rgba(56,189,248,0.3) 0%, #0369a1 20%, #075985 40%, #0c4a6e 65%, #082f49 85%, #0c1929 100%);
+    animation: waterDeep 3s ease-in-out infinite, waterShimmer 2s ease-in-out infinite;
+    color: #bae6fd;
+    text-shadow: 0 0 6px rgba(56,189,248,0.9), 0 0 12px rgba(84,160,255,0.5);
+    border: 1px solid rgba(56,189,248,0.3);
 }
 .rank-B::before {
-    background:
-        repeating-linear-gradient(100deg, transparent, transparent 6px, rgba(255,255,255,0.06) 6px, rgba(255,255,255,0.06) 8px),
-        repeating-linear-gradient(80deg, transparent, transparent 10px, rgba(125,211,252,0.08) 10px, rgba(125,211,252,0.08) 12px);
-    animation: waveRoll 3s linear infinite;
-    background-size: 250% 100%;
+    background: linear-gradient(180deg, rgba(125,211,252,0.4) 0%, rgba(56,189,248,0.15) 100%);
+    animation: waveSurface 2s ease-in-out infinite;
+    border-radius: inherit;
 }
 .rank-B::after {
-    background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.3) 1px, transparent 2px),
-                radial-gradient(circle at 70% 30%, rgba(255,255,255,0.2) 1px, transparent 2px),
-                radial-gradient(circle at 55% 70%, rgba(255,255,255,0.25) 1px, transparent 1.5px);
-    animation: bubbleFloat 2s ease-in-out infinite;
+    background:
+        radial-gradient(circle at 20% 70%, rgba(255,255,255,0.35) 1.5px, transparent 2px),
+        radial-gradient(circle at 55% 80%, rgba(255,255,255,0.25) 1px, transparent 1.5px),
+        radial-gradient(circle at 80% 65%, rgba(255,255,255,0.3) 1px, transparent 1.5px);
+    animation: bubbleRise 2.5s ease-in-out infinite;
 }
 
-/* C EARTH — rocky impact + tectonic rumble + falling rocks */
-@keyframes rockFall {
-    0%,100% { transform: translateY(0); filter: brightness(1); }
-    30%     { transform: translateY(3px); filter: brightness(0.85); }
-    60%     { transform: translateY(-1px); filter: brightness(1.05); }
+/* ===============================================
+   C EARTH — realistic rock + cracks + falling debris
+=============================================== */
+@keyframes rockImpact {
+    0%,100% { transform: translateY(0) rotate(0deg); filter: brightness(1); }
+    20%     { transform: translateY(4px) rotate(0.5deg); filter: brightness(0.8); }
+    40%     { transform: translateY(-1px) rotate(-0.3deg); filter: brightness(1.05); }
+    60%     { transform: translateY(2px) rotate(0.2deg); filter: brightness(0.9); }
 }
 @keyframes earthRumble {
-    0%,100% { box-shadow: 0 0 4px rgba(180,140,80,0.3); }
-    25%     { box-shadow: 2px 0 6px rgba(180,140,80,0.4); }
-    50%     { box-shadow: -1px 0 8px rgba(120,80,30,0.5); }
-    75%     { box-shadow: 1px 0 6px rgba(180,140,80,0.4); }
+    0%,100% { box-shadow: 0 0 3px rgba(120,80,30,0.3); }
+    20%     { box-shadow: 2px 0 5px rgba(120,80,30,0.4); }
+    40%     { box-shadow: -1px 1px 6px rgba(90,60,20,0.5); }
+    60%     { box-shadow: 1px -1px 4px rgba(120,80,30,0.4); }
+    80%     { box-shadow: -2px 0 5px rgba(90,60,20,0.3); }
 }
-@keyframes crackSpread {
-    0%,100% { opacity: 0.2; transform: scaleX(0.8); }
-    50%     { opacity: 0.6; transform: scaleX(1.1); }
+@keyframes crackPulse {
+    0%,100% { opacity: 0.15; }
+    50%     { opacity: 0.5; }
+}
+@keyframes debrisFall {
+    0%   { transform: translateY(-2px) rotate(0deg); opacity: 0.6; }
+    100% { transform: translateY(6px) rotate(45deg); opacity: 0; }
 }
 .rank-C {
-    background: linear-gradient(160deg, #1a1207 0%, #5c3a1a 20%, #8B6914 35%, #a0723c 50%, #6b4423 65%, #3d2b1f 80%, #1a1207 100%);
-    background-size: 200% 200%;
-    animation: rockFall 1.5s ease-in-out infinite, earthRumble 0.8s ease-in-out infinite;
+    background:
+        repeating-conic-gradient(rgba(120,80,30,0.08) 0deg, transparent 3deg, transparent 12deg),
+        linear-gradient(160deg, #1c1108 0%, #3d2b1f 15%, #5c3a1a 25%, #78592e 40%, #8B6914 50%, #a0723c 55%, #7c5a30 65%, #5c3a1a 80%, #2d1f14 95%);
+    background-size: 20px 20px, 100% 100%;
+    animation: rockImpact 2s ease-in-out infinite, earthRumble 1s ease-in-out infinite;
     color: #d4a76a;
-    text-shadow: 0 0 6px rgba(180,140,80,0.7), 0 0 12px rgba(139,105,20,0.4);
-    border: 1px solid rgba(180,140,80,0.4);
+    text-shadow: 0 0 4px rgba(180,140,80,0.6), 1px 1px 0 rgba(60,40,10,0.5);
+    border: 1px solid rgba(120,80,30,0.5);
 }
 .rank-C::before {
     background:
-        linear-gradient(45deg, transparent 40%, rgba(180,140,80,0.15) 50%, transparent 60%),
-        linear-gradient(-30deg, transparent 35%, rgba(100,70,30,0.1) 50%, transparent 65%);
-    animation: crackSpread 2s ease-in-out infinite;
+        linear-gradient(50deg, transparent 42%, rgba(60,40,10,0.4) 49%, rgba(80,55,15,0.3) 51%, transparent 58%),
+        linear-gradient(-25deg, transparent 38%, rgba(40,25,5,0.3) 49%, rgba(60,40,10,0.25) 51%, transparent 62%);
+    animation: crackPulse 3s ease-in-out infinite;
 }
 .rank-C::after {
-    background: radial-gradient(circle at 40% 60%, rgba(180,140,80,0.2) 0%, transparent 50%),
-                radial-gradient(circle at 70% 30%, rgba(120,80,30,0.15) 0%, transparent 40%);
-    animation: rockFall 3s ease-in-out infinite reverse;
+    background: radial-gradient(circle at 25% 80%, rgba(180,140,80,0.3) 1px, transparent 1.5px),
+                radial-gradient(circle at 60% 75%, rgba(120,80,30,0.25) 1px, transparent 1.5px),
+                radial-gradient(circle at 80% 85%, rgba(140,100,40,0.2) 1px, transparent 1.5px);
+    animation: debrisFall 1.8s ease-in infinite;
 }
 
-/* D AIR/WIND — fast swirling + wind streaks + dust particles */
-@keyframes airFastSwirl {
+/* ===============================================
+   D AIR/WIND — transparent + fast wind streaks + flowing mist
+=============================================== */
+@keyframes windFast {
     0%   { background-position: 0% 50%; }
-    25%  { background-position: 50% 30%; }
     50%  { background-position: 100% 50%; }
-    75%  { background-position: 50% 70%; }
     100% { background-position: 0% 50%; }
 }
-@keyframes windStreak {
-    0%   { background-position: -100% 0; opacity: 0; }
-    40%  { opacity: 0.7; }
-    100% { background-position: 200% 0; opacity: 0; }
+@keyframes windStreak1 {
+    0%   { background-position: -200% 0; opacity: 0; }
+    30%  { opacity: 0.8; }
+    100% { background-position: 300% 0; opacity: 0; }
 }
-@keyframes dustFloat {
-    0%,100% { opacity: 0.3; transform: translateX(0) translateY(0); }
-    50%     { opacity: 0.8; transform: translateX(4px) translateY(-2px); }
+@keyframes windStreak2 {
+    0%   { background-position: -150% 0; opacity: 0; }
+    40%  { opacity: 0.5; }
+    100% { background-position: 250% 0; opacity: 0; }
+}
+@keyframes mistDrift {
+    0%,100% { opacity: 0.15; transform: translateX(0) scaleX(1); }
+    50%     { opacity: 0.4;  transform: translateX(5px) scaleX(1.15); }
 }
 @keyframes airBreathe {
-    0%,100% { box-shadow: 0 0 6px rgba(45,212,191,0.3); }
-    50%     { box-shadow: 0 0 16px rgba(45,212,191,0.6), 0 0 28px rgba(45,212,191,0.25); }
+    0%,100% { box-shadow: 0 0 4px rgba(45,212,191,0.2); }
+    50%     { box-shadow: 0 0 12px rgba(45,212,191,0.4), 0 0 20px rgba(45,212,191,0.15); }
 }
 .rank-D {
-    background: linear-gradient(90deg, #042f2e 0%, #0f766e 20%, #14b8a6 35%, #2dd4bf 50%, #5eead4 65%, #2dd4bf 80%, #0f766e 90%, #042f2e 100%);
-    background-size: 500% 100%;
-    animation: airFastSwirl 2.5s ease-in-out infinite, airBreathe 2s ease-in-out infinite;
-    color: #042f2e;
-    text-shadow: 0 0 6px rgba(45,212,191,0.8);
-    border: 1px solid rgba(45,212,191,0.3);
+    background: linear-gradient(135deg, rgba(4,47,46,0.7) 0%, rgba(15,118,110,0.5) 25%, rgba(20,184,166,0.35) 50%, rgba(15,118,110,0.5) 75%, rgba(4,47,46,0.7) 100%);
+    background-size: 400% 100%;
+    animation: windFast 2s ease-in-out infinite, airBreathe 1.8s ease-in-out infinite;
+    color: #99f6e4;
+    text-shadow: 0 0 6px rgba(45,212,191,0.7);
+    border: 1px solid rgba(45,212,191,0.25);
 }
 .rank-D::before {
-    background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.3) 40%, rgba(200,240,235,0.4) 50%, rgba(255,255,255,0.3) 60%, transparent 80%);
-    background-size: 300% 100%;
-    animation: windStreak 1.5s linear infinite;
+    background:
+        linear-gradient(100deg, transparent 15%, rgba(255,255,255,0.35) 30%, rgba(200,245,240,0.5) 40%, rgba(255,255,255,0.35) 50%, transparent 65%),
+        linear-gradient(95deg, transparent 20%, rgba(255,255,255,0.2) 45%, rgba(200,245,240,0.3) 55%, transparent 80%);
+    background-size: 250% 100%, 300% 100%;
+    animation: windStreak1 0.8s linear infinite, windStreak2 1.2s linear infinite;
 }
 .rank-D::after {
-    background: radial-gradient(circle at 25% 45%, rgba(255,255,255,0.25) 1px, transparent 1.5px),
-                radial-gradient(circle at 65% 30%, rgba(255,255,255,0.2) 1px, transparent 1.5px),
-                radial-gradient(circle at 80% 60%, rgba(45,212,191,0.2) 1px, transparent 1.5px);
-    animation: dustFloat 2s ease-in-out infinite;
+    background: linear-gradient(120deg, transparent 30%, rgba(150,235,225,0.08) 50%, transparent 70%);
+    background-size: 300% 100%;
+    animation: mistDrift 3s ease-in-out infinite;
 }
 
 /* F POOP */
