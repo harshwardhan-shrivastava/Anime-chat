@@ -4,6 +4,13 @@
           S (fire), S+ (galaxy)
    ========================================================================== */
 
+/* Register custom property for S-rank fire gradient rotation */
+@property --s-fire-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
 /* --- Base badge --- */
 .rank-badge {
     position: relative;
@@ -215,34 +222,41 @@
     0%, 100% { box-shadow: 0 0 5px rgba(255,215,0,0.2); }
     50% { box-shadow: 0 0 15px rgba(255,215,0,0.4); }
 }
-/* Lightning bolt — sweeps from right edge to left edge across the badge */
+/* Lightning bolt — diagonal strike from top-right corner to bottom-left */
 .rank-badge.rank-A::before {
     content: "";
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: -60%;
+    left: -30%;
+    width: 160%;
+    height: 220%;
     background: linear-gradient(
-        90deg,
+        -55deg,
         transparent 0%,
-        rgba(255,224,102,0.05) 5%,
-        rgba(255,255,255,0.7) 15%,
-        rgba(255,224,102,0.3) 25%,
-        transparent 35%,
+        transparent 46%,
+        rgba(255,224,102,0.1) 48%,
+        rgba(255,255,255,0.8) 49.5%,
+        rgba(255,255,255,0.9) 50%,
+        rgba(255,224,102,0.8) 50.5%,
+        rgba(255,224,102,0.1) 52%,
+        transparent 54%,
         transparent 100%
     );
-    animation: lightningStrike 3.5s ease-in infinite;
+    opacity: 0;
+    animation: lightningStrike 3.8s ease-in infinite;
 }
 @keyframes lightningStrike {
-    /* Hold hidden */
-    0%, 80% { transform: translateX(120%); opacity: 0; }
-    /* Strike flashes from right to left */
-    83%  { transform: translateX(60%); opacity: 1; }
-    86%  { transform: translateX(10%); opacity: 0.9; }
-    89%  { transform: translateX(-40%); opacity: 1; }
-    92%  { transform: translateX(-100%); opacity: 0.6; }
-    95%, 100% { transform: translateX(-120%); opacity: 0; }
+    /* Hidden */
+    0%, 82%  { opacity: 0; transform: translateY(-40%) translateX(40%); }
+    /* Flash in from top-right */
+    84%  { opacity: 1; transform: translateY(-20%) translateX(20%); }
+    /* Bolt lands center */
+    86%  { opacity: 0.9; transform: translateY(0) translateX(0); }
+    /* Continue to bottom-left */
+    88%  { opacity: 1; transform: translateY(10%) translateX(-10%); }
+    90%  { opacity: 0.5; transform: translateY(20%) translateX(-20%); }
+    /* Fade out */
+    93%, 100% { opacity: 0; transform: translateY(30%) translateX(-30%); }
 }
 /* Electric border glow — ignites right after the strike lands */
 .rank-badge.rank-A::after {
@@ -251,19 +265,16 @@
     inset: -3px;
     border-radius: inherit;
     border: 2px solid rgba(255,215,0,0);
-    animation: electricBorder 3.5s ease-in-out infinite;
+    animation: electricBorder 3.8s ease-in-out infinite;
 }
 @keyframes electricBorder {
-    /* Before strike: dark */
-    0%, 80% { border-color: rgba(255,215,0,0); box-shadow: none; }
-    /* Strike hits — border ignites */
-    83%  { border-color: rgba(255,215,0,0.9); box-shadow: 0 0 14px rgba(255,215,0,0.7), 0 0 28px rgba(255,224,102,0.4), inset 0 0 8px rgba(255,215,0,0.3); }
-    /* Glow flickers */
-    86%  { border-color: rgba(255,215,0,0.5); box-shadow: 0 0 8px rgba(255,215,0,0.4), 0 0 16px rgba(255,224,102,0.2); }
-    89%  { border-color: rgba(255,215,0,0.85); box-shadow: 0 0 12px rgba(255,215,0,0.6), 0 0 24px rgba(255,224,102,0.3); }
-    92%  { border-color: rgba(255,215,0,0.4); box-shadow: 0 0 6px rgba(255,215,0,0.3); }
-    /* Fade out */
-    95%  { border-color: rgba(255,215,0,0.15); box-shadow: 0 0 3px rgba(255,215,0,0.1); }
+    0%, 82%  { border-color: rgba(255,215,0,0); box-shadow: none; }
+    84%  { border-color: rgba(255,215,0,0.9); box-shadow: 0 0 16px rgba(255,215,0,0.8), 0 0 32px rgba(255,224,102,0.5); }
+    86%  { border-color: rgba(255,215,0,0.4); box-shadow: 0 0 6px rgba(255,215,0,0.3); }
+    88%  { border-color: rgba(255,215,0,0.95); box-shadow: 0 0 14px rgba(255,215,0,0.7), 0 0 28px rgba(255,224,102,0.4); }
+    90%  { border-color: rgba(255,215,0,0.3); box-shadow: 0 0 5px rgba(255,215,0,0.2); }
+    93%  { border-color: rgba(255,215,0,0.7); box-shadow: 0 0 10px rgba(255,215,0,0.5); }
+    96%  { border-color: rgba(255,215,0,0.1); box-shadow: 0 0 2px rgba(255,215,0,0.1); }
     100% { border-color: rgba(255,215,0,0); box-shadow: none; }
 }
 
@@ -272,63 +283,69 @@
    Dark badge with animated blue fire burning the border edges
    ========================================================================== */
 .rank-badge.rank-S {
-    background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2a 50%, #0a0a1a 100%);
-    color: #ff6b35;
-    border-color: #ff4500;
-    text-shadow: 0 0 10px rgba(255,107,53,0.6), 0 0 20px rgba(255,69,0,0.3);
-    animation: sFireGlow 2s ease-in-out infinite;
+    background: #0a0e1a;
+    color: #60a5fa;
+    border: none;
+    text-shadow: 0 0 8px rgba(96,165,250,0.7), 0 0 16px rgba(59,130,246,0.4);
+    animation: sBaseGlow 2s ease-in-out infinite;
 }
-@keyframes sFireGlow {
+@keyframes sBaseGlow {
     0%, 100% { box-shadow: 0 0 4px rgba(30,144,255,0.15); }
-    50% { box-shadow: 0 0 8px rgba(30,144,255,0.3); }
+    50% { box-shadow: 0 0 10px rgba(30,144,255,0.35); }
 }
-/* Blue fire ONLY on the border edges — flickering conic gradient */
+/* Blue fire border — only the edges burn, dark interior */
 .rank-badge.rank-S::before {
     content: "";
     position: absolute;
-    inset: -5px;
+    inset: 0;
     border-radius: inherit;
-    background: conic-gradient(
-        from 0deg,
-        rgba(65,105,225,0.8),
-        rgba(30,144,255,0.9),
-        rgba(135,206,235,0.7),
-        rgba(30,144,255,0.95),
-        rgba(65,105,225,0.8),
-        rgba(100,180,255,0.6),
-        rgba(30,144,255,0.9),
-        rgba(65,105,225,0.8)
+    padding: 3px;
+    background: linear-gradient(
+        var(--s-fire-angle, 0deg),
+        #1e40af, #3b82f6, #93c5fd, #60a5fa, #2563eb, #1e40af, #3b82f6, #93c5fd, #1e40af
     );
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
-    padding: 3px;
-    border-radius: inherit;
-    filter: blur(1.5px);
-    animation: blueFireBorder 2s linear infinite;
+    animation: sFireSpin 1.8s linear infinite, sFireFlicker 0.4s ease-in-out infinite alternate;
 }
-@keyframes blueFireBorder {
-    0%   { transform: rotate(0deg); filter: blur(1.5px) brightness(0.9); }
-    25%  { filter: blur(2px) brightness(1.1); }
-    50%  { transform: rotate(180deg); filter: blur(1.5px) brightness(1); }
-    75%  { filter: blur(2.5px) brightness(1.2); }
-    100% { transform: rotate(360deg); filter: blur(1.5px) brightness(0.9); }
+@keyframes sFireSpin {
+    to { --s-fire-angle: 360deg; }
 }
-/* Outer blue fire glow — pulses on the border only */
+@keyframes sFireFlicker {
+    0%   { opacity: 0.7; filter: blur(1px); }
+    50%  { opacity: 1; filter: blur(2px); }
+    100% { opacity: 0.85; filter: blur(1.5px); }
+}
+/* Fallback for browsers that don't support @property: use transform rotate */
+@supports not (background: paint(something)) {
+    .rank-badge.rank-S::before {
+        animation: sFireSpinFallback 1.8s linear infinite, sFireFlicker 0.4s ease-in-out infinite alternate;
+    }
+    @keyframes sFireSpinFallback {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+}
+/* Outer blue fire glow ring */
 .rank-badge.rank-S::after {
     content: "";
     position: absolute;
-    inset: -6px;
+    inset: -5px;
     border-radius: inherit;
-    border: 2px solid rgba(30,144,255,0.4);
+    border: 2px solid rgba(59,130,246,0.5);
     background: transparent;
+    box-shadow:
+        0 0 8px rgba(30,144,255,0.3),
+        0 0 16px rgba(59,130,246,0.2),
+        0 0 24px rgba(30,144,255,0.1);
     animation: sFireGlowOuter 2s ease-in-out infinite;
 }
 @keyframes sFireGlowOuter {
     0%, 100% {
-        border-color: rgba(65,105,225,0.3);
-        box-shadow: 0 0 6px rgba(30,144,255,0.2), 0 0 12px rgba(65,105,225,0.1);
+        border-color: rgba(30,144,255,0.3);
+        box-shadow: 0 0 6px rgba(30,144,255,0.2), 0 0 12px rgba(59,130,246,0.1);
     }
     50% {
         border-color: rgba(135,206,235,0.6);
