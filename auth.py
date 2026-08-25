@@ -167,7 +167,14 @@ def verify_email():
 
         if entered != pending["verification_code"]:
             flash("That code isn't right — check it and try again.", "error")
-            return render_template("verify_email.html", email=email, purpose="verify", dev_code=None, resent=False)
+            return render_template(
+                "verify_email.html",
+                email=email,
+                purpose="verify",
+                dev_code=None,
+                resent=False,
+                last_code=entered,
+            )
 
         try:
             user_id = database.create_user(

@@ -25,7 +25,7 @@
 <div class="auth-wrapper">
 
     <a href="{{ url_for('home') }}" class="auth-brand">
-        <span class="brand-anime">Anime</span><span class="brand-chat">Chat</span>
+        <span class="brand-anime">Ota</span><span class="brand-chat">kul</span>
     </a>
 
     <div class="auth-card" style="text-align:center;">
@@ -74,7 +74,7 @@
                 <input type="text" maxlength="1" inputmode="numeric" autocomplete="off">
                 <input type="text" maxlength="1" inputmode="numeric" autocomplete="off">
             </div>
-            <input type="hidden" name="verification_code" id="verificationCode">
+            <input type="hidden" name="verification_code" id="verificationCode" value="{{ last_code or '' }}">
 
             <p class="verification-timer">
                 Code expires in <span id="timer">5:00</span>
@@ -105,9 +105,15 @@
     var form = document.getElementById("verificationForm");
     var verificationCode = document.getElementById("verificationCode");
 
+    function syncCode() {
+        var code = Array.from(inputs).map(function (el) { return el.value; }).join("");
+        verificationCode.value = code;
+    }
+
     inputs.forEach(function (input, index) {
         input.addEventListener("input", function () {
             input.value = input.value.replace(/[^0-9]/g, "");
+            syncCode();
             if (input.value && index < inputs.length - 1) {
                 inputs[index + 1].focus();
             }
@@ -117,15 +123,18 @@
                 inputs[index - 1].focus();
             }
         });
+        input.addEventListener("paste", function () {
+            setTimeout(syncCode, 10);
+        });
     });
 
     form.addEventListener("submit", function (event) {
-        var code = Array.from(inputs).map(function (el) { return el.value; }).join("");
+        syncCode();
+        var code = verificationCode.value;
         if (code.length !== 6) {
             event.preventDefault();
             return;
         }
-        verificationCode.value = code;
     });
 
     var remainingSeconds = 300;
