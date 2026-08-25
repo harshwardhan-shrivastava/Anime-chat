@@ -462,6 +462,19 @@ def create_tables():
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS claims(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            review_id INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(review_id) REFERENCES reviews(id)
+        )
+    """)
+
     conn.commit()
     conn.close()
 
