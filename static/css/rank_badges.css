@@ -1,7 +1,5 @@
 /* ==========================================================================
    ELEMENTAL RANK BADGES — Pure CSS animated effects
-   Ranks: F (poop), D (wind), C (earth), B (water), A (lightning),
-          S (fire), S+ (galaxy)
    ========================================================================== */
 
 /* --- Base badge --- */
@@ -16,11 +14,12 @@
     font-size: 0.75rem;
     letter-spacing: 2px;
     text-transform: uppercase;
-    overflow: hidden;
+    overflow: visible;
     isolation: isolate;
     vertical-align: middle;
     border: 2px solid transparent;
     transition: transform 0.3s, box-shadow 0.3s;
+    z-index: 0;
 }
 .rank-badge:hover {
     transform: scale(1.08);
@@ -48,7 +47,6 @@
     25% { transform: translateY(-3px) rotate(-8deg); }
     75% { transform: translateY(2px) rotate(5deg); }
 }
-/* Brown bubble particles */
 .rank-badge.rank-F::after {
     content: "";
     position: absolute;
@@ -67,7 +65,6 @@
 
 /* ==========================================================================
    D RANK — Wind 🌬️
-   Silver/gray with animated swooshing wind streaks
    ========================================================================== */
 .rank-badge.rank-D {
     background: linear-gradient(135deg, #3a3f47 0%, #525860 50%, #3a3f47 100%);
@@ -75,19 +72,15 @@
     border-color: #6b7280;
     text-shadow: 0 0 6px rgba(197,205,214,0.3);
 }
-/* Wind streaks — diagonal lines sweeping across */
 .rank-badge.rank-D::before {
     content: "";
     position: absolute;
     inset: -50% -20%;
     background: repeating-linear-gradient(
         -30deg,
-        transparent 0px,
-        transparent 8px,
-        rgba(197,205,214,0.08) 8px,
-        rgba(197,205,214,0.15) 10px,
-        transparent 10px,
-        transparent 18px
+        transparent 0px, transparent 8px,
+        rgba(197,205,214,0.08) 8px, rgba(197,205,214,0.15) 10px,
+        transparent 10px, transparent 18px
     );
     animation: windSweep 2.5s linear infinite;
 }
@@ -95,7 +88,6 @@
     0% { transform: translateX(-30%) translateY(-10%); }
     100% { transform: translateX(30%) translateY(10%); }
 }
-/* Subtle glow pulse */
 .rank-badge.rank-D::after {
     content: "";
     position: absolute;
@@ -111,7 +103,6 @@
 
 /* ==========================================================================
    C RANK — Earth 🪨
-   Brown/earthy with animated falling rock particles
    ========================================================================== */
 .rank-badge.rank-C {
     background: linear-gradient(180deg, #5a4a3a 0%, #7a6a50 50%, #4a3a2a 100%);
@@ -119,7 +110,6 @@
     border-color: #8B7355;
     text-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
-/* Falling rock debris */
 .rank-badge.rank-C::before {
     content: "";
     position: absolute;
@@ -135,7 +125,6 @@
     0% { transform: translateY(-8px); opacity: 0.8; }
     100% { transform: translateY(12px); opacity: 0; }
 }
-/* Earth glow */
 .rank-badge.rank-C::after {
     content: "";
     position: absolute;
@@ -152,7 +141,6 @@
 
 /* ==========================================================================
    B RANK — Water 💧
-   Blue with animated bubbling/wave effect
    ========================================================================== */
 .rank-badge.rank-B {
     background: linear-gradient(180deg, #1a3a5c 0%, #1e5a8a 40%, #14304a 100%);
@@ -160,21 +148,17 @@
     border-color: #2980b9;
     text-shadow: 0 0 8px rgba(126,200,227,0.4);
 }
-/* Active bubbling — multiple bubble layers rising at different speeds */
 .rank-badge.rank-B::before {
     content: "";
     position: absolute;
     inset: 0;
     background:
-        /* Rising bubbles layer 1 (big slow) */
         radial-gradient(circle 4px at 20% 80%, rgba(126,200,227,0.5) 0%, transparent 70%),
         radial-gradient(circle 3px at 45% 90%, rgba(100,180,220,0.4) 0%, transparent 70%),
-        /* Rising bubbles layer 2 (small fast) */
         radial-gradient(circle 2px at 60% 75%, rgba(180,230,255,0.45) 0%, transparent 70%),
         radial-gradient(circle 2.5px at 35% 85%, rgba(126,200,227,0.35) 0%, transparent 70%),
         radial-gradient(circle 1.5px at 75% 70%, rgba(200,240,255,0.4) 0%, transparent 70%),
         radial-gradient(circle 3px at 50% 95%, rgba(100,180,220,0.3) 0%, transparent 70%),
-        /* Surface shimmer */
         linear-gradient(180deg, rgba(180,230,255,0.2) 0%, transparent 20%);
     animation: waterBubbles 1.8s ease-in-out infinite;
 }
@@ -184,15 +168,12 @@
     60%  { transform: translateY(-6px) scaleY(0.95); opacity: 0.8; }
     100% { transform: translateY(4px) scaleY(1); opacity: 0.7; }
 }
-/* Water surface wave + rising bubble glow */
 .rank-badge.rank-B::after {
     content: "";
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background:
-        /* Animated wave highlight at top */
-        linear-gradient(0deg, rgba(41,128,185,0.0) 0%, rgba(126,200,227,0.25) 30%, rgba(100,180,220,0.1) 50%, transparent 60%);
+    background: linear-gradient(0deg, rgba(41,128,185,0.0) 0%, rgba(126,200,227,0.25) 30%, rgba(100,180,220,0.1) 50%, transparent 60%);
     animation: bWave 1.4s ease-in-out infinite;
 }
 @keyframes bWave {
@@ -202,7 +183,6 @@
 
 /* ==========================================================================
    A RANK — Lightning ⚡
-   Yellow/electric with flash animation + glowing border after strike
    ========================================================================== */
 .rank-badge.rank-A {
     background: linear-gradient(135deg, #1a1a2e 0%, #2a2a4a 50%, #1a1a2e 100%);
@@ -215,7 +195,7 @@
     0%, 100% { box-shadow: 0 0 5px rgba(255,215,0,0.2); }
     50% { box-shadow: 0 0 15px rgba(255,215,0,0.4); }
 }
-/* Lightning bolt — visible diagonal flash from top-right to bottom-left */
+/* Lightning bolt — diagonal flash from top-right to bottom-left */
 .rank-badge.rank-A::before {
     content: "";
     position: absolute;
@@ -225,35 +205,30 @@
     height: 260%;
     background: linear-gradient(
         -55deg,
-        transparent 0%,
-        transparent 44%,
+        transparent 0%, transparent 44%,
         rgba(255,215,0,0.3) 46%,
         rgba(255,255,255,0.95) 49%,
         #fff 50%,
         rgba(255,255,200,0.95) 51%,
         rgba(255,215,0,0.3) 54%,
-        transparent 56%,
-        transparent 100%
+        transparent 56%, transparent 100%
     );
     opacity: 0;
     animation: lightningStrike 4s ease infinite;
 }
 @keyframes lightningStrike {
     0%, 78%   { opacity: 0; }
-    /* First flash — bolt appears top-right */
     80%  { opacity: 1; }
     81%  { opacity: 0.2; }
-    /* Second flash — full diagonal bolt */
     82.5% { opacity: 1; }
     84%  { opacity: 0.7; }
     85%  { opacity: 1; }
-    /* Hold then fade */
     87%  { opacity: 0.4; }
     89%  { opacity: 0.8; }
     91%  { opacity: 0.2; }
     93%, 100% { opacity: 0; }
 }
-/* Screen flash + border ignition after bolt */
+/* Screen flash + border glow */
 .rank-badge.rank-A::after {
     content: "";
     position: absolute;
@@ -264,191 +239,140 @@
     animation: electricFlash 4s ease infinite;
 }
 @keyframes electricFlash {
-    0%, 78%   { background: rgba(255,255,200,0); box-shadow: inset 0 0 0 0 rgba(255,215,0,0), 0 0 0 0 rgba(255,215,0,0); }
-    /* Bolt hits — full screen flash + border glow */
+    0%, 78%   { background: rgba(255,255,200,0); box-shadow: none; }
     82%  { background: rgba(255,255,200,0.35); box-shadow: inset 0 0 30px rgba(255,255,200,0.3), 0 0 12px rgba(255,215,0,0.8), 0 0 24px rgba(255,224,102,0.5); }
     83%  { background: rgba(255,255,200,0.05); box-shadow: inset 0 0 8px rgba(255,255,200,0.1), 0 0 4px rgba(255,215,0,0.3); }
-    /* Second pulse */
     85%  { background: rgba(255,255,200,0.25); box-shadow: inset 0 0 20px rgba(255,255,200,0.2), 0 0 10px rgba(255,215,0,0.7), 0 0 20px rgba(255,224,102,0.4); }
-    87%  { background: rgba(255,255,200,0); box-shadow: inset 0 0 0 0 rgba(255,255,200,0), 0 0 0 0 rgba(255,215,0,0); }
-    /* Third flicker */
+    87%  { background: rgba(255,255,200,0); box-shadow: none; }
     89%  { background: rgba(255,255,200,0.15); box-shadow: inset 0 0 12px rgba(255,255,200,0.12), 0 0 6px rgba(255,215,0,0.5); }
-    93%, 100% { background: rgba(255,255,200,0); box-shadow: inset 0 0 0 0 rgba(255,255,200,0), 0 0 0 0 rgba(255,215,0,0); }
+    93%, 100% { background: rgba(255,255,200,0); box-shadow: none; }
 }
 
 /* ==========================================================================
-   S RANK — Blue Fire Burning → Ash Cycle 🔥
-   Badge catches fire with blue flames, burns, then settles to ash
+   S RANK — Blue Fire Ring → Ash 🔥
+   A rotating blue fire sweeps clockwise around the border.
+   Behind the fire, the border turns to charred ash.
    ========================================================================== */
+
+/* Register custom property for conic gradient rotation */
+@property --s-fire-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
 .rank-badge.rank-S {
-    /* Starts dark, will be animated through burn phases */
+    /* Dark interior — the badge body */
     background: #0c1220;
-    color: #60a5fa;
-    border: 2px solid rgba(59,130,246,0.3);
-    text-shadow: 0 0 8px rgba(96,165,250,0.6), 0 0 16px rgba(59,130,246,0.3);
-    animation: sBurnCycle 4s ease-in-out infinite;
+    color: #93c5fd;
+    border: none;
+    text-shadow: 0 0 8px rgba(147,197,253,0.7), 0 0 16px rgba(59,130,246,0.5);
+    overflow: visible;
 }
-/* Main burn cycle — ignites, burns blue, dies to ash, restarts */
-@keyframes sBurnCycle {
-    /* Phase 1: Calm — dark badge with subtle blue glow */
-    0%   {
-        background: #0c1220;
-        border-color: rgba(59,130,246,0.3);
-        color: #60a5fa;
-        box-shadow: 0 0 5px rgba(30,144,255,0.15);
-    }
-    /* Phase 2: Ignite — fire catches on edges */
-    10%  {
-        background: linear-gradient(180deg, #0c1a2e 0%, #0c1220 100%);
-        border-color: rgba(59,130,246,0.6);
-        color: #93c5fd;
-        box-shadow:
-            0 0 10px rgba(30,144,255,0.4),
-            0 -3px 8px rgba(59,130,246,0.5),
-            0 3px 8px rgba(30,144,255,0.5),
-            -3px 0 8px rgba(59,130,246,0.4),
-            3px 0 8px rgba(59,130,246,0.4);
-    }
-    /* Phase 3: Full burn — engulfed in blue fire, huge flames */
-    25%  {
-        background: linear-gradient(180deg, #0a1628 0%, #060e1a 50%, #0a1628 100%);
-        border-color: rgba(147,197,253,0.8);
-        color: #bfdbfe;
-        box-shadow:
-            0 -6px 14px rgba(59,130,246,0.9), 0 -12px 28px rgba(30,144,255,0.7), 0 -20px 44px rgba(59,130,246,0.4),
-            0 6px 14px rgba(59,130,246,0.8), 0 12px 28px rgba(30,144,255,0.6), 0 20px 44px rgba(59,130,246,0.35),
-            -6px 0 14px rgba(96,165,250,0.8), -12px 0 28px rgba(59,130,246,0.5),
-            6px 0 14px rgba(96,165,250,0.8), 12px 0 28px rgba(59,130,246,0.5),
-            0 0 40px rgba(30,144,255,0.3);
-    }
-    /* Phase 4: Peak burn — maximum intensity, flames everywhere */
-    35%  {
-        background: linear-gradient(180deg, #060d1a 0%, #030812 50%, #060d1a 100%);
-        border-color: #93c5fd;
-        color: #e0f2fe;
-        box-shadow:
-            0 -8px 18px rgba(59,130,246,1), 0 -16px 36px rgba(30,144,255,0.8), 0 -26px 56px rgba(59,130,246,0.5), 0 -34px 70px rgba(30,144,255,0.25),
-            0 8px 18px rgba(59,130,246,0.9), 0 16px 36px rgba(30,144,255,0.7), 0 26px 56px rgba(59,130,246,0.4),
-            -8px 0 18px rgba(147,197,253,0.9), -16px 0 36px rgba(59,130,246,0.6),
-            8px 0 18px rgba(147,197,253,0.9), 16px 0 36px rgba(59,130,246,0.6),
-            0 0 50px rgba(30,144,255,0.4);
-        text-shadow: 0 0 12px rgba(224,242,254,0.9), 0 0 24px rgba(147,197,253,0.7), 0 0 40px rgba(59,130,246,0.5);
-    }
-    /* Phase 5: Dying — flames shrink, edges char */
-    55%  {
-        background: linear-gradient(180deg, #121212 0%, #0a0a0a 50%, #121212 100%);
-        border-color: rgba(59,130,246,0.15);
-        color: #475569;
-        box-shadow:
-            0 -3px 6px rgba(59,130,246,0.3),
-            0 3px 6px rgba(30,144,255,0.25),
-            -2px 0 5px rgba(59,130,246,0.2),
-            2px 0 5px rgba(59,130,246,0.2);
-        text-shadow: 0 0 4px rgba(71,85,105,0.3);
-    }
-    /* Phase 6: Ash — charred, dark, barely glowing embers */
-    70%  {
-        background: linear-gradient(180deg, #181210 0%, #0f0c0a 50%, #181210 100%);
-        border-color: rgba(60,50,40,0.5);
-        color: #57534e;
-        box-shadow:
-            inset 0 0 10px rgba(251,146,60,0.08),
-            0 0 4px rgba(60,50,40,0.3);
-        text-shadow: 0 0 3px rgba(87,83,78,0.3);
-    }
-    /* Phase 7: Embers — faint orange glow from dying embers in ash */
-    85%  {
-        background: linear-gradient(180deg, #1a1410 0%, #120e0a 50%, #1a1410 100%);
-        border-color: rgba(80,60,40,0.4);
-        color: #78716c;
-        box-shadow:
-            inset 0 0 8px rgba(251,146,60,0.12),
-            0 0 3px rgba(120,90,50,0.2);
-        text-shadow: 0 0 2px rgba(120,113,108,0.3);
-    }
-    /* Phase 8: Reset — back to dark blue state */
-    100% {
-        background: #0c1220;
-        border-color: rgba(59,130,246,0.3);
-        color: #60a5fa;
-        box-shadow: 0 0 5px rgba(30,144,255,0.15);
-    }
-}
-/* Blue flame tongues — flickering upward from the badge */
+
+/* Rotating fire ring — the whole border is fire + ash trail */
 .rank-badge.rank-S::before {
     content: "";
     position: absolute;
-    inset: -8px -4px;
+    /* Extend well beyond the badge so flames are tall */
+    top: -12px;
+    left: -12px;
+    right: -12px;
+    bottom: -12px;
     border-radius: inherit;
-    background:
-        /* Flame tongue 1 — left */
-        radial-gradient(ellipse 8px 14px at 15% 0%, rgba(59,130,246,0.9) 0%, rgba(30,144,255,0.5) 40%, transparent 70%),
-        /* Flame tongue 2 — center */
-        radial-gradient(ellipse 6px 18px at 45% 0%, rgba(96,165,250,0.85) 0%, rgba(59,130,246,0.4) 40%, transparent 70%),
-        /* Flame tongue 3 — right */
-        radial-gradient(ellipse 8px 14px at 75% 0%, rgba(59,130,246,0.9) 0%, rgba(30,144,255,0.5) 40%, transparent 70%),
-        /* Bottom flames */
-        radial-gradient(ellipse 10px 10px at 30% 100%, rgba(30,144,255,0.6) 0%, transparent 70%),
-        radial-gradient(ellipse 8px 8px at 65% 100%, rgba(59,130,246,0.5) 0%, transparent 70%),
-        /* Left edge */
-        radial-gradient(ellipse 10px 8px at 0% 50%, rgba(59,130,246,0.6) 0%, transparent 70%),
-        /* Right edge */
-        radial-gradient(ellipse 10px 8px at 100% 50%, rgba(30,144,255,0.6) 0%, transparent 70%);
-    opacity: 0;
-    animation: sFlames 4s ease-in-out infinite;
+    z-index: -1;
+
+    /* Conic gradient = bright blue fire head + dark ash tail */
+    background: conic-gradient(
+        from var(--s-fire-angle, 0deg),
+        /* Ash trail (most of the ring) */
+        #1a1512 0%,
+        #201a15 5%,
+        #2a1f18 10%,
+        /* Transition to fire */
+        #1a3050 20%,
+        #1e5a8a 28%,
+        /* BRIGHT BLUE FIRE HEAD */
+        #38bdf8 33%,
+        #60a5fa 35%,
+        #93c5fd 36.5%,
+        #e0f2fe 38%,
+        #93c5fd 39.5%,
+        #60a5fa 41%,
+        #38bdf8 43%,
+        /* Fade back to ash */
+        #1e5a8a 50%,
+        #1a3050 58%,
+        #2a1f18 68%,
+        #201a15 78%,
+        #1a1512 90%,
+        #1a1512 100%
+    );
+
+    /* Mask to show ONLY the border ring (not the center) */
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    padding: 4px;
+
+    /* Glow around the fire */
+    filter: blur(0.5px);
+    animation: sFireRotate 3s linear infinite, sFireGlow 3s ease-in-out infinite;
 }
-@keyframes sFlames {
-    0%    { opacity: 0; transform: scaleY(0.3); }
-    10%   { opacity: 0.6; transform: scaleY(0.7); }
-    25%   { opacity: 1; transform: scaleY(1.1); }
-    35%   { opacity: 1; transform: scaleY(1.3) scaleX(1.1); }
-    45%   { opacity: 0.8; transform: scaleY(1) scaleX(0.95); }
-    55%   { opacity: 0.3; transform: scaleY(0.5); }
-    65%, 100% { opacity: 0; transform: scaleY(0.2); }
+
+/* Fallback for browsers without @property */
+@supports not (background: conic-gradient(red, blue)) {
+    .rank-badge.rank-S::before {
+        animation: sFireRotateFallback 3s linear infinite, sFireGlow 3s ease-in-out infinite;
+    }
 }
-/* Ash/ember particle overlay — appears during ash phase */
+@keyframes sFireRotateFallback {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* The conic gradient angle animation */
+@keyframes sFireRotate {
+    from { --s-fire-angle: 0deg; }
+    to   { --s-fire-angle: 360deg; }
+}
+
+/* Pulsing glow on the fire */
+@keyframes sFireGlow {
+    0%   { filter: blur(0.5px) brightness(0.9); }
+    50%  { filter: blur(1.5px) brightness(1.2); }
+    100% { filter: blur(0.5px) brightness(0.9); }
+}
+
+/* Flame flicker overlay — bright tips that dance at the fire head */
 .rank-badge.rank-S::after {
     content: "";
     position: absolute;
-    inset: -6px;
+    top: -16px;
+    left: -16px;
+    right: -16px;
+    bottom: -16px;
     border-radius: inherit;
+    z-index: -2;
+
     background:
-        /* Ember dot 1 */
-        radial-gradient(circle 1.5px at 20% 30%, rgba(251,146,60,0.6) 0%, transparent 100%),
-        /* Ember dot 2 */
-        radial-gradient(circle 1px at 70% 60%, rgba(251,146,60,0.5) 0%, transparent 100%),
-        /* Ember dot 3 */
-        radial-gradient(circle 1.5px at 40% 80%, rgba(251,113,13,0.4) 0%, transparent 100%),
-        /* Ash particle */
-        radial-gradient(circle 1px at 80% 20%, rgba(120,113,108,0.5) 0%, transparent 100%),
-        /* Ash particle 2 */
-        radial-gradient(circle 0.8px at 30% 50%, rgba(87,83,78,0.4) 0%, transparent 100%);
-    opacity: 0;
-    animation: sAsh 4s ease-in-out infinite;
+        /* Bright blue fire spots that flicker around the border */
+        radial-gradient(circle 8px 12px at 50% 0%, rgba(56,189,248,0.8) 0%, rgba(30,144,255,0.3) 40%, transparent 70%),
+        radial-gradient(circle 6px 10px at 100% 50%, rgba(96,165,250,0.7) 0%, rgba(59,130,246,0.2) 40%, transparent 70%),
+        radial-gradient(circle 8px 12px at 50% 100%, rgba(56,189,248,0.8) 0%, rgba(30,144,255,0.3) 40%, transparent 70%),
+        radial-gradient(circle 6px 10px at 0% 50%, rgba(96,165,250,0.7) 0%, rgba(59,130,246,0.2) 40%, transparent 70%);
+    filter: blur(2px);
+    animation: sFlameFlicker 0.3s ease-in-out infinite alternate;
 }
-@keyframes sAsh {
-    0%, 55%  { opacity: 0; }
-    65%  { opacity: 0.5; transform: translateY(-2px); }
-    75%  { opacity: 0.7; transform: translateY(-4px); }
-    85%  { opacity: 0.4; transform: translateY(-6px); }
-    95%, 100% { opacity: 0; transform: translateY(-8px); }
-}
-    border-radius: 50% 50% 0 0;
-    background:
-        radial-gradient(ellipse 6px 6px at 20% 100%, rgba(255,200,0,0.9) 0%, rgba(255,100,0,0.5) 50%, transparent 100%),
-        radial-gradient(ellipse 5px 5px at 50% 100%, rgba(255,220,50,0.8) 0%, rgba(255,80,0,0.4) 50%, transparent 100%),
-        radial-gradient(ellipse 6px 6px at 80% 100%, rgba(255,180,0,0.85) 0%, rgba(255,90,0,0.45) 50%, transparent 100%);
-    filter: blur(1px);
-    animation: flameTip 0.35s ease-in-out infinite alternate;
-}
-@keyframes flameTip {
-    0%   { transform: scaleY(0.8) translateY(1px); opacity: 0.7; }
-    100% { transform: scaleY(1.3) translateY(-2px); opacity: 1; }
+
+@keyframes sFlameFlicker {
+    0%   { opacity: 0.5; transform: scale(1); }
+    100% { opacity: 1; transform: scale(1.08); }
 }
 
 /* ==========================================================================
    S+ RANK — Galaxy ✨🌌
-   Cosmic purple/gold with animated milky way sparkles
    ========================================================================== */
 .rank-badge.rank-S\+ {
     background: linear-gradient(135deg, #0a0020 0%, #1a0040 30%, #2a0060 50%, #1a0040 70%, #0a0020 100%);
@@ -480,7 +404,6 @@
             inset 0 0 18px rgba(139,100,235,0.2);
     }
 }
-/* Starfield sparkles */
 .rank-badge.rank-S\+::before {
     content: "";
     position: absolute;
@@ -503,7 +426,6 @@
     50% { opacity: 0.6; transform: scale(0.98) rotate(-1deg); }
     75% { opacity: 1; transform: scale(1.01) rotate(0.5deg); }
 }
-/* Nebula glow overlay */
 .rank-badge.rank-S\+::after {
     content: "";
     position: absolute;
@@ -520,7 +442,7 @@
 }
 
 /* ==========================================================================
-   Vote buttons styling (for reviews page)
+   Vote buttons
    ========================================================================== */
 .vote-btn-wrap {
     display: flex;
