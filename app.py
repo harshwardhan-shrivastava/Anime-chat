@@ -941,13 +941,11 @@ def rate_anime():
     rating = data.get("rating")
     comment = (data.get("comment") or "").strip()[:1000]
 
-    # Use logged-in user info
-    if user:
-        username = user["username"]
-        user_id = user["id"]
-    else:
-        username = (data.get("username") or "Anonymous").strip()[:40] or "Anonymous"
-        user_id = None
+    # Only logged-in users can post reviews — no anonymous reviews.
+    if not user:
+        return jsonify({"success": False, "error": "Please log in to post a review."}), 401
+    username = user["username"]
+    user_id = user["id"]
 
     if not anime_slug or anime_slug not in anime_database:
         return jsonify({"success": False, "error": "Unknown anime"}), 404
