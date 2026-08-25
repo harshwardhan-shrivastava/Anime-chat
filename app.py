@@ -58,8 +58,16 @@ from chat import chat_bp
 from profile_routes import bp as profile_bp
 
 from threads import init_threads
-from reviews import reviews_bp
-from models import db, Review
+try:
+    from reviews import reviews_bp
+    _reviews_bp_available = True
+except Exception:
+    _reviews_bp_available = False
+try:
+    from models import db, Review
+    _reviews_available = True
+except Exception:
+    _reviews_available = False
 
 
 app = Flask(__name__)
@@ -71,7 +79,8 @@ app.permanent_session_lifetime = timedelta(days=3650)
 app.register_blueprint(auth)
 app.register_blueprint(chat_bp)
 app.register_blueprint(profile_bp)
-app.register_blueprint(reviews_bp)
+if _reviews_bp_available:
+    app.register_blueprint(reviews_bp)
 
 
 init_threads(app)
@@ -727,7 +736,10 @@ def home():
 
     # Fetch latest reviews for homepage
     try:
-        latest_reviews = Review.query.order_by(Review.created_at.desc()).limit(5).all()
+        if _reviews_available:
+            latest_reviews = Review.query.order_by(Review.created_at.desc()).limit(5).all()
+        else:
+            latest_reviews = []
     except Exception:
         latest_reviews = []
 
