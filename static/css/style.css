@@ -1342,7 +1342,7 @@ grid-template-columns:1fr;
     bottom: 0;
     border-radius: 5px;
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    opacity: 0.45;
+    opacity: 0.6;
     animation: xpShimmer 3s ease-in-out infinite;
 }
 @keyframes xpShimmer {
@@ -1356,27 +1356,27 @@ grid-template-columns:1fr;
 }
 /* F rank */
 .xp-bar.rank-F { border-color: rgba(239,68,68,.25); }
-.xp-bar.rank-F .xp-bar-fill { background: linear-gradient(90deg, #dc2626, #ef4444, #f87171); }
+.xp-bar.rank-F .xp-bar-fill { background: linear-gradient(90deg, #991b1b, #dc2626, #ef4444); }
 .xp-bar.rank-F .xp-bar-text { color: #ef4444; }
 /* D rank */
 .xp-bar.rank-D { border-color: rgba(255,255,255,.08); }
-.xp-bar.rank-D .xp-bar-fill { background: linear-gradient(90deg, rgba(255,255,255,.2), rgba(255,255,255,.5)); }
+.xp-bar.rank-D .xp-bar-fill { background: linear-gradient(90deg, #475569, #64748b, #94a3b8); }
 .xp-bar.rank-D .xp-bar-text { color: rgba(255,255,255,.4); }
 /* C rank */
 .xp-bar.rank-C { border-color: rgba(56,189,248,.2); }
-.xp-bar.rank-C .xp-bar-fill { background: linear-gradient(90deg, #0ea5e9, #38bdf8, #7dd3fc); }
+.xp-bar.rank-C .xp-bar-fill { background: linear-gradient(90deg, #0369a1, #0ea5e9, #38bdf8); }
 .xp-bar.rank-C .xp-bar-text { color: #38bdf8; }
 /* B rank */
 .xp-bar.rank-B { border-color: rgba(167,139,250,.2); }
-.xp-bar.rank-B .xp-bar-fill { background: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd); }
+.xp-bar.rank-B .xp-bar-fill { background: linear-gradient(90deg, #6d28d9, #8b5cf6, #a78bfa); }
 .xp-bar.rank-B .xp-bar-text { color: #a78bfa; }
 /* A rank */
 .xp-bar.rank-A { border-color: rgba(232,212,77,.2); }
-.xp-bar.rank-A .xp-bar-fill { background: linear-gradient(90deg, #eab308, #e8d44d, #fde68a); }
+.xp-bar.rank-A .xp-bar-fill { background: linear-gradient(90deg, #a16207, #eab308, #facc15); }
 .xp-bar.rank-A .xp-bar-text { color: #e8d44d; }
 /* S rank */
 .xp-bar.rank-S { border-color: rgba(39,208,125,.25); }
-.xp-bar.rank-S .xp-bar-fill { background: linear-gradient(90deg, #16a34a, #27d07d, #4ade80); }
+.xp-bar.rank-S .xp-bar-fill { background: linear-gradient(90deg, #15803d, #16a34a, #22c55e); }
 .xp-bar.rank-S .xp-bar-text { color: #27d07d; }
 /* S+ rank */
 .xp-bar.rank-S\+ { border-color: rgba(39,208,125,.35); }
