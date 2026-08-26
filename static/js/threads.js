@@ -20,6 +20,8 @@
         firstId: 0,
         hasMore: true,
         loadingOlder: false,
+        reqSeq: 0,             // incremented per conversation switch; stale responses are dropped
+        newSinceId: 0,         // server read-marker at open time -> drives the "New messages" divider
         members: [],
         memberMap: {},         // id -> member row
         presence: {},          // id -> {status, online}
@@ -45,6 +47,10 @@
         communityDetail: null,
         myCommunityRole: "member",
     };
+
+    // Per-conversation message cache: reopening a chat renders instantly from
+    // here (like community chat) and only polls for newer messages.
+    var msgCache = {};
 
     // ----------------------------------------------------------
     // Tiny helpers
@@ -324,6 +330,13 @@
         State.replyTo = null;
         State.attach = null;
         State.editingId = null;
+        State.reqSeq++;
+        var seq = State.reqSeq;
+        var key = type + ":" + id;
+        // Read marker captured BEFORE we mark anything read -> drives the
+        // red "New messages" divider for everything that arrived since the
+        // user last left this conversation.
+        State.newSinceId = conv.last_read_message_id || 0;
         State.messages = [];
         State.seenIds = {};
         State.afterId = 0;
@@ -334,6 +347,34 @@
         $("#emptyState").classList.add("hidden");
         $("#convView").classList.remove("hidden");
         renderChatHead();
+
+        var cached = msgCache[key];
+        if (cached && cached.messages.length) {
+            // Instant render from cache — no spinner, no full refetch.
+            State.messages = cached.messages;
+            State.messages.forEach(function (m) { State.seenIds[m.id] = true; });
+            State.afterId = cached.afterId;
+            State.firstId = cached.firstId;
+            State.hasMore = cached.hasMore;
+            State.members = cached.members || [];
+            State.memberMap = {};
+            State.members.forEach(function (m) { State.memberMap[m.id] = m; });
+            State.pins = cached.pins || [];
+            State.polls = cached.polls || [];
+            State.parties = cached.parties || [];
+            fetchThrRanks(State.messages).then(function () {
+                if (seq !== State.reqSeq) return;
+                renderMessages(true);
+                renderPins(State.pins);
+                if (isChannelOpen()) renderPartyStrip();
+                updateSeenText();
+            });
+            pollMessages();          // only fetches messages newer than afterId
+            markActiveRead();
+            $("#msgInput").focus();
+            return;
+        }
+
         loadHistory();
         markActiveRead();
         $("#msgInput").focus();
@@ -400,7 +441,10 @@
 
     function loadHistory() {
         var ctype = State.active.type, cid = State.active.id;
+        var seq = State.reqSeq;
+        var key = ctype + ":" + cid;
         api("/threads/api/messages?ctx=" + ctype + ":" + cid + "&limit=60").then(function (res) {
+            if (seq !== State.reqSeq) return;   // user switched away — drop stale response
             if (!res.success) { handleApiError(res); return; }
             State.messages = res.messages;
             State.seenIds = {};
@@ -421,7 +465,26 @@
             syncSettingsUI();
             if (res.polls) State.polls = res.polls;
             if (res.parties) State.parties = res.parties;
+            // Store in cache so reopening this chat is instant.
+            msgCache[key] = {
+                messages: State.messages,
+                afterId: State.afterId,
+                firstId: State.firstId,
+                hasMore: State.hasMore,
+                members: State.members,
+                pins: res.pins || [],
+                polls: State.polls,
+                parties: State.parties,
+                at: Date.now(),
+            };
+            // Keep the cache bounded.
+            var keys = Object.keys(msgCache);
+            if (keys.length > 30) {
+                keys.sort(function (a, b) { return msgCache[a].at - msgCache[b].at; });
+                delete msgCache[keys[0]];
+            }
             fetchThrRanks(State.messages).then(function () {
+                if (seq !== State.reqSeq) return;
                 renderMessages(true);
                 renderPins(res.pins || []);
                 if (isChannelOpen()) renderPartyStrip();
@@ -437,6 +500,7 @@
         var limit = State.messages.length;
         var polls = isChannelOpen() ? State.polls : [];
         var pi = 0;
+        var dividerPlaced = !(State.newSinceId > 0);
         for (var i = 0; i < limit; i++) {
             var m = State.messages[i];
             while (pi < polls.length && String(polls[pi].created_at || "") <= String(m.created_at || "")) {
@@ -448,6 +512,10 @@
                 html += '<div class="thr-day-divider"><span>' + escapeHtml(fmtDay(m.created_at)) + "</span></div>";
                 lastDay = day;
             }
+            if (!dividerPlaced && m.id > State.newSinceId && !m.deleted_at) {
+                html += '<div class="thr-new-divider"><span>New messages</span></div>';
+                dividerPlaced = true;
+            }
             html += renderMessage(m);
         }
         while (pi < polls.length) {
@@ -457,7 +525,14 @@
         list.innerHTML = html;
 
         if (scrollToBottom) {
-            list.scrollTop = list.scrollHeight;
+            // Jump to where the user left off: park the "New messages" divider
+            // near the top of the viewport; otherwise go to the very bottom.
+            var divider = list.querySelector(".thr-new-divider");
+            if (divider) {
+                list.scrollTop = divider.offsetTop - 90;
+            } else {
+                list.scrollTop = list.scrollHeight;
+            }
         } else {
             var prev = list.scrollTop;
             list.scrollTop = prev; // keep position when prepending older
@@ -793,7 +868,10 @@
         if (!State.active) return;
         if (document.hidden) return;
         var ctype = State.active.type, cid = State.active.id;
+        var seq = State.reqSeq;
+        var key = ctype + ":" + cid;
         api("/threads/api/messages?ctx=" + ctype + ":" + cid + "&after=" + State.afterId).then(function (res) {
+            if (seq !== State.reqSeq) return;   // switched conversations — never mix contexts
             if (!res.success) { handleApiError(res); return; }
             if (res.messages && res.messages.length) {
                 appendMessages(res.messages);
@@ -802,6 +880,11 @@
                     State.members = res.members;
                     State.memberMap = {};
                     State.members.forEach(function (m) { State.memberMap[m.id] = m; });
+                }
+                if (msgCache[key]) {
+                    msgCache[key].messages = State.messages;
+                    msgCache[key].afterId = State.afterId;
+                    msgCache[key].at = Date.now();
                 }
                 markActiveRead();
             }

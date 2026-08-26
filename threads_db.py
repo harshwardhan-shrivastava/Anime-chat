@@ -749,6 +749,7 @@ def get_user_conversations(user_id):
             "role": c["role"],
             "muted": bool(c["muted"]),
             "unread": c["unread"] or 0,
+            "last_read_message_id": c["last_read_message_id"] or 0,
             "last_message": {
                 "content": c["last_content"] or "",
                 "kind": c["last_kind"] or "",
@@ -1431,16 +1432,19 @@ def get_community_channels(cid, user_id):
     cur.execute(
         """
         SELECT ch.*,
+               COALESCE(r.last_read_message_id, 0) AS last_read_message_id,
                EXISTS(
                    SELECT 1 FROM thr_watch_parties wp
                    WHERE wp.channel_id = ch.id
                      AND datetime(wp.scheduled_time) <= datetime('now')
                ) AS has_live_party
         FROM thr_channels ch
+        LEFT JOIN thr_channel_reads r
+          ON r.channel_id = ch.id AND r.user_id = ?
         WHERE ch.community_id = ?
         ORDER BY ch.is_default DESC, ch.id ASC
         """,
-        (cid,),
+        (user_id, cid),
     )
     channels = [dict(row) for row in cur.fetchall()]
     if channels:

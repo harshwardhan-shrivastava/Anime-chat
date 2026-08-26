@@ -2309,3 +2309,37 @@ html, body {
     color: var(--thr-muted);
     font-size: 13px;
 } (fix(threads): copy enter-chat mechanics into Threads chat)
+
+/* ---- "New messages" unread divider ---- */
+.thr-new-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0 10px;
+    color: #f87171;
+    font-size: 11.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
+.thr-new-divider::before,
+.thr-new-divider::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, rgba(248, 113, 113, 0.75));
+}
+.thr-new-divider::after {
+    background: linear-gradient(90deg, rgba(248, 113, 113, 0.75), transparent);
+}
+.thr-new-divider span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 12px;
+    border-radius: 999px;
+    background: rgba(248, 113, 113, 0.12);
+    border: 1px solid rgba(248, 113, 113, 0.45);
+    box-shadow: 0 0 12px rgba(248, 113, 113, 0.25);
+}
