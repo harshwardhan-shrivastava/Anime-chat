@@ -344,6 +344,9 @@
         State.hasMore = true;
         State.loadingOlder = false;
 
+        // CRITICAL: clear the DOM immediately so old messages from the
+        // previous context don't flash before loadHistory resolves.
+        $("#msgList").innerHTML = '';
         $("#emptyState").classList.add("hidden");
         $("#convView").classList.remove("hidden");
         renderChatHead();
@@ -1793,6 +1796,9 @@
         State.polls = [];
         State.parties = [];
 
+        // CRITICAL: clear the DOM immediately so old messages from the
+        // previous context don't flash before loadHistory resolves.
+        $("#msgList").innerHTML = '';
         $("#emptyState").classList.add("hidden");
         $("#convView").classList.remove("hidden");
         renderChatHead();
