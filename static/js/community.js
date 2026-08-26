@@ -699,8 +699,8 @@ function jumpToMessage(id) {
 /* Rank badge lookup cache */
 const _rankCache = {};
 function xpProgressPct(xp) {
-    const ranges = { F: [-999,0], D: [0,100], C: [100,500], B: [500,1500], A: [1500,5000], S: [5000,15000], "S+": [15000,15000] };
-    const tier = (xp >= 15000) ? "S+" : (xp >= 5000) ? "S" : (xp >= 1500) ? "A" : (xp >= 500) ? "B" : (xp >= 100) ? "C" : (xp >= 0) ? "D" : "F";
+    const ranges = { F: [-999,0], D: [0,500], C: [500,1000], B: [1000,2000], A: [2000,5000], S: [5000,15000], "S+": [15000,15000] };
+    const tier = (xp >= 15000) ? "S+" : (xp >= 5000) ? "S" : (xp >= 2000) ? "A" : (xp >= 1000) ? "B" : (xp >= 500) ? "C" : (xp >= 0) ? "D" : "F";
     const [lo, hi] = ranges[tier] || [0, 100];
     if (hi <= lo) return 100;
     return Math.min(100, Math.max(0, Math.round((xp - lo) / (hi - lo) * 100)));
