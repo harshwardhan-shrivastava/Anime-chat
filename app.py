@@ -1077,6 +1077,21 @@ def healthz():
     return "ok"
 
 
+@app.route("/api/user-ranks", methods=["POST"])
+def api_user_ranks():
+    """Return {xp, rank} for a list of user IDs (used by chat renderers)."""
+    data = request.get_json(silent=True) or {}
+    ids = data.get("user_ids") or []
+    # Sanitise to ints
+    clean = []
+    for i in ids:
+        try:
+            clean.append(int(i))
+        except (TypeError, ValueError):
+            pass
+    return jsonify({"ranks": get_all_user_ranks(clean)})
+
+
 @app.route("/characters")
 def characters():
     initial = search_characters("", 0, 60)

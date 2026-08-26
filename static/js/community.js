@@ -698,10 +698,12 @@ function jumpToMessage(id) {
 
 /* Rank badge lookup cache */
 const _rankCache = {};
-function rankBadgeHtml(userId, rank) {
+function rankBadgeHtml(userId, rank, xp) {
     if (!rank) return "";
     const cls = "rank-badge-" + rank.toLowerCase().replace("+", "p");
-    return `<span class="chat-rank-badge ${cls}">${rank}</span>`;
+    const xpVal = (xp != null) ? xp : (_rankCache[userId] ? _rankCache[userId].xp : null);
+    const xpHtml = (xpVal != null) ? `<span class="chat-xp-badge ${cls}">${xpVal.toLocaleString()} XP</span>` : "";
+    return `<span class="chat-rank-badge ${cls}">${rank}</span>${xpHtml}`;
 }
 function fetchRanksForMessages(messages) {
     const ids = [];
@@ -735,7 +737,8 @@ function startNewGroup(sender, isMine, avatarColor, avatar, userId) {
         : `<div class="avatar" style="background:${color}">${initials(sender)}</div>`;
 
     const userRank = (userId && _rankCache[userId]) ? _rankCache[userId].rank : null;
-    const rankHtml = rankBadgeHtml(userId, userRank);
+    const userXp = (userId && _rankCache[userId]) ? _rankCache[userId].xp : null;
+    const rankHtml = rankBadgeHtml(userId, userRank, userXp);
 
     group.innerHTML = `
         <div class="msg-group-head">

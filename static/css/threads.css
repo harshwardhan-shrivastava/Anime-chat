@@ -2044,3 +2044,42 @@ html, body {
     transition: opacity 0.15s;
 }
 .thr-anime-msg-card:hover .thr-anime-msg-arrow { opacity: 1; }
+
+/* ---- Rank badge + XP in Threads messages ---- */
+.thr-msg-head .chat-rank-badge {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 4px;
+    letter-spacing: .3px;
+    vertical-align: middle;
+    margin-left: 4px;
+}
+.thr-msg-head .chat-rank-badge.rank-badge-f { background: rgba(239,68,68,.15); color: #ef4444; border: 1px solid rgba(239,68,68,.25); }
+.thr-msg-head .chat-rank-badge.rank-badge-d { background: rgba(255,255,255,.06); color: rgba(255,255,255,.35); border: 1px solid rgba(255,255,255,.08); }
+.thr-msg-head .chat-rank-badge.rank-badge-c { background: rgba(56,189,248,.1); color: #38bdf8; border: 1px solid rgba(56,189,248,.2); }
+.thr-msg-head .chat-rank-badge.rank-badge-b { background: rgba(167,139,250,.1); color: #a78bfa; border: 1px solid rgba(167,139,250,.2); }
+.thr-msg-head .chat-rank-badge.rank-badge-a { background: rgba(232,212,77,.1); color: #e8d44d; border: 1px solid rgba(232,212,77,.2); }
+.thr-msg-head .chat-rank-badge.rank-badge-s { background: rgba(39,208,125,.12); color: #27d07d; border: 1px solid rgba(39,208,125,.25); animation: thrRankGlow 3s ease-in-out infinite; }
+.thr-msg-head .chat-rank-badge.rank-badge-sp { background: linear-gradient(135deg, rgba(39,208,125,.2), rgba(34,197,94,.12)); color: #27d07d; border: 1px solid rgba(39,208,125,.4); animation: thrRankGlow 2s ease-in-out infinite; font-size: 10px; }
+@keyframes thrRankGlow {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: 0 0 8px rgba(39,208,125,.2); }
+}
+.thr-msg-head .chat-xp-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    letter-spacing: .2px;
+    vertical-align: middle;
+    margin-left: 3px;
+    opacity: 0.85;
+}
+.thr-msg-head .chat-xp-badge.rank-badge-f { background: rgba(239,68,68,.08); color: #ef4444; }
+.thr-msg-head .chat-xp-badge.rank-badge-d { background: rgba(255,255,255,.04); color: rgba(255,255,255,.3); }
+.thr-msg-head .chat-xp-badge.rank-badge-c { background: rgba(56,189,248,.06); color: #38bdf8; }
+.thr-msg-head .chat-xp-badge.rank-badge-b { background: rgba(167,139,250,.06); color: #a78bfa; }
+.thr-msg-head .chat-xp-badge.rank-badge-a { background: rgba(232,212,77,.06); color: #e8d44d; }
+.thr-msg-head .chat-xp-badge.rank-badge-s { background: rgba(39,208,125,.08); color: #27d07d; }
+.thr-msg-head .chat-xp-badge.rank-badge-sp { background: linear-gradient(135deg, rgba(39,208,125,.12), rgba(34,197,94,.08)); color: #27d07d; }

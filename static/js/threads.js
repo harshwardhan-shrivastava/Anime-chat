@@ -110,6 +110,33 @@
         return escapeHtml(initials(user.username));
     }
 
+    // ---- Rank badge + XP (shared with community chat) ----
+    var _thrRankCache = {};
+
+    function thrRankBadgeHtml(userId, rank, xp) {
+        if (!rank) return "";
+        var cls = "chat-rank-badge rank-badge-" + rank.toLowerCase().replace("+", "p");
+        var xpVal = (xp != null) ? xp : (_thrRankCache[userId] ? _thrRankCache[userId].xp : null);
+        var xpHtml = (xpVal != null) ? '<span class="chat-xp-badge ' + cls + '">' + xpVal.toLocaleString() + ' XP</span>' : '';
+        return '<span class="' + cls + '">' + rank + '</span>' + xpHtml;
+    }
+
+    function fetchThrRanks(messages) {
+        var ids = [];
+        messages.forEach(function (m) {
+            var uid = m.sender && m.sender.id;
+            if (uid && !_thrRankCache[uid]) ids.push(uid);
+        });
+        if (!ids.length) return Promise.resolve();
+        return api("/api/user-ranks", { json: { user_ids: ids } }).then(function (data) {
+            if (data && data.ranks) {
+                Object.keys(data.ranks).forEach(function (uid) {
+                    _thrRankCache[uid] = data.ranks[uid];
+                });
+            }
+        }).catch(function () {});
+    }
+
     function toast(msg, type) {
         var box = $("#thrToast");
         box.textContent = msg;
@@ -387,10 +414,12 @@
             syncSettingsUI();
             if (res.polls) State.polls = res.polls;
             if (res.parties) State.parties = res.parties;
-            renderMessages(true);
-            renderPins(res.pins || []);
-            if (isChannelOpen()) renderPartyStrip();
-            refreshPresence();
+            fetchThrRanks(State.messages).then(function () {
+                renderMessages(true);
+                renderPins(res.pins || []);
+                if (isChannelOpen()) renderPartyStrip();
+                refreshPresence();
+            });
         });
     }
 
@@ -515,6 +544,7 @@
             avatarInner(sender) + "</div>" +
             '<div class="thr-msg-main">' +
             '<div class="thr-msg-head"><span class="thr-msg-user">' + escapeHtml(sender.username || "unknown") + "</span>" +
+            thrRankBadgeHtml(sender.id, _thrRankCache[sender.id] ? _thrRankCache[sender.id].rank : null) +
             '<span class="thr-msg-time">' + fmtClock(m.created_at) + "</span></div>" +
             body +
             '<div class="thr-msg-actions">' + actions + "</div>" +
