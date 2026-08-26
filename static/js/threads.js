@@ -1396,7 +1396,7 @@
                 preview: img.getAttribute("data-preview"),
                 name: "GIF",
             };
-            closeModal("modalGif");
+            var gp = $("#gifPanel"); if (gp) gp.classList.add("hidden");
             showAttachPreview();
             $("#msgInput").focus();
         });
@@ -1455,7 +1455,7 @@
             // Show anime in message bar preview (like community chat)
             State.pendingAnime = data;
             showAnimePreview(data);
-            closeModal("modalAnime");
+            var ap = $("#animePanel"); if (ap) ap.classList.add("hidden");
             grid.innerHTML = '';
             $("#msgInput").focus();
         });
@@ -1620,10 +1620,10 @@
                 openModal("modalEmoji");
                 setTimeout(function () { document.querySelector("#modalEmoji .thr-emoji-search").focus(); }, 100);
             } else if (action === "gif") {
-                openModal("modalGif");
+                $("#gifPanel").classList.toggle("hidden");
                 setTimeout(function () { var gi = $("#gifSearch"); if (gi) gi.focus(); }, 100);
             } else if (action === "anime") {
-                openModal("modalAnime");
+                $("#animePanel").classList.toggle("hidden");
                 var ai = $("#animeSearch");
                 if (ai) { ai.value = ""; setTimeout(function () { ai.focus(); }, 100); }
             } else if (action === "attach") {
