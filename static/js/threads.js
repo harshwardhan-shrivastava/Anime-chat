@@ -113,12 +113,19 @@
     // ---- Rank badge + XP (shared with community chat) ----
     var _thrRankCache = {};
 
+    function thrXpProgressPct(xp) {
+        var ranges = { F: [-999,0], D: [0,100], C: [100,500], B: [500,1500], A: [1500,5000], S: [5000,15000], "S+": [15000,15000] };
+        var tier = (xp >= 15000) ? "S+" : (xp >= 5000) ? "S" : (xp >= 1500) ? "A" : (xp >= 500) ? "B" : (xp >= 100) ? "C" : (xp >= 0) ? "D" : "F";
+        var lo = ranges[tier][0], hi = ranges[tier][1];
+        if (hi <= lo) return 100;
+        return Math.min(100, Math.max(0, Math.round((xp - lo) / (hi - lo) * 100)));
+    }
     function thrRankBadgeHtml(userId, rank, xp) {
         if (!rank) return "";
         var cls = "chat-rank-badge rank-badge-" + rank.toLowerCase().replace("+", "p");
-        var xpVal = (xp != null) ? xp : (_thrRankCache[userId] ? _thrRankCache[userId].xp : null);
-        var xpHtml = (xpVal != null) ? '<span class="chat-xp-badge ' + cls + '">' + xpVal.toLocaleString() + ' XP</span>' : '';
-        return '<span class="' + cls + '">' + rank + '</span>' + xpHtml;
+        var xpVal = (xp != null) ? xp : (_thrRankCache[userId] ? _thrRankCache[userId].xp : 0);
+        var pct = thrXpProgressPct(xpVal || 0);
+        return '<span class="' + cls + '">' + rank + '</span><span class="xp-bar ' + cls + '"><span class="xp-bar-fill" style="width:' + pct + '%"></span><span class="xp-bar-text">' + (xpVal||0).toLocaleString() + ' XP</span></span>';
     }
 
     function fetchThrRanks(messages) {

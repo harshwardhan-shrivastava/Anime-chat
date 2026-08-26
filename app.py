@@ -48,6 +48,7 @@ from database import (
     get_user_xp,
     get_user_rank,
     get_all_user_ranks,
+    xp_progress,
     toggle_review_like,
     get_review_likes,
     get_bulk_review_likes,
@@ -952,6 +953,7 @@ def reviews_page():
         rinfo = rank_map.get(r["user_id"], {"rank": "D", "xp": 0})
         r["rank"] = rinfo["rank"] if isinstance(rinfo, dict) else rinfo
         r["user_xp"] = rinfo["xp"] if isinstance(rinfo, dict) else 0
+        r["xp_pct"] = xp_progress(r["user_xp"])[1]
         r["rank_color"] = RANK_COLORS.get(r["rank"], "#9ca3af")
         reviews.append(r)
     return render_template("reviews.html", reviews=reviews, current_user=user)
@@ -980,6 +982,7 @@ def anime_reviews(anime_slug):
         rinfo = rank_map.get(r.get("user_id"), {"rank": "D", "xp": 0})
         r["rank"] = rinfo["rank"] if isinstance(rinfo, dict) else rinfo
         r["user_xp"] = rinfo["xp"] if isinstance(rinfo, dict) else 0
+        r["xp_pct"] = xp_progress(r["user_xp"])[1]
         r["rank_color"] = RANK_COLORS.get(r["rank"], "#9ca3af")
 
     return jsonify({

@@ -4212,20 +4212,55 @@ input:focus-visible{
 }
 
 /* ---- XP badge (same color theme as rank) ---- */
-.chat-xp-badge {
+.xp-bar {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+    padding: 3px 4px;
+    border-radius: 6px;
+    font-weight: 800;
     font-size: 10px;
-    font-weight: 700;
-    padding: 1px 6px;
-    border-radius: 4px;
-    letter-spacing: .2px;
+    letter-spacing: 0.3px;
     vertical-align: middle;
-    margin-left: 3px;
-    opacity: 0.85;
+    position: relative;
+    overflow: hidden;
+    min-width: 60px;
+    height: 20px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.03);
 }
-.chat-xp-badge.rank-badge-f { background: rgba(239,68,68,.08); color: #ef4444; }
-.chat-xp-badge.rank-badge-d { background: rgba(255,255,255,.04); color: rgba(255,255,255,.3); }
-.chat-xp-badge.rank-badge-c { background: rgba(56,189,248,.06); color: #38bdf8; }
-.chat-xp-badge.rank-badge-b { background: rgba(167,139,250,.06); color: #a78bfa; }
-.chat-xp-badge.rank-badge-a { background: rgba(232,212,77,.06); color: #e8d44d; }
-.chat-xp-badge.rank-badge-s { background: rgba(39,208,125,.08); color: #27d07d; }
-.chat-xp-badge.rank-badge-sp { background: linear-gradient(135deg, rgba(39,208,125,.12), rgba(34,197,94,.08)); color: #27d07d; }
+.xp-bar-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 5px;
+    transition: width 0.4s ease;
+    opacity: 0.2;
+}
+.xp-bar-text {
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 1px 2px rgba(0,0,0,.5);
+}
+.xp-bar.rank-badge-f { border-color: rgba(239,68,68,.25); }
+.xp-bar.rank-badge-f .xp-bar-fill { background: #ef4444; }
+.xp-bar.rank-badge-f .xp-bar-text { color: #ef4444; }
+.xp-bar.rank-badge-d { border-color: rgba(255,255,255,.08); }
+.xp-bar.rank-badge-d .xp-bar-fill { background: rgba(255,255,255,.3); }
+.xp-bar.rank-badge-d .xp-bar-text { color: rgba(255,255,255,.4); }
+.xp-bar.rank-badge-c { border-color: rgba(56,189,248,.2); }
+.xp-bar.rank-badge-c .xp-bar-fill { background: #38bdf8; }
+.xp-bar.rank-badge-c .xp-bar-text { color: #38bdf8; }
+.xp-bar.rank-badge-b { border-color: rgba(167,139,250,.2); }
+.xp-bar.rank-badge-b .xp-bar-fill { background: #a78bfa; }
+.xp-bar.rank-badge-b .xp-bar-text { color: #a78bfa; }
+.xp-bar.rank-badge-a { border-color: rgba(232,212,77,.2); }
+.xp-bar.rank-badge-a .xp-bar-fill { background: #e8d44d; }
+.xp-bar.rank-badge-a .xp-bar-text { color: #e8d44d; }
+.xp-bar.rank-badge-s { border-color: rgba(39,208,125,.25); }
+.xp-bar.rank-badge-s .xp-bar-fill { background: #27d07d; }
+.xp-bar.rank-badge-s .xp-bar-text { color: #27d07d; }
+.xp-bar.rank-badge-sp { border-color: rgba(39,208,125,.35); }
+.xp-bar.rank-badge-sp .xp-bar-fill { background: linear-gradient(90deg, #27d07d, #22c55e); }
+.xp-bar.rank-badge-sp .xp-bar-text { color: #27d07d; }

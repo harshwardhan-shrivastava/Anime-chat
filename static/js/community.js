@@ -698,12 +698,19 @@ function jumpToMessage(id) {
 
 /* Rank badge lookup cache */
 const _rankCache = {};
+function xpProgressPct(xp) {
+    const ranges = { F: [-999,0], D: [0,100], C: [100,500], B: [500,1500], A: [1500,5000], S: [5000,15000], "S+": [15000,15000] };
+    const tier = (xp >= 15000) ? "S+" : (xp >= 5000) ? "S" : (xp >= 1500) ? "A" : (xp >= 500) ? "B" : (xp >= 100) ? "C" : (xp >= 0) ? "D" : "F";
+    const [lo, hi] = ranges[tier] || [0, 100];
+    if (hi <= lo) return 100;
+    return Math.min(100, Math.max(0, Math.round((xp - lo) / (hi - lo) * 100)));
+}
 function rankBadgeHtml(userId, rank, xp) {
     if (!rank) return "";
     const cls = "rank-badge-" + rank.toLowerCase().replace("+", "p");
-    const xpVal = (xp != null) ? xp : (_rankCache[userId] ? _rankCache[userId].xp : null);
-    const xpHtml = (xpVal != null) ? `<span class="chat-xp-badge ${cls}">${xpVal.toLocaleString()} XP</span>` : "";
-    return `<span class="chat-rank-badge ${cls}">${rank}</span>${xpHtml}`;
+    const xpVal = (xp != null) ? xp : (_rankCache[userId] ? _rankCache[userId].xp : 0);
+    const pct = xpProgressPct(xpVal || 0);
+    return `<span class="chat-rank-badge ${cls}">${rank}</span><span class="xp-bar ${cls}"><span class="xp-bar-fill" style="width:${pct}%"></span><span class="xp-bar-text">${(xpVal||0).toLocaleString()} XP</span></span>`;
 }
 function fetchRanksForMessages(messages) {
     const ids = [];

@@ -2053,6 +2053,26 @@ def get_xp_tier(xp):
     else:
         return "F"
 
+# Rank boundaries: (lower_threshold, upper_threshold)
+_RANK_RANGES = {
+    "F": (-999, 0),
+    "D": (0, 100),
+    "C": (100, 500),
+    "B": (500, 1500),
+    "A": (1500, 5000),
+    "S": (5000, 15000),
+    "S+": (15000, 15000),
+}
+
+def xp_progress(xp):
+    """Return (rank, progress_pct) where progress is 0-100 toward the next rank."""
+    rank = get_xp_tier(xp)
+    lo, hi = _RANK_RANGES.get(rank, (0, 100))
+    if hi <= lo:
+        return rank, 100
+    pct = int(min(100, max(0, (xp - lo) / (hi - lo) * 100)))
+    return rank, pct
+
 
 def get_user_xp(user_id):
     """Get a user's current XP. Returns 0 if no record exists."""
