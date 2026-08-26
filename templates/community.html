@@ -16,7 +16,9 @@
     <!-- Main CSS -->
 
     <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/community.css') }}?v=20260826e">
+          href="{{ url_for('static', filename='css/community.css') }}?v=20260826f">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260826f">
 
     <!-- Authentication CSS -->
 
@@ -836,7 +838,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'
 
 </div>
 
-<script src="{{ url_for('static', filename='js/community.js') }}?v=20260826e"></script>
+<script src="{{ url_for('static', filename='js/community.js') }}?v=20260826f"></script>
 
 </body>
 

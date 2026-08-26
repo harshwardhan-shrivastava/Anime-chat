@@ -710,7 +710,7 @@ function rankBadgeHtml(userId, rank, xp) {
     const xpVal = (xp != null) ? xp : (_rankCache[userId] ? _rankCache[userId].xp : 0);
     const pct = xpProgressPct(xpVal || 0);
     // Exactly matches reviews.html
-    return `<span class="rank-badge rank-${rank}">${rank}</span><span class="xp-bar rank-${rank}"><span class="xp-bar-fill" style="width:${pct}%"></span><span class="xp-bar-text">${(xpVal||0).toLocaleString()} XP</span></span>`;
+    return `<span class="rank-badge rank-${rank}" style="font-size:1rem;padding:4px 18px;letter-spacing:2px;">${rank}</span><span class="xp-bar rank-${rank}"><span class="xp-bar-fill" style="width:${pct}%"></span><span class="xp-bar-text">${(xpVal||0).toLocaleString()} XP</span></span>`;
 }
 function fetchRanksForMessages(messages) {
     const ids = [];

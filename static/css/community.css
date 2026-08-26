@@ -4297,24 +4297,24 @@ input:focus-visible{
     z-index: 1;
     text-shadow: 0 1px 3px rgba(0,0,0,.6);
 }
-.xp-bar.rank-badge-f { border-color: rgba(239,68,68,.25); }
-.xp-bar.rank-badge-f .xp-bar-fill { background: linear-gradient(90deg, #dc2626, #ef4444, #f87171); }
-.xp-bar.rank-badge-f .xp-bar-text { color: #ef4444; }
-.xp-bar.rank-badge-d { border-color: rgba(255,255,255,.08); }
-.xp-bar.rank-badge-d .xp-bar-fill { background: linear-gradient(90deg, rgba(255,255,255,.2), rgba(255,255,255,.5)); }
-.xp-bar.rank-badge-d .xp-bar-text { color: rgba(255,255,255,.4); }
-.xp-bar.rank-badge-c { border-color: rgba(56,189,248,.2); }
-.xp-bar.rank-badge-c .xp-bar-fill { background: linear-gradient(90deg, #0ea5e9, #38bdf8, #7dd3fc); }
-.xp-bar.rank-badge-c .xp-bar-text { color: #38bdf8; }
-.xp-bar.rank-badge-b { border-color: rgba(167,139,250,.2); }
-.xp-bar.rank-badge-b .xp-bar-fill { background: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd); }
-.xp-bar.rank-badge-b .xp-bar-text { color: #a78bfa; }
-.xp-bar.rank-badge-a { border-color: rgba(232,212,77,.2); }
-.xp-bar.rank-badge-a .xp-bar-fill { background: linear-gradient(90deg, #eab308, #e8d44d, #fde68a); }
-.xp-bar.rank-badge-a .xp-bar-text { color: #e8d44d; }
-.xp-bar.rank-badge-s { border-color: rgba(39,208,125,.25); }
-.xp-bar.rank-badge-s .xp-bar-fill { background: linear-gradient(90deg, #16a34a, #27d07d, #4ade80); }
-.xp-bar.rank-badge-s .xp-bar-text { color: #27d07d; }
-.xp-bar.rank-badge-sp { border-color: rgba(39,208,125,.35); }
-.xp-bar.rank-badge-sp .xp-bar-fill { background: linear-gradient(90deg, #27d07d, #22c55e); }
-.xp-bar.rank-badge-sp .xp-bar-text { color: #27d07d; }
+.xp-bar.rank-F { border-color: rgba(239,68,68,.25); }
+.xp-bar.rank-F .xp-bar-fill { background: linear-gradient(90deg, #991b1b, #dc2626, #ef4444); }
+.xp-bar.rank-F .xp-bar-text { color: #ef4444; }
+.xp-bar.rank-D { border-color: rgba(255,255,255,.08); }
+.xp-bar.rank-D .xp-bar-fill { background: linear-gradient(90deg, #475569, #64748b, #94a3b8); }
+.xp-bar.rank-D .xp-bar-text { color: rgba(255,255,255,.4); }
+.xp-bar.rank-C { border-color: rgba(56,189,248,.2); }
+.xp-bar.rank-C .xp-bar-fill { background: linear-gradient(90deg, #0369a1, #0ea5e9, #38bdf8); }
+.xp-bar.rank-C .xp-bar-text { color: #38bdf8; }
+.xp-bar.rank-B { border-color: rgba(167,139,250,.2); }
+.xp-bar.rank-B .xp-bar-fill { background: linear-gradient(90deg, #6d28d9, #8b5cf6, #a78bfa); }
+.xp-bar.rank-B .xp-bar-text { color: #a78bfa; }
+.xp-bar.rank-A { border-color: rgba(232,212,77,.2); }
+.xp-bar.rank-A .xp-bar-fill { background: linear-gradient(90deg, #a16207, #eab308, #facc15); }
+.xp-bar.rank-A .xp-bar-text { color: #e8d44d; }
+.xp-bar.rank-S { border-color: rgba(39,208,125,.25); }
+.xp-bar.rank-S .xp-bar-fill { background: linear-gradient(90deg, #15803d, #16a34a, #22c55e); }
+.xp-bar.rank-S .xp-bar-text { color: #27d07d; }
+.xp-bar.rank-S\+ { border-color: rgba(39,208,125,.35); }
+.xp-bar.rank-S\+ .xp-bar-fill { background: linear-gradient(90deg, #27d07d, #22c55e); }
+.xp-bar.rank-S\+ .xp-bar-text { color: #27d07d; }

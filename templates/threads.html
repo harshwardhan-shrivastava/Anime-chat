@@ -9,7 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260826f">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260826f">
 </head>
 <body
     data-user='{{ current_user | tojson if current_user else "null" }}'
@@ -547,6 +548,6 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260826d"></script>
+<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260826f"></script>
 </body>
 </html>
