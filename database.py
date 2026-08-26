@@ -2086,20 +2086,23 @@ def add_xp(user_id, amount):
 
 
 def get_all_user_ranks(user_ids):
-    """Return {user_id: {xp, rank}} for a list of user IDs."""
+    """Return {user_id: {xp, rank}} for a list of user IDs.
+
+    Every requested user gets an entry -- those without a user_xp row
+    default to 0 XP / rank D so badges always render.
+    """
     if not user_ids:
         return {}
     conn = get_connection()
     cursor = conn.cursor()
     placeholders = ",".join("?" * len(user_ids))
     cursor.execute(f"SELECT user_id, xp FROM user_xp WHERE user_id IN ({placeholders})", user_ids)
-    result = {}
-    for row in cursor.fetchall():
-        result[row["user_id"]] = {
-            "xp": row["xp"],
-            "rank": get_xp_tier(row["xp"]),
-        }
+    xp_map = {row["user_id"]: row["xp"] for row in cursor.fetchall()}
     conn.close()
+    result = {}
+    for uid in user_ids:
+        xp = xp_map.get(uid, 0)
+        result[uid] = {"xp": xp, "rank": get_xp_tier(xp)}
     return result
 
 
