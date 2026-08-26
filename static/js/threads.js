@@ -1364,10 +1364,7 @@
             $("#msgInput").focus();
         });
 
-        $("#btnGif").addEventListener("click", function () {
-            openModal("modalGif");
-            load(input.value.trim());
-        });
+        // GIF handled by + menu above
     }
 
     // ---- Anime picker modal ----
@@ -1425,12 +1422,7 @@
             grid.innerHTML = '';
         });
 
-        $("#btnAnime").addEventListener("click", function () {
-            openModal("modalAnime");
-            input.value = "";
-            load("");
-            setTimeout(function () { input.focus(); }, 100);
-        });
+        // Anime handled by + menu above
     }
 
     function sendAnimeCard(data) {
@@ -1567,11 +1559,38 @@
             searchT = setTimeout(function () { renderGrid(val.trim()); }, 150);
         });
 
-        $("#btnEmoji").addEventListener("click", function () {
-            openModal("modalEmoji");
-            searchInput.value = "";
-            renderGrid();
-            setTimeout(function () { searchInput.focus(); }, 100);
+        // Plus button menu (like community chat)
+        $("#btnPlus").addEventListener("click", function (e) {
+            e.stopPropagation();
+            var menu = $("#plusMenu");
+            var isOpen = !menu.classList.contains("hidden");
+            menu.classList.toggle("hidden", isOpen);
+        });
+        document.addEventListener("click", function (e) {
+            var menu = $("#plusMenu");
+            var btn = $("#btnPlus");
+            if (menu && !menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+                menu.classList.add("hidden");
+            }
+        });
+        $("#plusMenu").addEventListener("click", function (e) {
+            var item = e.target.closest(".thr-plus-item");
+            if (!item) return;
+            var action = item.dataset.action;
+            $("#plusMenu").classList.add("hidden");
+            if (action === "emoji") {
+                openModal("modalEmoji");
+                setTimeout(function () { document.querySelector("#modalEmoji .thr-emoji-search").focus(); }, 100);
+            } else if (action === "gif") {
+                openModal("modalGif");
+                setTimeout(function () { var gi = $("#gifSearch"); if (gi) gi.focus(); }, 100);
+            } else if (action === "anime") {
+                openModal("modalAnime");
+                var ai = $("#animeSearch");
+                if (ai) { ai.value = ""; setTimeout(function () { ai.focus(); }, 100); }
+            } else if (action === "attach") {
+                $("#fileInput").click();
+            }
         });
     }
 
@@ -2760,7 +2779,7 @@
         $("#btnClearAttach").addEventListener("click", clearAttach);
 
         // attach
-        $("#btnAttach").addEventListener("click", function () { $("#fileInput").click(); });
+        // Attach handled by + menu above
         $("#fileInput").addEventListener("change", function () {
             var file = this.files && this.files[0];
             if (!file) return;

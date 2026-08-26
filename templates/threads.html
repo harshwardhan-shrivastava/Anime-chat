@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260826s">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260826t">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260826h">
 </head>
 <body
@@ -232,18 +232,17 @@
                         <button class="thr-link-btn" id="btnClearAttach">remove</button>
                     </div>
                     <div class="thr-input-row">
-                        <button id="btnEmoji" class="thr-icon-btn thr-input-btn" title="Emoji">
-                            <i class="far fa-smile"></i>
-                        </button>
-                        <button id="btnGif" class="thr-icon-btn thr-input-btn" title="GIF (Giphy)">
-                            <i class="fas fa-gift"></i>
-                        </button>
-                        <button id="btnAnime" class="thr-icon-btn thr-input-btn thr-anime-btn" title="Share anime">
-                            <i class="fas fa-tv"></i>
-                        </button>
-                        <button id="btnAttach" class="thr-icon-btn thr-input-btn" title="Upload image / video">
-                            <i class="fas fa-paperclip"></i>
-                        </button>
+                        <div class="thr-plus-wrap">
+                            <button id="btnPlus" class="thr-icon-btn thr-input-btn thr-plus-btn" title="Attach">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <div id="plusMenu" class="thr-plus-menu hidden">
+                                <button class="thr-plus-item" data-action="emoji"><i class="far fa-smile"></i> Emoji</button>
+                                <button class="thr-plus-item" data-action="gif"><i class="fas fa-gift"></i> GIF</button>
+                                <button class="thr-plus-item" data-action="anime"><i class="fas fa-tv"></i> Anime</button>
+                                <button class="thr-plus-item" data-action="attach"><i class="fas fa-paperclip"></i> File</button>
+                            </div>
+                        </div>
                         <input type="file" id="fileInput" class="hidden" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm,video/quicktime">
                         <textarea id="msgInput" rows="1" placeholder="Message @" autocomplete="off"></textarea>
                         <div id="mentionBox" class="thr-mention-box hidden"></div>
@@ -549,6 +548,6 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260826s"></script>
+<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260826t"></script>
 </body>
 </html>
