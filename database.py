@@ -588,6 +588,40 @@ def get_user_by_id(user_id):
     return result
 
 
+def get_users_by_ids(user_ids):
+    """Fetch many users in ONE query (huge win on remote Turso where every
+    query is a network round trip). Returns {id: user_dict} for the ids that
+    exist. Results are seeded into the per-user TTL cache."""
+    ids = sorted({int(u) for u in user_ids if u})
+    if not ids:
+        return {}
+    out = {}
+    missing = []
+    now = time.time()
+    with _user_cache_lock:
+        for uid in ids:
+            hit = _user_cache.get(uid)
+            if hit and hit[0] > now:
+                if hit[1] is not None:
+                    out[uid] = dict(hit[1])
+            else:
+                missing.append(uid)
+    if missing:
+        placeholders = ",".join("?" for _ in missing)
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT * FROM users WHERE id IN ({placeholders})", tuple(missing))
+        for row in cursor.fetchall():
+            user = dict(row)
+            out[user["id"]] = user
+            _cache_user(user["id"], user)
+        conn.close()
+        for uid in missing:
+            if uid not in out:
+                _cache_user(uid, None)
+    return out
+
+
 def mark_user_verified(user_id):
     conn = get_connection()
     cursor = conn.cursor()

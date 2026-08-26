@@ -394,6 +394,40 @@ def friendship_status(user_id, other_id):
     return {"status": "none", "req_id": None}
 
 
+def friendship_status_bulk(user_id, other_ids):
+    """friendship_status() for many users in ONE query -> {other_id: status}.
+    Only the latest request per pair matters, so fetch all rows involving
+    these users and keep the newest per counterpart."""
+    ids = sorted({int(o) for o in other_ids if o})
+    if not ids:
+        return {}
+    placeholders = ",".join("?" for _ in ids)
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        f"""
+        SELECT id, from_user_id, to_user_id, status
+        FROM thr_friend_requests
+        WHERE (from_user_id = ? AND to_user_id IN ({placeholders}))
+           OR (to_user_id = ? AND from_user_id IN ({placeholders}))
+        ORDER BY id DESC
+        """,
+        (user_id,) + tuple(ids) + (user_id,) + tuple(ids),
+    )
+    out = {}
+    for row in cur.fetchall():
+        other = row["to_user_id"] if row["from_user_id"] == user_id else row["from_user_id"]
+        if other in out:
+            continue  # first hit per pair is the newest request
+        if row["status"] == "accepted":
+            out[other] = {"status": "friends", "req_id": row["id"]}
+        elif row["status"] == "pending":
+            st = "outgoing" if row["from_user_id"] == user_id else "incoming"
+            out[other] = {"status": st, "req_id": row["id"]}
+    conn.close()
+    return out
+
+
 def send_friend_request(from_id, to_id):
     """Create a pending request. Returns (ok, reason)."""
     if are_friends(from_id, to_id):
@@ -670,6 +704,39 @@ def get_user_conversations(user_id):
     )
     convs = [dict(r) for r in cur.fetchall()]
 
+    # Bulk-fetch the other party for DMs and member summaries for groups in
+    # two queries total (was two queries PER conversation -> slow on remote
+    # Turso where every query is a network round trip).
+    conv_ids = [c["id"] for c in convs]
+    dm_others = {}
+    group_members = {}
+    if conv_ids:
+        placeholders = ",".join("?" for _ in conv_ids)
+        cur.execute(
+            f"""
+            SELECT cm.conversation_id, u.id, u.username, u.avatar_color, u.avatar
+            FROM thr_conversation_members cm
+            JOIN users u ON u.id = cm.user_id
+            WHERE cm.conversation_id IN ({placeholders})
+            ORDER BY cm.joined_at ASC
+            """,
+            tuple(conv_ids),
+        )
+        for r in cur.fetchall():
+            cid = r["conversation_id"]
+            member = {
+                "id": r["id"],
+                "username": r["username"],
+                "avatar_color": r["avatar_color"],
+                "avatar": r["avatar"],
+            }
+            conv = next((c for c in convs if c["id"] == cid), None)
+            if conv and conv["type"] == "dm":
+                if r["id"] != user_id:
+                    dm_others[cid] = member
+            else:
+                group_members.setdefault(cid, []).append(member)
+
     # Attach the other party for DMs and a member summary for groups.
     out = []
     for c in convs:
@@ -690,29 +757,9 @@ def get_user_conversations(user_id):
             },
         }
         if c["type"] == "dm":
-            cur.execute(
-                """
-                SELECT u.id, u.username, u.avatar_color, u.avatar
-                FROM thr_conversation_members cm
-                JOIN users u ON u.id = cm.user_id
-                WHERE cm.conversation_id = ? AND cm.user_id != ?
-                """,
-                (c["id"], user_id),
-            )
-            other = cur.fetchone()
-            item["other"] = dict(other) if other else None
+            item["other"] = dm_others.get(c["id"])
         else:
-            cur.execute(
-                """
-                SELECT u.id, u.username, u.avatar_color, u.avatar
-                FROM thr_conversation_members cm
-                JOIN users u ON u.id = cm.user_id
-                WHERE cm.conversation_id = ?
-                ORDER BY cm.joined_at ASC
-                """,
-                (c["id"],),
-            )
-            item["members"] = [dict(r) for r in cur.fetchall()]
+            item["members"] = group_members.get(c["id"], [])
         out.append(item)
     conn.close()
     return out
@@ -915,6 +962,21 @@ def get_message(msg_id):
     row = cur.fetchone()
     conn.close()
     return dict(row) if row else None
+
+
+def get_messages_by_ids(msg_ids):
+    """Fetch many messages in ONE query -> {id: message_dict}.
+    Used to batch reply-parent lookups (was one query per message)."""
+    ids = sorted({int(m) for m in msg_ids if m})
+    if not ids:
+        return {}
+    placeholders = ",".join("?" for _ in ids)
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(f"SELECT * FROM thr_messages WHERE id IN ({placeholders})", tuple(ids))
+    out = {r["id"]: dict(r) for r in cur.fetchall()}
+    conn.close()
+    return out
 
 
 def get_messages(context_type, context_id, before_id=None, limit=60, exclude_user_ids=None):
@@ -1361,7 +1423,9 @@ def _channel_unread(cur, ch, user_id):
 
 
 def get_community_channels(cid, user_id):
-    """Channels of a community with unread counts and live-party flags."""
+    """Channels of a community with unread counts and live-party flags.
+    Unreads are computed with ONE grouped query (was one COUNT query per
+    channel — slow over the remote Turso link)."""
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
@@ -1378,10 +1442,30 @@ def get_community_channels(cid, user_id):
         """,
         (cid,),
     )
+    channels = [dict(row) for row in cur.fetchall()]
+    if channels:
+        ch_ids = [ch["id"] for ch in channels]
+        placeholders = ",".join("?" for _ in ch_ids)
+        cur.execute(
+            f"""
+            SELECT m.context_id AS channel_id, COUNT(*) AS n
+            FROM thr_messages m
+            LEFT JOIN thr_channel_reads r
+              ON r.channel_id = m.context_id AND r.user_id = ?
+            WHERE m.context_type = 'channel'
+              AND m.context_id IN ({placeholders})
+              AND m.id > COALESCE(r.last_read_message_id, 0)
+              AND m.sender_id != ? AND m.deleted_at IS NULL
+            GROUP BY m.context_id
+            """,
+            (user_id,) + tuple(ch_ids) + (user_id,),
+        )
+        unread_by_channel = {r["channel_id"]: r["n"] for r in cur.fetchall()}
+    else:
+        unread_by_channel = {}
     out = []
-    for row in cur.fetchall():
-        ch = dict(row)
-        ch["unread"] = _channel_unread(cur, ch, user_id)
+    for ch in channels:
+        ch["unread"] = unread_by_channel.get(ch["id"], 0)
         ch["has_live_party"] = bool(ch["has_live_party"])
         out.append(ch)
     conn.close()

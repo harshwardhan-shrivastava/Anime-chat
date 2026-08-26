@@ -73,12 +73,29 @@ def _ctx(raw):
 
 
 def _enrich_messages(rows, member_ids=None):
-    """Attach sender info + reply snippet to raw message rows."""
+    """Attach sender info + reply snippet to raw message rows.
+
+    Batched: every sender and reply-parent is fetched with at most two
+    queries total (get_users_by_ids / get_messages_by_ids). The old version
+    ran two queries PER message, which on the remote Turso DB meant ~120
+    sequential round trips for a 60-message channel.
+    """
     out = []
     users = {}
     if member_ids:
-        for uid in member_ids:
-            u = site_db.get_user_by_id(uid)
+        users.update(site_db.get_users_by_ids(member_ids))
+
+    # Collect every user id and parent message id we need first.
+    sender_ids = {m["sender_id"] for m in rows if m.get("sender_id")}
+    parent_ids = [m["parent_message_id"] for m in rows if m.get("parent_message_id")]
+    parents = threads_db.get_messages_by_ids(parent_ids) if parent_ids else {}
+    for p in parents.values():
+        if p.get("sender_id"):
+            sender_ids.add(p["sender_id"])
+
+    for uid in sender_ids:
+        if uid not in users:
+            u = site_db.get_user_by_id(uid)  # served from the TTL cache when warm
             if u:
                 users[uid] = {
                     "id": u["id"],
@@ -86,30 +103,20 @@ def _enrich_messages(rows, member_ids=None):
                     "avatar_color": u["avatar_color"],
                     "avatar": u["avatar"],
                 }
+
     for m in rows:
         item = dict(m)
         sender = users.get(m["sender_id"])
-        if sender is None:
-            u = site_db.get_user_by_id(m["sender_id"])
-            sender = u and {
-                "id": u["id"],
-                "username": u["username"],
-                "avatar_color": u["avatar_color"],
-                "avatar": u["avatar"],
-            }
-            if sender:
-                users[m["sender_id"]] = sender
         item["sender"] = sender
         item["parent"] = None
-        if m.get("parent_message_id"):
-            parent = threads_db.get_message(m["parent_message_id"])
-            if parent:
-                pu = site_db.get_user_by_id(parent["sender_id"])
-                item["parent"] = {
-                    "sender_username": pu["username"] if pu else "someone",
-                    "content": parent.get("content") or "",
-                    "id": parent["id"],
-                }
+        parent = parents.get(m.get("parent_message_id"))
+        if parent:
+            pu = users.get(parent["sender_id"])
+            item["parent"] = {
+                "sender_username": pu["username"] if pu else "someone",
+                "content": parent.get("content") or "",
+                "id": parent["id"],
+            }
         out.append(item)
     return out
 
@@ -125,7 +132,13 @@ def _can_act_in_context(ctype, cid):
 
 
 def _enrich_parties(parties):
-    """Attach anime title/image to watch-party rows for display."""
+    """Attach anime title/image to watch-party rows for display.
+
+    Skips the anime catalog entirely when there are no parties — importing
+    anime_data parses a ~47MB JSON on first touch, which used to stall the
+    whole threads page for seconds on cold starts."""
+    if not parties:
+        return []
     try:
         from anime_data import anime_database
     except Exception:
@@ -200,9 +213,10 @@ def search_users():
     if len(q) < 1:
         return jsonify({"success": True, "users": []})
     results = threads_db.search_users(q, exclude_id=user["id"], limit=10)
-    # Attach friendship status so the UI can show the right action per user.
+    # Attach friendship status in ONE bulk query (was one query per user).
+    statuses = threads_db.friendship_status_bulk(user["id"], [u["id"] for u in results])
     for u in results:
-        fs = threads_db.friendship_status(user["id"], u["id"])
+        fs = statuses.get(u["id"], {"status": "none", "req_id": None})
         u["friend_status"] = fs["status"]
         if fs["req_id"]:
             u["friend_req_id"] = fs["req_id"]
