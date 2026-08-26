@@ -463,7 +463,7 @@
         var ctype = State.active.type, cid = State.active.id;
         var seq = State.reqSeq;
         var key = ctype + ":" + cid;
-        api("/threads/api/messages?ctx=" + ctype + ":" + cid + "&limit=60").then(function (res) {
+        api("/threads/api/messages?ctx=" + ctype + ":" + cid + "&limit=30").then(function (res) {
             if (seq !== State.reqSeq) return;   // user switched away — drop stale response
             if (!res.success) { handleApiError(res); return; }
             State.messages = res.messages;
@@ -472,7 +472,7 @@
             if (State.messages.length) {
                 State.afterId = State.messages[State.messages.length - 1].id;
                 State.firstId = State.messages[0].id;
-                State.hasMore = res.messages.length >= 60;
+                State.hasMore = res.messages.length >= 30;
             } else {
                 State.afterId = 0;
                 State.firstId = 0;
@@ -2934,6 +2934,42 @@
                 pollMessages();
             }
         });
+        // Scroll-up loader: when user scrolls near the top, load older
+        // messages (like community chat's infinite scroll).
+        $("#msgList").addEventListener("scroll", function () {
+            var list = this;
+            if (list.scrollTop < 80 && State.hasMore && !State.loadingOlder && State.active) {
+                State.loadingOlder = true;
+                var seq = State.reqSeq;
+                var key = State.active.type + ":" + State.active.id;
+                api("/threads/api/messages?ctx=" + State.active.type + ":" + State.active.id +
+                    "&before=" + State.firstId + "&limit=30").then(function (res) {
+                    State.loadingOlder = false;
+                    if (seq !== State.reqSeq) return;
+                    if (!res.success) { handleApiError(res); return; }
+                    if (!res.messages.length) { State.hasMore = false; return; }
+                    var before = list.scrollHeight;
+                    var html = "";
+                    res.messages.forEach(function (m) {
+                        if (State.seenIds[m.id]) return;
+                        State.seenIds[m.id] = true;
+                        html += renderMessage(m);
+                    });
+                    list.insertAdjacentHTML("afterbegin", html);
+                    State.messages = res.messages.concat(State.messages);
+                    State.firstId = res.messages[0].id;
+                    State.hasMore = res.messages.length >= 30;
+                    if (msgCache[key]) {
+                        msgCache[key].messages = State.messages;
+                        msgCache[key].firstId = State.firstId;
+                        msgCache[key].hasMore = State.hasMore;
+                        msgCache[key].at = Date.now();
+                    }
+                    list.scrollTop = list.scrollHeight - before;
+                });
+            }
+        });
+
         // leave a heart-beat while the tab is open
         setInterval(function () {
             if (!document.hidden) api("/threads/api/presence");
