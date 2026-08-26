@@ -29,6 +29,7 @@
         settings: { read_receipts: true, typing_indicators: true },
         replyTo: null,
         attach: null,          // {kind, url, preview, name}
+        pendingAnime: null,    // {slug, title, image, year, rating}
         editingId: null,
         typingSentAt: 0,
         notifUnread: 0,
@@ -706,7 +707,18 @@
         var input = $("#msgInput");
         var content = input.value.trim();
         var attach = State.attach;
-        if (!content && !attach) return;
+        var pendingAnime = State.pendingAnime;
+        if (!content && !attach && !pendingAnime) return;
+
+        // If an anime is pending, send it as an anime card
+        if (pendingAnime) {
+            sendAnimeCard(pendingAnime);
+            clearAnimePreview();
+            input.value = "";
+            autoGrow(input);
+            return;
+        }
+
         var kind = attach ? attach.kind : "text";
         // Same wire format as the enter chat (/community): a picked GIF is
         // sent as kind:"gif" with the GIF url as the message content.
@@ -797,6 +809,9 @@
                 var newEl = tmp.firstElementChild;
                 if (newEl) {
                     tempEl.parentNode.replaceChild(newEl, tempEl);
+                    // Ensure scroll stays at bottom after swap
+                    var _ml = $("#msgList");
+                    _ml.scrollTop = _ml.scrollHeight;
                 } else {
                     renderMessages(true);
                 }
@@ -1076,9 +1091,31 @@
 
     function clearAttach() {
         State.attach = null;
+        State.pendingAnime = null;
         $("#attachPreview").classList.add("hidden");
+        $("#animePreview").classList.add("hidden");
         $("#fileInput").value = "";
     }
+
+    function showAnimePreview(data) {
+        var el = $("#animePreview");
+        if (!el) return;
+        var img = data.image ? '<img src="' + escapeHtml(data.image) + '" alt="" onerror="this.style.display=\'none\'">' : '';
+        var meta = [data.year, data.rating].filter(Boolean).join(" \u2022 ");
+        el.innerHTML = '<div class="thr-anime-preview-card">' + img +
+            '<div class="thr-anime-preview-info">' +
+            '<div class="thr-anime-preview-title">' + escapeHtml(data.title) + '</div>' +
+            (meta ? '<div class="thr-anime-preview-meta">' + escapeHtml(meta) + '</div>' : '') +
+            '</div>' +
+            '<button class="thr-anime-preview-remove" onclick="clearAnimePreview()"><i class="fas fa-times"></i></button>' +
+            '</div>';
+        el.classList.remove("hidden");
+    }
+
+    window.clearAnimePreview = function() {
+        State.pendingAnime = null;
+        $("#animePreview").classList.add("hidden");
+    };
 
     function showAttachPreview() {
         var a = State.attach;
@@ -1415,11 +1452,12 @@
                 year: card.dataset.year,
                 rating: card.dataset.rating,
             };
-            // Send anime card as a message immediately
-            sendAnimeCard(data);
+            // Show anime in message bar preview (like community chat)
+            State.pendingAnime = data;
+            showAnimePreview(data);
             closeModal("modalAnime");
-            input.value = "";
             grid.innerHTML = '';
+            $("#msgInput").focus();
         });
 
         // Anime handled by + menu above

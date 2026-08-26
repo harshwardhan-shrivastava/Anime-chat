@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260826t">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260826u">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260826h">
 </head>
 <body
@@ -231,6 +231,7 @@
                         <span id="attachName" class="thr-attach-name"></span>
                         <button class="thr-link-btn" id="btnClearAttach">remove</button>
                     </div>
+                    <div class="thr-anime-preview hidden" id="animePreview"></div>
                     <div class="thr-input-row">
                         <div class="thr-plus-wrap">
                             <button id="btnPlus" class="thr-icon-btn thr-input-btn thr-plus-btn" title="Attach">
@@ -548,6 +549,6 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260826t"></script>
+<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260826u"></script>
 </body>
 </html>
