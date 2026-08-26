@@ -541,7 +541,10 @@
                 '<div class="thr-edit-actions"><button class="thr-btn thr-btn-sm thr-btn-primary" data-act="save-edit" data-id="' + m.id + '">Save</button>' +
                 '<button class="thr-btn thr-btn-sm" data-act="cancel-edit">Cancel</button></div></div>';
         } else {
-            body = parentRef + (content ? '<div class="thr-msg-content">' + mentions + "</div>" : "") +
+            // Hide raw text when a rich attachment (anime card, image, gif) is
+            // already rendered — prevents showing JSON or URLs as plain text.
+            var showText = content && !attach;
+            body = parentRef + (showText ? '<div class="thr-msg-content">' + mentions + "</div>" : "") +
                 attach +
                 '<div class="thr-msg-meta"><span class="thr-msg-time">' + fmtClock(m.created_at) + "</span>" + flags + "</div>";
         }
