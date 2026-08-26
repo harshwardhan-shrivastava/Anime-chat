@@ -32,7 +32,7 @@
                 <i class="fas fa-comment-dots"></i> Messages
             </button>
             <button class="thr-tab" data-tab="communities">
-                <i class="fas fa-users"></i> Communities
+                <i class="fas fa-users"></i> Guilds
             </button>
         </nav>
 
@@ -78,10 +78,10 @@
         <aside class="thr-rail hidden" id="commRail">
             <div class="thr-rail-list" id="commRailList"></div>
             <div class="thr-rail-bottom">
-                <button id="btnCreateComm" class="thr-rail-btn" title="Create a community">
+                <button id="btnCreateComm" class="thr-rail-btn" title="Create a guild">
                     <i class="fas fa-plus"></i>
                 </button>
-                <button id="btnDiscover" class="thr-rail-btn" title="Discover communities">
+                <button id="btnDiscover" class="thr-rail-btn" title="Discover guilds">
                     <i class="fas fa-compass"></i>
                 </button>
             </div>
@@ -92,7 +92,7 @@
             <div class="thr-comm-head">
                 <div class="thr-comm-title-row">
                     <span id="commName" class="thr-comm-name"></span>
-                    <button id="btnCommMenuHead" class="thr-icon-btn thr-comm-chevron" title="Community settings">
+                    <button id="btnCommMenuHead" class="thr-icon-btn thr-comm-chevron" title="Guild settings">
                         <i class="fas fa-chevron-down"></i>
                     </button>
                 </div>
@@ -114,7 +114,7 @@
                 <div class="thr-comm-title-row">
                     <span class="thr-comm-name">Discover</span>
                 </div>
-                <div id="discoverMeta" class="thr-comm-meta">Public communities you can join</div>
+                <div id="discoverMeta" class="thr-comm-meta">Public guilds you can join</div>
             </div>
             <div class="thr-channel-search">
                 <input id="discoverSearch" type="text" placeholder="Search by name, genre…" autocomplete="off">
@@ -402,15 +402,15 @@
     </div>
 </div>
 
-<!-- ===================== NEW COMMUNITY MODAL ===================== -->
+<!-- ===================== NEW GUILD MODAL ===================== -->
 <div class="thr-modal hidden" id="modalNewCommunity">
     <div class="thr-modal-card">
         <div class="thr-modal-head">
-            <h3>Create a community</h3>
+            <h3>Create a guild</h3>
             <button class="thr-modal-close" data-close="modalNewCommunity"><i class="fas fa-times"></i></button>
         </div>
         <div class="thr-modal-body">
-            <input id="commNameInput" class="thr-text-input" type="text" placeholder="Community name" maxlength="60">
+            <input id="commNameInput" class="thr-text-input" type="text" placeholder="Guild name" maxlength="60">
             <input id="commGenreInput" class="thr-text-input" type="text" list="commGenres" placeholder="Genre (e.g. Shonen, Romance, Isekai)" maxlength="40">
             <datalist id="commGenres">
                 <option value="Action"></option><option value="Adventure"></option>
@@ -422,21 +422,21 @@
                 <option value="Thriller"></option><option value="Isekai"></option>
                 <option value="Shonen"></option><option value="Seinen"></option>
             </datalist>
-            <textarea id="commDescInput" class="thr-textarea" rows="3" placeholder="What's this community about?" maxlength="500"></textarea>
+            <textarea id="commDescInput" class="thr-textarea" rows="3" placeholder="What's this guild about?" maxlength="500"></textarea>
             <div class="thr-color-row">
                 <span class="thr-label">Icon color</span>
                 <div id="commColors" class="thr-color-swatches"></div>
             </div>
-            <button id="btnCreateCommSubmit" class="thr-btn thr-btn-primary thr-btn-block">Create community</button>
+            <button id="btnCreateCommSubmit" class="thr-btn thr-btn-primary thr-btn-block">Create guild</button>
         </div>
     </div>
 </div>
 
-<!-- ===================== COMMUNITY MENU MODAL ===================== -->
+<!-- ===================== GUILD MENU MODAL ===================== -->
 <div class="thr-modal hidden" id="modalCommunity">
     <div class="thr-modal-card thr-modal-wide">
         <div class="thr-modal-head">
-            <h3 id="commModalTitle">Community</h3>
+            <h3 id="commModalTitle">Guild</h3>
             <button class="thr-modal-close" data-close="modalCommunity"><i class="fas fa-times"></i></button>
         </div>
         <div class="thr-comm-tabs">
@@ -451,14 +451,14 @@
                 <input id="commEditName" class="thr-text-input" type="text" maxlength="60">
                 <input id="commEditGenre" class="thr-text-input" type="text" maxlength="40">
                 <textarea id="commEditDesc" class="thr-textarea" rows="2" maxlength="500"></textarea>
-                <label class="thr-label">Community rules <em>(shown in #general and the channel panel)</em></label>
+                <label class="thr-label">Guild rules <em>(shown in #general and the channel panel)</em></label>
                 <textarea id="commEditRules" class="thr-textarea" rows="5" maxlength="2000"></textarea>
                 <button id="btnSaveCommunity" class="thr-btn thr-btn-primary">Save changes</button>
                 <div class="thr-comm-danger">
                     <button id="btnLeaveCommunity" class="thr-btn thr-btn-danger">
-                        <i class="fas fa-sign-out-alt"></i> Leave community
+                        <i class="fas fa-sign-out-alt"></i> Leave guild
                     </button>
-                    <button id="btnMuteCommunity" class="thr-btn">Mute community</button>
+                    <button id="btnMuteCommunity" class="thr-btn">Mute guild</button>
                 </div>
             </div>
             <!-- Members -->

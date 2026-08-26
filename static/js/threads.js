@@ -1623,7 +1623,7 @@
                 (c.unread ? '<span class="thr-unread-badge thr-rail-badge">' + (c.unread > 99 ? "99+" : c.unread) + "</span>" : "") +
                 "</div>";
         });
-        $("#commRailList").innerHTML = html || '<div class="thr-rail-empty" title="Join or create a community">+</div>';
+        $("#commRailList").innerHTML = html || '<div class="thr-rail-empty" title="Join or create a guild">+</div>';
     }
 
     function renderChannelPanel() {
@@ -1750,7 +1750,7 @@
                 (c.description ? '<div class="thr-disc-desc">' + escapeHtml(c.description) + "</div>" : "") +
                 "</div>" +
                 '<button class="thr-btn thr-btn-sm thr-btn-primary" data-join="' + c.id + '">Join</button></div>';
-        }).join("") || '<div class="thr-conv-empty">No communities found — create the first one!</div>';
+        }).join("") || '<div class="thr-conv-empty">No guilds found — create the first one!</div>';
     }
 
     // ---- Polls + parties (rendered in channel chat) ----
@@ -1848,7 +1848,7 @@
         $("#commEditGenre").value = c.genre || "";
         $("#commEditDesc").value = c.description || "";
         $("#commEditRules").value = c.rules || "";
-        $("#btnMuteCommunity").textContent = c.muted ? "Unmute community" : "Mute community";
+        $("#btnMuteCommunity").textContent = c.muted ? "Unmute guild" : "Mute guild";
         var canMod = isCommMod();
         $$(".thr-comm-tab").forEach(function (t) {
             var name = t.getAttribute("data-ctab");
@@ -1922,8 +1922,20 @@
         api("/threads/api/communities/" + State.activeCommunity.id + "/modlog").then(function (res) {
             if (!res.success) { handleApiError(res); return; }
             var log = res.log || [];
+            var ACTION_LABELS = {
+                update_community: "Edited guild",
+                create_channel: "Created channel",
+                update_channel: "Updated channel",
+                delete_channel: "Deleted channel",
+                kick: "Kicked member",
+                ban: "Banned member",
+                unban: "Unbanned member",
+                mute: "Muted member",
+                unmute: "Unmuted member",
+                set_role: "Changed role",
+            };
             $("#commModlog").innerHTML = log.length ? log.map(function (l) {
-                return '<div class="thr-modlog-row"><b>' + escapeHtml(l.action) + "</b> by " +
+                return '<div class="thr-modlog-row"><b>' + escapeHtml(ACTION_LABELS[l.action] || l.action) + "</b> by " +
                     escapeHtml(l.actor || "?") + (l.target ? " → " + escapeHtml(l.target) : "") +
                     (l.reason ? " — " + escapeHtml(l.reason) : "") +
                     '<span class="thr-modlog-time">' + fmtConvTime(l.created_at) + "</span></div>";
@@ -1956,7 +1968,7 @@
             },
         }).then(function (res) {
             if (!res.success) { handleApiError(res); return; }
-            toast("Community updated");
+            toast("Guild updated");
             closeModal("modalCommunity");
             refreshCommunities();
         });
@@ -1985,8 +1997,8 @@
         api("/threads/api/communities/" + c.id + "/mute", { json: { muted: next } }).then(function (res) {
             if (!res.success) { handleApiError(res); return; }
             c.muted = next;
-            toast(next ? "Community muted — no unread badges" : "Unmuted");
-            $("#btnMuteCommunity").textContent = next ? "Unmute community" : "Mute community";
+            toast(next ? "Guild muted — no unread badges" : "Unmuted");
+            $("#btnMuteCommunity").textContent = next ? "Unmute guild" : "Mute guild";
             refreshCommunities();
         });
     }
@@ -2129,7 +2141,7 @@
         $("#btnCreateComm").addEventListener("click", function () { openModal("modalNewCommunity"); });
         $("#btnCreateCommSubmit").addEventListener("click", function () {
             var name = $("#commNameInput").value.trim();
-            if (!name) { toast("Give the community a name", "error"); return; }
+            if (!name) { toast("Give the guild a name", "error"); return; }
             api("/threads/api/communities", {
                 json: {
                     name: name,
@@ -2150,7 +2162,7 @@
                 renderRail();
                 renderChannelPanel();
                 if (c.channels && c.channels.length) openChannel(c.channels[0]);
-                toast("Community created!");
+                toast("Guild created!");
             });
         });
     }
