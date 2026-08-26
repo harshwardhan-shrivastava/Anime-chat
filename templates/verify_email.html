@@ -65,7 +65,7 @@
         </div>
         {% endif %}
 
-        <form method="POST" id="verificationForm">
+        <form method="POST" id="verificationForm" action="{{ url_for('auth.verify_email') if purpose == 'verify' else url_for('auth.verify_password_reset') }}">
             <div class="code-inputs">
                 <input type="text" maxlength="1" inputmode="numeric" autocomplete="off">
                 <input type="text" maxlength="1" inputmode="numeric" autocomplete="off">
