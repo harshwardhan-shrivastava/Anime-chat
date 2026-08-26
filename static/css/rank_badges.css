@@ -38,27 +38,63 @@
 
 /* ---- D Rank — Wind ---- */
 .rank-D {
-  background: linear-gradient(135deg, #1a2a35 0%, #2a3a4a 50%, #1a2a35 100%);
-  color: #7ab8d4;
-  border: 1px solid rgba(122, 184, 212, 0.3);
+  background: linear-gradient(135deg, #16232e 0%, #243a4c 50%, #16232e 100%);
+  color: #8fd0f0;
+  border: 1px solid rgba(140, 200, 235, 0.45);
   overflow: hidden;
+  text-shadow: 0 0 8px rgba(143, 208, 240, 0.7), 0 0 18px rgba(143, 208, 240, 0.3);
+  animation: windBreath 3s ease-in-out infinite;
 }
+@keyframes windBreath {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(122, 184, 212, 0.2), inset 0 0 6px rgba(122, 184, 212, 0.08);
+    border-color: rgba(140, 200, 235, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(122, 184, 212, 0.45), 0 0 28px rgba(122, 184, 212, 0.15), inset 0 0 10px rgba(122, 184, 212, 0.15);
+    border-color: rgba(160, 215, 245, 0.6);
+  }
+}
+/* Flowing gust streaks — three layers sweeping across at different speeds/directions */
 .rank-D::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(
-    -45deg,
-    transparent 0px,
-    transparent 6px,
-    rgba(122, 184, 212, 0.08) 6px,
-    rgba(122, 184, 212, 0.08) 8px
-  );
-  animation: windSweep 3s linear infinite;
+  background-image:
+    linear-gradient(90deg, transparent 0%, rgba(160, 220, 250, 0.55) 50%, transparent 100%),
+    linear-gradient(90deg, transparent 0%, rgba(143, 208, 240, 0.35) 50%, transparent 100%),
+    linear-gradient(90deg, transparent 0%, rgba(122, 184, 212, 0.25) 50%, transparent 100%);
+  background-repeat: no-repeat;
+  background-size: 55% 1.5px, 75% 1px, 40% 1px;
+  background-position: -60% 28%, 130% 52%, -50% 74%;
+  border-radius: 2px;
+  animation: gustFlow 2.6s linear infinite;
 }
-@keyframes windSweep {
-  from { transform: translateX(-20px); }
-  to { transform: translateX(20px); }
+@keyframes gustFlow {
+  0% {
+    background-position: -60% 28%, 130% 52%, -50% 74%;
+    opacity: 0;
+  }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% {
+    background-position: 160% 28%, -80% 52%, 150% 74%;
+    opacity: 0;
+  }
+}
+/* Soft swirling air current rising through the badge */
+.rank-D::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 45% 90% at 30% 100%, rgba(143, 208, 240, 0.18), transparent 70%),
+    radial-gradient(ellipse 40% 80% at 75% 0%, rgba(143, 208, 240, 0.12), transparent 70%);
+  animation: windSwirl 3.4s ease-in-out infinite;
+}
+@keyframes windSwirl {
+  0%, 100% { transform: translateX(-4px); opacity: 0.6; }
+  50% { transform: translateX(4px); opacity: 1; }
 }
 
 /* ---- C Rank — Earth ---- */
