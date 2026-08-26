@@ -70,6 +70,9 @@ from threads import init_threads
 
 
 app = Flask(__name__)
+# Never let browsers (or proxies) cache static JS/CSS - stale threads.js made
+# fixed UI look broken. HTML is already no-store via the after_request hook.
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 app.secret_key = os.environ.get("SECRET_KEY", "dev-insecure-change-me")
 
 # Sessions last 10 years, so users stay logged in across devices/visits.
