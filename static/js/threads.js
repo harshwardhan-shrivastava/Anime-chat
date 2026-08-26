@@ -1396,7 +1396,7 @@
                 preview: img.getAttribute("data-preview"),
                 name: "GIF",
             };
-            var gp = $("#gifPanel"); if (gp) gp.classList.add("hidden");
+            var gp = $("#modalGif"); if (gp) gp.classList.add("hidden");
             showAttachPreview();
             $("#msgInput").focus();
         });
@@ -1455,7 +1455,7 @@
             // Show anime in message bar preview (like community chat)
             State.pendingAnime = data;
             showAnimePreview(data);
-            var ap = $("#animePanel"); if (ap) ap.classList.add("hidden");
+            var ap = $("#modalAnime"); if (ap) ap.classList.add("hidden");
             grid.innerHTML = '';
             $("#msgInput").focus();
         });
@@ -1620,33 +1620,17 @@
                 openModal("modalEmoji");
                 setTimeout(function () { document.querySelector("#modalEmoji .thr-emoji-search").focus(); }, 100);
             } else if (action === "gif") {
-                var gp = $("#gifPanel"), ap = $("#animePanel");
-                var wasOpen = !gp.classList.contains("hidden");
-                ap.classList.add("hidden");
-                gp.classList.toggle("hidden");
-                if (!wasOpen) setTimeout(function () { var gi = $("#gifSearch"); if (gi) gi.focus(); }, 100);
+                openModal("modalGif");
+                setTimeout(function () { var gi = $("#gifSearch"); if (gi) gi.focus(); }, 100);
             } else if (action === "anime") {
-                var ap2 = $("#animePanel"), gp2 = $("#gifPanel");
-                var wasOpen2 = !ap2.classList.contains("hidden");
-                gp2.classList.add("hidden");
-                ap2.classList.toggle("hidden");
-                if (!wasOpen2) {
-                    var ai = $("#animeSearch");
-                    if (ai) { ai.value = ""; var ag = $("#animeResults"); if (ag) ag.innerHTML = ""; setTimeout(function () { ai.focus(); }, 100); }
-                }
+                openModal("modalAnime");
+                var ai = $("#animeSearch");
+                if (ai) { ai.value = ""; var ag = $("#animeResults"); if (ag) ag.innerHTML = ""; setTimeout(function () { ai.focus(); }, 100); }
             } else if (action === "attach") {
                 $("#fileInput").click();
             }
         });
 
-        // Close buttons for GIF and anime panels
-        var gifClose = $("#gifPanelClose");
-        if (gifClose) gifClose.addEventListener("click", function () { $("#gifPanel").classList.add("hidden"); });
-        var animeClose = $("#animePanelClose");
-        if (animeClose) animeClose.addEventListener("click", function () {
-            $("#animePanel").classList.add("hidden");
-            var ag2 = $("#animeResults"); if (ag2) ag2.innerHTML = "";
-        });
     }
 
     // ---- Members modal ----
