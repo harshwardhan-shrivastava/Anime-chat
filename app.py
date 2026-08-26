@@ -56,6 +56,7 @@ from database import (
     get_user_review,
     delete_user_review,
     set_profile_public,
+    recalculate_user_xp,
 )
 from auth import auth, load_logged_in_user
 from review_votes import (
@@ -1955,6 +1956,24 @@ def for_you():
 
 if __name__ == "__main__":
     create_tables()
+
+    # Recalculate all user XP on startup (fixes stale values after deploy)
+    def _startup_recalc():
+        try:
+            conn = get_connection()
+            users = conn.execute("SELECT id FROM users").fetchall()
+            conn.close()
+            for u in users:
+                try:
+                    recalculate_user_xp(u["id"])
+                except Exception:
+                    pass
+            if users:
+                print(f"[startup] Recalculated XP for {len(users)} users")
+        except Exception as e:
+            print(f"[startup] XP recalc skipped: {e}")
+
+    threading.Thread(target=_startup_recalc, daemon=True).start()
 
     threading.Thread(target=_schedule_loop, daemon=True).start()
 
