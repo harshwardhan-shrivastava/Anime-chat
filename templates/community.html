@@ -16,7 +16,7 @@
     <!-- Main CSS -->
 
     <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/community.css') }}">
+          href="{{ url_for('static', filename='css/community.css') }}?v=20260826e">
 
     <!-- Authentication CSS -->
 
@@ -836,7 +836,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'
 
 </div>
 
-<script src="{{ url_for('static', filename='js/community.js') }}?v=20260826d"></script>
+<script src="{{ url_for('static', filename='js/community.js') }}?v=20260826e"></script>
 
 </body>
 

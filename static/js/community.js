@@ -715,7 +715,11 @@ function rankBadgeHtml(userId, rank, xp) {
 function fetchRanksForMessages(messages) {
     const ids = [];
     messages.forEach(m => {
-        if (m.user_id && !_rankCache[m.user_id]) ids.push(m.user_id);
+        if (m.user_id && !_rankCache[m.user_id]) {
+            ids.push(m.user_id);
+            // Pre-cache with default D rank so badges always render
+            _rankCache[m.user_id] = { rank: "D", xp: 0 };
+        }
     });
     if (!ids.length) return Promise.resolve();
     return fetch("/api/user-ranks", {
@@ -731,7 +735,9 @@ function fetchRanksForMessages(messages) {
             });
         }
     })
-    .catch(() => {});
+    .catch(err => {
+        console.warn("[ranks] fetch failed, using defaults:", err);
+    });
 }
 
 function startNewGroup(sender, isMine, avatarColor, avatar, userId) {
