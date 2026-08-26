@@ -80,6 +80,8 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-insecure-change-me")
 # Sessions last 10 years, so users stay logged in across devices/visits.
 app.permanent_session_lifetime = timedelta(days=3650)
 
+_xp_recalculated = False
+
 app.register_blueprint(auth)
 app.register_blueprint(chat_bp)
 app.register_blueprint(profile_bp)
@@ -936,6 +938,22 @@ def community(anime_slug):
 @app.route("/reviews")
 def reviews_page():
     """Global reviews feed — every review across all anime, newest first."""
+    global _xp_recalculated
+    if not _xp_recalculated:
+        try:
+            conn = get_connection()
+            users = conn.execute("SELECT id FROM users").fetchall()
+            conn.close()
+            for u in users:
+                try:
+                    recalculate_user_xp(u["id"])
+                except Exception:
+                    pass
+            _xp_recalculated = True
+            if users:
+                print(f"[reviews] Recalculated XP for {len(users)} users")
+        except Exception:
+            _xp_recalculated = True
     raw = get_all_reviews(limit=200)
     user = g.get("user")
     review_ids = [r["id"] for r in raw]
