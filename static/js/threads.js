@@ -790,6 +790,16 @@
         if (fresh.length) {
             State.afterId = Math.max(State.afterId, fresh[fresh.length - 1].id);
         }
+        // Keep the conversation cache in sync on EVERY append path (send,
+        // poll, optimistic swap) so reopening stays instant and consistent.
+        if (State.active) {
+            var ck = State.active.type + ":" + State.active.id;
+            if (msgCache[ck]) {
+                msgCache[ck].messages = State.messages;
+                msgCache[ck].afterId = State.afterId;
+                msgCache[ck].at = Date.now();
+            }
+        }
         if (stick) list.scrollTop = list.scrollHeight;
         updateSeenText();
     }
@@ -1767,6 +1777,13 @@
         State.replyTo = null;
         State.attach = null;
         State.editingId = null;
+        // Invalidate every in-flight request from the previous conversation --
+        // without this, a DM's pending poll/history response could render its
+        // messages inside this guild channel (the "merge" bug).
+        State.reqSeq++;
+        var seq = State.reqSeq;
+        var key = "channel:" + ch.id;
+        State.newSinceId = ch.last_read_message_id || 0;
         State.messages = [];
         State.seenIds = {};
         State.afterId = 0;
@@ -1779,6 +1796,34 @@
         $("#emptyState").classList.add("hidden");
         $("#convView").classList.remove("hidden");
         renderChatHead();
+
+        var cached = msgCache[key];
+        if (cached && cached.messages.length) {
+            State.messages = cached.messages;
+            State.messages.forEach(function (m) { State.seenIds[m.id] = true; });
+            State.afterId = cached.afterId;
+            State.firstId = cached.firstId;
+            State.hasMore = cached.hasMore;
+            State.members = cached.members || [];
+            State.memberMap = {};
+            State.members.forEach(function (m) { State.memberMap[m.id] = m; });
+            State.pins = cached.pins || [];
+            State.polls = cached.polls || [];
+            State.parties = cached.parties || [];
+            fetchThrRanks(State.messages).then(function () {
+                if (seq !== State.reqSeq) return;
+                renderMessages(true);
+                renderPins(State.pins);
+                renderPartyStrip();
+                updateSeenText();
+            });
+            pollMessages();
+            markActiveRead();
+            $("#msgInput").focus();
+            renderChannelList();
+            return;
+        }
+
         loadHistory();
         markActiveRead();
         $("#msgInput").focus();
@@ -2740,11 +2785,14 @@
         // older messages on scroll-to-top
         $("#msgList").addEventListener("scroll", function () {
             var list = this;
-            if (list.scrollTop < 80 && State.hasMore && !State.loadingOlder) {
+            if (list.scrollTop < 80 && State.hasMore && !State.loadingOlder && State.active) {
                 State.loadingOlder = true;
+                var seq = State.reqSeq;
+                var key = State.active.type + ":" + State.active.id;
                 api("/threads/api/messages?ctx=" + State.active.type + ":" + State.active.id +
                     "&before=" + State.firstId + "&limit=60").then(function (res) {
                     State.loadingOlder = false;
+                    if (seq !== State.reqSeq) return;   // switched -- drop stale page
                     if (!res.success) { handleApiError(res); return; }
                     if (!res.messages.length) { State.hasMore = false; return; }
                     var before = list.scrollHeight;
@@ -2758,6 +2806,12 @@
                     State.messages = res.messages.concat(State.messages);
                     State.firstId = res.messages[0].id;
                     State.hasMore = res.messages.length >= 60;
+                    if (msgCache[key]) {
+                        msgCache[key].messages = State.messages;
+                        msgCache[key].firstId = State.firstId;
+                        msgCache[key].hasMore = State.hasMore;
+                        msgCache[key].at = Date.now();
+                    }
                     list.scrollTop = list.scrollHeight - before;
                 });
             }
