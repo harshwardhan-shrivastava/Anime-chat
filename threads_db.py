@@ -33,14 +33,16 @@ MESSAGE_KINDS = ("text", "gif", "image", "video", "system", "anime")
 # ---------------------------------------------------------------------------
 
 def get_connection():
-    conn = sqlite3.connect(DATABASE, timeout=30)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    try:
-        conn.execute("PRAGMA journal_mode = WAL")
-    except sqlite3.OperationalError:
-        pass
-    return conn
+    """Use the SAME database as the rest of the site (database.py).
+
+    On Render the site DB can be Turso (remote). Threads previously always
+    opened a separate local SQLite file, so every `JOIN users` crashed with
+    "no such table: users" -> HTTP 500 (e.g. /threads/api/friends/requests).
+    Routing all thr_* queries through database.get_connection() keeps users
+    and threads tables in one place.
+    """
+    from database import get_connection as _site_conn
+    return _site_conn()
 
 
 def _utcnow():
