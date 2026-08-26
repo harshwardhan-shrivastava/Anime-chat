@@ -15,6 +15,7 @@
         conversations: [],
         active: null,          // {type, id, conv}
         messages: [],
+        loadingHistory: false,  // suppresses auto-scroll during initial load
         seenIds: {},
         afterId: 0,
         firstId: 0,
@@ -378,6 +379,7 @@
             return;
         }
 
+        State.loadingHistory = true;
         loadHistory();
         markActiveRead();
         $("#msgInput").focus();
@@ -487,6 +489,7 @@
                 delete msgCache[keys[0]];
             }
             fetchThrRanks(State.messages).then(function () {
+                State.loadingHistory = false;
                 if (seq !== State.reqSeq) return;
                 renderMessages(true);
                 renderPins(res.pins || []);
@@ -766,7 +769,21 @@
             State.messages[idx] = real;
             State.seenIds[real.id] = true;
             State.afterId = Math.max(State.afterId, real.id);
-            renderMessages(true);
+            // In-place DOM swap: find the temp element and replace its
+            // content instead of re-rendering the entire message list.
+            var tempEl = document.querySelector('[data-mid="' + tempId + '"]');
+            if (tempEl) {
+                var tmp = document.createElement("div");
+                tmp.innerHTML = renderMessage(real);
+                var newEl = tmp.firstElementChild;
+                if (newEl) {
+                    tempEl.parentNode.replaceChild(newEl, tempEl);
+                } else {
+                    renderMessages(true);
+                }
+            } else {
+                appendMessages([real]);
+            }
         } else {
             appendMessages([real]);
         }
@@ -803,7 +820,7 @@
                 msgCache[ck].at = Date.now();
             }
         }
-        if (stick) list.scrollTop = list.scrollHeight;
+        if (stick && !State.loadingHistory) list.scrollTop = list.scrollHeight;
         updateSeenText();
     }
 
@@ -1830,6 +1847,7 @@
             return;
         }
 
+        State.loadingHistory = true;
         loadHistory();
         markActiveRead();
         $("#msgInput").focus();
