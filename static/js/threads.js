@@ -372,8 +372,9 @@
             // Restore rendered HTML instantly — no rebuild needed.
             // This is how community chat works: messages are already in the DOM.
             if (cached.html) {
-                list.innerHTML = cached.html;
-                if (list.scrollHeight > 0) list.scrollTop = list.scrollHeight;
+                var _ml = $("#msgList");
+                _ml.innerHTML = cached.html;
+                _ml.scrollTop = _ml.scrollHeight;
                 updateSeenText();
             } else {
                 fetchThrRanks(State.messages).then(function () {
@@ -1847,8 +1848,9 @@
             State.polls = cached.polls || [];
             State.parties = cached.parties || [];
             if (cached.html) {
-                list.innerHTML = cached.html;
-                if (list.scrollHeight > 0) list.scrollTop = list.scrollHeight;
+                var _ml = $("#msgList");
+                _ml.innerHTML = cached.html;
+                _ml.scrollTop = _ml.scrollHeight;
                 updateSeenText();
             } else {
                 fetchThrRanks(State.messages).then(function () {
