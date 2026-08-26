@@ -294,21 +294,15 @@
 </div>
 
 <!-- ===================== GIF MODAL ===================== -->
-<div class="thr-modal hidden" id="modalGif">
-    <div class="thr-modal-card thr-modal-gif">
-        <div class="thr-modal-head">
-            <h3>GIF picker</h3>
-            <button class="thr-modal-close" data-close="modalGif"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="thr-modal-body">
-            <div class="thr-search thr-modal-search">
-                <i class="fas fa-search"></i>
-                <input id="gifSearch" type="text" placeholder="Search Giphy… (empty = trending)" autocomplete="off">
-            </div>
-            <div id="gifGrid" class="thr-gif-grid"></div>
-            <div id="gifNote" class="thr-gif-note hidden"></div>
-        </div>
+<!-- GIF bottom panel (like community chat) -->
+<div class="thr-bottom-panel hidden" id="gifPanel">
+    <div class="thr-bottom-panel-head">
+        <h3>Search GIFs</h3>
+        <button class="thr-bottom-panel-close" id="gifPanelClose"><i class="fas fa-times"></i></button>
     </div>
+    <input id="gifSearch" class="thr-bottom-search" type="text" placeholder="Search anything... Naruto, Gojo, Absolute Cinema..." autocomplete="off">
+    <div id="gifGrid" class="thr-gif-grid"></div>
+    <div id="gifNote" class="thr-gif-note hidden"></div>
 </div>
 
 <!-- ===================== EMOJI PICKER MODAL ===================== -->
@@ -329,20 +323,14 @@
 </div>
 
 <!-- ===================== ANIME PICKER MODAL ===================== -->
-<div class="thr-modal hidden" id="modalAnime">
-    <div class="thr-modal-card thr-modal-anime">
-        <div class="thr-modal-head">
-            <h3>Share anime</h3>
-            <button class="thr-modal-close" data-close="modalAnime"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="thr-modal-body">
-            <div class="thr-search thr-modal-search">
-                <i class="fas fa-search"></i>
-                <input id="animeSearch" type="text" placeholder="Search 13k+ anime..." autocomplete="off">
-            </div>
-            <div id="animeResults" class="thr-anime-results"></div>
-        </div>
+<!-- Anime bottom panel (like community chat) -->
+<div class="thr-bottom-panel hidden" id="animePanel">
+    <div class="thr-bottom-panel-head">
+        <h3>Share anime</h3>
+        <button class="thr-bottom-panel-close" id="animePanelClose"><i class="fas fa-times"></i></button>
     </div>
+    <input id="animeSearch" class="thr-bottom-search" type="text" placeholder="Search 13k+ anime..." autocomplete="off">
+    <div id="animeResults" class="thr-anime-results"></div>
 </div>
 
 <!-- ===================== MEMBERS MODAL ===================== -->
