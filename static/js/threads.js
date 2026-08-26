@@ -348,9 +348,10 @@
 
     function renderChatHead() {
         var conv = State.active.conv;
+        var activeType = State.active && State.active.type;
 
-        // ---- Channel (Communities tab) ----
-        if (conv.type === "channel") {
+        // ---- Channel (Guilds tab) ----
+        if (activeType === "channel") {
             var comm = State.activeCommunity;
             $("#chatAvatar").innerHTML = "#";
             $("#chatAvatar").style.background = (comm && comm.icon_color) || "#8b5cf6";
@@ -369,7 +370,7 @@
         $("#btnNewPoll").classList.add("hidden");
         $("#btnMute").style.display = "";
 
-        var isDm = conv.type === "dm";
+        var isDm = activeType === "dm";
         var name = convDisplayName(conv);
         $("#chatAvatar").innerHTML = isDm
             ? avatarInner(conv.other || {})
@@ -395,7 +396,7 @@
         var muteBtn = $("#btnMute");
         muteBtn.classList.toggle("active", !!conv.muted);
         muteBtn.title = conv.muted ? "Unmute conversation" : "Mute conversation";
-        $("#btnMembers").style.display = conv.type === "group" ? "" : "none";
+        $("#btnMembers").style.display = activeType === "group" ? "" : "none";
     }
 
     function loadHistory() {
@@ -577,9 +578,10 @@
     function updateSeenText() {
         var conv = State.active && State.active.conv;
         if (!conv) return;
+        var activeType = State.active && State.active.type;
         var el = $("#seenText");
-        if (conv.type === "channel") { el.textContent = ""; return; }
-        if (!State.settings.read_receipts || conv.type === "group") {
+        if (activeType === "channel") { el.textContent = ""; return; }
+        if (!State.settings.read_receipts || activeType === "group") {
             el.textContent = "";
             return;
         }
