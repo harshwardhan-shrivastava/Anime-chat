@@ -122,7 +122,7 @@
     }
     function thrRankBadgeHtml(userId, rank, xp) {
         if (!rank) return "";
-        var cls = "chat-rank-badge rank-badge-" + rank.toLowerCase().replace("+", "p") + " rank-" + rank;
+        var cls = "chat-rank-badge rank-badge-" + rank.toLowerCase().replace("+", "p");
         var xpVal = (xp != null) ? xp : (_thrRankCache[userId] ? _thrRankCache[userId].xp : 0);
         var pct = thrXpProgressPct(xpVal || 0);
         return '<span class="' + cls + '">' + rank + '</span><span class="xp-bar ' + cls + '"><span class="xp-bar-fill" style="width:' + pct + '%"></span><span class="xp-bar-text">' + (xpVal||0).toLocaleString() + ' XP</span></span>';
