@@ -949,7 +949,9 @@ def reviews_page():
         r["likes"] = counts["likes"]
         r["dislikes"] = counts["dislikes"]
         r["user_vote"] = user_votes.get(r["id"])
-        r["rank"] = rank_map.get(r["user_id"], "D")
+        rinfo = rank_map.get(r["user_id"], {"rank": "D", "xp": 0})
+        r["rank"] = rinfo["rank"] if isinstance(rinfo, dict) else rinfo
+        r["user_xp"] = rinfo["xp"] if isinstance(rinfo, dict) else 0
         r["rank_color"] = RANK_COLORS.get(r["rank"], "#9ca3af")
         reviews.append(r)
     return render_template("reviews.html", reviews=reviews, current_user=user)
@@ -975,7 +977,9 @@ def anime_reviews(anime_slug):
         r["likes"] = counts["likes"]
         r["dislikes"] = counts["dislikes"]
         r["user_vote"] = user_votes.get(r.get("id"))
-        r["rank"] = rank_map.get(r.get("user_id"), "D")
+        rinfo = rank_map.get(r.get("user_id"), {"rank": "D", "xp": 0})
+        r["rank"] = rinfo["rank"] if isinstance(rinfo, dict) else rinfo
+        r["user_xp"] = rinfo["xp"] if isinstance(rinfo, dict) else 0
         r["rank_color"] = RANK_COLORS.get(r["rank"], "#9ca3af")
 
     return jsonify({

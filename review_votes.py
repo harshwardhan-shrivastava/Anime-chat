@@ -37,7 +37,7 @@ RANK_COLORS = {
 
 
 def get_bulk_reviewer_ranks(user_ids):
-    """Return {user_id: rank} for reviewers.
+    """Return {user_id: {rank, xp}} for reviewers.
 
     Rank is the XP tier, EXCEPT it becomes 'F' for reviewers whose received
     review votes are overwhelmingly dislikes (5+ votes, <=20% likes).
@@ -55,7 +55,7 @@ def get_bulk_reviewer_ranks(user_ids):
         user_ids,
     )
     xp_map = {row["user_id"]: row["xp"] for row in cursor.fetchall()}
-    ranks = {uid: review_rank_for_xp(xp_map.get(uid, 0)) for uid in user_ids}
+    ranks = {uid: {"rank": review_rank_for_xp(xp_map.get(uid, 0)), "xp": xp_map.get(uid, 0)} for uid in user_ids}
     cursor.execute(
         f"""SELECT r.user_id,
         SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) as likes,
@@ -68,7 +68,7 @@ def get_bulk_reviewer_ranks(user_ids):
     for row in cursor.fetchall():
         total = (row["likes"] or 0) + (row["dislikes"] or 0)
         if total >= 5 and (row["likes"] or 0) / total <= 0.2:
-            ranks[row["user_id"]] = "F"
+            ranks[row["user_id"]]["rank"] = "F"
     conn.close()
     return ranks
 
