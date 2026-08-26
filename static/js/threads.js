@@ -1620,15 +1620,32 @@
                 openModal("modalEmoji");
                 setTimeout(function () { document.querySelector("#modalEmoji .thr-emoji-search").focus(); }, 100);
             } else if (action === "gif") {
-                $("#gifPanel").classList.toggle("hidden");
-                setTimeout(function () { var gi = $("#gifSearch"); if (gi) gi.focus(); }, 100);
+                var gp = $("#gifPanel"), ap = $("#animePanel");
+                var wasOpen = !gp.classList.contains("hidden");
+                ap.classList.add("hidden");
+                gp.classList.toggle("hidden");
+                if (!wasOpen) setTimeout(function () { var gi = $("#gifSearch"); if (gi) gi.focus(); }, 100);
             } else if (action === "anime") {
-                $("#animePanel").classList.toggle("hidden");
-                var ai = $("#animeSearch");
-                if (ai) { ai.value = ""; setTimeout(function () { ai.focus(); }, 100); }
+                var ap2 = $("#animePanel"), gp2 = $("#gifPanel");
+                var wasOpen2 = !ap2.classList.contains("hidden");
+                gp2.classList.add("hidden");
+                ap2.classList.toggle("hidden");
+                if (!wasOpen2) {
+                    var ai = $("#animeSearch");
+                    if (ai) { ai.value = ""; var ag = $("#animeResults"); if (ag) ag.innerHTML = ""; setTimeout(function () { ai.focus(); }, 100); }
+                }
             } else if (action === "attach") {
                 $("#fileInput").click();
             }
+        });
+
+        // Close buttons for GIF and anime panels
+        var gifClose = $("#gifPanelClose");
+        if (gifClose) gifClose.addEventListener("click", function () { $("#gifPanel").classList.add("hidden"); });
+        var animeClose = $("#animePanelClose");
+        if (animeClose) animeClose.addEventListener("click", function () {
+            $("#animePanel").classList.add("hidden");
+            var ag2 = $("#animeResults"); if (ag2) ag2.innerHTML = "";
         });
     }
 

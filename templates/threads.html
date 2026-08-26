@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260826u">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260827a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260826h">
 </head>
 <body
@@ -251,6 +251,23 @@
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     </div>
+                    <div class="thr-bottom-panel hidden" id="gifPanel">
+    <div class="thr-bottom-panel-head">
+        <h3>Search GIFs</h3>
+        <button class="thr-bottom-panel-close" id="gifPanelClose"><i class="fas fa-times"></i></button>
+    </div>
+    <input id="gifSearch" class="thr-bottom-search" type="text" placeholder="Search anything... Naruto, Gojo, Absolute Cinema..." autocomplete="off">
+    <div id="gifGrid" class="thr-gif-grid"></div>
+    <div id="gifNote" class="thr-gif-note hidden"></div>
+</div>
+                    <div class="thr-bottom-panel hidden" id="animePanel">
+    <div class="thr-bottom-panel-head">
+        <h3>Share anime</h3>
+        <button class="thr-bottom-panel-close" id="animePanelClose"><i class="fas fa-times"></i></button>
+    </div>
+    <input id="animeSearch" class="thr-bottom-search" type="text" placeholder="Search 13k+ anime..." autocomplete="off">
+    <div id="animeResults" class="thr-anime-results"></div>
+</div>
                 </footer>
             </div>
         </section>
@@ -295,15 +312,7 @@
 
 <!-- ===================== GIF MODAL ===================== -->
 <!-- GIF bottom panel (like community chat) -->
-<div class="thr-bottom-panel hidden" id="gifPanel">
-    <div class="thr-bottom-panel-head">
-        <h3>Search GIFs</h3>
-        <button class="thr-bottom-panel-close" id="gifPanelClose"><i class="fas fa-times"></i></button>
-    </div>
-    <input id="gifSearch" class="thr-bottom-search" type="text" placeholder="Search anything... Naruto, Gojo, Absolute Cinema..." autocomplete="off">
-    <div id="gifGrid" class="thr-gif-grid"></div>
-    <div id="gifNote" class="thr-gif-note hidden"></div>
-</div>
+<!-- GIF_PANEL_MOVED -->
 
 <!-- ===================== EMOJI PICKER MODAL ===================== -->
 <div class="thr-modal hidden" id="modalEmoji">
@@ -324,14 +333,7 @@
 
 <!-- ===================== ANIME PICKER MODAL ===================== -->
 <!-- Anime bottom panel (like community chat) -->
-<div class="thr-bottom-panel hidden" id="animePanel">
-    <div class="thr-bottom-panel-head">
-        <h3>Share anime</h3>
-        <button class="thr-bottom-panel-close" id="animePanelClose"><i class="fas fa-times"></i></button>
-    </div>
-    <input id="animeSearch" class="thr-bottom-search" type="text" placeholder="Search 13k+ anime..." autocomplete="off">
-    <div id="animeResults" class="thr-anime-results"></div>
-</div>
+<!-- ANIME_PANEL_MOVED -->
 
 <!-- ===================== MEMBERS MODAL ===================== -->
 <div class="thr-modal hidden" id="modalMembers">
@@ -537,6 +539,6 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260826u"></script>
+<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260827a"></script>
 </body>
 </html>
