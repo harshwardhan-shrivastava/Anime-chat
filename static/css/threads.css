@@ -242,6 +242,17 @@ html, body {
     display: block;
 }
 
+/* Message-row avatars use .thr-msg-avatar (not .thr-avatar), so the
+   profile-picture <img> needs its own sizing rule or it renders broken. */
+.thr-msg-avatar .thr-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+    flex: none;
+}
+
 /* Bell dropdown */
 .thr-bell-wrap { position: relative; }
 
@@ -920,6 +931,16 @@ html, body {
 .thr-reply-info, .thr-attach-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .thr-reply-name { color: var(--thr-accent); font-weight: 600; }
 .thr-reply-snippet { color: var(--thr-muted-2); }
+
+.thr-attach-thumb {
+    height: 44px;
+    max-width: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--thr-border);
+    display: block;
+}
+.thr-attach-thumb.hidden { display: none; }
 
 .thr-input-row {
     position: relative;
@@ -2045,6 +2066,7 @@ html, body {
 }
 .thr-anime-msg-card:hover .thr-anime-msg-arrow { opacity: 1; }
 
+
 /* ---- Rank badge + XP in Threads messages ---- */
 .thr-msg-head .chat-rank-badge {
     font-size: 0.85rem;
@@ -2156,3 +2178,94 @@ html, body {
 .thr-msg-head .xp-bar.rank-badge-sp { border-color: rgba(39,208,125,.35); }
 .thr-msg-head .xp-bar.rank-badge-sp .xp-bar-fill { background: linear-gradient(90deg, #27d07d, #22c55e); }
 .thr-msg-head .xp-bar.rank-badge-sp .xp-bar-text { color: #27d07d; }
+
+/* ---- Emoji picker ---- */
+.thr-modal-emoji { width: 420px; }
+
+.thr-emoji-search {
+    margin-bottom: 10px;
+}
+
+.thr-emoji-search input {
+    width: 100%;
+    height: 38px;
+    padding: 0 12px 0 32px;
+    border: 1px solid var(--thr-border);
+    border-radius: 10px;
+    background: var(--thr-panel);
+    color: var(--thr-text);
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.thr-emoji-search input:focus { border-color: var(--thr-accent); }
+.thr-emoji-search input::placeholder { color: var(--thr-muted-2); }
+
+.thr-emoji-cats {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--thr-border);
+    overflow-x: auto;
+    flex-shrink: 0;
+}
+
+.thr-emoji-cat {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 6px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 17px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    flex-shrink: 0;
+}
+
+.thr-emoji-cat:hover { background: var(--thr-panel-2); }
+.thr-emoji-cat.active {
+    background: var(--thr-accent-soft);
+    border-color: rgba(139, 92, 246, 0.35);
+}
+
+.thr-emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.thr-emoji-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 22px;
+    cursor: pointer;
+    transition: background 0.1s ease, transform 0.1s ease;
+}
+
+.thr-emoji-item:hover {
+    background: var(--thr-accent-soft);
+    transform: scale(1.2);
+}
+
+.thr-emoji-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 24px;
+    color: var(--thr-muted);
+    font-size: 13px;
+} (fix(threads): copy enter-chat mechanics into Threads chat)

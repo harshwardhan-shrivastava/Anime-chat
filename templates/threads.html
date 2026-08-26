@@ -177,7 +177,7 @@
                             <i class="fas fa-tv"></i>
                         </button>
                         <button id="btnNewPoll" class="thr-icon-btn hidden" title="Create a poll">
-                            <i class="fas fa-poll"></i>
+                            <i class="fas fa-square-poll-vertical"></i>
                         </button>
                         <button id="btnMute" class="thr-icon-btn" title="Mute conversation">
                             <i class="fas fa-bell-slash"></i>
@@ -224,16 +224,20 @@
                         <button class="thr-link-btn" id="btnCancelReply">cancel</button>
                     </div>
                     <div class="thr-attach-preview hidden" id="attachPreview">
+                        <img id="attachThumb" class="thr-attach-thumb hidden" alt="">
                         <i class="fas fa-paperclip"></i>
                         <span id="attachName" class="thr-attach-name"></span>
                         <button class="thr-link-btn" id="btnClearAttach">remove</button>
                     </div>
                     <div class="thr-input-row">
-                        <button id="btnAnime" class="thr-icon-btn thr-input-btn thr-anime-btn" title="Share anime">
-                            <i class="fas fa-tv"></i>
+                        <button id="btnEmoji" class="thr-icon-btn thr-input-btn" title="Emoji">
+                            <i class="far fa-smile"></i>
                         </button>
                         <button id="btnGif" class="thr-icon-btn thr-input-btn" title="GIF (Giphy)">
                             <i class="fas fa-gift"></i>
+                        </button>
+                        <button id="btnAnime" class="thr-icon-btn thr-input-btn thr-anime-btn" title="Share anime">
+                            <i class="fas fa-tv"></i>
                         </button>
                         <button id="btnAttach" class="thr-icon-btn thr-input-btn" title="Upload image / video">
                             <i class="fas fa-paperclip"></i>
@@ -301,6 +305,23 @@
             </div>
             <div id="gifGrid" class="thr-gif-grid"></div>
             <div id="gifNote" class="thr-gif-note hidden"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== EMOJI PICKER MODAL ===================== -->
+<div class="thr-modal hidden" id="modalEmoji">
+    <div class="thr-modal-card thr-modal-emoji">
+        <div class="thr-modal-head">
+            <h3>Emoji</h3>
+            <button class="thr-modal-close" data-close="modalEmoji"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <div class="thr-emoji-search">
+                <input id="emojiSearch" type="text" placeholder="Search emoji..." autocomplete="off">
+            </div>
+            <div id="emojiCats" class="thr-emoji-cats"></div>
+            <div id="emojiGrid" class="thr-emoji-grid"></div>
         </div>
     </div>
 </div>
