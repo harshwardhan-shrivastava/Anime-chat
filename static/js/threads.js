@@ -369,13 +369,20 @@
             State.pins = cached.pins || [];
             State.polls = cached.polls || [];
             State.parties = cached.parties || [];
-            fetchThrRanks(State.messages).then(function () {
-                if (seq !== State.reqSeq) return;
-                renderMessages(true);
-                renderPins(State.pins);
-                if (isChannelOpen()) renderPartyStrip();
+            // Restore rendered HTML instantly — no rebuild needed.
+            // This is how community chat works: messages are already in the DOM.
+            if (cached.html) {
+                list.innerHTML = cached.html;
+                if (list.scrollHeight > 0) list.scrollTop = list.scrollHeight;
                 updateSeenText();
-            });
+            } else {
+                fetchThrRanks(State.messages).then(function () {
+                    if (seq !== State.reqSeq) return;
+                    renderMessages(true);
+                    renderPins(State.pins);
+                    updateSeenText();
+                });
+            }
             pollMessages();          // only fetches messages newer than afterId
             markActiveRead();
             $("#msgInput").focus();
@@ -483,6 +490,7 @@
                 pins: res.pins || [],
                 polls: State.polls,
                 parties: State.parties,
+                html: list.innerHTML,
                 at: Date.now(),
             };
             // Keep the cache bounded.
@@ -534,15 +542,16 @@
         }
         list.innerHTML = html;
 
+        // Cache the rendered HTML so reopening this conversation is instant
+        // (like community chat where messages are already in the DOM).
+        if (State.active) {
+            var hk = State.active.type + ":" + State.active.id;
+            if (msgCache[hk]) msgCache[hk].html = html;
+        }
+
         if (scrollToBottom) {
-            // Jump to where the user left off: park the "New messages" divider
-            // near the top of the viewport; otherwise go to the very bottom.
-            var divider = list.querySelector(".thr-new-divider");
-            if (divider) {
-                list.scrollTop = divider.offsetTop - 90;
-            } else {
-                list.scrollTop = list.scrollHeight;
-            }
+            // Scroll to the very bottom like community chat.
+            list.scrollTop = list.scrollHeight;
         } else {
             var prev = list.scrollTop;
             list.scrollTop = prev; // keep position when prepending older
@@ -1837,13 +1846,19 @@
             State.pins = cached.pins || [];
             State.polls = cached.polls || [];
             State.parties = cached.parties || [];
-            fetchThrRanks(State.messages).then(function () {
-                if (seq !== State.reqSeq) return;
-                renderMessages(true);
-                renderPins(State.pins);
-                renderPartyStrip();
+            if (cached.html) {
+                list.innerHTML = cached.html;
+                if (list.scrollHeight > 0) list.scrollTop = list.scrollHeight;
                 updateSeenText();
-            });
+            } else {
+                fetchThrRanks(State.messages).then(function () {
+                    if (seq !== State.reqSeq) return;
+                    renderMessages(true);
+                    renderPins(State.pins);
+                    renderPartyStrip();
+                    updateSeenText();
+                });
+            }
             pollMessages();
             markActiveRead();
             $("#msgInput").focus();
