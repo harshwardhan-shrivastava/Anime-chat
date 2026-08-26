@@ -196,6 +196,7 @@ def verify_email():
         # The account is only created after the code checks out, so it's
         # verified by construction.
         database.mark_user_verified(user_id)
+        database.add_xp(user_id, 100)  # Start new users at C rank
 
         session.permanent = True
         session["user_id"] = user_id
