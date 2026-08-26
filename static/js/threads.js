@@ -377,11 +377,15 @@
                 _ml.scrollTop = _ml.scrollHeight;
                 updateSeenText();
             } else {
-                fetchThrRanks(State.messages).then(function () {
-                    if (seq !== State.reqSeq) return;
+                if (seq === State.reqSeq) {
                     renderMessages(true);
                     renderPins(State.pins);
                     updateSeenText();
+                }
+                fetchThrRanks(State.messages).then(function () {
+                    if (seq === State.reqSeq && $("#msgList") && $("#msgList").innerHTML) {
+                        renderMessages(false);
+                    }
                 });
             }
             pollMessages();          // only fetches messages newer than afterId
@@ -500,13 +504,19 @@
                 keys.sort(function (a, b) { return msgCache[a].at - msgCache[b].at; });
                 delete msgCache[keys[0]];
             }
-            fetchThrRanks(State.messages).then(function () {
-                State.loadingHistory = false;
-                if (seq !== State.reqSeq) return;
+            // Render messages IMMEDIATELY — don't wait for rank fetch.
+            State.loadingHistory = false;
+            if (seq === State.reqSeq) {
                 renderMessages(true);
                 renderPins(res.pins || []);
                 if (isChannelOpen()) renderPartyStrip();
                 refreshPresence();
+            }
+            // Fetch ranks in background to update badges (non-blocking).
+            fetchThrRanks(State.messages).then(function () {
+                if (seq === State.reqSeq && $("#msgList") && $("#msgList").innerHTML) {
+                    renderMessages(false);
+                }
             });
         });
     }
