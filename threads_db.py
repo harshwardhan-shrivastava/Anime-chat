@@ -2211,38 +2211,55 @@ def delete_party(party_id):
     conn.commit()
     conn.close()
 
-# <--- YOU PASTE MY CODE RIGHT HERE (after the close) --->
+# ================================================================
+# PASTE THIS AT THE VERY BOTTOM OF threads.py
+# (After all your existing routes)
+# ================================================================
 
-def get_messages_by_channel(channel_id, after_id=0, before_id=0, limit=30):
+@bp.route("/api/channels/<int:channel_id>/messages", methods=["GET"])
+def get_channel_messages(channel_id):
     """
-    Fetches messages for ONE specific channel.
-    Works EXACTLY like your community chat's get_chat_messages.
+    WORKS EXACTLY LIKE COMMUNITY CHAT.
+    Loads messages for ONE specific channel at a time.
+    Supports ?after_id= (for new messages) and ?limit= (for pagination).
     """
-    conn = get_connection()
-    cur = conn.cursor()
-    
-    sql = """
-        SELECT * FROM thr_messages 
-        WHERE context_type = 'channel' AND context_id = ?
-    """
-    params = [channel_id]
-    
-    if after_id > 0:
-        sql += " AND id > ?"
-        params.append(after_id)
-    if before_id > 0:
-        sql += " AND id < ?"
-        params.append(before_id)
-    
-    sql += " ORDER BY created_at DESC LIMIT ?"
-    params.append(limit)
-    
-    cur.execute(sql, params)
-    rows = cur.fetchall()
-    conn.close()
-    
-    result = []
-    for row in rows:
-        result.append(dict(row))
-    
-    return result[::-1]
+    # 1. Get query parameters
+    after_id = request.args.get("after_id", 0, type=int)
+    limit = request.args.get("limit", 30, type=int)
+    before_id = request.args.get("before_id", 0, type=int)
+
+    # 2. Fetch messages using your new helper (from threads_db)
+    messages = get_messages_by_channel(
+        channel_id, 
+        after_id=after_id, 
+        before_id=before_id, 
+        limit=limit
+    )
+
+    # 3. Enrich with sender info (uses your existing _enrich_messages)
+    enriched_data = _enrich_messages(messages)
+
+    # 4. Check if there are even older messages (for "Load More")
+    has_more = False
+    if messages:
+        oldest_id = messages[0]["id"]  # Oldest in this batch
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id FROM thr_messages WHERE context_type = 'channel' AND context_id = ? AND id < ? LIMIT 1",
+            (channel_id, oldest_id)
+        )
+        has_more = cur.fetchone() is not None
+        conn.close()
+
+    return jsonify({
+        "success": True,
+        "channel_id": channel_id,
+        "messages": enriched_data,
+        "has_more": has_more,
+        "count": len(enriched_data)
+    })
+
+# ================================================================
+# END OF PASTE
+# ================================================================
