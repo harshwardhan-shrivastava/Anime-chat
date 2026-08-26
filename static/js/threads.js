@@ -2915,6 +2915,57 @@
         renderConversations();
         refreshNotifications();
 
+        // Pre-loaded messages: if the server embedded the first conversation's
+        // messages, render them instantly without an API call (like community chat).
+        try {
+            var preloaded = JSON.parse(document.body.getAttribute("data-preloaded") || "{}");
+            if (preloaded.ctx && preloaded.messages && preloaded.messages.length) {
+                var parts = preloaded.ctx.split(":");
+                var pType = parts[0], pId = parseInt(parts[1], 10);
+                var conv = null;
+                State.conversations.forEach(function (c) {
+                    if (c.type === pType && c.id === pId) conv = c;
+                });
+                if (conv) {
+                    State.active = { type: pType, id: pId, conv: conv };
+                    State.reqSeq++;
+                    State.newSinceId = conv.last_read_message_id || 0;
+                    State.messages = preloaded.messages;
+                    State.messages.forEach(function (m) { State.seenIds[m.id] = true; });
+                    State.afterId = preloaded.afterId;
+                    State.firstId = preloaded.firstId;
+                    State.hasMore = preloaded.hasMore;
+                    State.members = preloaded.members || [];
+                    State.memberMap = {};
+                    State.members.forEach(function (m) { State.memberMap[m.id] = m; });
+                    State.pins = preloaded.pins || [];
+                    State.polls = preloaded.polls || [];
+                    State.parties = preloaded.parties || [];
+                    State.settings = preloaded.settings || State.settings;
+                    msgCache[pType + ":" + pId] = {
+                        messages: State.messages,
+                        afterId: State.afterId,
+                        firstId: State.firstId,
+                        hasMore: State.hasMore,
+                        members: State.members,
+                        pins: State.pins,
+                        polls: State.polls,
+                        parties: State.parties,
+                        html: "",
+                        at: Date.now(),
+                    };
+                    $("#emptyState").classList.add("hidden");
+                    $("#convView").classList.remove("hidden");
+                    renderChatHead();
+                    renderMessages(true);
+                    renderPins(State.pins);
+                    if (pType === "channel") renderPartyStrip();
+                    markActiveRead();
+                    msgCache[pType + ":" + pId].html = $("#msgList").innerHTML;
+                }
+            }
+        } catch (e) { /* preloaded parse fail — no big deal */ }
+
         // heartbeat + polling
         refreshPresence();
         refreshCommunities();
@@ -2934,42 +2985,6 @@
                 pollMessages();
             }
         });
-        // Scroll-up loader: when user scrolls near the top, load older
-        // messages (like community chat's infinite scroll).
-        $("#msgList").addEventListener("scroll", function () {
-            var list = this;
-            if (list.scrollTop < 80 && State.hasMore && !State.loadingOlder && State.active) {
-                State.loadingOlder = true;
-                var seq = State.reqSeq;
-                var key = State.active.type + ":" + State.active.id;
-                api("/threads/api/messages?ctx=" + State.active.type + ":" + State.active.id +
-                    "&before=" + State.firstId + "&limit=30").then(function (res) {
-                    State.loadingOlder = false;
-                    if (seq !== State.reqSeq) return;
-                    if (!res.success) { handleApiError(res); return; }
-                    if (!res.messages.length) { State.hasMore = false; return; }
-                    var before = list.scrollHeight;
-                    var html = "";
-                    res.messages.forEach(function (m) {
-                        if (State.seenIds[m.id]) return;
-                        State.seenIds[m.id] = true;
-                        html += renderMessage(m);
-                    });
-                    list.insertAdjacentHTML("afterbegin", html);
-                    State.messages = res.messages.concat(State.messages);
-                    State.firstId = res.messages[0].id;
-                    State.hasMore = res.messages.length >= 30;
-                    if (msgCache[key]) {
-                        msgCache[key].messages = State.messages;
-                        msgCache[key].firstId = State.firstId;
-                        msgCache[key].hasMore = State.hasMore;
-                        msgCache[key].at = Date.now();
-                    }
-                    list.scrollTop = list.scrollHeight - before;
-                });
-            }
-        });
-
         // leave a heart-beat while the tab is open
         setInterval(function () {
             if (!document.hidden) api("/threads/api/presence");

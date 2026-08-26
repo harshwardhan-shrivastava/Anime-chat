@@ -193,10 +193,41 @@ def index():
         return redirect(url_for("auth.login", next="/threads"))
 
     conversations = threads_db.get_user_conversations(user["id"])
+
+    # Pre-load the first conversation's 30 messages so the page opens
+    # instantly with messages visible (like community chat).
+    preloaded = {}
+    if conversations:
+        first = conversations[0]
+        ctype = first.get("type", "dm")
+        cid = first.get("id")
+        if cid and threads_db.can_access_context(ctype, cid, user["id"]):
+            rows = threads_db.get_messages(ctype, cid, limit=30)
+            enriched = _enrich_messages(rows)
+            preloaded = {
+                "ctx": f"{ctype}:{cid}",
+                "messages": enriched,
+                "afterId": enriched[-1]["id"] if enriched else 0,
+                "firstId": enriched[0]["id"] if enriched else 0,
+                "hasMore": len(enriched) >= 30,
+                "pins": _enrich_messages(threads_db.get_pinned_messages(ctype, cid)),
+            }
+            # Add members for the first conversation
+            if ctype in ("dm", "group"):
+                preloaded["members"] = threads_db.get_conversation_members(cid)
+            elif ctype == "channel":
+                ch = threads_db.get_channel(cid)
+                if ch:
+                    preloaded["members"] = threads_db.get_community_members_public(ch["community_id"])
+                    preloaded["polls"] = threads_db.get_channel_polls(cid, user["id"])
+                    preloaded["parties"] = _enrich_parties(threads_db.get_channel_parties(cid, user["id"]))
+            preloaded["settings"] = threads_db.get_settings(user["id"])
+
     return render_template(
         "threads.html",
         conversations=conversations,
         unread_notifications=threads_db.unread_notification_count(user["id"]),
+        preloaded=preloaded,
     )
 
 
