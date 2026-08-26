@@ -2203,3 +2203,46 @@ def delete_party(party_id):
     cur.execute("DELETE FROM thr_watch_parties WHERE id = ?", (party_id,))
     conn.commit()
     conn.close()
+
+def delete_party(party_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM thr_watch_parties WHERE id = ?", (party_id,))
+    conn.commit()
+    conn.close()
+
+# <--- YOU PASTE MY CODE RIGHT HERE (after the close) --->
+
+def get_messages_by_channel(channel_id, after_id=0, before_id=0, limit=30):
+    """
+    Fetches messages for ONE specific channel.
+    Works EXACTLY like your community chat's get_chat_messages.
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    sql = """
+        SELECT * FROM thr_messages 
+        WHERE context_type = 'channel' AND context_id = ?
+    """
+    params = [channel_id]
+    
+    if after_id > 0:
+        sql += " AND id > ?"
+        params.append(after_id)
+    if before_id > 0:
+        sql += " AND id < ?"
+        params.append(before_id)
+    
+    sql += " ORDER BY created_at DESC LIMIT ?"
+    params.append(limit)
+    
+    cur.execute(sql, params)
+    rows = cur.fetchall()
+    conn.close()
+    
+    result = []
+    for row in rows:
+        result.append(dict(row))
+    
+    return result[::-1]
