@@ -2343,3 +2343,29 @@ html, body {
     border: 1px solid rgba(248, 113, 113, 0.45);
     box-shadow: 0 0 12px rgba(248, 113, 113, 0.25);
 }
+
+/* ============================================================
+   THREADS MESSAGE PERFORMANCE — disable heavy rank-badge animations
+   inside messages to prevent jank from 60+ concurrent CSS animations.
+   Reviews page keeps the full effects; threads gets clean colors only.
+   ============================================================ */
+.thr-msg .rank-badge {
+    animation: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    overflow: visible !important;
+}
+.thr-msg .rank-badge::before,
+.thr-msg .rank-badge::after {
+    display: none !important;
+}
+.thr-msg .xp-bar-fill {
+    animation: none !important;
+}
+.thr-msg .xp-bar-fill::before,
+.thr-msg .xp-bar-fill::after {
+    display: none !important;
+}
+.thr-msg .xp-bar {
+    animation: none !important;
+}

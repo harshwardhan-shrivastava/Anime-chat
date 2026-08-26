@@ -59,10 +59,13 @@
     function $(sel) { return document.querySelector(sel); }
     function $$(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
 
+    var _escDiv = document.createElement("div");
     function escapeHtml(s) {
-        var div = document.createElement("div");
-        div.textContent = s == null ? "" : String(s);
-        return div.innerHTML;
+        // Fast path: reuse a single cached div element instead of creating
+        // a new one per call (the old version created 200+ elements per
+        // message-list render, which was the main FPS bottleneck).
+        _escDiv.textContent = s == null ? "" : String(s);
+        return _escDiv.innerHTML;
     }
 
     function parseIso(iso) {
@@ -502,6 +505,7 @@
     function renderMessages(scrollToBottom) {
         var list = $("#msgList");
         var html = "";
+        var msgCount = State.messages.length;
         var lastDay = null;
         var limit = State.messages.length;
         var polls = isChannelOpen() ? State.polls : [];
