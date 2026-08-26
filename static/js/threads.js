@@ -459,71 +459,12 @@
         $("#btnMembers").style.display = activeType === "group" ? "" : "none";
     }
 
-    // ----------------------------------------------------------
-    // HISTORY LOADING (with channel-specific endpoint)
-    // ----------------------------------------------------------
-    function loadHistory(beforeId) {
+    function loadHistory() {
         var ctype = State.active.type, cid = State.active.id;
         var seq = State.reqSeq;
         var key = ctype + ":" + cid;
-
-        // For channels, use the new /api/channels/<id>/messages endpoint
-        if (ctype === "channel") {
-            var url = "/api/channels/" + cid + "/messages?limit=30";
-            if (beforeId) {
-                url += "&before_id=" + beforeId;
-            }
-            api(url).then(function (res) {
-                if (seq !== State.reqSeq) return;
-                if (!res.success) { handleApiError(res); return; }
-                var messages = res.messages || [];
-                if (beforeId) {
-                    State.messages = messages.concat(State.messages);
-                } else {
-                    State.messages = messages;
-                }
-                State.seenIds = {};
-                State.messages.forEach(function (m) { State.seenIds[m.id] = true; });
-                if (State.messages.length) {
-                    State.afterId = State.messages[State.messages.length - 1].id;
-                    State.firstId = State.messages[0].id;
-                    State.hasMore = res.has_more || false;
-                } else {
-                    State.afterId = 0;
-                    State.firstId = 0;
-                    State.hasMore = false;
-                }
-                msgCache[key] = {
-                    messages: State.messages,
-                    afterId: State.afterId,
-                    firstId: State.firstId,
-                    hasMore: State.hasMore,
-                    members: State.members,
-                    pins: State.pins || [],
-                    polls: State.polls || [],
-                    parties: State.parties || [],
-                    html: "",
-                    at: Date.now(),
-                };
-                State.loadingHistory = false;
-                if (seq === State.reqSeq) {
-                    renderMessages(true);
-                    renderPins(State.pins || []);
-                    if (isChannelOpen()) renderPartyStrip();
-                    refreshPresence();
-                }
-                fetchThrRanks(State.messages).then(function () {
-                    if (seq === State.reqSeq && $("#msgList") && $("#msgList").innerHTML) {
-                        renderMessages(false);
-                    }
-                });
-            });
-            return;
-        }
-
-        // For DMs and groups, keep using the old endpoint
         api("/threads/api/messages?ctx=" + ctype + ":" + cid + "&limit=60").then(function (res) {
-            if (seq !== State.reqSeq) return;
+            if (seq !== State.reqSeq) return;   // user switched away — drop stale response
             if (!res.success) { handleApiError(res); return; }
             State.messages = res.messages;
             State.seenIds = {};
@@ -544,6 +485,7 @@
             syncSettingsUI();
             if (res.polls) State.polls = res.polls;
             if (res.parties) State.parties = res.parties;
+            // Store in cache so reopening this chat is instant.
             msgCache[key] = {
                 messages: State.messages,
                 afterId: State.afterId,
@@ -556,11 +498,13 @@
                 html: "",
                 at: Date.now(),
             };
+            // Keep the cache bounded.
             var keys = Object.keys(msgCache);
             if (keys.length > 30) {
                 keys.sort(function (a, b) { return msgCache[a].at - msgCache[b].at; });
                 delete msgCache[keys[0]];
             }
+            // Render messages IMMEDIATELY — don't wait for rank fetch.
             State.loadingHistory = false;
             if (seq === State.reqSeq) {
                 renderMessages(true);
@@ -568,6 +512,7 @@
                 if (isChannelOpen()) renderPartyStrip();
                 refreshPresence();
             }
+            // Fetch ranks in background to update badges (non-blocking).
             fetchThrRanks(State.messages).then(function () {
                 if (seq === State.reqSeq && $("#msgList") && $("#msgList").innerHTML) {
                     renderMessages(false);
@@ -576,55 +521,9 @@
         });
     }
 
-    // ----------------------------------------------------------
-    // LOAD OLDER MESSAGES (for channels)
-    // ----------------------------------------------------------
-    function loadOlderChannelMessages() {
-        if (State.loadingOlder || !State.hasMore || !isChannelOpen()) return;
-        State.loadingOlder = true;
-        var firstId = State.firstId;
-        if (!firstId) { State.loadingOlder = false; return; }
-        var seq = State.reqSeq;
-        var url = "/api/channels/" + State.active.id + "/messages?before_id=" + firstId + "&limit=30";
-        api(url).then(function (res) {
-            State.loadingOlder = false;
-            if (seq !== State.reqSeq) return;
-            if (!res.success) { handleApiError(res); return; }
-            var older = res.messages || [];
-            if (older.length) {
-                var oldScrollHeight = $("#msgList").scrollHeight;
-                State.messages = older.concat(State.messages);
-                State.firstId = State.messages[0] ? State.messages[0].id : 0;
-                State.hasMore = res.has_more || false;
-                var key = "channel:" + State.active.id;
-                if (msgCache[key]) {
-                    msgCache[key].messages = State.messages;
-                    msgCache[key].firstId = State.firstId;
-                    msgCache[key].hasMore = State.hasMore;
-                    msgCache[key].at = Date.now();
-                }
-                renderMessages(false);
-                // Adjust scroll position to keep the user at the same spot
-                var newScrollHeight = $("#msgList").scrollHeight;
-                $("#msgList").scrollTop = newScrollHeight - oldScrollHeight + 10;
-            } else {
-                State.hasMore = false;
-            }
-        }).catch(function () {
-            State.loadingOlder = false;
-        });
-    }
-
-    // ----------------------------------------------------------
-    // RENDER MESSAGES (with "Load Older" button)
-    // ----------------------------------------------------------
     function renderMessages(scrollToBottom) {
         var list = $("#msgList");
         var html = "";
-        // [ADD] Show "Load Older" button at top for channels
-        if (isChannelOpen() && State.hasMore && State.messages.length) {
-            html += '<div class="thr-load-more-container"><button class="thr-load-more-btn" id="btnLoadOlder">⬆ Load older messages</button></div>';
-        }
         var msgCount = State.messages.length;
         var lastDay = null;
         var limit = State.messages.length;
@@ -1013,7 +912,7 @@
     }
 
     // ----------------------------------------------------------
-    // Polling (with channel-specific endpoint)
+    // Polling
     // ----------------------------------------------------------
     function pollMessages() {
         if (!State.active) return;
@@ -1021,30 +920,8 @@
         var ctype = State.active.type, cid = State.active.id;
         var seq = State.reqSeq;
         var key = ctype + ":" + cid;
-
-        // For channels, use the new endpoint with after_id
-        if (ctype === "channel") {
-            var url = "/api/channels/" + cid + "/messages?after_id=" + State.afterId;
-            api(url).then(function (res) {
-                if (seq !== State.reqSeq) return;
-                if (!res.success) { handleApiError(res); return; }
-                if (res.messages && res.messages.length) {
-                    appendMessages(res.messages);
-                    if (msgCache[key]) {
-                        msgCache[key].messages = State.messages;
-                        msgCache[key].afterId = State.afterId;
-                        msgCache[key].at = Date.now();
-                    }
-                    markActiveRead();
-                }
-                updateSeenText();
-            });
-            return;
-        }
-
-        // For DMs/groups, keep old endpoint
         api("/threads/api/messages?ctx=" + ctype + ":" + cid + "&after=" + State.afterId).then(function (res) {
-            if (seq !== State.reqSeq) return;
+            if (seq !== State.reqSeq) return;   // switched conversations — never mix contexts
             if (!res.success) { handleApiError(res); return; }
             if (res.messages && res.messages.length) {
                 appendMessages(res.messages);
@@ -2335,3 +2212,749 @@
                 return '<div class="thr-poll-option-row">' +
                     '<input class="thr-text-input" type="text" maxlength="120" placeholder="Option ' + (i + 1) + '" value="' + escapeHtml(v) + '">' +
                     (i > 1 ? '<button class="thr-link-btn danger" data-del-opt="' + i + '">\u2715</button>' : "") + "</div>";
+            }).join("");
+            $("#pollOptions").innerHTML = html;
+        });
+        $("#pollOptions").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-del-opt]");
+            if (!b) return;
+            var inputs = $$("#pollOptions .thr-text-input");
+            var idx = parseInt(b.getAttribute("data-del-opt"), 10);
+            if (inputs[idx]) inputs[idx].remove();
+        });
+        $("#btnCreatePoll").addEventListener("click", function () {
+            if (!isChannelOpen()) return;
+            var question = $("#pollQuestion").value.trim();
+            var options = $$("#pollOptions .thr-text-input").map(function (i) { return i.value.trim(); }).filter(Boolean);
+            if (!question) { toast("Ask a question", "error"); return; }
+            if (options.length < 2) { toast("Add at least 2 options", "error"); return; }
+            api("/threads/api/channels/" + State.active.id + "/polls", {
+                json: { question: question, options: options },
+            }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                State.polls = res.polls || [];
+                renderMessages(false);
+                closeModal("modalPoll");
+                toast("Poll posted");
+            });
+        });
+    }
+
+    function wirePartyModal() {
+        var sInput = $("#partyAnimeSearch");
+        var results = $("#partyAnimeResults");
+        var t;
+        function search() {
+            var q = sInput.value.trim();
+            if (!q) { results.innerHTML = ""; return; }
+            fetch("/api/search?q=" + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (res) {
+                if (!res.success) { results.innerHTML = ""; return; }
+                results.innerHTML = res.results.map(function (a) {
+                    return '<div class="thr-user-row thr-party-anime-row" data-slug="' + escapeHtml(a.slug) + '" data-title="' + escapeHtml(a.title) + '">' +
+                        (a.image ? '<img class="thr-party-anime-thumb" src="' + escapeHtml(a.image) + '" alt="">' : "") +
+                        "<span>" + escapeHtml(a.title) + "</span></div>";
+                }).join("") || '<div class="thr-dropdown-empty">No anime found</div>';
+            });
+        }
+        sInput.addEventListener("input", function () {
+            clearTimeout(t);
+            t = setTimeout(search, 300);
+        });
+        results.addEventListener("click", function (e) {
+            var row = e.target.closest(".thr-party-anime-row");
+            if (!row) return;
+            partyPick = { slug: row.getAttribute("data-slug"), title: row.getAttribute("data-title") };
+            $("#partyAnimePick").innerHTML = '<i class="fas fa-tv"></i> Watching: <b>' + escapeHtml(partyPick.title) +
+                "</b> <button class='thr-link-btn' data-clear-party-pick='1'>\u2715</button>";
+            $("#partyAnimePick").classList.remove("hidden");
+            results.innerHTML = "";
+            sInput.value = "";
+        });
+        $("#partyAnimePick").addEventListener("click", function (e) {
+            if (e.target.closest("[data-clear-party-pick]")) {
+                partyPick = null;
+                $("#partyAnimePick").classList.add("hidden");
+                $("#partyAnimePick").innerHTML = "";
+            }
+        });
+        $("#btnCreateParty").addEventListener("click", function () {
+            if (!isChannelOpen()) return;
+            var title = $("#partyTitleInput").value.trim();
+            var when = $("#partyWhen").value;
+            if (!title) { toast("Name the party", "error"); return; }
+            if (!when) { toast("Pick a start time", "error"); return; }
+            var iso = new Date(when).toISOString();
+            api("/threads/api/channels/" + State.active.id + "/parties", {
+                json: { title: title, anime_id: partyPick ? partyPick.slug : "", scheduled_time: iso },
+            }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                State.parties = res.parties || [];
+                renderPartyStrip();
+                closeModal("modalParty");
+                toast("Watch party created — watch for the \uD83D\uDD34 flag!");
+                refreshCommunities();
+            });
+        });
+    }
+
+    var COMM_COLORS = ["#8b5cf6", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#ec4899", "#06b6d4", "#f97316", "#14b8a6"];
+    var chosenCommColor = COMM_COLORS[0];
+
+    function wireNewCommunityModal() {
+        var swatches = $("#commColors");
+        swatches.innerHTML = COMM_COLORS.map(function (c, i) {
+            return '<span class="thr-swatch' + (i === 0 ? " chosen" : "") + '" data-color="' + c + '" style="background:' + c + '"></span>';
+        }).join("");
+        swatches.addEventListener("click", function (e) {
+            var sw = e.target.closest(".thr-swatch");
+            if (!sw) return;
+            chosenCommColor = sw.getAttribute("data-color");
+            $$(".thr-swatch", swatches).forEach(function (s) { s.classList.remove("chosen"); });
+            sw.classList.add("chosen");
+        });
+        $("#btnCreateComm").addEventListener("click", function () { openModal("modalNewCommunity"); });
+        $("#btnCreateCommSubmit").addEventListener("click", function () {
+            var name = $("#commNameInput").value.trim();
+            if (!name) { toast("Give the guild a name", "error"); return; }
+            api("/threads/api/communities", {
+                json: {
+                    name: name,
+                    genre: $("#commGenreInput").value.trim(),
+                    description: $("#commDescInput").value.trim(),
+                    icon_color: chosenCommColor,
+                },
+            }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                closeModal("modalNewCommunity");
+                $("#commNameInput").value = "";
+                $("#commGenreInput").value = "";
+                $("#commDescInput").value = "";
+                var c = res.community;
+                State.discoverMode = false;
+                State.activeCommunity = c;
+                State.myCommunityRole = "owner";
+                renderRail();
+                renderChannelPanel();
+                if (c.channels && c.channels.length) openChannel(c.channels[0]);
+                toast("Guild created!");
+            });
+        });
+    }
+
+    function wireCommunities() {
+        wireNewCommunityModal();
+        wirePollModal();
+        wirePartyModal();
+
+        $("#btnSubmitReport").addEventListener("click", submitReport);
+
+        // rail
+        $("#commRailList").addEventListener("click", function (e) {
+            var item = e.target.closest(".thr-rail-item");
+            if (!item) return;
+            var cid = parseInt(item.getAttribute("data-comm"), 10);
+            var c = null;
+            State.communities.forEach(function (x) { if (x.id === cid) c = x; });
+            if (!c) return;
+            State.discoverMode = false;
+            State.activeCommunity = c;
+            State.myCommunityRole = c.role || "member";
+            renderRail();
+            renderChannelPanel();
+            if (State.active && State.active.type === "channel") {
+                var ok = false;
+                (c.channels || []).forEach(function (ch) { if (ch.id === State.active.id) ok = true; });
+                if (!ok) {
+                    State.active = null;
+                    $("#convView").classList.add("hidden");
+                    $("#emptyState").classList.remove("hidden");
+                    if (c.channels && c.channels.length) openChannel(c.channels[0]);
+                }
+            } else if (c.channels && c.channels.length) {
+                openChannel(c.channels[0]);
+            }
+        });
+
+        // channel list
+        $("#channelList").addEventListener("click", function (e) {
+            if (e.target.closest("#btnAddChannel")) {
+                openModal("modalNewChannel");
+                return;
+            }
+            var item = e.target.closest(".thr-channel");
+            if (!item) return;
+            var chid = parseInt(item.getAttribute("data-ch"), 10);
+            var ch = null;
+            (State.activeCommunity.channels || []).forEach(function (x) { if (x.id === chid) ch = x; });
+            if (ch) openChannel(ch);
+        });
+
+        // party rows in the channel panel
+        $("#partyList").addEventListener("click", function (e) {
+            var row = e.target.closest(".thr-party-row");
+            if (!row) return;
+            var chid = parseInt(row.getAttribute("data-ch"), 10);
+            var ch = null;
+            (State.activeCommunity.channels || []).forEach(function (x) { if (x.id === chid) ch = x; });
+            if (ch) openChannel(ch);
+        });
+
+        // discover
+        $("#btnDiscover").addEventListener("click", showDiscover);
+        $("#discoverList").addEventListener("click", function (e) {
+            var join = e.target.closest("[data-join]");
+            if (!join) return;
+            var cid = parseInt(join.getAttribute("data-join"), 10);
+            api("/threads/api/communities/" + cid + "/join", { json: {} }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                var c = res.community;
+                State.discoverMode = false;
+                State.activeCommunity = c;
+                State.myCommunityRole = "member";
+                loadDiscover($("#discoverSearch").value);
+                renderRail();
+                renderChannelPanel();
+                if (c.channels && c.channels.length) openChannel(c.channels[0]);
+                toast("Joined " + c.name);
+            });
+        });
+
+        // community menu header + tabs + actions
+        $("#btnCommMenuHead").addEventListener("click", function () { openCommunityMenu("info"); });
+        $$(".thr-comm-tab").forEach(function (t) {
+            t.addEventListener("click", function () {
+                $$(".thr-comm-tab").forEach(function (x) { x.classList.remove("active"); });
+                t.classList.add("active");
+                showCommTab(t.getAttribute("data-ctab"));
+            });
+        });
+        $("#btnSaveCommunity").addEventListener("click", saveCommunityEdit);
+        $("#btnLeaveCommunity").addEventListener("click", leaveCommunityAction);
+        $("#btnMuteCommunity").addEventListener("click", toggleCommunityMute);
+
+        // community modal: member actions
+        $("#commMemberList").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-role],[data-kick],[data-mute],[data-ban],[data-block]");
+            if (!b) return;
+            var uid = parseInt(b.getAttribute("data-uid") || b.getAttribute("data-kick") ||
+                b.getAttribute("data-mute") || b.getAttribute("data-ban") || b.getAttribute("data-block"), 10);
+            var base = "/threads/api/communities/" + State.activeCommunity.id + "/members/" + uid;
+            if (b.hasAttribute("data-role")) {
+                api(base + "/role", { json: { role: b.getAttribute("data-role") } }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    toast("Role updated");
+                    openCommunityMenu("members");
+                });
+            } else if (b.hasAttribute("data-kick")) {
+                if (!window.confirm("Kick this member?")) return;
+                api(base + "/kick", { json: {} }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    toast("Member kicked");
+                    openCommunityMenu("members");
+                });
+            } else if (b.hasAttribute("data-mute")) {
+                var muted = b.getAttribute("data-muted") === "1";
+                api(base + "/mute", { json: { muted: !muted } }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    toast(muted ? "Unmuted" : "Muted — they can't post");
+                    openCommunityMenu("members");
+                });
+            } else if (b.hasAttribute("data-ban")) {
+                if (!window.confirm("Ban this member from the community?")) return;
+                api(base + "/ban", { json: {} }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    toast("Member banned");
+                    openCommunityMenu("members");
+                });
+            } else if (b.hasAttribute("data-block")) {
+                api("/threads/api/users/block", { json: { user_id: uid } }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    toast("User blocked — their messages are hidden");
+                });
+            }
+        });
+
+        $("#commBannedList").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-unban]");
+            if (!b) return;
+            var uid = parseInt(b.getAttribute("data-unban"), 10);
+            api("/threads/api/communities/" + State.activeCommunity.id + "/members/" + uid + "/unban", { json: {} }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                toast("Unbanned");
+                openCommunityMenu("members");
+            });
+        });
+
+        $("#commReports").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-resolve-report]");
+            if (!b) return;
+            var rid = parseInt(b.getAttribute("data-resolve-report"), 10);
+            api("/threads/api/reports/" + rid + "/resolve", { json: {} }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                toast("Report dismissed");
+                openCommunityMenu("reports");
+            });
+        });
+
+        // party strip actions
+        $("#partyStrip").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-join-party],[data-rsvp-party],[data-cancel-party]");
+            if (!b) return;
+            var pid = parseInt(b.getAttribute("data-join-party") || b.getAttribute("data-rsvp-party") || b.getAttribute("data-cancel-party"), 10);
+            if (b.hasAttribute("data-join-party")) {
+                var p = null;
+                State.parties.forEach(function (x) { if (x.id === pid) p = x; });
+                if (p && p.anime_id) window.open("/anime/" + p.anime_id, "_blank");
+                else toast("Party is live — enjoy the chat!");
+                return;
+            }
+            if (b.hasAttribute("data-cancel-party")) {
+                if (!window.confirm("Cancel this watch party?")) return;
+                api("/threads/api/parties/" + pid, { method: "DELETE" }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    toast("Party cancelled");
+                    loadChannelParties();
+                    refreshCommunities();
+                });
+                return;
+            }
+            var isGoing = false;
+            State.parties.forEach(function (x) { if (x.id === pid) isGoing = x.is_rsvped; });
+            if (isGoing) {
+                api("/threads/api/parties/" + pid + "/rsvp", { method: "DELETE" }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    State.parties = res.parties || [];
+                    renderPartyStrip();
+                    refreshCommunities();
+                });
+            } else {
+                api("/threads/api/parties/" + pid + "/rsvp", { json: {} }).then(function (res) {
+                    if (!res.success) { handleApiError(res); return; }
+                    State.parties = res.parties || [];
+                    renderPartyStrip();
+                    toast("You're going! \uD83C\uDF7F");
+                    refreshCommunities();
+                });
+            }
+        });
+
+        // poll vote (delegated from inline poll cards)
+        $("#msgList").addEventListener("click", function (e) {
+            var opt = e.target.closest(".thr-poll-opt");
+            if (!opt) return;
+            var pid = parseInt(opt.getAttribute("data-poll"), 10);
+            var oid = parseInt(opt.getAttribute("data-opt"), 10);
+            api("/threads/api/polls/" + pid + "/vote", { json: { option_id: oid } }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                State.polls = res.polls || [];
+                renderMessages(false);
+            });
+        });
+
+        // channel chat-head buttons
+        $("#btnParty").addEventListener("click", function () {
+            if (!isChannelOpen()) return;
+            $("#partyTitleInput").value = "";
+            $("#partyWhen").value = "";
+            partyPick = null;
+            $("#partyAnimePick").classList.add("hidden");
+            $("#partyAnimePick").innerHTML = "";
+            openModal("modalParty");
+        });
+        $("#btnNewPoll").addEventListener("click", function () {
+            if (!isChannelOpen()) return;
+            $("#pollQuestion").value = "";
+            renderPollModalOptions();
+            openModal("modalPoll");
+        });
+
+        // new channel modal
+        $("#btnCreateChannel").addEventListener("click", function () {
+            var name = $("#channelNameInput").value.trim();
+            if (!name) { toast("Channel needs a name", "error"); return; }
+            api("/threads/api/communities/" + State.activeCommunity.id + "/channels", {
+                json: { name: name, topic: $("#channelTopicInput").value.trim() },
+            }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                closeModal("modalNewChannel");
+                $("#channelNameInput").value = "";
+                $("#channelTopicInput").value = "";
+                var ch = res.channel;
+                (State.activeCommunity.channels || []).push(ch);
+                renderChannelList();
+                openChannel(ch);
+                refreshCommunities();
+                toast("Channel created");
+            });
+        });
+    }
+
+    function openChannelFromNotification(chid) {
+        if (State.activeTab !== "communities") setTab("communities");
+        function tryOpen() {
+            var found = false;
+            State.communities.forEach(function (c) {
+                (c.channels || []).forEach(function (ch) {
+                    if (ch.id === chid) {
+                        found = true;
+                        State.discoverMode = false;
+                        State.activeCommunity = c;
+                        State.myCommunityRole = c.role || "member";
+                        renderRail();
+                        renderChannelPanel();
+                        openChannel(ch);
+                    }
+                });
+            });
+            return found;
+        }
+        if (!tryOpen()) {
+            refreshCommunities(function () { tryOpen(); });
+        }
+    }
+        // ---- Pins modal ----
+    function wirePinsModal() {
+        var list = $("#pinsList");
+        function render() {
+            api("/threads/api/messages?ctx=" + State.active.type + ":" + State.active.id + "&limit=1").then(function (res) {
+                if (!res.success) return;
+                var pins = res.pins || [];
+                list.innerHTML = pins.length ? pins.map(function (p) {
+                    var txt = p.content || (p.kind === "gif" ? "GIF" : p.kind === "image" ? "Image" : p.kind === "video" ? "Video" : p.kind === "anime" ? (function(){try{var d=JSON.parse(p.content);return "\uD83D\uDCFA "+d.title}catch(e){return "Anime"}})() : "");
+                    return '<div class="thr-pin-row">' +
+                        '<i class="fas fa-thumbtack"></i>' +
+                        '<div><div class="thr-pin-user">@' + escapeHtml(p.sender ? p.sender.username : "") + "</div>" +
+                        '<div class="thr-pin-content">' + escapeHtml(txt) + "</div></div></div>";
+                }).join("") : '<div class="thr-dropdown-empty">Nothing pinned yet</div>';
+            });
+        }
+        $("#btnPins").addEventListener("click", function () {
+            openModal("modalPins");
+            render();
+        });
+        $("#btnPinnedStripOpen").addEventListener("click", function () {
+            openModal("modalPins");
+            render();
+        });
+    }
+
+    // ---- Settings modal ----
+    function syncSettingsUI() {
+        $("#setReadReceipts").checked = !!State.settings.read_receipts;
+        $("#setTyping").checked = !!State.settings.typing_indicators;
+    }
+    function wireSettingsModal() {
+        function save() {
+            api("/threads/api/settings", {
+                json: {
+                    read_receipts: $("#setReadReceipts").checked ? 1 : 0,
+                    typing_indicators: $("#setTyping").checked ? 1 : 0,
+                },
+            }).then(function (res) {
+                if (res.success) {
+                    State.settings = res.settings;
+                    toast("Settings saved");
+                }
+            });
+        }
+        $("#setReadReceipts").addEventListener("change", save);
+        $("#setTyping").addEventListener("change", save);
+        $("#btnSettings").addEventListener("click", function () {
+            syncSettingsUI();
+            openModal("modalSettings");
+        });
+    }
+
+    // ---- Notifications bell ----
+    function wireBell() {
+        var dd = $("#bellDropdown");
+        $("#btnBell").addEventListener("click", function (e) {
+            e.stopPropagation();
+            var opening = dd.classList.contains("hidden");
+            dd.classList.toggle("hidden", !opening);
+            if (opening) {
+                api("/threads/api/notifications").then(function (res) {
+                    if (res.success) renderNotifications(res.notifications || []);
+                });
+            }
+        });
+        document.addEventListener("click", function (e) {
+            if (!dd.classList.contains("hidden") && !e.target.closest(".thr-bell-wrap")) {
+                dd.classList.add("hidden");
+            }
+        });
+        dd.addEventListener("click", function (e) {
+            var item = e.target.closest(".thr-notif");
+            if (!item) return;
+            var ctx = item.getAttribute("data-nctx");
+            if (ctx) {
+                var parts = ctx.split(":");
+                if (parts.length === 2) {
+                    var type = parts[0], id = parseInt(parts[1], 10);
+                    if (type === "dm" || type === "group") {
+                        // ensure the conversation is in our list
+                        var found = State.conversations.some(function (c) { return c.id === id && c.type === type; });
+                        if (!found) refreshConversations();
+                        openConversation(type, id);
+                        dd.classList.add("hidden");
+                    } else if (type === "channel") {
+                        openChannelFromNotification(id);
+                        dd.classList.add("hidden");
+                    }
+                }
+            }
+            if (item.getAttribute('data-ntype') === 'friend_request') {
+                dd.classList.add('hidden');
+                openRequestsModal();
+                return;
+            }
+            if (e.target.closest("#btnNotifRead")) return;
+        });
+        $("#btnNotifRead").addEventListener("click", function () {
+            api("/threads/api/notifications/read", { json: {} }).then(function (res) {
+                if (res.success) {
+                    State.notifUnread = 0;
+                    var badge = $("#bellBadge");
+                    badge.textContent = "";
+                    badge.classList.add("hidden");
+                    refreshNotifications();
+                }
+            });
+        });
+    }
+
+    // ----------------------------------------------------------
+    // Events
+    // ----------------------------------------------------------
+    function wireEvents() {
+        // conversation list clicks
+        $("#convList").addEventListener("click", function (e) {
+            var item = e.target.closest(".thr-conv");
+            if (!item) return;
+            var id = parseInt(item.getAttribute("data-id"), 10);
+            var type = item.getAttribute("data-type");
+            if (State.active && State.active.id === id && State.active.type === type) return;
+            openConversation(type, id);
+        });
+
+        // search filter
+        $("#convSearch").addEventListener("input", function () {
+            State.convFilter = this.value;
+            renderConversations();
+        });
+
+        // composer
+        var input = $("#msgInput");
+        input.addEventListener("input", onInputTyping);
+        input.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        $("#btnSend").addEventListener("click", sendMessage);
+        $("#btnCancelReply").addEventListener("click", function () {
+            State.replyTo = null;
+            $("#replyBar").classList.add("hidden");
+        });
+        $("#btnClearAttach").addEventListener("click", clearAttach);
+
+        // attach
+        $("#btnAttach").addEventListener("click", function () { $("#fileInput").click(); });
+        $("#fileInput").addEventListener("change", function () {
+            var file = this.files && this.files[0];
+            if (!file) return;
+            var ext = (file.name.split(".").pop() || "").toLowerCase();
+            if (["png", "jpg", "jpeg", "gif", "webp"].indexOf(ext) === -1 &&
+                ["mp4", "webm", "mov"].indexOf(ext) === -1) {
+                toast("That file type isn't supported", "error");
+                this.value = "";
+                return;
+            }
+            if (file.size > 25 * 1024 * 1024) {
+                toast("File must be under 25 MB", "error");
+                this.value = "";
+                return;
+            }
+            var fd = new FormData();
+            fd.append("file", file);
+            fetch("/threads/api/upload", { method: "POST", body: fd }).then(function (r) { return r.json(); }).then(function (res) {
+                if (!res.success) { handleApiError(res); toast(res.error || "Upload failed", "error"); return; }
+                State.attach = { kind: res.kind, url: res.url, preview: res.url, name: res.name };
+                showAttachPreview();
+            });
+        });
+
+        // message actions (delegated)
+        $("#msgList").addEventListener("click", function (e) {
+            var act = e.target.closest("[data-act]");
+            if (!act) return;
+            var id = parseInt(act.getAttribute("data-id"), 10);
+            var kind = act.getAttribute("data-act");
+            if (kind === "reply") {
+                var msg = State.messages.filter(function (m) { return m.id === id; })[0];
+                if (!msg) return;
+                State.replyTo = msg;
+                var sender = msg.sender ? msg.sender.username : "someone";
+                var snippet = msg.content || (msg.kind === "gif" ? "GIF" : msg.kind === "image" ? "Image" : msg.kind === "video" ? "Video" : "");
+                $("#replyName").textContent = "@" + sender;
+                $("#replySnippet").textContent = snippet.length > 60 ? snippet.slice(0, 60) + "…" : snippet;
+                $("#replyBar").classList.remove("hidden");
+                $("#msgInput").focus();
+            } else if (kind === "pin") {
+                pinMessage(id);
+            } else if (kind === "edit") {
+                State.editingId = id;
+                renderMessages(false);
+                var ta = document.querySelector('.thr-edit-input[data-edit-id="' + id + '"]');
+                if (ta) { ta.focus(); ta.select(); }
+            } else if (kind === "delete") {
+                deleteMessage(id);
+            } else if (kind === "save-edit") {
+                var ta = document.querySelector('.thr-edit-input[data-edit-id="' + id + '"]');
+                var val = ta ? ta.value.trim() : "";
+                if (!val) { toast("Message can't be empty", "error"); return; }
+                editMessage(id, val);
+            } else if (kind === "cancel-edit") {
+                State.editingId = null;
+                renderMessages(false);
+            }
+        });
+
+        // mention box
+        $("#mentionBox").addEventListener("click", function (e) {
+            var opt = e.target.closest(".thr-mention-opt");
+            if (opt) insertMention(opt.getAttribute("data-user"));
+        });
+
+      // mute toggle
+        $("#btnMute").addEventListener("click", function () {
+            var conv = State.active.conv;
+            var next = !conv.muted;
+            api("/threads/api/conversations/" + conv.id + "/mute", { json: { muted: next } }).then(function (res) {
+                if (!res.success) { handleApiError(res); return; }
+                conv.muted = next;
+                renderChatHead();
+                toast(next ? "Muted — no unread badges for this chat" : "Unmuted");
+                renderConversations();
+            });
+        });
+
+        // new DM + friend-requests buttons (header + empty state)
+        $("#btnNewDm").addEventListener("click", function () { openModal("modalNewDm"); });
+        $("#btnEmptyDm").addEventListener("click", function () { openModal("modalNewDm"); });
+
+        // tabs
+        $$(".thr-tab").forEach(function (t) {
+            t.addEventListener("click", function () {
+                setTab(t.getAttribute("data-tab"));
+            });
+        });
+
+        // message actions — report / moderator delete
+        $("#msgList").addEventListener("click", function (e) {
+            var act = e.target.closest("[data-act]");
+            if (!act) return;
+            var kind = act.getAttribute("data-act");
+            if (kind === "report") {
+                State.reportMessageId = parseInt(act.getAttribute("data-id"), 10);
+                $("#reportReason").value = "";
+                openModal("modalReport");
+            } else if (kind === "mod-delete") {
+                modDeleteMessage(parseInt(act.getAttribute("data-id"), 10));
+            }
+        });
+
+        // channel search filter
+        $("#channelSearch").addEventListener("input", function () {
+            State.commFilter = this.value;
+            renderChannelList();
+        });
+
+        // discover search
+        $("#discoverSearch").addEventListener("input", function () {
+            clearTimeout(this._t);
+            var input = this;
+            this._t = setTimeout(function () { loadDiscover(input.value); }, 300);
+        });
+    }
+
+    // ----------------------------------------------------------
+    // Boot
+    // ----------------------------------------------------------
+    function parseUser() {
+        try {
+            State.me = JSON.parse(document.body.getAttribute("data-user"));
+        } catch (e) { State.me = null; }
+        if (!State.me) {
+            window.location.href = "/login?next=" + encodeURIComponent("/threads");
+            return;
+        }
+    }
+
+    function boot() {
+        parseUser();
+        wireModalClose();
+        wireDmModal();
+        wireRequestsModal();
+        refreshRequestBadge();
+        wireGifModal();
+        wireEmojiModal();
+        wireMembersModal();
+        wireAnimeModal();
+        wirePinsModal();
+        wireSettingsModal();
+        wireCommunities();
+        wireBell();
+        wireEvents();
+
+        try {
+            State.conversations = JSON.parse(document.body.getAttribute("data-conversations")) || [];
+        } catch (e) { State.conversations = []; }
+        State.notifUnread = parseInt(document.body.getAttribute("data-notifications") || "0", 10) || 0;
+        renderConversations();
+        refreshNotifications();
+
+        // heartbeat + polling
+        refreshPresence();
+        refreshCommunities();
+        setInterval(pollMessages, 1500);
+        setInterval(refreshConversations, 5000);
+        setInterval(refreshCommunities, 5000);
+        setInterval(refreshPresence, 10000);
+        setInterval(refreshNotifications, 15000);
+        setInterval(refreshRequestBadge, 15000);
+
+        // presence away/back
+        document.addEventListener("visibilitychange", function () {
+            if (document.hidden) {
+                api("/threads/api/presence?away=1");
+            } else {
+                refreshPresence();
+                pollMessages();
+            }
+        });
+        // leave a heart-beat while the tab is open
+        setInterval(function () {
+            if (!document.hidden) api("/threads/api/presence");
+        }, 30000);
+
+        // open ?with=dm:3 from a notification click elsewhere
+        var params = new URLSearchParams(window.location.search);
+        var open = params.get("open");
+        if (open && open.indexOf(":") !== -1) {
+            var parts = open.split(":");
+            if ((parts[0] === "dm" || parts[0] === "group") && parts[1]) {
+                setTimeout(function () { openConversation(parts[0], parseInt(parts[1], 10)); }, 100);
+            } else if (parts[0] === "channel" && parts[1]) {
+                setTimeout(function () { openChannelFromNotification(parseInt(parts[1], 10)); }, 100);
+            }
+        }
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+    } else {
+        boot();
+    }
+})();
