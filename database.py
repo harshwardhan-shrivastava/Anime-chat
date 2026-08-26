@@ -2029,9 +2029,9 @@ def rate_episode(user_id, username, avatar_color, anime_slug, season_name, episo
 RANK_THRESHOLDS = {
     "F": -1,    # Below 0 XP
     "D": 0,     # New users start here
-    "C": 100,
-    "B": 500,
-    "A": 1500,
+    "C": 500,
+    "B": 1000,
+    "A": 2000,
     "S": 5000,
     "S+": 15000,
 }
@@ -2042,11 +2042,11 @@ def get_xp_tier(xp):
         return "S+"
     elif xp >= 5000:
         return "S"
-    elif xp >= 1500:
+    elif xp >= 2000:
         return "A"
-    elif xp >= 500:
+    elif xp >= 1000:
         return "B"
-    elif xp >= 100:
+    elif xp >= 500:
         return "C"
     elif xp >= 0:
         return "D"
@@ -2056,10 +2056,10 @@ def get_xp_tier(xp):
 # Rank boundaries: (lower_threshold, upper_threshold)
 _RANK_RANGES = {
     "F": (-999, 0),
-    "D": (0, 100),
-    "C": (100, 500),
-    "B": (500, 1500),
-    "A": (1500, 5000),
+    "D": (0, 500),
+    "C": (500, 1000),
+    "B": (1000, 2000),
+    "A": (2000, 5000),
     "S": (5000, 15000),
     "S+": (15000, 15000),
 }
@@ -2103,6 +2103,44 @@ def add_xp(user_id, amount):
         cursor.execute("INSERT INTO user_xp (user_id, xp) VALUES (?, ?)", (user_id, amount))
     conn.commit()
     conn.close()
+
+
+def recalculate_user_xp(user_id):
+    """Recalculate XP based on like/dislike ratio across ALL reviews.
+
+    XP = base (100) + ratio * total_votes * 10
+    where ratio = likes / (likes + dislikes)
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Count all likes and dislikes across all reviews by this user
+    cursor.execute("""
+        SELECT
+            SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) as likes,
+            SUM(CASE WHEN rl.is_like=0 THEN 1 ELSE 0 END) as dislikes
+        FROM review_likes rl
+        JOIN reviews r ON r.id = rl.review_id
+        WHERE r.user_id = ?
+    """, (user_id,))
+    row = cursor.fetchone()
+    likes = row["likes"] or 0
+    dislikes = row["dislikes"] or 0
+    total = likes + dislikes
+    if total > 0:
+        ratio = likes / total
+        xp = 100 + int(ratio * total * 10)  # Base 100 + ratio * votes * 10
+    else:
+        xp = 100  # New users start with 100 XP
+    # Update or insert
+    cursor.execute("SELECT xp FROM user_xp WHERE user_id=?", (user_id,))
+    existing = cursor.fetchone()
+    if existing:
+        cursor.execute("UPDATE user_xp SET xp=? WHERE user_id=?", (xp, user_id))
+    else:
+        cursor.execute("INSERT INTO user_xp (user_id, xp) VALUES (?, ?)", (user_id, xp))
+    conn.commit()
+    conn.close()
+    return xp
 
 
 def get_all_user_ranks(user_ids):
@@ -2158,12 +2196,12 @@ def toggle_review_like(user_id, review_type, review_id, is_like):
             cursor.execute("DELETE FROM review_likes WHERE id=?", (existing["id"],))
             removed = True
             if review_author_id:
-                add_xp(review_author_id, 10 if is_like else 5)  # Undo: reverse the penalty/bonus
+                recalculate_user_xp(review_author_id)  # Undo: reverse the penalty/bonus
         else:
             # Different vote → switch
             cursor.execute("UPDATE review_likes SET is_like=? WHERE id=?", (is_like, existing["id"]))
             if review_author_id:
-                add_xp(review_author_id, 15 if is_like else -15)  # Swing from dislike to like or vice versa
+                recalculate_user_xp(review_author_id)  # Swing from dislike to like or vice versa
     else:
         # New vote
         cursor.execute(
@@ -2171,7 +2209,7 @@ def toggle_review_like(user_id, review_type, review_id, is_like):
             (user_id, review_type, review_id, is_like),
         )
         if review_author_id:
-            add_xp(review_author_id, 10 if is_like else -5)
+            recalculate_user_xp(review_author_id)
 
     conn.commit()
     conn.close()

@@ -4,21 +4,21 @@ Uses the shared review_likes table. Rank tiers: everyone starts at D;
 S+ is intentionally almost impossible (50,000 XP). A reviewer whose
 received votes are overwhelmingly dislikes drops to F regardless of XP.
 """
-from database import get_connection, add_xp
+from database import get_connection, recalculate_user_xp
 
 
 # ---- Rank tiers (authoritative for reviews) ----
 
 def review_rank_for_xp(xp):
-    if xp >= 50000:
+    if xp >= 15000:
         return "S+"
-    if xp >= 10000:
+    if xp >= 5000:
         return "S"
-    if xp >= 3000:
+    if xp >= 2000:
         return "A"
     if xp >= 1000:
         return "B"
-    if xp >= 250:
+    if xp >= 500:
         return "C"
     if xp >= 0:
         return "D"
@@ -104,13 +104,13 @@ def toggle_anime_review_vote(user_id, review_id, is_like):
             removed = True
             user_vote = None
             if review_author_id and review_author_id != user_id:
-                add_xp(review_author_id, -10 if is_like else 5)
+                recalculate_user_xp(review_author_id)
         else:
             # Switch vote
             cursor.execute("UPDATE review_likes SET is_like=? WHERE id=?", (1 if is_like else 0, existing["id"]))
             user_vote = 1 if is_like else 0
             if review_author_id and review_author_id != user_id:
-                add_xp(review_author_id, 15 if is_like else -15)
+                recalculate_user_xp(review_author_id)
     else:
         cursor.execute(
             "INSERT INTO review_likes (user_id, review_type, review_id, is_like) VALUES (?, 'anime', ?, ?)",
@@ -118,7 +118,7 @@ def toggle_anime_review_vote(user_id, review_id, is_like):
         )
         user_vote = 1 if is_like else 0
         if review_author_id and review_author_id != user_id:
-            add_xp(review_author_id, 10 if is_like else -5)
+            recalculate_user_xp(review_author_id)
 
     conn.commit()
 
