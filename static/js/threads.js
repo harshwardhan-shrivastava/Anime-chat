@@ -560,13 +560,8 @@
             if (msgCache[hk]) msgCache[hk].html = html;
         }
 
-        if (scrollToBottom) {
-            // Scroll to the very bottom like community chat.
-            list.scrollTop = list.scrollHeight;
-        } else {
-            var prev = list.scrollTop;
-            list.scrollTop = prev; // keep position when prepending older
-        }
+        // Always scroll to bottom — like community chat.
+        list.scrollTop = list.scrollHeight;
         updateSeenText();
     }
 
@@ -818,7 +813,7 @@
         if (!fresh.length) return;
         fresh.forEach(function (m) { State.seenIds[m.id] = true; });
         var list = $("#msgList");
-        var stick = list.scrollTop + list.clientHeight >= list.scrollHeight - 80;
+
         var html = "";
         var lastDay = State.messages.length ? dayKey(State.messages[State.messages.length - 1].created_at) : null;
         fresh.forEach(function (m) {
@@ -844,7 +839,8 @@
                 msgCache[ck].at = Date.now();
             }
         }
-        if (stick && !State.loadingHistory) list.scrollTop = list.scrollHeight;
+        // Always scroll to bottom on new messages — like community chat.
+        list.scrollTop = list.scrollHeight;
         updateSeenText();
     }
 
@@ -1035,12 +1031,6 @@
 
     function onInputTyping() {
         autoGrow($("#msgInput"));
-        var now = Date.now();
-        if (State.settings.typing_indicators && State.active && now - State.typingSentAt > 3000) {
-            State.typingSentAt = now;
-            api("/threads/api/typing", { json: { ctx: State.active.type + ":" + State.active.id } });
-        }
-        updateMentionBox();
     }
 
     function updateMentionBox() {
@@ -2837,42 +2827,7 @@
             if (opt) insertMention(opt.getAttribute("data-user"));
         });
 
-        // older messages on scroll-to-top
-        $("#msgList").addEventListener("scroll", function () {
-            var list = this;
-            if (list.scrollTop < 80 && State.hasMore && !State.loadingOlder && State.active) {
-                State.loadingOlder = true;
-                var seq = State.reqSeq;
-                var key = State.active.type + ":" + State.active.id;
-                api("/threads/api/messages?ctx=" + State.active.type + ":" + State.active.id +
-                    "&before=" + State.firstId + "&limit=60").then(function (res) {
-                    State.loadingOlder = false;
-                    if (seq !== State.reqSeq) return;   // switched -- drop stale page
-                    if (!res.success) { handleApiError(res); return; }
-                    if (!res.messages.length) { State.hasMore = false; return; }
-                    var before = list.scrollHeight;
-                    var html = "";
-                    res.messages.forEach(function (m) {
-                        if (State.seenIds[m.id]) return;
-                        State.seenIds[m.id] = true;
-                        html += renderMessage(m);
-                    });
-                    list.insertAdjacentHTML("afterbegin", html);
-                    State.messages = res.messages.concat(State.messages);
-                    State.firstId = res.messages[0].id;
-                    State.hasMore = res.messages.length >= 60;
-                    if (msgCache[key]) {
-                        msgCache[key].messages = State.messages;
-                        msgCache[key].firstId = State.firstId;
-                        msgCache[key].hasMore = State.hasMore;
-                        msgCache[key].at = Date.now();
-                    }
-                    list.scrollTop = list.scrollHeight - before;
-                });
-            }
-        });
-
-        // mute toggle
+      // mute toggle
         $("#btnMute").addEventListener("click", function () {
             var conv = State.active.conv;
             var next = !conv.muted;
