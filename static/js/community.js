@@ -707,10 +707,10 @@ function xpProgressPct(xp) {
 }
 function rankBadgeHtml(userId, rank, xp) {
     if (!rank) return "";
-    const cls = "rank-badge-" + rank.toLowerCase().replace("+", "p");
     const xpVal = (xp != null) ? xp : (_rankCache[userId] ? _rankCache[userId].xp : 0);
     const pct = xpProgressPct(xpVal || 0);
-    return `<span class="chat-rank-badge ${cls}">${rank}</span><span class="xp-bar ${cls}"><span class="xp-bar-fill" style="width:${pct}%"></span><span class="xp-bar-text">${(xpVal||0).toLocaleString()} XP</span></span>`;
+    // Exactly matches reviews.html
+    return `<span class="rank-badge rank-${rank}">${rank}</span><span class="xp-bar rank-${rank}"><span class="xp-bar-fill" style="width:${pct}%"></span><span class="xp-bar-text">${(xpVal||0).toLocaleString()} XP</span></span>`;
 }
 function fetchRanksForMessages(messages) {
     const ids = [];
