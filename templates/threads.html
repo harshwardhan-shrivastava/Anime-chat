@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260827b">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260827c">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260826h">
 </head>
 <body
@@ -259,7 +259,7 @@
                                 <button class="thr-modal-close" data-close="modalGif"><i class="fas fa-times"></i></button>
                             </div>
                             <div class="thr-modal-body">
-                                <input id="gifSearch" class="thr-search" type="text" placeholder="Search anything... Naruto, Gojo, Absolute Cinema..." autocomplete="off">
+                                <input id="gifSearch" class="thr-modal-search-input" type="text" placeholder="Search anything... Naruto, Gojo, Absolute Cinema..." autocomplete="off">
                                 <div id="gifGrid" class="thr-gif-grid"></div>
                                 <div id="gifNote" class="thr-gif-note hidden"></div>
                             </div>
@@ -273,7 +273,7 @@
                                 <button class="thr-modal-close" data-close="modalAnime"><i class="fas fa-times"></i></button>
                             </div>
                             <div class="thr-modal-body">
-                                <input id="animeSearch" class="thr-search" type="text" placeholder="Search 13k+ anime..." autocomplete="off">
+                                <input id="animeSearch" class="thr-modal-search-input" type="text" placeholder="Search 13k+ anime..." autocomplete="off">
                                 <div id="animeResults" class="thr-anime-results"></div>
                             </div>
                         </div>
@@ -549,6 +549,6 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260827b"></script>
+<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260827c"></script>
 </body>
 </html>
