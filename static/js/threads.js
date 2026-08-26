@@ -939,45 +939,66 @@
             }
         });
     }
-        // ---- DM modal ----
+    // =======================================================================
+    // FRIEND REQUEST FLOW (single source of truth)
+    //
+    // 1. New message modal: search a username -> Add friend / Requested /
+    //    Message. Sending the request is ALL this modal does.
+    // 2. Friend requests modal: incoming requests with Accept / Reject.
+    //    Accepting closes the modal and opens the new DM in the chat area.
+    // =======================================================================
+
     function wireDmModal() {
         var input = $("#dmSearch");
         var results = $("#dmResults");
         var t;
+
+        function rowHtml(u) {
+            var action;
+            if (u.friend_status === "friends") {
+                action = '<button class="thr-btn thr-btn-sm thr-btn-primary" data-msg-id="' + u.id + '">Message</button>';
+            } else if (u.friend_status === "outgoing") {
+                action = '<span class="thr-count-chip">Requested</span>';
+            } else if (u.friend_status === "incoming") {
+                // They already sent us a request - say so; accept it in the
+                // Friend requests section.
+                action = '<span class="thr-count-chip">Sent you a request</span>';
+            } else {
+                action = '<button class="thr-btn thr-btn-sm" data-add-id="' + u.id + '">Add friend</button>';
+            }
+            return '<div class="thr-user-row" data-uid="' + u.id + '" data-fstatus="' + u.friend_status + '">' +
+                '<span class="thr-avatar thr-avatar-md" style="background:' + escapeHtml(u.avatar_color || "#8b5cf6") + '">' +
+                avatarInner(u) + "</span>" +
+                "<span>" + escapeHtml(u.username) + "</span>" + action + "</div>";
+        }
+
         function search() {
             var q = input.value.trim();
             if (!q) { results.innerHTML = ""; return; }
             api("/threads/api/users/search?q=" + encodeURIComponent(q)).then(function (res) {
                 if (!res.success) { handleApiError(res); return; }
-                results.innerHTML = res.users.map(function (u) {
-                    var action;
-                    if (u.friend_status === "friends") {
-                        action = '<button class="thr-btn thr-btn-sm thr-btn-primary" data-msg-id="' + u.id + '">Message</button>';
-                    } else if (u.friend_status === "outgoing") {
-                        action = '<span class="thr-count-chip">Requested</span>';
-                    } else {
-                        action = '<button class="thr-btn thr-btn-sm" data-add-id="' + u.id + '">Add friend</button>';
-                    }
-                    return '<div class="thr-user-row" data-uid="' + u.id + '" data-fstatus="' + u.friend_status + '">' +
-                        '<span class="thr-avatar thr-avatar-md" style="background:' + escapeHtml(u.avatar_color) + '">' +
-                        avatarInner(u) + "</span>" +
-                        "<span>" + escapeHtml(u.username) + "</span>" + action + "</div>";
-                }).join("") || '<div class="thr-dropdown-empty">No users found</div>';
+                results.innerHTML = res.users.map(rowHtml).join("")
+                    || '<div class="thr-dropdown-empty">No users found</div>';
+            }).catch(function (e) {
+                if (e && e.message !== "auth") results.innerHTML = '<div class="thr-dropdown-empty">Search failed - try again</div>';
             });
         }
+
         input.addEventListener("input", function () {
             clearTimeout(t);
             t = setTimeout(search, 250);
         });
+
         results.addEventListener("click", function (e) {
-            // Add friend
+            // "Add friend" - send a friend request. That is all.
             var addBtn = e.target.closest("[data-add-id]");
             if (addBtn) {
                 addBtn.disabled = true;
+                addBtn.textContent = "Sending…";
                 api("/threads/api/friends/request", { json: { user_id: parseInt(addBtn.getAttribute("data-add-id"), 10) } })
                     .then(function (res) {
-                        if (!res.success) { handleApiError(res); search(); return; }
-                        toast("Friend request sent \u2713");
+                        if (!res.success) { handleApiError(res); }
+                        else { toast("Friend request sent \u2713"); }
                         search();
                     }).catch(function (e) {
                         if (e && e.message !== "auth") toast("Couldn't send request", "error");
@@ -985,13 +1006,12 @@
                     });
                 return;
             }
-            // Open DM with an existing friend
+            // "Message" - open the DM with an existing friend.
             var msgBtn = e.target.closest("[data-msg-id]");
-            var row = e.target.closest(".thr-user-row");
-            if (!row) return;
+            if (!msgBtn) return;
+            var row = msgBtn.closest(".thr-user-row");
             var uid = parseInt(row.getAttribute("data-uid"), 10);
-            var fstatus = row.getAttribute("data-fstatus");
-            if (fstatus === "outgoing") return;
+            msgBtn.disabled = true;
             api("/threads/api/conversations/dm", { json: { user_id: uid } }).then(function (res) {
                 if (!res.success) {
                     if (res.error === "not_friends") {
@@ -999,6 +1019,7 @@
                     } else {
                         handleApiError(res);
                     }
+                    msgBtn.disabled = false;
                     return;
                 }
                 closeModal("modalNewDm");
@@ -1006,15 +1027,10 @@
                 results.innerHTML = "";
                 upsertConversation(res.conversation);
                 openConversation(res.conversation.type, res.conversation.id);
+            }).catch(function (e) {
+                msgBtn.disabled = false;
+                if (e && e.message !== "auth") toast("Couldn't open chat", "error");
             });
-        });
-    }
-
-    function sendFriendRequestById(uid, btn) {
-        if (btn) btn.disabled = true;
-        api("/threads/api/friends/request", { json: { user_id: uid } }).then(function (res) {
-            if (!res.success) { handleApiError(res); return; }
-            toast("Friend request sent \u2713");
         });
     }
 
@@ -1028,36 +1044,42 @@
             State.reqCount = n;
             State.reqIncoming = res.incoming || [];
             State.reqOutgoing = res.outgoing || [];
-        });
+        }).catch(function () { /* silent - background poll */ });
     }
 
     function renderRequestsModal() {
         var inc = $("#reqIncoming");
         var out = $("#reqOutgoing");
-        function rowHtml(u, incomingSide) {
-            var action = incomingSide
-                ? '<button class="thr-btn thr-btn-sm thr-btn-primary" data-accept="' + u.id + '">Accept</button>' +
-                  '<button class="thr-btn thr-btn-sm thr-btn-danger" data-reject="' + u.id + '">Reject</button>'
-                : '<span class="thr-count-chip">Pending</span>';
-            return '<div class="thr-user-row" data-req-row="' + u.user_id + '">' +
+        function rowHtml(u) {
+            return '<div class="thr-user-row" data-req-id="' + u.id + '">' +
                 '<span class="thr-avatar thr-avatar-md" style="background:' + escapeHtml(u.avatar_color || "#8b5cf6") + '">' +
-                avatarInner(u) + "</span><span>" + escapeHtml(u.username) + "</span>" + action + "</div>";
+                avatarInner(u) + "</span><span>" + escapeHtml(u.username) + "</span>" +
+                '<button class="thr-btn thr-btn-sm thr-btn-primary" data-accept="' + u.id + '">Accept</button>' +
+                '<button class="thr-btn thr-btn-sm thr-btn-danger" data-reject="' + u.id + '">Reject</button></div>';
         }
-        inc.innerHTML = (State.reqIncoming || []).map(function (u) { return rowHtml(u, true); }).join("")
+        inc.innerHTML = (State.reqIncoming || []).map(rowHtml).join("")
             || '<div class="thr-dropdown-empty">No message requests yet</div>';
-        out.innerHTML = (State.reqOutgoing || []).map(function (u) { return rowHtml(u, false); }).join("")
-            || '<div class="thr-dropdown-empty">No sent requests yet</div>';
+        out.innerHTML = (State.reqOutgoing || []).map(function (u) {
+            return '<div class="thr-user-row"><span class="thr-avatar thr-avatar-md" style="background:' +
+                escapeHtml(u.avatar_color || "#8b5cf6") + '">' + avatarInner(u) +
+                "</span><span>" + escapeHtml(u.username) + "</span>" +
+                '<span class="thr-count-chip">Pending</span></div>';
+        }).join("") || '<div class="thr-dropdown-empty">No sent requests yet</div>';
     }
 
     function openRequestsModal() {
+        // Show the modal immediately with cached data, then refresh.
+        renderRequestsModal();
+        openModal("modalRequests");
         api("/threads/api/friends/requests").then(function (res) {
             if (!res.success) { handleApiError(res); return; }
             State.reqIncoming = res.incoming || [];
             State.reqOutgoing = res.outgoing || [];
             renderRequestsModal();
-            openModal("modalRequests");
         }).catch(function (e) {
-            if (e && e.message !== "auth") toast("Couldn't load requests", "error");
+            if (e && e.message !== "auth") {
+                toast("Couldn't load requests" + (e && e.message ? " (" + e.message + ")" : ""), "error");
+            }
         });
     }
 
@@ -1067,26 +1089,34 @@
             var acc = e.target.closest("[data-accept]");
             var rej = e.target.closest("[data-reject]");
             if (!acc && !rej) return;
-            var reqId = parseInt((acc || rej).getAttribute(acc ? "data-accept" : "data-reject"), 10);
-            var req = (State.reqIncoming || []).filter(function (u) { return u.id === reqId; })[0];
-            if (!req) return;
-            api("/threads/api/friends/requests/" + req.id + "/respond",
-                { json: { accept: !!acc } }).then(function (res) {
-                if (!res.success) { handleApiError(res); return; }
-                if (acc) {
+            var btn = acc || rej;
+            var reqId = parseInt(btn.getAttribute(acc ? "data-accept" : "data-reject"), 10);
+            var accept = !!acc;
+            btn.disabled = true;
+            api("/threads/api/friends/requests/" + reqId + "/respond",
+                { json: { accept: accept } }).then(function (res) {
+                if (!res.success) { handleApiError(res); btn.disabled = false; return; }
+                if (accept) {
                     toast("Friend request accepted \u{1F389}");
+                    // Move the user from the requests section to the chat:
+                    // close the modal and open the fresh DM.
+                    closeModal("modalRequests");
                     if (res.conversation) {
-                        closeModal("modalRequests");
                         upsertConversation(res.conversation);
                         openConversation(res.conversation.type, res.conversation.id);
+                    } else {
+                        refreshConversations();
                     }
                 } else {
                     toast("Friend request rejected");
+                    State.reqIncoming = (State.reqIncoming || []).filter(function (u) { return u.id !== reqId; });
+                    renderRequestsModal();
                 }
-                State.reqIncoming = (State.reqIncoming || []).filter(function (u) { return u.id !== reqId; });
-                renderRequestsModal();
                 refreshRequestBadge();
                 refreshConversations();
+            }).catch(function (e) {
+                btn.disabled = false;
+                if (e && e.message !== "auth") toast("Couldn't update request" + (e && e.message ? " (" + e.message + ")" : ""), "error");
             });
         });
     }
@@ -2586,11 +2616,6 @@
         State.notifUnread = parseInt(document.body.getAttribute("data-notifications") || "0", 10) || 0;
         renderConversations();
         refreshNotifications();
-
-        // Fallback: inline onclick dispatches 'req-click' on document
-        document.addEventListener("req-click", function () {
-            openRequestsModal();
-        });
 
         // heartbeat + polling
         refreshPresence();
