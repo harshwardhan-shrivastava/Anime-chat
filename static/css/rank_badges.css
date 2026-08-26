@@ -43,7 +43,7 @@
   border: 1px solid rgba(140, 200, 235, 0.45);
   overflow: hidden;
   text-shadow: 0 0 8px rgba(143, 208, 240, 0.7), 0 0 18px rgba(143, 208, 240, 0.3);
-  animation: windBreath 3s ease-in-out infinite;
+  animation: windBreath 1.6s ease-in-out infinite;
 }
 @keyframes windBreath {
   0%, 100% {
@@ -68,7 +68,7 @@
   background-size: 55% 1.5px, 75% 1px, 40% 1px;
   background-position: -60% 28%, 130% 52%, -50% 74%;
   border-radius: 2px;
-  animation: gustFlow 2.6s linear infinite;
+  animation: gustFlow 1.2s linear infinite;
 }
 @keyframes gustFlow {
   0% {
@@ -90,7 +90,7 @@
   background:
     radial-gradient(ellipse 45% 90% at 30% 100%, rgba(143, 208, 240, 0.18), transparent 70%),
     radial-gradient(ellipse 40% 80% at 75% 0%, rgba(143, 208, 240, 0.12), transparent 70%);
-  animation: windSwirl 3.4s ease-in-out infinite;
+  animation: windSwirl 1.8s ease-in-out infinite;
 }
 @keyframes windSwirl {
   0%, 100% { transform: translateX(-4px); opacity: 0.6; }
