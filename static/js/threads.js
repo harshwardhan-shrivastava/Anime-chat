@@ -491,7 +491,7 @@
                 pins: res.pins || [],
                 polls: State.polls,
                 parties: State.parties,
-                html: list.innerHTML,
+                html: "",
                 at: Date.now(),
             };
             // Keep the cache bounded.
