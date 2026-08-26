@@ -201,6 +201,9 @@
             b.className = `rank-badge rank-${previewRank}`;
             b.textContent = previewRank;
         });
+        document.querySelectorAll(".xp-bar").forEach(bar => {
+            bar.className = `xp-bar rank-${previewRank}`;
+        });
     }
     </script>
     {% endif %}
