@@ -30,7 +30,7 @@
             min-height: 100vh;
         }
         .reviews-page {
-            max-width: 860px;
+            max-width: 920px;
             margin: 0 auto;
             padding: 48px 20px 80px;
         }
@@ -62,6 +62,7 @@
             padding: 20px 22px;
             margin-bottom: 16px;
             transition: border-color 0.2s, transform 0.15s;
+            overflow: hidden;
         }
         .global-review-card:hover {
             border-color: #374151;
@@ -112,17 +113,17 @@
         }
         .grc-poster {
             float: right;
-            margin: 0 0 12px 16px;
+            margin: -20px -22px 12px 20px;
             shape-outside: margin-box;
             flex-shrink: 0;
         }
         .grc-poster img {
-            width: 110px;
-            height: 155px;
+            width: 150px;
+            height: 210px;
             object-fit: cover;
-            border-radius: 10px;
+            border-radius: 0 16px 16px 0;
             display: block;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+            box-shadow: -4px 4px 18px rgba(0,0,0,0.5);
             transition: transform 0.2s;
         }
         .grc-poster:hover img {
