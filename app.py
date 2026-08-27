@@ -6,6 +6,7 @@ import random
 import re
 import threading
 import time
+from collections import defaultdict
 from datetime import timedelta
 
 import requests
@@ -1082,12 +1083,33 @@ def vote_anime_review(review_id):
     })
 
 
+# Simple in-memory vote rate limiter (per user + per IP) to stop bot mass-liking.
+_VOTE_LOG = defaultdict(list)
+_VOTE_LOCK = threading.Lock()
+
+
+def _vote_rate_hit(key, limit=40, window_seconds=300):
+    now = time.time()
+    with _VOTE_LOCK:
+        lst = _VOTE_LOG[key]
+        lst[:] = [t for t in lst if now - t < window_seconds]
+        if len(lst) >= limit:
+            return True
+        lst.append(now)
+        return False
+
+
 @app.route("/api/review/<int:review_id>/vote", methods=["POST"])
 def vote_review(review_id):
     """Generic like/dislike for anime OR episode reviews (fast, optimistic)."""
     user = g.get("user")
     if not user:
         return jsonify({"success": False, "error": "Please log in to vote."}), 401
+    # Rate limit: 40 votes per 5 minutes per user, or 120 per 5 min per IP.
+    if _vote_rate_hit("u:" + str(user["id"]), 40, 300) or _vote_rate_hit(
+        "ip:" + (request.remote_addr or "?"), 120, 300
+    ):
+        return jsonify({"success": False, "error": "You're voting too fast. Take a break."}), 429
     data = request.get_json(silent=True) or {}
     review_type = data.get("review_type") or "anime"
     if review_type not in ("anime", "episode"):

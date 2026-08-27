@@ -248,8 +248,9 @@
             {% if stats.votes > 0 %}
             <div class="ep-breakdown" id="epBreakdown">
 
-                {% for star in range(10, 0, -1) %}
-                {% set count = stats.breakdown[star|string] | default(0) %}
+                {% for star in range(5, 0, -1) %}
+                {% set bucket = star * 2 %}
+                {% set count = (stats.breakdown[bucket|string] | default(0)) + (stats.breakdown[(bucket - 1)|string] | default(0)) %}
                 {% set pct = (count / stats.votes * 100) | round | int %}
                 <div class="breakdown-row">
                     <span class="breakdown-label">{{ star }}★</span>
@@ -300,6 +301,11 @@
                 {% endif %}
 
             </p>
+
+            <button type="button" class="rating-cta" id="scrollToEpisodeReviewBtn">
+                <i class="fas fa-pen"></i> Write a Review
+                <span class="rating-cta-hint">Scroll down &amp; share your thoughts</span>
+            </button>
 
             <form method="POST" action="{{ url_for('episode_rate', anime_slug=anime.slug, season_idx=season_idx, episode_number=episode_number) }}"
                   class="wire-form" id="wireForm">
@@ -420,6 +426,22 @@
     </footer>
 
     <script src="{{ url_for('static', filename='js/episode_rate.js') }}"></script>
+
+    <script>
+    (function () {
+        var btn = document.getElementById("scrollToEpisodeReviewBtn");
+        if (!btn) return;
+        btn.addEventListener("click", function () {
+            var target = document.getElementById("wireComment");
+            if (!target) {
+                var reviewSection = document.querySelector(".wire-review");
+                target = reviewSection || document.body;
+            }
+            target.scrollIntoView({ behavior: "smooth", block: "center" });
+            if (target && target.focus) { setTimeout(function () { target.focus(); }, 500); }
+        });
+    })();
+    </script>
 
 </body>
 

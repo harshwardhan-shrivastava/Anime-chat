@@ -721,6 +721,11 @@
 
                 </p>
 
+                <button type="button" class="rating-cta" id="scrollToReviewBtn">
+                    <i class="fas fa-pen"></i> Write a Review
+                    <span class="rating-cta-hint">Scroll down &amp; share your thoughts</span>
+                </button>
+
             </div>
 
         </div>
@@ -983,6 +988,22 @@
 
     <script src="{{ url_for('static', filename='js/anime.js') }}"></script>
     <script src="{{ url_for('static', filename='js/list_picker.js') }}"></script>
+
+    <script>
+    (function () {
+        var btn = document.getElementById("scrollToReviewBtn");
+        if (!btn) return;
+        btn.addEventListener("click", function () {
+            var target = document.getElementById("reviewComment");
+            if (!target) {
+                var reviewSection = document.querySelector(".review-box");
+                target = reviewSection || document.body;
+            }
+            target.scrollIntoView({ behavior: "smooth", block: "center" });
+            if (target && target.focus) { setTimeout(function () { target.focus(); }, 500); }
+        });
+    })();
+    </script>
 
 </body>
 

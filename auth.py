@@ -1,6 +1,9 @@
 import os
 import random
 import re
+import threading
+import time
+from collections import defaultdict
 from datetime import datetime, timedelta
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, g
@@ -9,6 +12,33 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import database
 
 auth = Blueprint("auth", __name__)
+
+# ---- Simple in-memory rate limiter (per IP) to block bot floods ----
+_ACTION_LOG = defaultdict(list)
+_ACTION_LOCK = threading.Lock()
+
+
+def _rate_hit(kind, key, limit, window_seconds):
+    """Record an attempt; returns True if the limit is now exceeded."""
+    now = time.time()
+    with _ACTION_LOCK:
+        lst = _ACTION_LOG[(kind, key)]
+        lst[:] = [t for t in lst if now - t < window_seconds]
+        if len(lst) >= limit:
+            return True
+        lst.append(now)
+        return False
+
+
+def _rate_clear(kind, key):
+    with _ACTION_LOCK:
+        _ACTION_LOG.pop((kind, key), None)
+
+
+def _is_bot_request():
+    """Honeypot: bots fill hidden fields; real users never see them."""
+    honey = (request.form.get("company_website") or "").strip()
+    return bool(honey)
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -70,6 +100,14 @@ def _send_code_email(email, username, code, purpose="verify"):
 @auth.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "GET":
+        return render_template("signup.html")
+
+    ip = request.remote_addr or "unknown"
+    if _is_bot_request():
+        # Pretend success so bots think they got through, but do nothing.
+        return redirect(url_for("home"))
+    if _rate_hit("signup", ip, 8, 900):
+        flash("Too many sign-up attempts. Please wait a few minutes.", "error")
         return render_template("signup.html")
 
     username = (request.form.get("username") or "").strip()
@@ -280,6 +318,15 @@ def login():
     password = request.form.get("password") or ""
     next_url = request.form.get("next") or ""
 
+    ip = request.remote_addr or "unknown"
+    if _is_bot_request():
+        # Honeypot filled: pretend it worked so bots stop hammering.
+        session.permanent = True
+        return redirect(url_for("home"))
+    if _rate_hit("login", ip, 10, 900):
+        flash("Too many login attempts. Please wait a few minutes.", "error")
+        return render_template("login.html", identifier=identifier, next=next_url)
+
     user = database.get_user_by_email(identifier.lower()) or database.get_user_by_email(identifier) or database.get_user_by_username(identifier)
 
     if not user or not check_password_hash(user["password_hash"], password):
@@ -288,6 +335,7 @@ def login():
 
     session.permanent = True
     session["user_id"] = user["id"]
+    _rate_clear("login", ip)
     flash(f"Welcome back, {user['username']}!", "success")
 
     if next_url and next_url.startswith("/"):
