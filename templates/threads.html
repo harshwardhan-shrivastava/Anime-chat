@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260827e">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260827f">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260826h">
 </head>
 <body
@@ -22,23 +22,25 @@
 
     <!-- ===================== TOP BAR ===================== -->
     <header class="thr-topbar">
-        <div class="thr-brand" title="Back to Otakul">
-            <a href="{{ url_for('home') }}" class="thr-brand-link">
-                <span class="thr-brand-mark">T</span>
-                <span class="thr-brand-name">Threads</span>
-            </a>
+        <a href="{{ url_for('home') }}" class="thr-otakul-link" title="Back to Otakul">
+            <span class="thr-otakul-mark">O</span>
+            <span class="thr-otakul-name">Otakul</span>
+        </a>
+
+        <div class="thr-center-brand" aria-hidden="true">
+            <span class="thr-brand-mark">T</span>
+            <span class="thr-brand-name">Threads</span>
         </div>
 
-        <nav class="thr-tabs">
-            <button class="thr-tab active" data-tab="messages">
-                <i class="fas fa-comment-dots"></i> Messages
-            </button>
-            <button class="thr-tab" data-tab="communities">
-                <i class="fas fa-users"></i> Guilds
-            </button>
-        </nav>
-
         <div class="thr-topbar-right">
+            <nav class="thr-tabs">
+                <button class="thr-tab active" data-tab="messages">
+                    <i class="fas fa-comment-dots"></i> Messages
+                </button>
+                <button class="thr-tab" data-tab="communities">
+                    <i class="fas fa-users"></i> Guilds
+                </button>
+            </nav>
             <a href="{{ url_for('home') }}" class="thr-back-btn" title="Back to Otakul">
                 <i class="fas fa-arrow-left"></i> Site
             </a>
@@ -589,6 +591,6 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260827e"></script>
+<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260827f"></script>
 </body>
 </html>

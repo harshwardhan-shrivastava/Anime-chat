@@ -1782,21 +1782,29 @@
         }
         $("#channelPanel").classList.toggle("hidden", State.discoverMode);
         $("#discoverPanel").classList.toggle("hidden", !State.discoverMode);
-        if (!State.activeCommunity) {
-            if (State.communities.length) {
-                var c = State.communities[0];
-                State.activeCommunity = c;
-                State.myCommunityRole = c.role || "member";
-                renderRail();
-                renderChannelPanel();
-                if (c.channels && c.channels.length) openChannel(c.channels[0]);
+        // Never auto-open Discover. The rail always shows the user's guilds;
+        // Discover only opens when the user clicks the compass button or
+        // types in the discover search. This fixes guilds "missing" from the
+        // rail and unwanted public guilds appearing on open.
+        if (!State.discoverMode) {
+            if (!State.activeCommunity) {
+                if (State.communities.length) {
+                    var c = State.communities[0];
+                    State.activeCommunity = c;
+                    State.myCommunityRole = c.role || "member";
+                    renderRail();
+                    renderChannelPanel();
+                    if (c.channels && c.channels.length) openChannel(c.channels[0]);
+                } else {
+                    // No guilds yet: show the empty rail with a hint to create/discover.
+                    renderRail();
+                    $("#channelPanel").classList.add("hidden");
+                }
+            } else if (!isChannelOpen() && State.activeCommunity.channels && State.activeCommunity.channels.length) {
+                openChannel(State.activeCommunity.channels[0]);
             } else {
-                showDiscover();
+                renderChannelPanel();
             }
-        } else if (!isChannelOpen() && State.activeCommunity.channels && State.activeCommunity.channels.length) {
-            openChannel(State.activeCommunity.channels[0]);
-        } else {
-            renderChannelPanel();
         }
         refreshCommunities();
     }
@@ -2490,9 +2498,31 @@
             }
             renderPreview();
 
+            var preloadedDefault = false;
+            function runSearch(q) {
+                results.innerHTML = '<div class="thr-gif-loading"><i class="fas fa-spinner fa-spin"></i></div>';
+                api("/api/search?q=" + encodeURIComponent(q)).then(function (res) {
+                    if (!res.success || !res.results.length) {
+                        results.innerHTML = '<div class="thr-anime-hint">No results</div>';
+                        return;
+                    }
+                    results.innerHTML = res.results.slice(0, 20).map(function (a) {
+                        return '<div class="thr-avatar-pick" data-img="' + escapeHtml(a.image || "") + '" data-title="' + escapeHtml(a.title) + '">' +
+                            '<img src="' + escapeHtml(a.image || "") + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+                            '<span>' + escapeHtml(a.title) + "</span></div>";
+                    }).join("");
+                }).catch(function () { results.innerHTML = '<div class="thr-anime-hint">Search failed</div>'; });
+            }
             btnPick.addEventListener("click", function () {
                 searchBox.classList.toggle("hidden");
-                if (!searchBox.classList.contains("hidden")) query.focus();
+                if (!searchBox.classList.contains("hidden")) {
+                    query.focus();
+                    // Preload a popular default list so the picker feels instant.
+                    if (!preloadedDefault && !query.value.trim()) {
+                        preloadedDefault = true;
+                        runSearch("attack on titan");
+                    }
+                }
             });
             if (btnClear) {
                 btnClear.addEventListener("click", function () {
@@ -2508,20 +2538,7 @@
                 clearTimeout(t);
                 var q = query.value.trim();
                 if (!q) { results.innerHTML = ""; return; }
-                t = setTimeout(function () {
-                    results.innerHTML = '<div class="thr-gif-loading"><i class="fas fa-spinner fa-spin"></i></div>';
-                    api("/api/search?q=" + encodeURIComponent(q)).then(function (res) {
-                        if (!res.success || !res.results.length) {
-                            results.innerHTML = '<div class="thr-anime-hint">No results</div>';
-                            return;
-                        }
-                        results.innerHTML = res.results.slice(0, 20).map(function (a) {
-                            return '<div class="thr-avatar-pick" data-img="' + escapeHtml(a.image || "") + '" data-title="' + escapeHtml(a.title) + '">' +
-                                '<img src="' + escapeHtml(a.image || "") + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
-                                '<span>' + escapeHtml(a.title) + "</span></div>";
-                        }).join("");
-                    }).catch(function () { results.innerHTML = '<div class="thr-anime-hint">Search failed</div>'; });
-                }, 300);
+                t = setTimeout(function () { runSearch(q); }, 250);
             });
             results.addEventListener("click", function (e) {
                 var pick = e.target.closest(".thr-avatar-pick");
@@ -3269,15 +3286,27 @@
             }
         } catch (e) { /* preloaded parse fail — no big deal */ }
 
-        // heartbeat + polling
+        // heartbeat + polling (paused when the tab is hidden to save CPU/network)
         refreshPresence();
         refreshCommunities();
-        setInterval(pollMessages, 1500);
-        setInterval(refreshConversations, 5000);
-        setInterval(refreshCommunities, 5000);
-        setInterval(refreshPresence, 10000);
-        setInterval(refreshNotifications, 15000);
-        setInterval(refreshRequestBadge, 15000);
+        var _pollTimer = setInterval(function () {
+            if (!document.hidden) pollMessages();
+        }, 1500);
+        var _convTimer = setInterval(function () {
+            if (!document.hidden) refreshConversations();
+        }, 5000);
+        var _commTimer = setInterval(function () {
+            if (!document.hidden) refreshCommunities();
+        }, 10000);
+        var _presTimer = setInterval(function () {
+            if (!document.hidden) refreshPresence();
+        }, 10000);
+        var _notifTimer = setInterval(function () {
+            if (!document.hidden) refreshNotifications();
+        }, 15000);
+        var _reqTimer = setInterval(function () {
+            if (!document.hidden) refreshRequestBadge();
+        }, 15000);
 
         // presence away/back
         document.addEventListener("visibilitychange", function () {
@@ -3286,6 +3315,8 @@
             } else {
                 refreshPresence();
                 pollMessages();
+                refreshConversations();
+                refreshCommunities();
             }
         });
         // leave a heart-beat while the tab is open

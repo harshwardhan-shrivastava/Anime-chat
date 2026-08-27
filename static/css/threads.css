@@ -46,6 +46,7 @@ html, body {
    Top bar
    ------------------------------------------------------------ */
 .thr-topbar {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 18px;
@@ -57,12 +58,49 @@ html, body {
     z-index: 30;
 }
 
-.thr-brand-link {
+.thr-otakul-link {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    text-decoration: none;
+    color: var(--thr-text);
+    flex-shrink: 0;
+    transition: opacity .15s;
+}
+
+.thr-otakul-link:hover {
+    opacity: .85;
+}
+
+.thr-otakul-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #22c55e, #0ea5e9);
+    font-weight: 800;
+    font-size: 16px;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35);
+}
+
+.thr-otakul-name {
+    font-weight: 800;
+    font-size: 16px;
+    letter-spacing: 0.3px;
+}
+
+.thr-center-brand {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     align-items: center;
     gap: 10px;
-    text-decoration: none;
-    color: var(--thr-text);
+    pointer-events: none;
+    user-select: none;
 }
 
 .thr-brand-mark {
