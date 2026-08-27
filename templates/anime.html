@@ -402,7 +402,6 @@
 
                 <div class="episode-list">
 
-                    {% set epCounter = namespace(val=1) %}
                     {% for episode in season.episodes %}
 
                     {% set ep_stats = (episode_stats.get(season.name, {}) or {}).get(episode.number) %}
@@ -421,11 +420,9 @@
 
                             <h4>
 
-                                Episode {{ epCounter.val }}
+                                Episode {{ episode.number }}
 
                             </h4>
-
-                            {% set epCounter = namespace(val=epCounter.val + 1) %}
 
                             <p>
 
@@ -467,15 +464,13 @@
 
                             <h4>
 
-                                Episode {{ epCounter.val }}
+                                Episode {{ episode.number }}
 
                             </h4>
 
-                            {% set epCounter = namespace(val=epCounter.val + 1) %}
-
                             <p>
 
-                                {{ episode.title | default('Episode ' ~ epCounter.val) }}
+                                {{ episode.title | default('Episode ' ~ episode.number) }}
 
                             </p>
 
