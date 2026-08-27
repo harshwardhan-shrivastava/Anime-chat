@@ -2198,11 +2198,20 @@ def recalculate_user_xp(user_id):
     likes = row["likes"] or 0
     dislikes = row["dislikes"] or 0
     total = likes + dislikes
+    # Count reviews posted (for posting bonus)
+    cursor.execute("SELECT COUNT(*) as cnt FROM reviews WHERE user_id = ?", (user_id,))
+    rev_row = cursor.fetchone()
+    review_count = rev_row["cnt"] if rev_row else 0
+    # Also count episode reviews
+    cursor.execute("SELECT COUNT(*) as cnt FROM episode_reviews WHERE user_id = ?", (user_id,))
+    ep_rev_row = cursor.fetchone()
+    ep_review_count = ep_rev_row["cnt"] if ep_rev_row else 0
+    total_reviews = review_count + ep_review_count
     if total > 0:
         ratio = likes / total
-        xp = 100 + int(ratio * total * 10)  # Base 100 + ratio * votes * 10
+        xp = 100 + int(ratio * total * 25) + (total_reviews * 5)  # Base 100 + 25 per vote + 5 per review posted
     else:
-        xp = 100  # New users start with 100 XP
+        xp = 100 + (total_reviews * 5)  # Base 100 + 5 per review posted
     # Update or insert
     cursor.execute("SELECT xp FROM user_xp WHERE user_id=?", (user_id,))
     existing = cursor.fetchone()
