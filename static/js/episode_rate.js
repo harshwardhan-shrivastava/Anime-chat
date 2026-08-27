@@ -1,5 +1,6 @@
 // ===============================
-// EPISODE RATE PAGE (1-10 stars)
+// EPISODE RATE PAGE (5-star UI, stored as 1-10)
+// User clicks 1-5 stars → stored as 2-10 (×2)
 // ===============================
 
 const wireStars = document.querySelectorAll("#wireStars .wire-star");
@@ -8,12 +9,14 @@ const ratingInput = document.getElementById("ratingInput");
 const wireSubmit = document.getElementById("wireSubmit");
 const wireError = document.getElementById("wireError");
 
-let selectedRating = ratingInput ? parseInt(ratingInput.value, 10) || 0 : 0;
+// Convert stored value (1-10) back to star display (1-5)
+let storedRating = ratingInput ? parseInt(ratingInput.value, 10) || 0 : 0;
+let selectedStars = Math.round(storedRating / 2);
 
-function paintStars(value) {
+function paintStars(stars) {
     wireStars.forEach(star => {
         const starValue = parseInt(star.dataset.value, 10);
-        if (starValue <= value) {
+        if (starValue <= stars) {
             star.classList.remove("far");
             star.classList.add("fas", "filled");
         } else {
@@ -23,9 +26,19 @@ function paintStars(value) {
     });
 }
 
+function getStarLabel(stars) {
+    if (stars === 0) return "Tap a star to rate out of 5";
+    const val = stars * 2;
+    const labels = ["", "Terrible", "Bad", "Okay", "Good", "Masterpiece"];
+    return `Your rating: ${stars}/5 (${val}/10) — ${labels[stars]}`;
+}
+
 // Initial paint from a previously submitted review (if any).
 if (wireStars.length) {
-    paintStars(selectedRating);
+    paintStars(selectedStars);
+    if (selectedStars > 0 && wireLabel) {
+        wireLabel.textContent = getStarLabel(selectedStars);
+    }
 }
 
 wireStars.forEach(star => {
@@ -34,10 +47,11 @@ wireStars.forEach(star => {
     });
 
     star.addEventListener("click", () => {
-        selectedRating = parseInt(star.dataset.value, 10);
-        ratingInput.value = selectedRating;
-        paintStars(selectedRating);
-        wireLabel.textContent = `Your rating: ${selectedRating}/10`;
+        selectedStars = parseInt(star.dataset.value, 10);
+        storedRating = selectedStars * 2; // 5 stars → store as 10
+        ratingInput.value = storedRating;
+        paintStars(selectedStars);
+        wireLabel.textContent = getStarLabel(selectedStars);
         if (wireSubmit) wireSubmit.disabled = false;
         if (wireError) wireError.textContent = "";
     });
@@ -46,16 +60,16 @@ wireStars.forEach(star => {
 const wireStarsWrap = document.getElementById("wireStars");
 if (wireStarsWrap) {
     wireStarsWrap.addEventListener("mouseleave", () => {
-        paintStars(selectedRating);
+        paintStars(selectedStars);
     });
 }
 
 if (wireSubmit) {
     wireSubmit.addEventListener("click", (event) => {
         const value = parseInt(ratingInput.value, 10) || 0;
-        if (value < 1 || value > 10) {
+        if (value < 2 || value > 10) {
             event.preventDefault();
-            wireError.textContent = "Please tap a star between 1 and 10 before submitting.";
+            wireError.textContent = "Please tap a star between 1 and 5 before submitting.";
         }
     });
 }
