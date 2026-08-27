@@ -1,6 +1,7 @@
 // ===============================
 // EPISODE RATE PAGE (5-star UI, stored as 1-10)
 // User clicks 1-5 stars → stored as 2-10 (×2)
+// AJAX submission — no page reload
 // ===============================
 
 const wireStars = document.querySelectorAll("#wireStars .wire-star");
@@ -64,12 +65,58 @@ if (wireStarsWrap) {
     });
 }
 
+// AJAX submission — no page reload
 if (wireSubmit) {
-    wireSubmit.addEventListener("click", (event) => {
+    wireSubmit.addEventListener("click", function (e) {
+        e.preventDefault();
         const value = parseInt(ratingInput.value, 10) || 0;
         if (value < 2 || value > 10) {
-            event.preventDefault();
             wireError.textContent = "Please tap a star between 1 and 5 before submitting.";
+            return;
         }
+
+        const body = document.body;
+        const slug = body.dataset.animeSlug;
+        const sIdx = body.dataset.seasonIdx;
+        const epNum = body.dataset.episodeNumber;
+        const comment = document.getElementById("wireComment");
+
+        wireSubmit.disabled = true;
+        wireSubmit.textContent = "Posting...";
+        wireError.textContent = "";
+
+        fetch("/api/episode-rate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                anime_slug: slug,
+                season_name: sIdx,
+                episode_number: epNum,
+                rating: value,
+                comment: comment ? comment.value.trim() : ""
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Show success inline — no redirect
+                wireSubmit.textContent = "✓ Rated!";
+                wireSubmit.style.background = "#22c55e";
+                setTimeout(() => {
+                    wireSubmit.textContent = "Update Review";
+                    wireSubmit.style.background = "";
+                    wireSubmit.disabled = false;
+                }, 2000);
+            } else {
+                wireError.textContent = data.error || "Could not rate.";
+                wireSubmit.textContent = "Rate Episode";
+                wireSubmit.disabled = false;
+            }
+        })
+        .catch(() => {
+            wireError.textContent = "Network error. Please try again.";
+            wireSubmit.textContent = "Rate Episode";
+            wireSubmit.disabled = false;
+        });
     });
 }

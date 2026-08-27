@@ -1193,7 +1193,39 @@ def rate_anime():
         "average": stats["average"],
         "votes": stats["votes"],
         "breakdown": stats["breakdown"],
-        "reviews": stats["reviews"],
+    })
+
+
+@app.route("/api/episode-rate", methods=["POST"])
+def api_episode_rate():
+    """AJAX endpoint for episode rating — instant, no redirect."""
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in."}), 401
+    data = request.get_json(silent=True) or {}
+    anime_slug = data.get("anime_slug")
+    season_name = data.get("season_name")
+    episode_number = data.get("episode_number")
+    rating = data.get("rating")
+    comment = (data.get("comment") or "").strip()[:1000]
+    if not all([anime_slug, season_name, episode_number]):
+        return jsonify({"success": False, "error": "Missing fields."}), 400
+    try:
+        rating = int(rating)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "error": "Invalid rating."}), 400
+    if rating < 2 or rating > 10:
+        return jsonify({"success": False, "error": "Rating must be 2-10."}), 400
+    add_episode_review(
+        anime_slug, season_name, int(episode_number),
+        user["id"], user["username"], user["avatar_color"],
+        rating, comment,
+    )
+    stats = get_episode_stats(anime_slug, season_name, int(episode_number))
+    return jsonify({
+        "success": True,
+        "average": stats.get("average", 0),
+        "votes": stats.get("votes", 0),
     })
 
 
