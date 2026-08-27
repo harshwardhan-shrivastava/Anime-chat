@@ -106,7 +106,7 @@ def signup():
     if _is_bot_request():
         # Pretend success so bots think they got through, but do nothing.
         return redirect(url_for("home"))
-    if _rate_hit("signup", ip, 8, 900):
+    if _rate_hit("signup", ip, 30, 900):
         flash("Too many sign-up attempts. Please wait a few minutes.", "error")
         return render_template("signup.html")
 
@@ -323,7 +323,7 @@ def login():
         # Honeypot filled: pretend it worked so bots stop hammering.
         session.permanent = True
         return redirect(url_for("home"))
-    if _rate_hit("login", ip, 10, 900):
+    if _rate_hit("login", ip, 60, 900):
         flash("Too many login attempts. Please wait a few minutes.", "error")
         return render_template("login.html", identifier=identifier, next=next_url)
 
