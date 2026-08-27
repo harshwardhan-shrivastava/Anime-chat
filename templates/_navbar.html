@@ -33,11 +33,6 @@
 
     </div>
     <div class="nav-right">
-        <button type="button" class="lang-toggle" id="langToggle" onclick="toggleLang()" title="Language / 言語">
-            <span class="lang-en {{ 'active' if current_lang != 'ja' else '' }}">EN</span>
-            <span class="lang-divider">/</span>
-            <span class="lang-ja {{ 'active' if current_lang == 'ja' else '' }}">日本語</span>
-        </button>
         <a href="{{ url_for('for_you') }}" class="mood-btn">
             <i class="fas fa-star"></i>
             {{ t('New to Anime') }}
@@ -76,6 +71,16 @@
                     <a href="{{ url_for('profile.profile', tab='lists') }}" class="nav-user-menu-item">
                         <i class="fas fa-list"></i> {{ t('Anime List') }}
                     </a>
+                    <div class="nav-user-menu-divider"></div>
+                    <div class="lang-toggle-row">
+                        <i class="fas fa-globe"></i>
+                        <span class="lang-toggle-label">Language</span>
+                        <button type="button" class="lang-toggle" id="langToggle" onclick="toggleLang()">
+                            <span class="lang-en {{ 'active' if current_lang != 'ja' else '' }}">EN</span>
+                            <span class="lang-divider">/</span>
+                            <span class="lang-ja {{ 'active' if current_lang == 'ja' else '' }}">日本語</span>
+                        </button>
+                    </div>
                     <a href="{{ url_for('auth.logout') }}" class="nav-user-menu-item danger">
                         <i class="fas fa-sign-out-alt"></i> {{ t('Log Out') }}
                     </a>
@@ -83,6 +88,11 @@
             </div>
         </div>
         {% else %}
+        <button type="button" class="lang-toggle" onclick="toggleLang()" title="Language / 言語">
+            <span class="lang-en {{ 'active' if current_lang != 'ja' else '' }}">EN</span>
+            <span class="lang-divider">/</span>
+            <span class="lang-ja {{ 'active' if current_lang == 'ja' else '' }}">日本語</span>
+        </button>
         <a href="{{ url_for('auth.login') }}" class="login-btn" style="text-decoration:none;display:inline-block;">
             {{ t('Login') }}
         </a>
