@@ -815,9 +815,15 @@ def api_search():
                 "image": entry.get("image", ""),
                 "year": entry.get("release", ""),
                 "rating": entry.get("rating", "N/A"),
+                "_members": entry.get("member_count", 0),
             })
-        if len(results) >= 12:
-            break
+
+    # Sort by member count (popularity) so main entries rank above spinoffs
+    results.sort(key=lambda r: r.get("_members", 0), reverse=True)
+    results = results[:12]
+    # Remove internal sort key
+    for r in results:
+        r.pop("_members", None)
 
     return jsonify({"success": True, "results": results})
 
