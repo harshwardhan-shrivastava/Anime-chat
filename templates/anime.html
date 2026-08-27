@@ -95,13 +95,13 @@
             {% else %}
             <a href="{{ url_for('auth.login', next=request.path) }}" class="login-btn"
                style="text-decoration:none;display:inline-block;">
-                Login
+                {{ t('Login') }}
             </a>
             {% endif %}
 
             <a href="/" class="back-btn">
                 <i class="fas fa-arrow-left"></i>
-                Back
+                {{ t('Back') }}
             </a>
 
         </div>
@@ -198,7 +198,7 @@
 
                     <span id="heroVotesLabel">
 
-                        Community Rating
+                        {{ t('Rating') }}
 
                     </span>
 
@@ -210,7 +210,7 @@
 
                         <i class="fas fa-comments"></i>
 
-                        Join Community
+                        {{ t('Join Community') }}
 
                     </a>
 
@@ -220,13 +220,13 @@
 
                         <i class="fas fa-bookmark"></i>
 
-                        Add to List
+                        {{ t('Add to List') }}
 
                     </button>
 
                     <button type="button" class="review-scroll-btn" onclick="document.getElementById('animeReviewSection').scrollIntoView({behavior:'smooth',block:'start'})">
                         <i class="fas fa-pen"></i>
-                        Write a Review
+                        {{ t('Write a Review') }}
                     </button>
 
                 </div>
@@ -267,13 +267,13 @@
 
                 <h2>
 
-                    Anime Information
+                    {{ t('Information') }}
 
                 </h2>
 
                 <div class="info-row">
 
-                    <span>Status</span>
+                    <span>{{ t('Status') }}</span>
 
                     <strong>{{ anime.status }}</strong>
 
@@ -292,7 +292,7 @@
                 {% if anime.next_episode_at %}
                 <div class="info-row next-ep-row">
 
-                    <span>Next Episode</span>
+                    <span>{{ t('Next Episode') }}</span>
 
                     <strong>{{ next_episode_label }}</strong>
 
@@ -301,7 +301,7 @@
 
                 <div class="info-row">
 
-                    <span>Studio</span>
+                    <span>{{ t('Studio') }}</span>
 
                     <strong>{{ anime.studio }}</strong>
 
@@ -309,7 +309,7 @@
 
                 <div class="info-row">
 
-                    <span>Released</span>
+                    <span>{{ t('Released') }}</span>
 
                     <strong>{{ anime.release }}</strong>
 
@@ -317,7 +317,7 @@
 
                 <div class="info-row info-row-genres">
 
-                    <span>Genres</span>
+                    <span>{{ t('Genres:') }}</span>
 
                     <div class="genre-tags">
                         {% for g in (anime.genre or '').split('•') if g.strip() %}
@@ -515,12 +515,12 @@
 
             <i class="fas fa-tv"></i>
 
-            Where to Watch
+            {{ t('Where to Watch') }}
 
         </h2>
 
         <p class="section-note">
-            Live streaming availability for <strong>United States</strong> and <strong>Japan</strong>.
+            {{ t('Live streaming availability for United States and Japan.') }}
         </p>
 
         <div class="stream-list">

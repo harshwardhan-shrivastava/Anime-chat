@@ -27,12 +27,15 @@ _translations = {
     "Login": "ログイン",
     "Sign Up": "新規登録",
     "Your profile": "プロフィール",
+    "Back": "戻る",
 
     # ---- Search ----
     "Search anime...": "アニメを検索...",
     "Search": "検索",
     "No results found": "結果が見つかりません",
     "Searching...": "検索中...",
+    "Search Results": "検索結果",
+    "Type at least 3 characters": "3文字以上入力してください",
 
     # ---- Home / browse ----
     "Home": "ホーム",
@@ -42,11 +45,34 @@ _translations = {
     "Seasons": "シーズン",
     "Movies": "映画",
     "Members": "メンバー",
+    "For You": "おすすめ",
+    "All Anime": "全アニメ",
+    "Popular This Week": "今週の人気",
+    "Critics' Picks": "批評家のおすすめ",
+    "Hidden Gems": "マイブーム",
+    "Top Trending": "急上昇",
+    "New This Season": "今季の新作",
+    "View All Anime": "全作品を見る",
+    "Loading...": "読み込み中...",
+    "Next": "次",
+    "Previous": "前",
+    "Close": "閉じる",
+    "From": "から",
+    "Recent": "最近",
 
-    # ---- Anime page ----
+    # ---- Anime page hero ----
+    "TV Anime": "テレビアニメ",
+    "N/A": "未評価",
+    "No ratings yet": "まだ評価がありません",
+    "Join Community": "コミュニティに参加",
+    "Add to List": "リストに追加",
+    "Write a Review": "レビューを書く",
+    "Where to Watch": "視聴先",
+    "Similar Anime": "類似アニメ",
+
+    # ---- Anime page sections ----
     "Community Reviews": "コミュニティレビュー",
     "Go to Reviews": "レビューへ",
-    "Write a Review": "レビューを書く",
     "Your rating:": "あなたの評価:",
     "Tap a star to choose your rating": "星をタップして評価を選んでください",
     "Share your thoughts about this anime...": "このアニメについて感想を書こう...",
@@ -57,6 +83,7 @@ _translations = {
     "Delete & Re-review": "削除して再レビュー",
     "Reviews cannot be edited after posting": "投稿後のレビューは編集できません",
     "No reviews yet — be the first to rate": "まだレビューはありません — 最初に評価しましょう",
+    "You haven't reviewed this anime yet. Be the first!": "まだこのアニメをレビューしていません。最初にレビューしましょう！",
     "Season": "シーズン",
     "Episodes of": "エピソード",
     "Summary": "あらすじ",
@@ -83,8 +110,6 @@ _translations = {
     # ---- Reviews page ----
     "How Reviews & XP Work": "レビューとXPの仕組み",
     "Anime Reviews": "アニメレビュー",
-    "Episode Reviews": "エピソードレビュー",
-    "Rating": "評価",
     "XP & Votes": "XPと投票",
     "Ranks": "ランク",
     "Higher ranked reviews show first": "上位ランクのレビューが先に表示されます",
@@ -112,12 +137,17 @@ _translations = {
     "Forgot password?": "パスワードをお忘れですか？",
 
     # ---- Threads ----
-    "Messages": "メッセージ",
-    "Guilds": "ギルド",
-    "Site": "サイト",
+    "Threads Home": "スレッドホーム",
+    "Search conversations": "会話を検索",
+    "Direct message": "ダイレクトメッセージ",
+    "Type a message...": "メッセージを入力...",
+    "Send": "送信",
+    "Message @": "メッセージ @",
+    "New messages": "新しいメッセージ",
+    "Online": "オンライン",
+    "Offline": "オフライン",
     "Discover": "発見",
     "Create Guild": "ギルド作成",
-    "Members": "メンバー",
     "Invite": "招待",
     "Copy Link": "リンクをコピー",
     "Send to a friend": "友達に送る",
@@ -126,7 +156,15 @@ _translations = {
     "The place where every anime has its own community.": "すべてのアニメにコミュニティがある場所。",
     "Discover. Rate. Discuss. Share your passion with anime fans around the world.": "発見。評価。議論。世界中のアニメファンと情熱を共有しよう。",
     "All rights reserved": "全著作権所有",
-    "You haven't reviewed this anime yet. Be the first!": "まだこのアニメをレビューしていません。最初にレビューしましょう！",
+    "Personalized picks based on your taste and activity.": "あなたの趣味とアクティビティに基づいたおすすめ",
+    "Retake Quiz": "クイズを再受験",
+    "What are you in the mood for?": "何気分？",
+    "Discover anime by mood": "気分でアニメを探す",
+    "No anime found": "アニメが見つかりません",
+    "Try different keywords": "キーワードを変更してください",
+    "Next Episode": "次回エピソード",
+    "Released": "リリース",
+    "Live streaming availability for United States and Japan.": "米国と日本でのライブ配信状況。",
 }
 
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Threads | Otakul</title>
+    <title>{{ t('Threads') }} | Otakul</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,20 +29,20 @@
 
         <div class="thr-center-brand" aria-hidden="true">
             <span class="thr-brand-mark">T</span>
-            <span class="thr-brand-name">Threads</span>
+            <span class="thr-brand-name">{{ t('Threads') }}</span>
         </div>
 
         <div class="thr-topbar-right">
             <nav class="thr-tabs">
                 <button class="thr-tab active" data-tab="messages">
-                    <i class="fas fa-comment-dots"></i> Messages
+                    <i class="fas fa-comment-dots"></i> {{ t('Messages') }}
                 </button>
                 <button class="thr-tab" data-tab="communities">
-                    <i class="fas fa-users"></i> Guilds
+                    <i class="fas fa-users"></i> {{ t('Guilds') }}
                 </button>
             </nav>
             <a href="{{ url_for('home') }}" class="thr-back-btn" title="Back to Otakul">
-                <i class="fas fa-arrow-left"></i> Site
+                <i class="fas fa-arrow-left"></i> {{ t('Site') }}
             </a>
             <div class="thr-bell-wrap">
                 <button id="btnBell" class="thr-icon-btn" title="Notifications">
@@ -133,7 +133,7 @@
             <div class="thr-left-head">
                 <div class="thr-search">
                     <i class="fas fa-search"></i>
-                    <input id="convSearch" type="text" placeholder="Search conversations" autocomplete="off">
+                    <input id="convSearch" type="text" placeholder="{{ t('Search conversations') }}" autocomplete="off">
                 </div>
                 <div class="thr-new-btns">
                     <button id="btnNewDm" class="thr-new-btn" title="New message (DM)">
@@ -194,7 +194,7 @@
                             <i class="fas fa-thumbtack"></i>
                             <span id="pinBadge" class="thr-badge hidden">0</span>
                         </button>
-                        <button id="btnSettings" class="thr-icon-btn" title="Threads settings">
+                        <button id="btnSettings" class="thr-icon-btn" title="{{ t('Settings') }}">
                             <i class="fas fa-cog"></i>
                         </button>
                     </div>
@@ -385,7 +385,7 @@
 <div class="thr-modal hidden" id="modalSettings">
     <div class="thr-modal-card">
         <div class="thr-modal-head">
-            <h3>Threads settings</h3>
+            <h3>{{ t('Settings') }}</h3>
             <button class="thr-modal-close" data-close="modalSettings"><i class="fas fa-times"></i></button>
         </div>
         <div class="thr-modal-body">

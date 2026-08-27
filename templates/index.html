@@ -68,15 +68,15 @@
 
     <h1>
 
-        Find Your Next
+        {% if current_lang == 'ja' %}次の<span>アニメコミュニティ</span>を見つけよう{% else %}Find Your Next
 
-        <span>Anime Community</span>
+        <span>Anime Community</span>{% endif %}
 
     </h1>
 
     <p>
 
-        Join thousands of anime fans.
+        {% if current_lang == 'ja' %}何千人ものアニメファンが集まる、アニメごとの巨大チャットルーム。エピソードを語り、考察を共有し、仲間を作ろう。{% else %}Join thousands of anime fans.
 
         Discuss episodes.
 
@@ -84,7 +84,7 @@
 
         Make friends.
 
-        One giant chatroom for every anime.
+        One giant chatroom for every anime.{% endif %}
 
     </p>
 
@@ -113,13 +113,13 @@
 
     <h2>
 
-        For You
+        {{ t('For You') }}
 
     </h2>
 
     <p class="browse-sub">
-        Personalized picks based on your taste and activity.
-        <a href="{{ url_for('quiz') }}" style="color:#8F5BFF;">Retake Quiz</a> to refresh.
+        {{ t('Personalized picks based on your taste and activity.') }}
+        <a href="{{ url_for('quiz') }}" style="color:#8F5BFF;">{{ t('Retake Quiz') }}</a>
     </p>
 
 </section>
@@ -141,14 +141,13 @@
 
     <h2>
 
-        New
+        {{ t('New') }}
 
     </h2>
 
     <p class="browse-sub">
-        The freshest releases — airing now and just dropped.
-        <a href="{{ url_for('browse', sort='popular') }}" style="color:#8F5BFF;">Browse all</a> or
-        <a href="{{ url_for('browse', sort='critics') }}" style="color:#8F5BFF;">Critics' picks</a>.
+        {{ t('Airing Now') }}
+        <a href="{{ url_for('browse', sort='popular') }}" style="color:#8F5BFF;">{{ t('Browse') }}</a>
     </p>
 
 </section>

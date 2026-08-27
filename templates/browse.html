@@ -73,11 +73,11 @@
     </p>
     {% elif active_sort == "upcoming" %}
     <p class="browse-sub">
-        Not out yet — soonest expected release dates first.
+        {{ t('Upcoming') }}
     </p>
     {% else %}
     <p class="browse-sub">
-        Browse the full {{ anime_list | length }}+ title catalog — ranked for you.
+        {{ t('Browse All (A-Z)') }}
     </p>
     {% endif %}
 
@@ -130,7 +130,7 @@
         </h2>
 
         <p>
-            The place where every anime has its own community.
+            {{ t('The place where every anime has its own community.') }}
         </p>
 
     </div>
