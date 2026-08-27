@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260827c">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260827d">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260826h">
 </head>
 <body
@@ -465,6 +465,15 @@
             </div>
             <!-- Members -->
             <div id="ctabMembers" class="thr-ctab hidden">
+                <div class="thr-invite-box">
+                    <div class="thr-invite-head">
+                        <span><i class="fas fa-link"></i> Invite friends</span>
+                        <button type="button" class="thr-link-btn" id="btnCopyInvite">Copy link</button>
+                    </div>
+                    <input id="commInviteLink" class="thr-text-input" type="text" readonly
+                           placeholder="Open a guild to generate its invite link">
+                    <p class="thr-invite-hint">Anyone with this link can join the guild.</p>
+                </div>
                 <div id="commMemberList" class="thr-member-list"></div>
                 <div id="commBannedList" class="thr-banned-list"></div>
             </div>
@@ -549,6 +558,6 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260827c"></script>
+<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260827d"></script>
 </body>
 </html>

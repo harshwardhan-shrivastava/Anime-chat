@@ -318,8 +318,30 @@ def create_tables():
         )
     """)
 
+    # ---- Guild invite codes ------------------------------------------------------
+    # Add an invite_code column to thr_communities (idempotent migration) and
+    # backfill codes for communities created before this column existed.
+    cols = [r["name"] for r in cur.execute("PRAGMA table_info(thr_communities)").fetchall()]
+    if "invite_code" not in cols:
+        cur.execute("ALTER TABLE thr_communities ADD COLUMN invite_code TEXT")
+    cur.execute(
+        "SELECT id FROM thr_communities WHERE invite_code IS NULL OR invite_code = ''"
+    )
+    for (cid,) in cur.fetchall():
+        cur.execute(
+            "UPDATE thr_communities SET invite_code = ? WHERE id = ?",
+            (_new_invite_code(), cid),
+        )
+
     conn.commit()
     conn.close()
+
+
+def _new_invite_code():
+    """Short random code for a guild invite link (URL-safe, unguessable-ish)."""
+    import secrets as _sec
+
+    return _sec.token_urlsafe(8)
 
 
 # ---------------------------------------------------------------------------
@@ -1645,6 +1667,49 @@ def join_community(cid, user_id):
     )
     conn.commit()
     conn.close()
+
+
+def get_community_invite_code(cid):
+    """Return the guild's invite code, generating one if it's missing."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT invite_code FROM thr_communities WHERE id = ?", (cid,))
+    row = cur.fetchone()
+    code = row["invite_code"] if row else None
+    if not code:
+        code = _new_invite_code()
+        cur.execute(
+            "UPDATE thr_communities SET invite_code = ? WHERE id = ?", (code, cid)
+        )
+        conn.commit()
+    conn.close()
+    return code
+
+
+def find_community_by_invite(code):
+    """Return the community id matching an invite code, or None."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id, name, is_public FROM thr_communities WHERE invite_code = ?",
+        (code,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def join_community_by_invite(code, user_id):
+    """Join a guild via invite link. Returns (community_id, error) where
+    error is None on success. Banned users can't rejoin via invite."""
+    community = find_community_by_invite(code)
+    if not community:
+        return None, "invalid_invite"
+    cid = community["id"]
+    if is_banned(cid, user_id):
+        return None, "banned"
+    join_community(cid, user_id)
+    return cid, None
 
 
 def leave_community(cid, user_id):

@@ -144,14 +144,17 @@
             var uid = m.sender && m.sender.id;
             if (uid && !_thrRankCache[uid]) ids.push(uid);
         });
-        if (!ids.length) return Promise.resolve();
+        if (!ids.length) return Promise.resolve(0);
         return api("/api/user-ranks", { json: { user_ids: ids } }).then(function (data) {
+            var fetched = 0;
             if (data && data.ranks) {
                 Object.keys(data.ranks).forEach(function (uid) {
                     _thrRankCache[uid] = data.ranks[uid];
+                    fetched++;
                 });
             }
-        }).catch(function () {});
+            return fetched;
+        }).catch(function () { return 0; });
     }
 
     function toast(msg, type) {
@@ -377,6 +380,13 @@
                 _ml.innerHTML = cached.html;
                 _ml.scrollTop = _ml.scrollHeight;
                 updateSeenText();
+                // If the cached HTML was saved before rank badges loaded,
+                // fetch them now and re-render so badges/XP never disappear.
+                fetchThrRanks(State.messages).then(function (n) {
+                    if (n > 0 && seq === State.reqSeq && $("#msgList") && $("#msgList").innerHTML) {
+                        renderMessages(false);
+                    }
+                });
             } else {
                 if (seq === State.reqSeq) {
                     renderMessages(true);
@@ -1910,6 +1920,14 @@
                 _ml.innerHTML = cached.html;
                 _ml.scrollTop = _ml.scrollHeight;
                 updateSeenText();
+                // Re-fetch ranks when the cached HTML was saved without badges,
+                // so rank badges / XP bars stay visible after visiting a guild.
+                fetchThrRanks(State.messages).then(function (n) {
+                    if (n > 0 && seq === State.reqSeq && $("#msgList") && $("#msgList").innerHTML) {
+                        renderMessages(false);
+                        updateSeenText();
+                    }
+                });
             } else {
                 fetchThrRanks(State.messages).then(function () {
                     if (seq !== State.reqSeq) return;
@@ -2072,6 +2090,16 @@
 
     // ---- Community menu modal ----
 
+    function loadInviteLink() {
+        var c = State.activeCommunity;
+        if (!c) return;
+        api("/threads/api/communities/" + c.id + "/invite").then(function (res) {
+            if (!res.success) { handleApiError(res); return; }
+            var input = $("#commInviteLink");
+            if (input) input.value = location.origin + "/threads?invite=" + res.invite_code;
+        });
+    }
+
     function openCommunityMenu(tab) {
         var c = State.activeCommunity;
         if (!c) return;
@@ -2089,6 +2117,7 @@
         api("/threads/api/communities/" + c.id).then(function (res) {
             if (!res.success) { handleApiError(res); return; }
             State.communityDetail = res;
+            loadInviteLink();
             openModal("modalCommunity");
             var target = tab || "info";
             $$(".thr-comm-tab").forEach(function (t) {
@@ -2552,6 +2581,27 @@
                 toast("Report dismissed");
                 openCommunityMenu("reports");
             });
+        });
+
+        // guild invite link: load it whenever the modal opens, copy on click
+        $("#btnCopyInvite").addEventListener("click", function () {
+            var input = $("#commInviteLink");
+            if (!input || !input.value) {
+                loadInviteLink();
+                toast("Generating invite link…", "info");
+                return;
+            }
+            input.select();
+            input.setSelectionRange(0, 99999);
+            try {
+                navigator.clipboard.writeText(input.value);
+                toast("Invite link copied!");
+            } catch (e) {
+                toast("Invite link copied!");
+            }
+        });
+        $("#commInviteLink").addEventListener("click", function () {
+            this.select();
         });
 
         // party strip actions
@@ -3020,6 +3070,14 @@
                     if (pType === "channel") renderPartyStrip();
                     markActiveRead();
                     msgCache[pType + ":" + pId].html = $("#msgList").innerHTML;
+                    // Fetch rank badges in the background and re-render so they
+                    // show on the first conversation (and stay in the cache).
+                    fetchThrRanks(State.messages).then(function () {
+                        if (State.active && State.active.type === pType && State.active.id === pId &&
+                            $("#msgList") && $("#msgList").innerHTML) {
+                            renderMessages(false);
+                        }
+                    });
                 }
             }
         } catch (e) { /* preloaded parse fail — no big deal */ }
@@ -3047,6 +3105,28 @@
         setInterval(function () {
             if (!document.hidden) api("/threads/api/presence");
         }, 30000);
+
+        // join a guild via ?invite=CODE, then open it
+        var inviteCode = params.get("invite");
+        if (inviteCode) {
+            api("/threads/api/communities/join-invite", { json: { code: inviteCode } }).then(function (res) {
+                if (!res.success) {
+                    toast(res.error === "invalid_invite" ? "That invite link is invalid or expired." : (res.error === "banned" ? "You can't join that guild." : "Could not join the guild."), "error");
+                    return;
+                }
+                var joined = res.community;
+                toast("Joined " + (joined ? joined.name : "the guild") + "!");
+                refreshCommunities();
+                if (joined) {
+                    State.discoverMode = false;
+                    State.activeCommunity = joined;
+                    State.myCommunityRole = joined.role || "member";
+                    renderRail();
+                    renderChannelPanel();
+                    if (joined.channels && joined.channels.length) openChannel(joined.channels[0]);
+                }
+            });
+        }
 
         // open ?with=dm:3 from a notification click elsewhere
         var params = new URLSearchParams(window.location.search);

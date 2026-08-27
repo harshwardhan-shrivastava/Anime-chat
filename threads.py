@@ -887,6 +887,38 @@ def community_join(cid):
     return jsonify({"success": True, "community": joined})
 
 
+@bp.route("/threads/api/communities/<int:cid>/invite")
+def community_invite(cid):
+    """Get (or create) the guild's shareable invite link. Any member can
+    share it — no mod powers needed."""
+    user, community, err = _community_guard(cid)
+    if err:
+        return err
+    mem_err = _member_guard(community, user)
+    if mem_err:
+        return mem_err
+    code = threads_db.get_community_invite_code(cid)
+    return jsonify({"success": True, "invite_code": code})
+
+
+@bp.route("/threads/api/communities/join-invite", methods=["POST"])
+def community_join_invite():
+    """Join a guild through an invite link (/threads?invite=CODE)."""
+    user, err = _json_user()
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    code = (data.get("code") or "").strip()
+    if not code:
+        return jsonify({"success": False, "error": "bad_invite"}), 400
+    cid, cerr = threads_db.join_community_by_invite(code, user["id"])
+    if cerr:
+        return jsonify({"success": False, "error": cerr}), 404 if cerr == "invalid_invite" else 403
+    communities = threads_db.get_user_communities(user["id"])
+    joined = next((c for c in communities if c["id"] == cid), None)
+    return jsonify({"success": True, "community": joined})
+
+
 @bp.route("/threads/api/communities/<int:cid>/leave", methods=["POST"])
 def community_leave(cid):
     user, community, err = _community_guard(cid)
