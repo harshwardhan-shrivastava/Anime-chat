@@ -107,27 +107,26 @@
             margin: 2px 0 0;
         }
         .grc-meta .stars { color: #facc15; }
-        .grc-anime {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: #0d1420;
-            border: 1px solid #1f2937;
-            border-radius: 10px;
-            padding: 6px 12px;
-            margin-bottom: 12px;
-            text-decoration: none;
-            color: #22c55e;
-            font-size: 0.85rem;
-            font-weight: 600;
-            transition: background 0.2s;
+        .grc-body-wrap {
+            overflow: hidden;
         }
-        .grc-anime:hover { background: #16202e; }
-        .grc-anime img {
-            width: 24px;
-            height: 32px;
+        .grc-poster {
+            float: right;
+            margin: 0 0 12px 16px;
+            shape-outside: margin-box;
+            flex-shrink: 0;
+        }
+        .grc-poster img {
+            width: 110px;
+            height: 155px;
             object-fit: cover;
-            border-radius: 4px;
+            border-radius: 10px;
+            display: block;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+            transition: transform 0.2s;
+        }
+        .grc-poster:hover img {
+            transform: scale(1.04);
         }
         .grc-comment {
             margin: 0;
@@ -157,12 +156,13 @@
 
         {% for r in reviews %}
         <div class="global-review-card">
-            <a class="grc-anime" href="/anime/{{ r.anime_slug }}">
-                {% if r.anime_image %}<img src="{{ r.anime_image }}" alt="">{% endif %}
-                <span>{{ r.anime_title }}</span>
-                <i class="fas fa-arrow-right" style="font-size:0.7rem;"></i>
-            </a>
-            <div class="grc-top">
+            <div class="grc-body-wrap">
+                {% if r.anime_image %}
+                <a class="grc-poster" href="/anime/{{ r.anime_slug }}">
+                    <img src="{{ r.anime_image }}" alt="{{ r.anime_title }}">
+                </a>
+                {% endif %}
+                <div class="grc-top">
                 <div class="review-avatar-initial" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[0]|upper }}{% if r.avatar %}<img src="/static/images/avatars/{{ r.avatar }}" alt="{{ r.username }}" onerror="this.remove()">{% endif %}</div>
                 <div>                    <p class="grc-user">{{ r.username }}</p>
                     {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:1rem;padding:4px 18px;letter-spacing:2px;">{{ r.rank }}</span><span class="xp-bar rank-{{ r.rank }}"><span class="xp-bar-fill" style="width:{{ r.xp_pct or 0 }}%"></span><span class="xp-bar-text">{{ r.user_xp or 0 }} XP</span></span>{% endif %}
@@ -171,8 +171,9 @@
                         {{ r.rating }}/5 · {{ r.created_at }}
                     </p>
                 </div>
+                </div>
+                {% if r.comment %}<p class="grc-comment">{{ r.comment }}</p>{% endif %}
             </div>
-            {% if r.comment %}<p class="grc-comment">{{ r.comment }}</p>{% endif %}
             <div class="vote-btn-wrap" data-review-id="{{ r.id }}">
                 <button type="button" class="vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like">
                     <span style="font-size:1rem;">👍</span>
