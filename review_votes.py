@@ -138,6 +138,12 @@ def toggle_anime_review_vote(user_id, review_id, is_like):
 
 def get_user_anime_review_votes(review_ids, user_id):
     """Return {review_id: 1 (liked) | 0 (disliked)} for votes the user cast."""
+    return get_user_review_votes("anime", review_ids, user_id)
+
+
+def get_user_review_votes(review_type, review_ids, user_id):
+    """Return {review_id: 1 (liked) | 0 (disliked)} for votes the user cast
+    on a given review type ('anime' or 'episode')."""
     if not review_ids or not user_id:
         return {}
     conn = get_connection()
@@ -145,8 +151,8 @@ def get_user_anime_review_votes(review_ids, user_id):
     placeholders = ",".join("?" * len(review_ids))
     cursor.execute(
         f"SELECT review_id, is_like FROM review_likes "
-        f"WHERE review_type='anime' AND user_id=? AND review_id IN ({placeholders})",
-        [user_id] + list(review_ids),
+        f"WHERE review_type=? AND user_id=? AND review_id IN ({placeholders})",
+        [review_type, user_id] + list(review_ids),
     )
     result = {row["review_id"]: row["is_like"] for row in cursor.fetchall()}
     conn.close()

@@ -1373,6 +1373,22 @@ html, body {
     font-size: 11px;
     color: var(--thr-muted);
 }
+.thr-invite-send-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 8px;
+    font-weight: 600;
+    font-size: 13px;
+}
+.thr-invite-send-head i { color: var(--thr-accent); }
+.thr-invite-friends {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 150px;
+    overflow-y: auto;
+}
 
 .thr-member-list { display: flex; flex-direction: column; gap: 4px; }
 
@@ -1584,6 +1600,87 @@ html, body {
     transition: border-radius 0.15s ease;
     user-select: none;
     overflow: hidden;
+}
+
+.thr-rail-icon.thr-rail-icon-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.thr-comm-head-avatar {
+    display: inline-flex;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+.thr-comm-head-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.thr-guild-avatar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 10px 0;
+}
+.thr-guild-avatar-row .thr-label { width: 100%; margin-bottom: 2px; }
+.thr-guild-avatar-preview {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+    color: #fff;
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.thr-guild-avatar-search { margin: 6px 0 10px; }
+.thr-guild-avatar-results {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 180px;
+    overflow-y: auto;
+    margin-top: 6px;
+}
+.thr-avatar-pick {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+.thr-avatar-pick:hover { background: var(--thr-panel-2); }
+.thr-avatar-pick img {
+    width: 28px;
+    height: 38px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+.thr-avatar-pick span {
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .thr-rail-badge {

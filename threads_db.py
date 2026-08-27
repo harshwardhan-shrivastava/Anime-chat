@@ -318,12 +318,14 @@ def create_tables():
         )
     """)
 
-    # ---- Guild invite codes ------------------------------------------------------
-    # Add an invite_code column to thr_communities (idempotent migration) and
-    # backfill codes for communities created before this column existed.
+    # ---- Guild invite codes + anime avatar ----------------------------------------
+    # Idempotent migrations for thr_communities: invite_code (for share links)
+    # and icon_url (anime image used as the guild's profile picture).
     cols = [r["name"] for r in cur.execute("PRAGMA table_info(thr_communities)").fetchall()]
     if "invite_code" not in cols:
         cur.execute("ALTER TABLE thr_communities ADD COLUMN invite_code TEXT")
+    if "icon_url" not in cols:
+        cur.execute("ALTER TABLE thr_communities ADD COLUMN icon_url TEXT")
     cur.execute(
         "SELECT id FROM thr_communities WHERE invite_code IS NULL OR invite_code = ''"
     )
@@ -568,6 +570,27 @@ def list_friend_requests(user_id):
     outgoing = [dict(r) for r in cur.fetchall()]
     conn.close()
     return incoming, outgoing
+
+
+def list_friends(user_id):
+    """All accepted friends (users with an accepted friend request)."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT u.id, u.username, u.avatar_color, u.avatar
+        FROM thr_friend_requests r
+        JOIN users u ON u.id = CASE WHEN r.from_user_id = ? THEN r.to_user_id ELSE r.from_user_id END
+        WHERE r.status = 'accepted'
+          AND (r.from_user_id = ? OR r.to_user_id = ?)
+        GROUP BY u.id
+        ORDER BY u.username ASC
+        """,
+        (user_id, user_id, user_id),
+    )
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
 
 
 def pending_friend_request_count(user_id):
@@ -1388,7 +1411,7 @@ def community_member_count(cid):
     return n
 
 
-def create_community(name, description, genre, owner_id, icon_color=None):
+def create_community(name, description, genre, owner_id, icon_color=None, icon_url=None):
     """Create a community owned by the caller, with the four default channels."""
     conn = get_connection()
     cur = conn.cursor()
@@ -1406,11 +1429,11 @@ def create_community(name, description, genre, owner_id, icon_color=None):
     cur.execute(
         """
         INSERT INTO thr_communities
-        (name, slug, description, genre, icon_color, is_public, owner_id, rules)
-        VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+        (name, slug, description, genre, icon_color, icon_url, is_public, owner_id, rules)
+        VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
         """,
         (name.strip(), slug, (description or "").strip(), (genre or "").strip(),
-         icon_color or "#8b5cf6", owner_id, DEFAULT_RULES),
+         icon_color or "#8b5cf6", icon_url or None, owner_id, DEFAULT_RULES),
     )
     cid = cur.lastrowid
     cur.execute(
@@ -1871,7 +1894,7 @@ def get_member_muted(cid, user_id):
     return bool(row and row["muted"])
 
 
-def update_community(cid, name=None, description=None, genre=None, icon_color=None, rules=None):
+def update_community(cid, name=None, description=None, genre=None, icon_color=None, icon_url=None, rules=None):
     sets, args = [], []
     if name is not None:
         sets.append("name = ?")
@@ -1885,6 +1908,9 @@ def update_community(cid, name=None, description=None, genre=None, icon_color=No
     if icon_color is not None:
         sets.append("icon_color = ?")
         args.append(icon_color)
+    if icon_url is not None:
+        sets.append("icon_url = ?")
+        args.append(icon_url or None)
     if rules is not None:
         sets.append("rules = ?")
         args.append((rules or "").strip())

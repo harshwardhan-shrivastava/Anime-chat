@@ -135,6 +135,86 @@
             color: #d1d5db;
             white-space: pre-wrap;
         }
+        .reviews-tabs {
+            display: flex;
+            gap: 10px;
+            margin: 0 0 24px;
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 14px;
+            padding: 6px;
+        }
+        .reviews-tab {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            color: #9ca3af;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .reviews-tab:hover { background: #1f2937; color: #e5e7eb; }
+        .reviews-tab.active {
+            background: #22c55e;
+            color: #0a0e14;
+        }
+        .reviews-tab.active i { color: #0a0e14; }
+        .grc-anime-link {
+            color: #22c55e;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .grc-anime-link:hover { text-decoration: underline; }
+        .grc-ep-label {
+            color: #facc15;
+            font-weight: 600;
+        }
+        .vote-btn-wrap {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+        }
+        .vote-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            min-width: 76px;
+            justify-content: center;
+            border: 1px solid #1f2937;
+            border-radius: 12px;
+            background: #0d1420;
+            color: #9ca3af;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.12s, border-color 0.12s, transform 0.08s, color 0.12s;
+            user-select: none;
+        }
+        .vote-btn:hover {
+            background: #16202e;
+            border-color: #374151;
+            transform: translateY(-1px);
+        }
+        .vote-btn:active { transform: scale(0.96); }
+        .vote-btn.voted-like {
+            background: rgba(34, 197, 94, 0.16);
+            border-color: #22c55e;
+            color: #22c55e;
+        }
+        .vote-btn.voted-dislike {
+            background: rgba(239, 68, 68, 0.14);
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+        .vote-count { font-variant-numeric: tabular-nums; }
         .reviews-empty {
             text-align: center;
             color: #6b7280;
@@ -151,15 +231,25 @@
             <i class="fas fa-comments"></i>
             <div>
                 <h1>Community Reviews</h1>
-                <p>Every review from across Otakul — newest first.</p>
+                <p>Every review from across Otakul — highest ranked first.</p>
             </div>
         </div>
 
+        <div class="reviews-tabs">
+            <button type="button" class="reviews-tab active" data-rtab="anime">
+                <i class="fas fa-film"></i> Anime Reviews
+            </button>
+            <button type="button" class="reviews-tab" data-rtab="episode">
+                <i class="fas fa-tv"></i> Episode Reviews
+            </button>
+        </div>
+
+        <div id="rtab-anime" class="reviews-tab-pane">
         {% for r in reviews %}
         <div class="global-review-card">
             <div class="grc-body-wrap">
                 {% if r.anime_image %}
-                <a class="grc-poster" href="/anime/{{ r.anime_slug }}">
+                <a class="grc-poster" href="/anime/{{ r.anime_slug }}" title="{{ r.anime_title }}">
                     <img src="{{ r.anime_image }}" alt="{{ r.anime_title }}">
                 </a>
                 {% endif %}
@@ -168,6 +258,7 @@
                 <div>                    <p class="grc-user">{{ r.username }}</p>
                     {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:1rem;padding:4px 18px;letter-spacing:2px;">{{ r.rank }}</span><span class="xp-bar rank-{{ r.rank }}"><span class="xp-bar-fill" style="width:{{ r.xp_pct or 0 }}%"></span><span class="xp-bar-text">{{ r.user_xp or 0 }} XP</span></span>{% endif %}
                     <p class="grc-meta">
+                        <a class="grc-anime-link" href="/anime/{{ r.anime_slug }}">{{ r.anime_title }}</a> ·
                         <span class="stars">{% for i in range(1,6) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
                         {{ r.rating }}/5 · {{ r.created_at }}
                     </p>
@@ -175,13 +266,13 @@
                 </div>
                 {% if r.comment %}<p class="grc-comment">{{ r.comment }}</p>{% endif %}
             </div>
-            <div class="vote-btn-wrap" data-review-id="{{ r.id }}">
+            <div class="vote-btn-wrap" data-review-id="{{ r.id }}" data-review-type="anime">
                 <button type="button" class="vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like">
-                    <span style="font-size:1rem;">👍</span>
+                    <span style="font-size:1.1rem;">👍</span>
                     <span class="vote-count">{{ r.likes or 0 }}</span>
                 </button>
                 <button type="button" class="vote-btn gvote {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike">
-                    <span style="font-size:1rem;">👎</span>
+                    <span style="font-size:1.1rem;">👎</span>
                     <span class="vote-count">{{ r.dislikes or 0 }}</span>
                 </button>
             </div>
@@ -191,6 +282,48 @@
             No reviews yet — be the first to rate an anime! 🎌
         </div>
         {% endfor %}
+        </div>
+
+        <div id="rtab-episode" class="reviews-tab-pane" hidden>
+        {% for r in episode_reviews %}
+        <div class="global-review-card">
+            <div class="grc-body-wrap">
+                {% if r.episode_thumb %}
+                <a class="grc-poster" href="/anime/{{ r.anime_slug }}" title="{{ r.anime_title }} — {{ r.season_name }}">
+                    <img src="{{ r.episode_thumb }}" alt="{{ r.anime_title }}">
+                </a>
+                {% endif %}
+                <div class="grc-top">
+                <div class="review-avatar-initial" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[0]|upper }}{% if r.avatar %}<img src="/static/images/avatars/{{ r.avatar }}" alt="{{ r.username }}" onerror="this.remove()">{% endif %}</div>
+                <div>                    <p class="grc-user">{{ r.username }}</p>
+                    {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:1rem;padding:4px 18px;letter-spacing:2px;">{{ r.rank }}</span><span class="xp-bar rank-{{ r.rank }}"><span class="xp-bar-fill" style="width:{{ r.xp_pct or 0 }}%"></span><span class="xp-bar-text">{{ r.user_xp or 0 }} XP</span></span>{% endif %}
+                    <p class="grc-meta">
+                        <a class="grc-anime-link" href="/anime/{{ r.anime_slug }}">{{ r.anime_title }}</a> ·
+                        <span class="grc-ep-label">Ep {{ r.episode_number }}{% if r.season_name %} · {{ r.season_name }}{% endif %}</span> ·
+                        <span class="stars">{% for i in range(1,6) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
+                        {{ r.rating }}/5 · {{ r.created_at }}
+                    </p>
+                </div>
+                </div>
+                {% if r.comment %}<p class="grc-comment">{{ r.comment }}</p>{% endif %}
+            </div>
+            <div class="vote-btn-wrap" data-review-id="{{ r.id }}" data-review-type="episode">
+                <button type="button" class="vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like">
+                    <span style="font-size:1.1rem;">👍</span>
+                    <span class="vote-count">{{ r.likes or 0 }}</span>
+                </button>
+                <button type="button" class="vote-btn gvote {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike">
+                    <span style="font-size:1.1rem;">👎</span>
+                    <span class="vote-count">{{ r.dislikes or 0 }}</span>
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <div class="reviews-empty">
+            No episode reviews yet — rate an episode to kick things off! 🎬
+        </div>
+        {% endfor %}
+        </div>
     </div>
 
     {% if current_user %}
@@ -210,21 +343,74 @@
     </script>
     {% endif %}
 
+    <script>
+    // Tab switching: Anime Reviews <-> Episode Reviews
+    document.querySelectorAll(".reviews-tab").forEach(tab => {
+        tab.addEventListener("click", () => {
+            document.querySelectorAll(".reviews-tab").forEach(t => t.classList.remove("active"));
+            tab.classList.add("active");
+            const name = tab.getAttribute("data-rtab");
+            document.querySelectorAll(".reviews-tab-pane").forEach(p => { p.hidden = true; });
+            const pane = document.getElementById("rtab-" + name);
+            if (pane) pane.hidden = false;
+        });
+    });
+    </script>
+
     {% if current_user %}
     <script>
+    // Fast, optimistic like/dislike voting for anime + episode reviews.
     document.querySelectorAll(".vote-btn-wrap").forEach(bar => {
         const reviewId = bar.dataset.reviewId;
+        const reviewType = bar.dataset.reviewType || "anime";
+        let busy = false;
         bar.querySelectorAll(".gvote").forEach(btn => {
             btn.addEventListener("click", () => {
+                if (busy) return;
+                busy = true;
                 const isLike = btn.dataset.kind === "like";
-                fetch(`/api/anime-review/${reviewId}/vote`, {
+                // Optimistic UI: flip state immediately, then reconcile.
+                const prevLike = bar.querySelector('[data-kind="like"]').classList.contains("voted-like");
+                const prevDislike = bar.querySelector('[data-kind="dislike"]').classList.contains("voted-dislike");
+                const prevLikeCount = parseInt(bar.querySelector('[data-kind="like"] .vote-count').textContent || "0", 10);
+                const prevDislikeCount = parseInt(bar.querySelector('[data-kind="dislike"] .vote-count').textContent || "0", 10);
+                const wasActive = isLike ? prevLike : prevDislike;
+                // Apply optimistic change.
+                bar.querySelectorAll(".gvote").forEach(b => {
+                    const kind = b.dataset.kind;
+                    b.classList.remove("voted-like", "voted-dislike");
+                    if (!wasActive && kind === (isLike ? "like" : "dislike")) {
+                        b.classList.add(kind === "like" ? "voted-like" : "voted-dislike");
+                    }
+                });
+                let likeDelta = 0, dislikeDelta = 0;
+                if (wasActive) {
+                    if (isLike) likeDelta = -1; else dislikeDelta = -1;
+                } else {
+                    if (prevLike) likeDelta = -1;
+                    if (prevDislike) dislikeDelta = -1;
+                    if (isLike) likeDelta += 1; else dislikeDelta += 1;
+                }
+                bar.querySelector('[data-kind="like"] .vote-count').textContent = Math.max(0, prevLikeCount + likeDelta);
+                bar.querySelector('[data-kind="dislike"] .vote-count').textContent = Math.max(0, prevDislikeCount + dislikeDelta);
+                fetch(`/api/review/${reviewId}/vote`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ is_like: isLike })
+                    body: JSON.stringify({ is_like: isLike, review_type: reviewType })
                 })
                     .then(res => res.json())
                     .then(data => {
-                        if (!data.success) { alert(data.error || "Could not vote."); return; }
+                        if (!data.success) {
+                            // Revert on error.
+                            bar.querySelector('[data-kind="like"] .vote-count').textContent = prevLikeCount;
+                            bar.querySelector('[data-kind="dislike"] .vote-count').textContent = prevDislikeCount;
+                            bar.querySelectorAll(".gvote").forEach(b => {
+                                const kind = b.dataset.kind;
+                                b.classList.toggle("voted-like", kind === "like" && prevLike);
+                                b.classList.toggle("voted-dislike", kind === "dislike" && prevDislike);
+                            });
+                            return;
+                        }
                         bar.querySelectorAll(".gvote").forEach(b => {
                             const kind = b.dataset.kind;
                             const active = data.user_vote === (kind === "like" ? 1 : 0);
@@ -234,7 +420,16 @@
                                 kind === "like" ? data.likes : data.dislikes;
                         });
                     })
-                    .catch(() => alert("Network error."));
+                    .catch(() => {
+                        bar.querySelector('[data-kind="like"] .vote-count').textContent = prevLikeCount;
+                        bar.querySelector('[data-kind="dislike"] .vote-count').textContent = prevDislikeCount;
+                        bar.querySelectorAll(".gvote").forEach(b => {
+                            const kind = b.dataset.kind;
+                            b.classList.toggle("voted-like", kind === "like" && prevLike);
+                            b.classList.toggle("voted-dislike", kind === "dislike" && prevDislike);
+                        });
+                    })
+                    .finally(() => { busy = false; });
             });
         });
     });

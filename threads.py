@@ -283,6 +283,15 @@ def friend_request_send():
     return jsonify({"success": False, "error": reason}), 409
 
 
+@bp.route("/threads/api/friends")
+def friends_list():
+    """All accepted friends — used to send guild invites directly."""
+    user, err = _json_user()
+    if err:
+        return err
+    return jsonify({"success": True, "friends": threads_db.list_friends(user["id"])})
+
+
 @bp.route("/threads/api/friends/requests")
 def friend_requests_list():
     user, err = _json_user()
@@ -816,6 +825,7 @@ def communities_create():
         (data.get("genre") or "").strip()[:40],
         user["id"],
         data.get("icon_color"),
+        (data.get("icon_url") or "").strip()[:500] or None,
     )
     communities = threads_db.get_user_communities(user["id"])
     community = next((c for c in communities if c["id"] == cid), None)
@@ -864,6 +874,7 @@ def community_update(cid):
         description=data.get("description"),
         genre=data.get("genre"),
         icon_color=data.get("icon_color"),
+        icon_url=(data.get("icon_url") or "").strip()[:500] or None,
         rules=data.get("rules"),
     )
     threads_db.log_mod_action(cid, user["id"], "update_community")
@@ -899,6 +910,34 @@ def community_invite(cid):
         return mem_err
     code = threads_db.get_community_invite_code(cid)
     return jsonify({"success": True, "invite_code": code})
+
+
+@bp.route("/threads/api/communities/<int:cid>/invite/send", methods=["POST"])
+def community_invite_send(cid):
+    """DM an accepted friend a guild invite link (no copying needed)."""
+    user, community, err = _community_guard(cid)
+    if err:
+        return err
+    mem_err = _member_guard(community, user)
+    if mem_err:
+        return mem_err
+    data = request.get_json(silent=True) or {}
+    try:
+        other_id = int(data.get("user_id") or 0)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "error": "missing_user"}), 400
+    if not other_id:
+        return jsonify({"success": False, "error": "missing_user"}), 400
+    if not threads_db.are_friends(user["id"], other_id):
+        return jsonify({"success": False, "error": "not_friends"}), 403
+    code = threads_db.get_community_invite_code(cid)
+    link = request.host_url.rstrip("/") + "/threads?invite=" + code
+    conv_id = threads_db.get_or_create_dm(user["id"], other_id)
+    row = threads_db.add_message(
+        "dm", conv_id, user["id"], kind="text",
+        content='Join my guild "' + community["name"] + '": ' + link,
+    )
+    return jsonify({"success": True, "message": _enrich_messages([row])[0]})
 
 
 @bp.route("/threads/api/communities/join-invite", methods=["POST"])

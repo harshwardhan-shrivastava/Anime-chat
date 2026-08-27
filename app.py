@@ -25,6 +25,7 @@ from database import (
     add_review,
     add_episode_review,
     get_all_reviews,
+    get_all_episode_reviews,
     get_episode_stats,
     get_user_episode_review,
     get_all_episode_stats,
@@ -81,7 +82,6 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Sessions last 10 years, so users stay logged in across devices/visits.
 app.permanent_session_lifetime = timedelta(days=3650)
 
-_xp_recalculated = False
 
 app.register_blueprint(auth)
 app.register_blueprint(chat_bp)
@@ -938,23 +938,7 @@ def community(anime_slug):
 
 @app.route("/reviews")
 def reviews_page():
-    """Global reviews feed — every review across all anime, newest first."""
-    global _xp_recalculated
-    if not _xp_recalculated:
-        try:
-            conn = get_connection()
-            users = conn.execute("SELECT id FROM users").fetchall()
-            conn.close()
-            for u in users:
-                try:
-                    recalculate_user_xp(u["id"])
-                except Exception:
-                    pass
-            _xp_recalculated = True
-            if users:
-                print(f"[reviews] Recalculated XP for {len(users)} users")
-        except Exception:
-            _xp_recalculated = True
+    """Global reviews feed — highest-ranked first, then newest."""
     raw = get_all_reviews(limit=200)
     user = g.get("user")
     review_ids = [r["id"] for r in raw]
@@ -976,7 +960,64 @@ def reviews_page():
         r["xp_pct"] = xp_progress(r["user_xp"])[1]
         r["rank_color"] = RANK_COLORS.get(r["rank"], "#9ca3af")
         reviews.append(r)
-    return render_template("reviews.html", reviews=reviews, current_user=user)
+
+    # ---- Episode reviews (second tab) ----
+    raw_ep = get_all_episode_reviews(limit=200)
+    ep_ids = [r["id"] for r in raw_ep]
+    ep_like_counts = {}
+    try:
+        ep_like_counts = get_bulk_review_likes("episode", ep_ids)
+    except Exception:
+        ep_like_counts = {}
+    ep_user_votes = {}
+    if user:
+        try:
+            from review_votes import get_user_review_votes
+            ep_user_votes = get_user_review_votes("episode", ep_ids, user["id"])
+        except Exception:
+            ep_user_votes = {}
+    ep_rank_map = get_bulk_reviewer_ranks([r["user_id"] for r in raw_ep])
+    episode_reviews = []
+    for r in raw_ep:
+        entry = anime_database.get(r["anime_slug"])
+        r["anime_title"] = entry.get("title", r["anime_slug"]) if entry else r["anime_slug"]
+        r["anime_image"] = entry.get("image") if entry else None
+        r["episode_thumb"] = None
+        if entry and entry.get("seasons"):
+            for s in entry["seasons"]:
+                if s.get("name") == r["season_name"]:
+                    for ep in s.get("episodes", []):
+                        if ep.get("number") == r["episode_number"]:
+                            r["episode_thumb"] = ep.get("thumb") or ep.get("image")
+                            break
+                    break
+        if not r["episode_thumb"]:
+            r["episode_thumb"] = r["anime_image"]
+        counts = ep_like_counts.get(r["id"], {"likes": 0, "dislikes": 0})
+        r["likes"] = counts["likes"]
+        r["dislikes"] = counts["dislikes"]
+        r["user_vote"] = ep_user_votes.get(r["id"])
+        rinfo = ep_rank_map.get(r["user_id"], {"rank": "D", "xp": 0})
+        r["rank"] = rinfo["rank"] if isinstance(rinfo, dict) else rinfo
+        r["user_xp"] = rinfo["xp"] if isinstance(rinfo, dict) else 0
+        r["xp_pct"] = xp_progress(r["user_xp"])[1]
+        r["rank_color"] = RANK_COLORS.get(r["rank"], "#9ca3af")
+        episode_reviews.append(r)
+
+    # Higher-ranked reviewers first, then more XP, then newest.
+    RANK_TIER = {"S+": 0, "S": 1, "A": 2, "B": 3, "C": 4, "D": 5, "F": 6}
+    reviews.sort(
+        key=lambda x: (RANK_TIER.get(x["rank"], 5), -x["user_xp"], -x["id"])
+    )
+    episode_reviews.sort(
+        key=lambda x: (RANK_TIER.get(x["rank"], 5), -x["user_xp"], -x["id"])
+    )
+    return render_template(
+        "reviews.html",
+        reviews=reviews,
+        episode_reviews=episode_reviews,
+        current_user=user,
+    )
 
 
 @app.route("/anime-reviews/<anime_slug>", methods=["GET"])
@@ -1034,6 +1075,36 @@ def vote_anime_review(review_id):
         "success": True,
         "likes": likes,
         "dislikes": dislikes,
+        "user_vote": user_vote,
+        "removed": removed,
+    })
+
+
+@app.route("/api/review/<int:review_id>/vote", methods=["POST"])
+def vote_review(review_id):
+    """Generic like/dislike for anime OR episode reviews (fast, optimistic)."""
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in to vote."}), 401
+    data = request.get_json(silent=True) or {}
+    review_type = data.get("review_type") or "anime"
+    if review_type not in ("anime", "episode"):
+        return jsonify({"success": False, "error": "Bad review type."}), 400
+    is_like = data.get("is_like")
+    if is_like is None:
+        return jsonify({"success": False, "error": "Missing vote type."}), 400
+    try:
+        new_is_like, removed = toggle_review_like(
+            user["id"], review_type, review_id, bool(is_like)
+        )
+    except Exception:
+        return jsonify({"success": False, "error": "Review not found."}), 404
+    counts = get_review_likes(review_type, review_id)
+    user_vote = 1 if (new_is_like and not removed) else (0 if (not new_is_like and not removed) else None)
+    return jsonify({
+        "success": True,
+        "likes": counts["likes"],
+        "dislikes": counts["dislikes"],
         "user_vote": user_vote,
         "removed": removed,
     })

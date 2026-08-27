@@ -1320,6 +1320,44 @@ def get_all_reviews(limit=200):
     return reviews
 
 
+def get_all_episode_reviews(limit=200):
+    """Return the most recent EPISODE reviews across ALL anime (for the
+    Episode Reviews tab on /reviews).
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT r.id, r.anime_slug, r.season_name, r.episode_number,
+               r.username, r.rating, r.comment, r.created_at, r.user_id,
+               u.avatar, u.avatar_color
+        FROM episode_reviews r
+        LEFT JOIN users u ON u.id = r.user_id
+        ORDER BY r.id DESC
+        LIMIT ?
+        """,
+        (limit,)
+    )
+    reviews = [
+        {
+            "id": row["id"],
+            "anime_slug": row["anime_slug"],
+            "season_name": row["season_name"],
+            "episode_number": row["episode_number"],
+            "username": row["username"],
+            "rating": row["rating"],
+            "comment": row["comment"] or "",
+            "created_at": row["created_at"],
+            "user_id": row["user_id"],
+            "avatar": row["avatar"],
+            "avatar_color": row["avatar_color"],
+        }
+        for row in cursor.fetchall()
+    ]
+    conn.close()
+    return reviews
+
+
 def get_user_review(anime_slug, user_id):
     """Return the user's existing review for an anime, or None."""
     conn = get_connection()

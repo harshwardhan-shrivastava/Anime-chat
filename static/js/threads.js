@@ -1814,8 +1814,9 @@
             var active = State.activeCommunity && State.activeCommunity.id === c.id;
             html += '<div class="thr-rail-item' + (active ? " active" : "") + '" data-comm="' + c.id + '" title="' +
                 escapeHtml(c.name) + '">' +
-                '<span class="thr-rail-icon" style="background:' + escapeHtml(c.icon_color || "#8b5cf6") + '">' +
-                escapeHtml(initials(c.name)) + "</span>" +
+                (c.icon_url
+                    ? '<span class="thr-rail-icon thr-rail-icon-img" style="background:' + escapeHtml(c.icon_color || "#8b5cf6") + '"><img src="' + escapeHtml(c.icon_url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.parentNode.textContent=\'' + escapeHtml(initials(c.name)) + '\'"></span>'
+                    : '<span class="thr-rail-icon" style="background:' + escapeHtml(c.icon_color || "#8b5cf6") + '">' + escapeHtml(initials(c.name)) + "</span>") +
                 (c.unread ? '<span class="thr-unread-badge thr-rail-badge">' + (c.unread > 99 ? "99+" : c.unread) + "</span>" : "") +
                 "</div>";
         });
@@ -1827,6 +1828,13 @@
         if (!c) return;
         $("#commName").textContent = c.name || "";
         $("#commMeta").textContent = (c.member_count || 0) + " members" + (c.genre ? " · " + c.genre : "");
+        var headAv = $("#commHeadAvatar");
+        if (c.icon_url) {
+            headAv.innerHTML = '<img src="' + escapeHtml(c.icon_url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">';
+            headAv.classList.remove("hidden");
+        } else if (headAv) {
+            headAv.classList.add("hidden");
+        }
         var rules = $("#commRules");
         if (c.rules) {
             rules.innerHTML = '<i class="fas fa-scroll"></i> ' + escapeHtml(c.rules);
@@ -2090,16 +2098,60 @@
 
     // ---- Community menu modal ----
 
+    var _inviteLinkCache = {};
     function loadInviteLink() {
         var c = State.activeCommunity;
         if (!c) return;
+        var input = $("#commInviteLink");
+        if (_inviteLinkCache[c.id]) {
+            if (input) input.value = _inviteLinkCache[c.id];
+            return;
+        }
         api("/threads/api/communities/" + c.id + "/invite").then(function (res) {
             if (!res.success) { handleApiError(res); return; }
-            var input = $("#commInviteLink");
-            if (input) input.value = location.origin + "/threads?invite=" + res.invite_code;
+            var link = location.origin + "/threads?invite=" + res.invite_code;
+            _inviteLinkCache[c.id] = link;
+            if (input) input.value = link;
         });
     }
 
+    function loadInviteFriends() {
+        var box = $("#commInviteFriends");
+        if (!box) return;
+        api("/threads/api/friends").then(function (res) {
+            if (!res.success) { box.innerHTML = '<div class="thr-dropdown-empty">Could not load friends</div>'; return; }
+            var friends = res.friends || [];
+            if (!friends.length) {
+                box.innerHTML = '<div class="thr-dropdown-empty">No friends yet — add friends to invite them</div>';
+                return;
+            }
+            box.innerHTML = friends.map(function (u) {
+                return '<div class="thr-user-row" data-send-invite="' + u.id + '">' +
+                    '<span class="thr-avatar thr-avatar-md" style="background:' + escapeHtml(u.avatar_color || "#8b5cf6") + '">' +
+                    avatarInner(u) + "</span><span>" + escapeHtml(u.username) + "</span>" +
+                    '<button class="thr-btn thr-btn-sm thr-btn-primary">Send</button></div>';
+            }).join("");
+        });
+    }
+
+    function sendInviteToFriend(uid) {
+        var c = State.activeCommunity;
+        if (!c) return;
+        var btn = null;
+        $$("#commInviteFriends [data-send-invite]").forEach(function (row) {
+            if (parseInt(row.getAttribute("data-send-invite"), 10) === uid) {
+                btn = row.querySelector("button");
+            }
+        });
+        if (btn) btn.disabled = true;
+        api("/threads/api/communities/" + c.id + "/invite/send", { json: { user_id: uid } }).then(function (res) {
+            if (btn) btn.disabled = false;
+            if (!res.success) { handleApiError(res); return; }
+            toast("Invite sent to your friend!");
+        }).catch(function () { if (btn) btn.disabled = false; });
+    }
+
+    var _commDetailCache = {};
     function openCommunityMenu(tab) {
         var c = State.activeCommunity;
         if (!c) return;
@@ -2109,21 +2161,45 @@
         $("#commEditDesc").value = c.description || "";
         $("#commEditRules").value = c.rules || "";
         $("#btnMuteCommunity").textContent = c.muted ? "Unmute guild" : "Mute guild";
+        _editCommAvatar = c.icon_url || null;
+        if (State._editPicker) State._editPicker.set(_editCommAvatar);
         var canMod = isCommMod();
         $$(".thr-comm-tab").forEach(function (t) {
             var name = t.getAttribute("data-ctab");
             t.classList.toggle("hidden", !canMod && name !== "info" && name !== "members");
         });
-        api("/threads/api/communities/" + c.id).then(function (res) {
-            if (!res.success) { handleApiError(res); return; }
-            State.communityDetail = res;
-            loadInviteLink();
+        // Open the modal INSTANTLY using cached detail if we have it, then
+        // refresh in the background so members/roles are always current.
+        var target = tab || "info";
+        var cachedDetail = _commDetailCache[c.id];
+        if (cachedDetail) {
+            State.communityDetail = cachedDetail;
             openModal("modalCommunity");
-            var target = tab || "info";
             $$(".thr-comm-tab").forEach(function (t) {
                 t.classList.toggle("active", t.getAttribute("data-ctab") === target);
             });
             showCommTab(target);
+            loadInviteLink();
+            loadInviteFriends();
+        } else {
+            // Show the modal right away with whatever we have, then fill in.
+            openModal("modalCommunity");
+            $$(".thr-comm-tab").forEach(function (t) {
+                t.classList.toggle("active", t.getAttribute("data-ctab") === target);
+            });
+            showCommTab(target);
+        }
+        api("/threads/api/communities/" + c.id).then(function (res) {
+            if (!res.success) { handleApiError(res); return; }
+            State.communityDetail = res;
+            _commDetailCache[c.id] = res;
+            loadInviteLink();
+            loadInviteFriends();
+            var activeTab = null;
+            $$(".thr-comm-tab").forEach(function (t) {
+                if (t.classList.contains("active")) activeTab = t.getAttribute("data-ctab");
+            });
+            showCommTab(activeTab || target);
         });
     }
 
@@ -2216,6 +2292,7 @@
         }).join("") : '<div class="thr-dropdown-empty">No open reports</div>';
     }
 
+    var _editCommAvatar = null;
     function saveCommunityEdit() {
         var c = State.activeCommunity;
         if (!c) return;
@@ -2225,6 +2302,7 @@
                 name: $("#commEditName").value,
                 genre: $("#commEditGenre").value,
                 description: $("#commEditDesc").value,
+                icon_url: _editCommAvatar,
                 rules: $("#commEditRules").value,
             },
         }).then(function (res) {
@@ -2385,6 +2463,108 @@
     }
 
     var COMM_COLORS = ["#8b5cf6", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#ec4899", "#06b6d4", "#f97316", "#14b8a6"];
+    function wireGuildAvatarPickers() {
+        // Reusable anime-avatar search for the create-guild modal and the
+        // guild info tab. Picks an anime cover image as the guild's pfp.
+        function setup(cfg) {
+            var preview = $(cfg.preview);
+            var searchBox = $(cfg.searchBox);
+            var query = $(cfg.query);
+            var results = $(cfg.results);
+            var btnPick = $(cfg.btnPick);
+            var btnClear = $(cfg.btnClear);
+            var current = cfg.initial || null;
+
+            function renderPreview() {
+                if (current) {
+                    preview.style.backgroundImage = "url('" + escapeHtml(current) + "')";
+                    preview.style.backgroundSize = "cover";
+                    preview.style.backgroundPosition = "center";
+                    preview.textContent = "";
+                    if (btnClear) btnClear.hidden = false;
+                } else {
+                    preview.style.backgroundImage = "";
+                    preview.textContent = cfg.initialText || "G";
+                    if (btnClear) btnClear.hidden = true;
+                }
+            }
+            renderPreview();
+
+            btnPick.addEventListener("click", function () {
+                searchBox.classList.toggle("hidden");
+                if (!searchBox.classList.contains("hidden")) query.focus();
+            });
+            if (btnClear) {
+                btnClear.addEventListener("click", function () {
+                    current = null;
+                    cfg.onChange(null);
+                    results.innerHTML = "";
+                    searchBox.classList.add("hidden");
+                    renderPreview();
+                });
+            }
+            var t;
+            query.addEventListener("input", function () {
+                clearTimeout(t);
+                var q = query.value.trim();
+                if (!q) { results.innerHTML = ""; return; }
+                t = setTimeout(function () {
+                    results.innerHTML = '<div class="thr-gif-loading"><i class="fas fa-spinner fa-spin"></i></div>';
+                    api("/api/search?q=" + encodeURIComponent(q)).then(function (res) {
+                        if (!res.success || !res.results.length) {
+                            results.innerHTML = '<div class="thr-anime-hint">No results</div>';
+                            return;
+                        }
+                        results.innerHTML = res.results.slice(0, 20).map(function (a) {
+                            return '<div class="thr-avatar-pick" data-img="' + escapeHtml(a.image || "") + '" data-title="' + escapeHtml(a.title) + '">' +
+                                '<img src="' + escapeHtml(a.image || "") + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+                                '<span>' + escapeHtml(a.title) + "</span></div>";
+                        }).join("");
+                    }).catch(function () { results.innerHTML = '<div class="thr-anime-hint">Search failed</div>'; });
+                }, 300);
+            });
+            results.addEventListener("click", function (e) {
+                var pick = e.target.closest(".thr-avatar-pick");
+                if (!pick) return;
+                current = pick.getAttribute("data-img");
+                cfg.onChange(current);
+                results.innerHTML = "";
+                searchBox.classList.add("hidden");
+                query.value = "";
+                renderPreview();
+            });
+            return { get current() { return current; }, set(v) { current = v; renderPreview(); } };
+        }
+
+        // Create-guild picker
+        var createPicker = setup({
+            preview: "#commAvatarPreview",
+            searchBox: "#commAvatarSearch",
+            query: "#commAvatarQuery",
+            results: "#commAvatarResults",
+            btnPick: "#btnPickCommAvatar",
+            btnClear: "#btnClearCommAvatar",
+            initialText: "G",
+            onChange: function (url) { chosenCommAvatar = url; },
+        });
+
+        // Edit-guild picker (in the guild info tab)
+        var editPicker = setup({
+            preview: "#commEditAvatarPreview",
+            searchBox: "#commEditAvatarSearch",
+            query: "#commEditAvatarQuery",
+            results: "#commEditAvatarResults",
+            btnPick: "#btnPickEditCommAvatar",
+            btnClear: "#btnClearEditCommAvatar",
+            initialText: "G",
+            onChange: function (url) { _editCommAvatar = url; },
+        });
+
+        // Expose so openCommunityMenu can seed the edit preview.
+        State._editPicker = editPicker;
+    }
+
+    var chosenCommAvatar = null;
     var chosenCommColor = COMM_COLORS[0];
 
     function wireNewCommunityModal() {
@@ -2409,6 +2589,7 @@
                     genre: $("#commGenreInput").value.trim(),
                     description: $("#commDescInput").value.trim(),
                     icon_color: chosenCommColor,
+                    icon_url: chosenCommAvatar,
                 },
             }).then(function (res) {
                 if (!res.success) { handleApiError(res); return; }
@@ -2601,7 +2782,12 @@
             }
         });
         $("#commInviteLink").addEventListener("click", function () {
-            this.select();
+            if (this.value) window.open(this.value, "_blank");
+        });
+        $("#commInviteFriends").addEventListener("click", function (e) {
+            var row = e.target.closest("[data-send-invite]");
+            if (!row) return;
+            sendInviteToFriend(parseInt(row.getAttribute("data-send-invite"), 10));
         });
 
         // party strip actions
@@ -3013,6 +3199,7 @@
         wirePinsModal();
         wireSettingsModal();
         wireCommunities();
+        wireGuildAvatarPickers();
         wireBell();
         wireEvents();
 

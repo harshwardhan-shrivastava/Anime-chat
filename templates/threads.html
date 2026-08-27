@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260827d">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260827e">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260826h">
 </head>
 <body
@@ -93,6 +93,7 @@
         <aside class="thr-channel-panel hidden" id="channelPanel">
             <div class="thr-comm-head">
                 <div class="thr-comm-title-row">
+                    <span id="commHeadAvatar" class="thr-comm-head-avatar hidden"></span>
                     <span id="commName" class="thr-comm-name"></span>
                     <button id="btnCommMenuHead" class="thr-icon-btn thr-comm-chevron" title="Guild settings">
                         <i class="fas fa-chevron-down"></i>
@@ -429,6 +430,18 @@
                 <span class="thr-label">Icon color</span>
                 <div id="commColors" class="thr-color-swatches"></div>
             </div>
+            <div class="thr-guild-avatar-row">
+                <span class="thr-label">Anime avatar <em>(optional)</em></span>
+                <div class="thr-guild-avatar-preview" id="commAvatarPreview" style="background:#8b5cf6">G</div>
+                <button type="button" class="thr-btn thr-btn-sm" id="btnPickCommAvatar">
+                    <i class="fas fa-image"></i> Pick anime
+                </button>
+                <button type="button" class="thr-btn thr-btn-sm" id="btnClearCommAvatar" hidden>Remove</button>
+            </div>
+            <div id="commAvatarSearch" class="thr-guild-avatar-search hidden">
+                <input id="commAvatarQuery" class="thr-text-input" type="text" placeholder="Search anime for the avatar…" autocomplete="off">
+                <div id="commAvatarResults" class="thr-guild-avatar-results"></div>
+            </div>
             <button id="btnCreateCommSubmit" class="thr-btn thr-btn-primary thr-btn-block">Create guild</button>
         </div>
     </div>
@@ -450,6 +463,18 @@
         <div class="thr-modal-body">
             <!-- Info + rules -->
             <div id="ctabInfo" class="thr-ctab">
+                <div class="thr-guild-avatar-row">
+                    <span class="thr-label">Anime avatar</span>
+                    <div class="thr-guild-avatar-preview" id="commEditAvatarPreview" style="background:#8b5cf6">G</div>
+                    <button type="button" class="thr-btn thr-btn-sm" id="btnPickEditCommAvatar">
+                        <i class="fas fa-image"></i> Change
+                    </button>
+                    <button type="button" class="thr-btn thr-btn-sm" id="btnClearEditCommAvatar" hidden>Remove</button>
+                </div>
+                <div id="commEditAvatarSearch" class="thr-guild-avatar-search hidden">
+                    <input id="commEditAvatarQuery" class="thr-text-input" type="text" placeholder="Search anime for the avatar…" autocomplete="off">
+                    <div id="commEditAvatarResults" class="thr-guild-avatar-results"></div>
+                </div>
                 <input id="commEditName" class="thr-text-input" type="text" maxlength="60">
                 <input id="commEditGenre" class="thr-text-input" type="text" maxlength="40">
                 <textarea id="commEditDesc" class="thr-textarea" rows="2" maxlength="500"></textarea>
@@ -471,8 +496,14 @@
                         <button type="button" class="thr-link-btn" id="btnCopyInvite">Copy link</button>
                     </div>
                     <input id="commInviteLink" class="thr-text-input" type="text" readonly
-                           placeholder="Open a guild to generate its invite link">
-                    <p class="thr-invite-hint">Anyone with this link can join the guild.</p>
+                           placeholder="Open a guild to generate its invite link" title="Click to open">
+                    <p class="thr-invite-hint">Click the link to open it, or copy it to share.</p>
+                    <div class="thr-invite-send-head">
+                        <span><i class="fas fa-paper-plane"></i> Send to a friend</span>
+                    </div>
+                    <div id="commInviteFriends" class="thr-invite-friends">
+                        <div class="thr-dropdown-empty">Loading friends…</div>
+                    </div>
                 </div>
                 <div id="commMemberList" class="thr-member-list"></div>
                 <div id="commBannedList" class="thr-banned-list"></div>
@@ -558,6 +589,6 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260827d"></script>
+<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260827e"></script>
 </body>
 </html>
