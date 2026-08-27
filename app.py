@@ -57,6 +57,7 @@ from database import (
     get_user_review_history,
     get_user_review,
     delete_user_review,
+    delete_episode_review,
     set_profile_public,
     recalculate_user_xp,
 )
@@ -1200,6 +1201,22 @@ def delete_review():
     if not review_id:
         return jsonify({"success": False, "error": "Missing review id."}), 400
     if not delete_user_review(review_id, user["id"]):
+        return jsonify({"success": False, "error": "Review not found."}), 404
+    return jsonify({"success": True})
+
+
+@app.route("/delete-episode-review", methods=["POST"])
+def delete_episode_review_route():
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in."}), 401
+    data = request.get_json(silent=True) or {}
+    anime_slug = data.get("anime_slug")
+    season_name = data.get("season_name")
+    episode_number = data.get("episode_number")
+    if not all([anime_slug, season_name, episode_number]):
+        return jsonify({"success": False, "error": "Missing fields."}), 400
+    if not delete_episode_review(anime_slug, season_name, int(episode_number), user["id"]):
         return jsonify({"success": False, "error": "Review not found."}), 404
     return jsonify({"success": True})
 

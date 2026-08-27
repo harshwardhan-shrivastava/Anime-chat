@@ -225,6 +225,25 @@
 
         {% if current_user %}
 
+        <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <i class="fas fa-exclamation-triangle" style="color:#f59e0b;font-size:1rem;"></i>
+            <span style="color:#fbbf24;font-size:0.85rem;font-weight:600;">Reviews cannot be edited after posting. Check your spelling before you submit!</span>
+        </div>
+
+        {% if my_review %}
+        <div id="epAlreadyReviewed" style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.08));border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:20px;margin-bottom:20px;">
+            <p style="margin:0 0 8px;color:#f59e0b;font-weight:700;font-size:1rem;">
+                <i class="fas fa-exclamation-triangle"></i> You already reviewed this episode
+            </p>
+            <p style="margin:0 0 12px;color:#9ca3af;font-size:0.85rem;line-height:1.5;">
+                Reviews <strong style="color:#f87171;">cannot be edited</strong> after posting.
+                If you want to review again, delete this one first — but you'll <strong style="color:#f87171;">lose all XP</strong> from its likes and dislikes.
+            </p>
+            <button type="button" id="deleteMyEpReviewBtn" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#f87171;padding:8px 18px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">
+                <i class="fas fa-trash"></i> Delete &amp; Re-review
+            </button>
+        </div>
+        {% else %}
         <div class="wire-review">
 
             <div class="wire-stars" id="wireStars">
@@ -236,13 +255,7 @@
             </div>
 
             <p class="selected-rating-label" id="wireLabel">
-
-                {% if my_review %}
-                Your rating: {{ (my_review.rating // 2) }}/5 — tap a star to change it
-                {% else %}
                 Tap a star to rate out of 5
-                {% endif %}
-
             </p>
 
             <button type="button" class="rating-cta" id="scrollToEpisodeReviewBtn">
@@ -253,14 +266,13 @@
             <form method="POST" action="{{ url_for('episode_rate', anime_slug=anime.slug, season_idx=season_idx, episode_number=episode_number) }}"
                   class="wire-form" id="wireForm">
 
-                <input type="hidden" name="rating" id="ratingInput"
-                       value="{{ my_review.rating if my_review else '' }}">
+                <input type="hidden" name="rating" id="ratingInput" value="">
 
                 <textarea name="comment" id="wireComment"
-                          placeholder="Write a short review of this episode… (optional)">{{ my_review.comment if my_review else '' }}</textarea>
+                          placeholder="Write a short review of this episode… (optional)"></textarea>
 
-                <button type="submit" id="wireSubmit" {% if not my_review %}disabled{% endif %}>
-                    {{ 'Update Review' if my_review else 'Rate Episode' }}
+                <button type="submit" id="wireSubmit" disabled>
+                    Rate Episode
                 </button>
 
                 <p class="review-error" id="wireError"></p>
@@ -268,6 +280,7 @@
             </form>
 
         </div>
+        {% endif %}
 
         {% else %}
 
@@ -311,7 +324,7 @@
 
             {% for review in stats.reviews %}
 
-            <div class="review-card">
+            <div class="review-card"{% if current_user and review.user_id == current_user.id %} style="border-color:#22c55e;"{% endif %}>
 
                 <div class="review-header">
 
@@ -328,6 +341,15 @@
 
                     </div>
 
+                    {% if current_user and review.user_id == current_user.id %}
+                    <div style="margin-left:auto;position:relative;">
+                        <button type="button" class="review-menu-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:1.6rem;padding:4px 12px;border-radius:8px;line-height:1;">⋮</button>
+                        <div style="display:none;position:absolute;right:0;top:100%;background:#1f2937;border:1px solid #374151;border-radius:8px;min-width:130px;z-index:20;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.4);">
+                            <button type="button" onclick="if(confirm('Delete your review? You can write a new one after, but you will lose all XP from its likes/dislikes.')){fetch('/delete-episode-review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({anime_slug:'{{ anime.slug }}',season_name:'{{ season_idx }}',episode_number:{{ episode_number }}})}).then(function(r){return r.json()}).then(function(d){if(d.success)window.location.reload();else alert(d.error||'Could not delete.')})}" style="display:block;width:100%;text-align:left;background:none;border:none;color:#f87171;padding:10px 14px;cursor:pointer;font-size:0.9rem;">🗑 Delete</button>
+                        </div>
+                    </div>
+                    {% endif %}
+
                 </div>
 
                 <p>
@@ -335,6 +357,21 @@
                     {{ review.comment if review.comment else '(No written review, just a rating.)' }}
 
                 </p>
+
+                {% if not current_user or review.user_id != current_user.id %}
+                <div class="vote-btn-wrap" data-review-id="{{ review.id }}" data-review-type="episode">
+                    <button type="button" class="vote-btn gvote" data-kind="like">
+                        <span class="vote-emoji">👍</span>
+                        <span class="vote-count">{{ review.likes or 0 }}</span>
+                    </button>
+                    <button type="button" class="vote-btn gvote" data-kind="dislike">
+                        <span class="vote-emoji">👎</span>
+                        <span class="vote-count">{{ review.dislikes or 0 }}</span>
+                    </button>
+                </div>
+                {% else %}
+                <div class="own-review-note"><i class="fas fa-user-check"></i> Your review</div>
+                {% endif %}
 
             </div>
 
@@ -373,16 +410,40 @@
     <script>
     (function () {
         var btn = document.getElementById("scrollToEpisodeReviewBtn");
-        if (!btn) return;
-        btn.addEventListener("click", function () {
-            var target = document.getElementById("wireComment");
-            if (!target) {
-                var reviewSection = document.querySelector(".wire-review");
-                target = reviewSection || document.body;
-            }
-            target.scrollIntoView({ behavior: "smooth", block: "center" });
-            if (target && target.focus) { setTimeout(function () { target.focus(); }, 500); }
-        });
+        if (btn) {
+            btn.addEventListener("click", function () {
+                var target = document.getElementById("wireComment");
+                if (!target) {
+                    var reviewSection = document.querySelector(".wire-review");
+                    target = reviewSection || document.body;
+                }
+                target.scrollIntoView({ behavior: "smooth", block: "center" });
+                if (target && target.focus) { setTimeout(function () { target.focus(); }, 500); }
+            });
+        }
+        var delBtn = document.getElementById("deleteMyEpReviewBtn");
+        if (delBtn) {
+            delBtn.addEventListener("click", function () {
+                if (!confirm("Delete your review? You'll lose all XP from likes/dislikes. You can write a new one after.")) return;
+                var slug = document.body.dataset.animeSlug;
+                var sIdx = document.body.dataset.seasonIdx;
+                var epNum = document.body.dataset.episodeNumber;
+                fetch("/delete-episode-review", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ anime_slug: slug, season_name: sIdx, episode_number: epNum })
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert(data.error || "Could not delete review.");
+                    }
+                })
+                .catch(function() { alert("Network error. Please try again."); });
+            });
+        }
     })();
     </script>
 

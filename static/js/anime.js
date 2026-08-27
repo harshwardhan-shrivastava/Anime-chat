@@ -105,6 +105,13 @@ function buildReviewMenu(reviewId, card) {
 
 // Like/dislike bar under each review card.
 function buildVoteBar(review) {
+    // Don't show vote buttons on your own review.
+    if (currentUserId && review.user_id === currentUserId) {
+        const note = document.createElement("div");
+        note.className = "own-review-note";
+        note.innerHTML = '<i class="fas fa-user-check"></i> Your review';
+        return note;
+    }
     const bar = document.createElement("div");
     bar.className = "review-vote-bar";
 
@@ -177,7 +184,7 @@ function showReviewForm() {
 }
 
 function hideReviewFormFor(myReview) {
-    // User already reviewed: swap the form for a one-review notice.
+    // User already reviewed: swap the form for a warning notice with delete option.
     const box = document.querySelector(".review-box");
     if (!box) return;
     box.style.display = "none";
@@ -185,13 +192,38 @@ function hideReviewFormFor(myReview) {
     if (document.getElementById("alreadyReviewedMsg")) return;
     const msg = document.createElement("div");
     msg.id = "alreadyReviewedMsg";
-    msg.style.cssText = "background:#111827;border:1px solid #374151;border-radius:12px;padding:20px;margin-bottom:20px;";
+    msg.style.cssText = "background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.08));border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:20px;margin-bottom:20px;";
     msg.innerHTML = `
-        <p style="margin:0;color:#22c55e;font-weight:600;">
-            <i class="fas fa-check-circle"></i> You can only review an anime one time.
+        <p style="margin:0 0 8px;color:#f59e0b;font-weight:700;font-size:1rem;">
+            <i class="fas fa-exclamation-triangle"></i> You already reviewed this anime
         </p>
+        <p style="margin:0 0 12px;color:#9ca3af;font-size:0.85rem;line-height:1.5;">
+            Reviews <strong style="color:#f87171;">cannot be edited</strong> after posting. Double-check your spelling before you post!
+            If you want to review again, delete this one first — but you'll <strong style="color:#f87171;">lose all XP</strong> from its likes and dislikes.
+        </p>
+        <button type="button" id="deleteMyReviewBtn" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#f87171;padding:8px 18px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">
+            <i class="fas fa-trash"></i> Delete &amp; Re-review
+        </button>
     `;
     box.parentNode.insertBefore(msg, box);
+    document.getElementById("deleteMyReviewBtn").addEventListener("click", function() {
+        if (!confirm("Delete your review? You'll lose all XP from likes/dislikes on this review. You can write a new one after.")) return;
+        fetch("/delete-review", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ review_id: myReview.id })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showReviewForm();
+                loadStats();
+            } else {
+                alert(data.error || "Could not delete review.");
+            }
+        })
+        .catch(() => alert("Network error. Please try again."));
+    });
 }
 
 function starsForValue(value) {

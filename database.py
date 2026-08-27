@@ -1427,6 +1427,27 @@ def add_episode_review(anime_slug, season_name, episode_number, user_id,
     conn.close()
 
 
+def delete_episode_review(anime_slug, season_name, episode_number, user_id):
+    """Delete an episode review only if it belongs to the given user."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id FROM episode_reviews WHERE anime_slug=? AND season_name=? AND episode_number=? AND user_id=?",
+        (anime_slug, season_name, episode_number, user_id),
+    )
+    row = cursor.fetchone()
+    if not row:
+        return False
+    cursor.execute(
+        "DELETE FROM episode_reviews WHERE anime_slug=? AND season_name=? AND episode_number=? AND user_id=?",
+        (anime_slug, season_name, episode_number, user_id),
+    )
+    deleted = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return deleted
+
+
 def get_episode_stats(anime_slug, season_name, episode_number):
     conn = get_connection()
     cursor = conn.cursor()
