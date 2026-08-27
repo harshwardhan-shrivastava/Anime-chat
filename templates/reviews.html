@@ -71,14 +71,20 @@
             background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(14,165,233,0.06));
             border: 1px solid rgba(34,197,94,0.25);
             border-radius: 18px;
-            padding: 22px 24px;
             margin-bottom: 24px;
+            overflow: hidden;
         }
         .reviews-guide-head {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 16px;
+            padding: 16px 24px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+        .reviews-guide-head:hover {
+            background: rgba(34,197,94,0.08);
         }
         .reviews-guide-head i {
             color: #22c55e;
@@ -89,6 +95,25 @@
             font-size: 1.1rem;
             font-weight: 800;
             letter-spacing: -0.01em;
+            flex: 1;
+        }
+        .reviews-guide-head .guide-toggle {
+            color: #6b7280;
+            font-size: 0.85rem;
+            transition: transform 0.3s;
+        }
+        .reviews-guide.open .reviews-guide-head .guide-toggle {
+            transform: rotate(180deg);
+        }
+        .reviews-guide-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.3s ease;
+            padding: 0 24px;
+        }
+        .reviews-guide.open .reviews-guide-body {
+            max-height: 600px;
+            padding: 0 24px 22px;
         }
         .reviews-guide-grid {
             display: grid;
@@ -395,32 +420,37 @@
             </div>
         </div>
 
-        <div class="reviews-guide">
-            <div class="reviews-guide-head">
+        <div class="reviews-guide" id="reviewsGuide">
+            <div class="reviews-guide-head" onclick="document.getElementById('reviewsGuide').classList.toggle('open')">
                 <i class="fas fa-circle-info"></i>
                 <h2>How Reviews &amp; XP Work</h2>
+                <span class="guide-toggle"><i class="fas fa-chevron-down"></i></span>
             </div>
-            <div class="reviews-guide-grid">
-                <div class="guide-col">
-                    <h3><i class="fas fa-star"></i> Rating</h3>
-                    <p>Rate anime on <strong>5 stars</strong>. Rate episodes on <strong>5 stars</strong> too
-                    (shown as /10 on the card). Your rating + optional comment becomes a review.</p>
-                </div>
-                <div class="guide-col">
-                    <h3><i class="fas fa-bolt"></i> XP &amp; Votes</h3>
-                    <p>Every <strong>like</strong> earns the author XP, every <strong>dislike</strong> hurts it —
-                    it's all about your <strong>ratio</strong>. Posting reviews also gives a small XP bonus.
-                    Your XP bar fills as you climb toward the next rank.</p>
-                </div>
-                <div class="guide-col">
-                    <h3><i class="fas fa-trophy"></i> Ranks</h3>
-                    <div class="guide-rank-row"><span class="rank-chip rk-Splus">S+</span> 15,000+ XP</div>
-                    <div class="guide-rank-row"><span class="rank-chip rk-S">S</span> 5,000 XP</div>
-                    <div class="guide-rank-row"><span class="rank-chip rk-A">A</span> 2,000 XP</div>
-                    <div class="guide-rank-row"><span class="rank-chip rk-B">B</span> 1,000 XP</div>
-                    <div class="guide-rank-row"><span class="rank-chip rk-C">C</span> 500 XP</div>
-                    <div class="guide-rank-row"><span class="rank-chip rk-D">D</span> 0 XP</div>
-                    <p style="margin-top:8px;">Higher ranked reviews <strong>show first</strong> in the feed.</p>
+            <div class="reviews-guide-body">
+                <div class="reviews-guide-grid">
+                    <div class="guide-col">
+                        <h3><i class="fas fa-star"></i> Rating</h3>
+                        <p>Rate anime on <strong>5 stars</strong>. Rate episodes on <strong>5 stars</strong> too
+                        (shown as /10 on the card). Your rating + optional comment becomes a review.</p>
+                        <p style="margin-top:10px;color:#9ca3af;font-size:0.82rem;">Pick stars, write your thoughts, and hit <strong style="color:#22c55e;">Post Review</strong>. That's it — your opinion is now part of the community.</p>
+                    </div>
+                    <div class="guide-col">
+                        <h3><i class="fas fa-bolt"></i> XP &amp; Votes</h3>
+                        <p>Every <strong>like</strong> earns the author XP, every <strong>dislike</strong> hurts it —
+                        it's all about your <strong>ratio</strong>. Posting reviews also gives a small XP bonus.
+                        Your XP bar fills as you climb toward the next rank.</p>
+                        <p style="margin-top:10px;color:#9ca3af;font-size:0.82rem;">10 likes + 0 dislikes = strong ratio. 5 likes + 5 dislikes = 50% ratio. Keep your reviews helpful and constructive to earn more likes!</p>
+                    </div>
+                    <div class="guide-col">
+                        <h3><i class="fas fa-trophy"></i> Ranks</h3>
+                        <div class="guide-rank-row"><span class="rank-chip rk-Splus">S+</span> <span>15,000+ XP</span></div>
+                        <div class="guide-rank-row"><span class="rank-chip rk-S">S</span> <span>5,000 XP</span></div>
+                        <div class="guide-rank-row"><span class="rank-chip rk-A">A</span> <span>2,000 XP</span></div>
+                        <div class="guide-rank-row"><span class="rank-chip rk-B">B</span> <span>1,000 XP</span></div>
+                        <div class="guide-rank-row"><span class="rank-chip rk-C">C</span> <span>500 XP</span></div>
+                        <div class="guide-rank-row"><span class="rank-chip rk-D">D</span> <span>0 XP (everyone starts here)</span></div>
+                        <p style="margin-top:10px;color:#9ca3af;font-size:0.82rem;">Higher ranked reviews <strong style="color:#e5e7eb;">show first</strong> in the feed. Climb the ranks to get your reviews seen by more people!</p>
+                    </div>
                 </div>
             </div>
         </div>

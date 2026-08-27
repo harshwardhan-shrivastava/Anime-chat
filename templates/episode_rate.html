@@ -209,64 +209,7 @@
     {% endif %}
     {% endwith %}
 
-    <!-- Rating Panel -->
 
-    <section class="content-section">
-
-        <h2 class="section-title">
-
-            <i class="fas fa-star"></i>
-
-            Episode Rating
-
-        </h2>
-
-        <div class="ep-rating-panel">
-
-            <div class="ep-big-rating" id="epBigRating">
-
-                {% if stats.votes > 0 %}{{ stats.average }}{% else %}--{% endif %}
-
-            </div>
-
-            <div class="ep-rating-stars" id="epRatingStars">
-
-                {% if stats.votes > 0 %}{{ '%0.1f' | format(stats.average) }}{% else %}No ratings yet{% endif %}
-
-            </div>
-
-            <p id="epVotesLabel">
-
-                {% if stats.votes > 0 %}
-                {{ stats.votes }} rating{{ 's' if stats.votes != 1 else '' }} · out of 5
-                {% else %}
-                Be the first to rate this episode
-                {% endif %}
-
-            </p>
-
-            {% if stats.votes > 0 %}
-            <div class="ep-breakdown" id="epBreakdown">
-
-                {% for star in range(5, 0, -1) %}
-                {% set bucket = star * 2 %}
-                {% set count = (stats.breakdown[bucket|string] | default(0)) + (stats.breakdown[(bucket - 1)|string] | default(0)) %}
-                {% set pct = (count / stats.votes * 100) | round | int %}
-                <div class="breakdown-row">
-                    <span class="breakdown-label">{{ star }}★</span>
-                    <div class="breakdown-track">
-                        <div class="breakdown-fill" style="width:{{ pct }}%"></div>
-                    </div>
-                    <span class="breakdown-count">{{ count }}</span>
-                </div>
-                {% endfor %}
-
-            </div>
-            {% endif %}
-
-        </div>
-
-    </section>
 
     <!-- Wire Review System -->
 
