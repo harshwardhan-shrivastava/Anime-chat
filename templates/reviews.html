@@ -10,16 +10,17 @@
     href="{{ url_for('static', filename='favicon.svg') }}">
 
     <link rel="stylesheet"
-    href="{{ url_for('static', filename='css/style.css') }}?v=20260826e">
+    href="{{ url_for('static', filename='css/style.css') }}?v=20260827a">
 
     <link rel="stylesheet"
     href="{{ url_for('static', filename='css/auth.css') }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>    <link rel="stylesheet"
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet"
-        href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260826h">
+        href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260827a">
 
     <style>
         body {
@@ -30,7 +31,7 @@
             min-height: 100vh;
         }
         .reviews-page {
-            max-width: 960px;
+            max-width: 980px;
             margin: 0 auto;
             padding: 48px 20px 80px;
         }
@@ -38,11 +39,20 @@
             display: flex;
             align-items: center;
             gap: 16px;
-            margin-bottom: 32px;
+            margin-bottom: 28px;
         }
-        .reviews-hero i {
-            font-size: 2.4rem;
-            color: #22c55e;
+        .reviews-hero .hero-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #22c55e, #0ea5e9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            color: #fff;
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3);
+            flex-shrink: 0;
         }
         .reviews-hero h1 {
             margin: 0;
@@ -55,19 +65,149 @@
             color: #9ca3af;
             font-size: 0.95rem;
         }
-        .global-review-card {
+
+        /* ===== How-it-works info box ===== */
+        .reviews-guide {
+            background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(14,165,233,0.06));
+            border: 1px solid rgba(34,197,94,0.25);
+            border-radius: 18px;
+            padding: 22px 24px;
+            margin-bottom: 24px;
+        }
+        .reviews-guide-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .reviews-guide-head i {
+            color: #22c55e;
+            font-size: 1.2rem;
+        }
+        .reviews-guide-head h2 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+        }
+        .reviews-guide-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+        }
+        .guide-col {
+            background: rgba(17, 24, 39, 0.6);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px;
+            padding: 16px;
+        }
+        .guide-col h3 {
+            margin: 0 0 8px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #22c55e;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .guide-col h3 i { font-size: 0.9rem; }
+        .guide-col p {
+            margin: 0;
+            color: #9ca3af;
+            font-size: 0.85rem;
+            line-height: 1.55;
+        }
+        .guide-col p strong { color: #e5e7eb; }
+        .guide-rank-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+            font-size: 0.82rem;
+            color: #cbd5e1;
+        }
+        .guide-rank-row .rank-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 0.8rem;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .rank-chip.rk-Splus { background: linear-gradient(135deg,#f59e0b,#ef4444); }
+        .rank-chip.rk-S { background: linear-gradient(135deg,#eab308,#f97316); }
+        .rank-chip.rk-A { background: linear-gradient(135deg,#22c55e,#0ea5e9); }
+        .rank-chip.rk-B { background: linear-gradient(135deg,#0ea5e9,#6366f1); }
+        .rank-chip.rk-C { background: linear-gradient(135deg,#6366f1,#a855f7); }
+        .rank-chip.rk-D { background: linear-gradient(135deg,#64748b,#475569); }
+        .rank-chip.rk-F { background: linear-gradient(135deg,#ef4444,#7f1d1d); }
+
+        /* ===== Tabs ===== */
+        .reviews-tabs {
+            display: flex;
+            gap: 8px;
+            margin: 0 0 24px;
             background: #111827;
             border: 1px solid #1f2937;
             border-radius: 16px;
+            padding: 6px;
+        }
+        .reviews-tab {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 13px 16px;
+            border: none;
+            border-radius: 12px;
+            background: transparent;
+            color: #9ca3af;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, transform 0.1s;
+        }
+        .reviews-tab:hover { background: #1f2937; color: #e5e7eb; }
+        .reviews-tab.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(34,197,94,0.35);
+        }
+        .reviews-tab.active i { color: #fff; }
+
+        /* ===== Review cards ===== */
+        .global-review-card {
+            background: linear-gradient(180deg, #131c2b, #111827);
+            border: 1px solid #1f2937;
+            border-radius: 18px;
             padding: 20px 22px;
             margin-bottom: 16px;
-            transition: border-color 0.2s, transform 0.15s;
+            transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
             overflow: hidden;
+            position: relative;
+        }
+        .global-review-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(34,197,94,0.5), transparent);
+            opacity: 0;
+            transition: opacity 0.2s;
         }
         .global-review-card:hover {
             border-color: #374151;
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.35);
         }
+        .global-review-card:hover::before { opacity: 1; }
         .grc-top {
             display: flex;
             align-items: center;
@@ -75,8 +215,8 @@
             margin-bottom: 12px;
         }
         .review-avatar-initial {
-            width: 44px;
-            height: 44px;
+            width: 46px;
+            height: 46px;
             border-radius: 50%;
             object-fit: cover;
             flex-shrink: 0;
@@ -89,6 +229,7 @@
             background: #374151;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.06);
         }
         .review-avatar-initial img {
             position: absolute;
@@ -106,8 +247,20 @@
             color: #9ca3af;
             font-size: 0.85rem;
             margin: 2px 0 0;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
         }
-        .grc-meta .stars { color: #facc15; }
+        .grc-meta .stars { color: #facc15; letter-spacing: 1px; }
+        .grc-meta .grc-score {
+            background: rgba(250,204,21,0.12);
+            color: #facc15;
+            border-radius: 6px;
+            padding: 1px 8px;
+            font-weight: 700;
+            font-size: 0.78rem;
+        }
         .grc-body-wrap {
             overflow: hidden;
         }
@@ -121,7 +274,7 @@
             width: 180px;
             height: 252px;
             object-fit: cover;
-            border-radius: 0 16px 16px 0;
+            border-radius: 0 18px 18px 0;
             display: block;
             box-shadow: -4px 4px 18px rgba(0,0,0,0.5);
             transition: transform 0.2s;
@@ -153,59 +306,34 @@
             line-height: 1.6;
             color: #d1d5db;
             white-space: pre-wrap;
-        }
-        .reviews-tabs {
-            display: flex;
-            gap: 10px;
-            margin: 0 0 24px;
-            background: #111827;
-            border: 1px solid #1f2937;
-            border-radius: 14px;
-            padding: 6px;
-        }
-        .reviews-tab {
-            flex: 1;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 12px 16px;
-            border: none;
-            border-radius: 10px;
-            background: transparent;
-            color: #9ca3af;
             font-size: 0.95rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background 0.15s, color 0.15s;
         }
-        .reviews-tab:hover { background: #1f2937; color: #e5e7eb; }
-        .reviews-tab.active {
-            background: #22c55e;
-            color: #0a0e14;
-        }
-        .reviews-tab.active i { color: #0a0e14; }
         .grc-anime-link {
             color: #22c55e;
             font-weight: 600;
             text-decoration: none;
+            transition: color 0.15s;
         }
-        .grc-anime-link:hover { text-decoration: underline; }
+        .grc-anime-link:hover { color: #4ade80; text-decoration: underline; }
         .grc-ep-label {
             color: #facc15;
             font-weight: 600;
         }
+
+        /* ===== Vote buttons ===== */
         .vote-btn-wrap {
             display: flex;
             gap: 10px;
             margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255,255,255,0.05);
         }
         .vote-btn {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 10px 20px;
-            min-width: 76px;
+            padding: 9px 18px;
+            min-width: 80px;
             justify-content: center;
             border: 1px solid #1f2937;
             border-radius: 12px;
@@ -214,31 +342,44 @@
             font-size: 0.95rem;
             font-weight: 700;
             cursor: pointer;
-            transition: background 0.12s, border-color 0.12s, transform 0.08s, color 0.12s;
+            transition: background 0.12s, border-color 0.12s, transform 0.08s, color 0.12s, box-shadow 0.12s;
             user-select: none;
         }
         .vote-btn:hover {
             background: #16202e;
             border-color: #374151;
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
         }
-        .vote-btn:active { transform: scale(0.96); }
+        .vote-btn:active { transform: scale(0.95); }
         .vote-btn.voted-like {
             background: rgba(34, 197, 94, 0.16);
             border-color: #22c55e;
             color: #22c55e;
+            box-shadow: 0 0 0 1px rgba(34,197,94,0.2), 0 4px 14px rgba(34,197,94,0.15);
         }
         .vote-btn.voted-dislike {
             background: rgba(239, 68, 68, 0.14);
             border-color: #ef4444;
             color: #ef4444;
+            box-shadow: 0 0 0 1px rgba(239,68,68,0.2), 0 4px 14px rgba(239,68,68,0.12);
         }
         .vote-count { font-variant-numeric: tabular-nums; }
+        .vote-btn .vote-emoji { font-size: 1.05rem; line-height: 1; }
         .reviews-empty {
             text-align: center;
             color: #6b7280;
             padding: 60px 0;
             font-size: 1.05rem;
+        }
+        .own-review-note {
+            opacity: 0.55;
+            font-size: 0.82rem;
+            color: #9ca3af;
+            padding-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
     </style>
 </head>
@@ -247,10 +388,40 @@
 
     <div class="reviews-page">
         <div class="reviews-hero">
-            <i class="fas fa-comments"></i>
+            <div class="hero-icon"><i class="fas fa-comments"></i></div>
             <div>
                 <h1>Community Reviews</h1>
                 <p>Every review from across Otakul — highest ranked first.</p>
+            </div>
+        </div>
+
+        <div class="reviews-guide">
+            <div class="reviews-guide-head">
+                <i class="fas fa-circle-info"></i>
+                <h2>How Reviews &amp; XP Work</h2>
+            </div>
+            <div class="reviews-guide-grid">
+                <div class="guide-col">
+                    <h3><i class="fas fa-star"></i> Rating</h3>
+                    <p>Rate anime on <strong>5 stars</strong>. Rate episodes on <strong>5 stars</strong> too
+                    (shown as /10 on the card). Your rating + optional comment becomes a review.</p>
+                </div>
+                <div class="guide-col">
+                    <h3><i class="fas fa-bolt"></i> XP &amp; Votes</h3>
+                    <p>Every <strong>like</strong> earns the author XP, every <strong>dislike</strong> hurts it —
+                    it's all about your <strong>ratio</strong>. Posting reviews also gives a small XP bonus.
+                    Your XP bar fills as you climb toward the next rank.</p>
+                </div>
+                <div class="guide-col">
+                    <h3><i class="fas fa-trophy"></i> Ranks</h3>
+                    <div class="guide-rank-row"><span class="rank-chip rk-Splus">S+</span> 15,000+ XP</div>
+                    <div class="guide-rank-row"><span class="rank-chip rk-S">S</span> 5,000 XP</div>
+                    <div class="guide-rank-row"><span class="rank-chip rk-A">A</span> 2,000 XP</div>
+                    <div class="guide-rank-row"><span class="rank-chip rk-B">B</span> 1,000 XP</div>
+                    <div class="guide-rank-row"><span class="rank-chip rk-C">C</span> 500 XP</div>
+                    <div class="guide-rank-row"><span class="rank-chip rk-D">D</span> 0 XP</div>
+                    <p style="margin-top:8px;">Higher ranked reviews <strong>show first</strong> in the feed.</p>
+                </div>
             </div>
         </div>
 
@@ -278,8 +449,9 @@
                     {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:1rem;padding:4px 18px;letter-spacing:2px;">{{ r.rank }}</span><span class="xp-bar rank-{{ r.rank }}"><span class="xp-bar-fill" style="width:{{ r.xp_pct or 0 }}%"></span><span class="xp-bar-text">{{ r.user_xp or 0 }} XP</span></span>{% endif %}
                     <p class="grc-meta">
                         <a class="grc-anime-link" href="/anime/{{ r.anime_slug }}">{{ r.anime_title }}</a> ·
-                        <span class="stars">{% for i in range(1,6) %}{% if i <= (r.rating // 2) %}★{% else %}☆{% endif %}{% endfor %}</span>
-                        {{ r.rating }}/10 · {{ r.created_at }}
+                        <span class="stars">{% for i in range(1,6) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
+                        <span class="grc-score">{{ r.rating }}/5</span> ·
+                        {{ r.created_at }}
                     </p>
                 </div>
                 </div>
@@ -288,16 +460,16 @@
             {% if current_user and current_user.id != r.user_id %}
             <div class="vote-btn-wrap" data-review-id="{{ r.id }}" data-review-type="anime">
                 <button type="button" class="vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like">
-                    <span style="font-size:1.1rem;">👍</span>
+                    <span class="vote-emoji">👍</span>
                     <span class="vote-count">{{ r.likes or 0 }}</span>
                 </button>
                 <button type="button" class="vote-btn gvote {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike">
-                    <span style="font-size:1.1rem;">👎</span>
+                    <span class="vote-emoji">👎</span>
                     <span class="vote-count">{{ r.dislikes or 0 }}</span>
                 </button>
             </div>
             {% elif current_user %}
-            <div style="opacity:0.4;font-size:0.85rem;color:#9ca3af;padding-top:4px;">Your review</div>
+            <div class="own-review-note"><i class="fas fa-user-check"></i> Your review</div>
             {% endif %}
         </div>
         {% else %}
@@ -323,8 +495,9 @@
                     <p class="grc-meta">
                         <a class="grc-anime-link" href="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}">{{ r.anime_title }}</a> ·
                         <span class="grc-ep-label">Ep {{ r.episode_number }}{% if r.season_name %} · {{ r.season_name }}{% endif %}</span> ·
-                        <span class="stars">{% for i in range(1,6) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
-                        {{ r.rating }}/5 · {{ r.created_at }}
+                        <span class="stars">{% for i in range(1,6) %}{% if i <= (r.rating // 2) %}★{% else %}☆{% endif %}{% endfor %}</span>
+                        <span class="grc-score">{{ r.rating }}/10</span> ·
+                        {{ r.created_at }}
                     </p>
                 </div>
                 </div>
@@ -333,16 +506,16 @@
             {% if current_user and current_user.id != r.user_id %}
             <div class="vote-btn-wrap" data-review-id="{{ r.id }}" data-review-type="episode">
                 <button type="button" class="vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like">
-                    <span style="font-size:1.1rem;">👍</span>
+                    <span class="vote-emoji">👍</span>
                     <span class="vote-count">{{ r.likes or 0 }}</span>
                 </button>
                 <button type="button" class="vote-btn gvote {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike">
-                    <span style="font-size:1.1rem;">👎</span>
+                    <span class="vote-emoji">👎</span>
                     <span class="vote-count">{{ r.dislikes or 0 }}</span>
                 </button>
             </div>
             {% elif current_user %}
-            <div style="opacity:0.4;font-size:0.85rem;color:#9ca3af;padding-top:4px;">Your review</div>
+            <div class="own-review-note"><i class="fas fa-user-check"></i> Your review</div>
             {% endif %}
         </div>
         {% else %}
