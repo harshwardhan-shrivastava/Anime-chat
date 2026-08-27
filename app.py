@@ -1095,6 +1095,24 @@ def vote_review(review_id):
     is_like = data.get("is_like")
     if is_like is None:
         return jsonify({"success": False, "error": "Missing vote type."}), 400
+    # Prevent voting on your own review
+    try:
+        if review_type == "episode":
+            from database import get_connection as _gc
+            _c = _gc(); _cur = _c.cursor()
+            _cur.execute("SELECT user_id FROM episode_reviews WHERE id=?", (review_id,))
+            _r = _cur.fetchone(); _c.close()
+            if _r and _r["user_id"] == user["id"]:
+                return jsonify({"success": False, "error": "You can't vote on your own review."}), 400
+        elif review_type == "anime":
+            from database import get_connection as _gc
+            _c = _gc(); _cur = _c.cursor()
+            _cur.execute("SELECT user_id FROM reviews WHERE id=?", (review_id,))
+            _r = _cur.fetchone(); _c.close()
+            if _r and _r["user_id"] == user["id"]:
+                return jsonify({"success": False, "error": "You can't vote on your own review."}), 400
+    except Exception:
+        pass
     try:
         new_is_like, removed = toggle_review_like(
             user["id"], review_type, review_id, bool(is_like)

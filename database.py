@@ -2262,7 +2262,7 @@ def toggle_review_like(user_id, review_type, review_id, is_like):
         if r:
             review_author_id = r["user_id"]
     elif review_type == "anime":
-        cursor.execute("SELECT user_id FROM anime_ratings WHERE id=?", (review_id,))
+        cursor.execute("SELECT user_id FROM reviews WHERE id=?", (review_id,))
         r = cursor.fetchone()
         if r:
             review_author_id = r["user_id"]

@@ -285,6 +285,7 @@
                 </div>
                 {% if r.comment %}<p class="grc-comment">{{ r.comment }}</p>{% endif %}
             </div>
+            {% if current_user and current_user.id != r.user_id %}
             <div class="vote-btn-wrap" data-review-id="{{ r.id }}" data-review-type="anime">
                 <button type="button" class="vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like">
                     <span style="font-size:1.1rem;">👍</span>
@@ -295,6 +296,9 @@
                     <span class="vote-count">{{ r.dislikes or 0 }}</span>
                 </button>
             </div>
+            {% elif current_user %}
+            <div style="opacity:0.4;font-size:0.85rem;color:#9ca3af;padding-top:4px;">Your review</div>
+            {% endif %}
         </div>
         {% else %}
         <div class="reviews-empty">
@@ -326,6 +330,7 @@
                 </div>
                 {% if r.comment %}<p class="grc-comment">{{ r.comment }}</p>{% endif %}
             </div>
+            {% if current_user and current_user.id != r.user_id %}
             <div class="vote-btn-wrap" data-review-id="{{ r.id }}" data-review-type="episode">
                 <button type="button" class="vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like">
                     <span style="font-size:1.1rem;">👍</span>
@@ -336,6 +341,9 @@
                     <span class="vote-count">{{ r.dislikes or 0 }}</span>
                 </button>
             </div>
+            {% elif current_user %}
+            <div style="opacity:0.4;font-size:0.85rem;color:#9ca3af;padding-top:4px;">Your review</div>
+            {% endif %}
         </div>
         {% else %}
         <div class="reviews-empty">
