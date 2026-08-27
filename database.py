@@ -2185,14 +2185,13 @@ def recalculate_user_xp(user_id):
     """
     conn = get_connection()
     cursor = conn.cursor()
-    # Count all likes and dislikes across all reviews by this user
+    # Count all likes and dislikes across BOTH anime AND episode reviews
     cursor.execute("""
         SELECT
-            SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) as likes,
-            SUM(CASE WHEN rl.is_like=0 THEN 1 ELSE 0 END) as dislikes
-        FROM review_likes rl
-        JOIN reviews r ON r.id = rl.review_id
-        WHERE r.user_id = ?
+            SUM(CASE WHEN is_like=1 THEN 1 ELSE 0 END) as likes,
+            SUM(CASE WHEN is_like=0 THEN 1 ELSE 0 END) as dislikes
+        FROM review_likes
+        WHERE user_id = ?
     """, (user_id,))
     row = cursor.fetchone()
     likes = row["likes"] or 0
