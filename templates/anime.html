@@ -598,71 +598,7 @@
     </section>
     {% endif %}
 
-        <!-- Languages -->
 
-    {% set real_dub_list = anime.dub | real_dubs %}
-
-    {% if real_dub_list or anime.subtitles %}
-    <section class="content-section">
-
-        <h2 class="section-title">
-
-            <i class="fas fa-language"></i>
-
-            Audio & Subtitles
-
-        </h2>
-
-        <div class="language-grid">
-
-            {% if real_dub_list %}
-            <div class="glass-card">
-
-                <h3>
-
-                    Dub Available
-
-                </h3>
-
-                <ul>
-
-                    {% for dub in real_dub_list %}
-
-                    <li>{{ dub }}</li>
-
-                    {% endfor %}
-
-                </ul>
-
-            </div>
-            {% endif %}
-
-            {% if anime.subtitles %}
-            <div class="glass-card">
-
-                <h3>
-
-                    Subtitle Languages
-
-                </h3>
-
-                <ul>
-
-                    {% for sub in anime.subtitles %}
-
-                    <li>{{ sub }}</li>
-
-                    {% endfor %}
-
-                </ul>
-
-            </div>
-            {% endif %}
-
-        </div>
-
-    </section>
-    {% endif %}
 
     <!-- Reviews (unified: rating + review composer + existing reviews) -->
 
@@ -732,49 +668,7 @@
 
     </section>
 
-        <!-- Watch Order -->
 
-    {% if anime.watch_order %}
-    <section class="content-section">
-
-        <h2 class="section-title">
-
-            <i class="fas fa-list-ol"></i>
-
-            Recommended Watch Order
-
-        </h2>
-
-        <div class="watch-order">
-
-            {% for item in anime.watch_order %}
-
-            <div class="watch-card">
-
-                <div class="watch-number">
-
-                    {{ loop.index }}
-
-                </div>
-
-                <div>
-
-                    <h3>
-
-                        {{ item }}
-
-                    </h3>
-
-                </div>
-
-            </div>
-
-            {% endfor %}
-
-        </div>
-
-    </section>
-    {% endif %}
 
     <!-- Similar Anime -->
 

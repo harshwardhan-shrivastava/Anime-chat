@@ -829,6 +829,36 @@ def api_search():
 
 
 @app.route("/anime/<anime_slug>")
+def _smart_recommendations(anime, limit=6):
+    """Pick recommendations from the same studio or genre, not random trash."""
+    slug = anime.get("slug", "")
+    studio = (anime.get("studio") or "").strip()
+    genre_str = anime.get("genre") or ""
+    genres = set(g.strip().lower() for g in genre_str.split("•") if g.strip())
+    scored = []
+    for s, entry in anime_database.items():
+        if s == slug:
+            continue
+        score = 0
+        # Same studio = high priority
+        if studio and (entry.get("studio") or "").strip().lower() == studio.lower():
+            score += 10
+        # Shared genres
+        entry_genres = set(g.strip().lower() for g in (entry.get("genre") or "").split("•") if g.strip())
+        score += len(genres & entry_genres) * 3
+        # Popularity boost
+        members = entry.get("member_count", 0) or 0
+        if members > 10000:
+            score += 2
+        elif members > 1000:
+            score += 1
+        if score > 0:
+            scored.append((score, entry.get("member_count", 0), s, entry))
+    scored.sort(key=lambda x: (-x[0], -x[1]))
+    return [{"slug": s, "title": e.get("title", s), "image": e.get("image", "")}
+            for _, _, s, e in scored[:limit]]
+
+
 def anime(anime_slug):
     anime = anime_database.get(anime_slug)
     if anime is None:
@@ -836,9 +866,13 @@ def anime(anime_slug):
     user = g.get("user")
     if user is not None:
         record_view(user["id"], anime_slug)
+    # Override static recommendations with smart studio/genre picks
+    smart_recs = _smart_recommendations(anime)
+    anime_with_recs = dict(anime)
+    anime_with_recs["recommendations"] = smart_recs
     return render_template(
         "anime.html",
-        anime=anime,
+        anime=anime_with_recs,
         next_episode_label=_episode_badge(anime),
         episode_stats=get_all_episode_stats(anime_slug),
     )
