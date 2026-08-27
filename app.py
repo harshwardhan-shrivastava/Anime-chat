@@ -983,9 +983,11 @@ def reviews_page():
         r["anime_title"] = entry.get("title", r["anime_slug"]) if entry else r["anime_slug"]
         r["anime_image"] = entry.get("image") if entry else None
         r["episode_thumb"] = None
+        r["season_idx"] = 1
         if entry and entry.get("seasons"):
-            for s in entry["seasons"]:
+            for si, s in enumerate(entry["seasons"]):
                 if s.get("name") == r["season_name"]:
+                    r["season_idx"] = si + 1
                     for ep in s.get("episodes", []):
                         if ep.get("number") == r["episode_number"]:
                             r["episode_thumb"] = ep.get("thumb") or ep.get("image")

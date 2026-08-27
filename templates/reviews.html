@@ -137,8 +137,9 @@
         }
         .grc-poster.ep-thumb img {
             width: 100%;
-            height: 180px;
+            height: 120px;
             border-radius: 12px;
+            object-position: top;
         }
         .grc-comment {
             margin: 0;
@@ -300,7 +301,7 @@
         <div class="global-review-card">
             <div class="grc-body-wrap">
                 {% if r.episode_thumb %}
-                <a class="grc-poster ep-thumb" href="/anime/{{ r.anime_slug }}" title="{{ r.anime_title }} — {{ r.season_name }}">
+                <a class="grc-poster ep-thumb" href="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}" title="{{ r.anime_title }} — {{ r.season_name }}">
                     <img src="{{ r.episode_thumb }}" alt="{{ r.anime_title }}">
                 </a>
                 {% endif %}
@@ -309,7 +310,7 @@
                 <div>                    <p class="grc-user">{{ r.username }}</p>
                     {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:1rem;padding:4px 18px;letter-spacing:2px;">{{ r.rank }}</span><span class="xp-bar rank-{{ r.rank }}"><span class="xp-bar-fill" style="width:{{ r.xp_pct or 0 }}%"></span><span class="xp-bar-text">{{ r.user_xp or 0 }} XP</span></span>{% endif %}
                     <p class="grc-meta">
-                        <a class="grc-anime-link" href="/anime/{{ r.anime_slug }}">{{ r.anime_title }}</a> ·
+                        <a class="grc-anime-link" href="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}">{{ r.anime_title }}</a> ·
                         <span class="grc-ep-label">Ep {{ r.episode_number }}{% if r.season_name %} · {{ r.season_name }}{% endif %}</span> ·
                         <span class="stars">{% for i in range(1,6) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
                         {{ r.rating }}/5 · {{ r.created_at }}
