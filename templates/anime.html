@@ -282,7 +282,7 @@
                 {% if anime.total_episodes %}
                 <div class="info-row">
 
-                    <span>Episodes</span>
+                    <span>{{ t('Episodes') }}</span>
 
                     <strong>{{ anime.total_episodes }}</strong>
 
@@ -356,9 +356,9 @@
 
         <h2 class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
 
-            <span><i class="fas fa-film"></i> Seasons</span>
+            <span><i class="fas fa-film"></i> {{ t('Seasons') }}</span>
 
-            <a href="/reviews" style="font-size:0.55em;color:#22c55e;text-decoration:none;font-weight:500;white-space:nowrap;"><i class="fas fa-external-link-alt"></i> Go to Reviews →</a>
+            <a href="/reviews" style="font-size:0.55em;color:#22c55e;text-decoration:none;font-weight:500;white-space:nowrap;"><i class="fas fa-external-link-alt"></i> {{ t('Go to Reviews') }} →</a>
 
         </h2>
 
@@ -380,13 +380,13 @@
 
                     <h3>
 
-                        {{ season_label }}
+                        {% if season_label == 'Episodes' %}{{ t('Episodes') }}{% else %}{{ season_label }}{% endif %}
 
                     </h3>
 
                     <span>
 
-                        {{ season.episodes|length }} {{ 'Movie' if is_movie else 'Episodes' }}
+                        {{ season.episodes|length }} {{ t('Episodes') }}
 
                     </span>
 
@@ -394,7 +394,7 @@
 
                 <button class="expand-btn">
 
-                    View Episodes
+                    {{ t('View Episodes') }}
 
                     <i class="fas fa-chevron-down"></i>
 
@@ -485,7 +485,7 @@
                             {% endif %}
 
                             <span class="episode-rate-btn">
-                                Rate <i class="fas fa-star"></i>
+                                {{ t('Rate') }} <i class="fas fa-star"></i>
                             </span>
 
                         </div>
@@ -606,9 +606,9 @@
 
         <h2 class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
 
-            <span><i class="fas fa-star"></i> Community Reviews</span>
+            <span><i class="fas fa-star"></i> {{ t('Community Reviews') }}</span>
 
-            <a href="/reviews" style="font-size:0.55em;color:#22c55e;text-decoration:none;font-weight:500;white-space:nowrap;"><i class="fas fa-external-link-alt"></i> Go to Reviews →</a>
+            <a href="/reviews" style="font-size:0.55em;color:#22c55e;text-decoration:none;font-weight:500;white-space:nowrap;"><i class="fas fa-external-link-alt"></i> {{ t('Go to Reviews') }} →</a>
 
         </h2>
 
@@ -620,11 +620,11 @@
                 <span style="color:#fbbf24;font-size:0.85rem;font-weight:600;">Reviews cannot be edited after posting. Check your spelling before you submit!</span>
             </div>
             <div class="review-as-user" style="margin-bottom:10px;color:#9ca3af;font-size:0.9em;">
-                <i class="fas fa-user"></i> Posting as <strong style="color:#fff;">{{ current_user.username }}</strong>
+                <i class="fas fa-user"></i> {{ t('Posting as') }} <strong style="color:#fff;">{{ current_user.username }}</strong>
             </div>
             <div class="review-composer">
                 <div class="review-rate-row">
-                    <span class="review-rate-label">Your rating:</span>
+                    <span class="review-rate-label">{{ t('Your rating:') }}</span>
                     <div class="user-stars" id="userStars">
                         <i class="far fa-star" data-value="1"></i>
                         <i class="far fa-star" data-value="2"></i>
@@ -632,11 +632,11 @@
                         <i class="far fa-star" data-value="4"></i>
                         <i class="far fa-star" data-value="5"></i>
                     </div>
-                    <p class="selected-rating-label" id="selectedRatingLabel">Tap a star to choose your rating</p>
+                    <p class="selected-rating-label" id="selectedRatingLabel">{{ t('Tap a star to choose your rating') }}</p>
                 </div>
                 <textarea
                     id="reviewComment"
-                    placeholder="Share your thoughts about this anime..."></textarea>
+                    placeholder="{{ t('Share your thoughts about this anime...') }}"></textarea>
             </div>
             {% else %}
             <div class="review-login-prompt" style="text-align:center;padding:20px;color:#9ca3af;">
@@ -647,7 +647,7 @@
             {% if current_user %}
             <button id="postReviewBtn">
 
-                Post Review
+                {{ t('Post Review') }}
 
             </button>
             {% endif %}
@@ -660,7 +660,7 @@
 
             <p class="no-reviews" id="noReviewsMsg">
 
-                You haven't reviewed this anime yet. Be the first!
+                {{ t("You haven't reviewed this anime yet. Be the first!") }}
 
             </p>
 
@@ -678,7 +678,7 @@
 
             <i class="fas fa-fire"></i>
 
-            You May Also Like
+            {{ t('You May Also Like') }}
 
         </h2>
 

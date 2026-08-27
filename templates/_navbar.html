@@ -3,21 +3,21 @@
         <span class="logo-anime">Ota</span><span class="logo-chat">kul</span>
     </a>
     <div class="nav-links">
-        <a href="{{ url_for('browse', sort='new') }}">New</a>
-        <a href="{{ url_for('browse', sort='upcoming') }}">Upcoming</a>
-        <a href="{{ url_for('browse', sort='popular') }}">Popular</a>
-        <a href="{{ url_for('browse', sort='trending') }}">Trending</a>
-        <a href="{{ url_for('browse', sort='critics') }}">Critics</a>
+        <a href="{{ url_for('browse', sort='new') }}">{{ t('New') }}</a>
+        <a href="{{ url_for('browse', sort='upcoming') }}">{{ t('Upcoming') }}</a>
+        <a href="{{ url_for('browse', sort='popular') }}">{{ t('Popular') }}</a>
+        <a href="{{ url_for('browse', sort='trending') }}">{{ t('Trending') }}</a>
+        <a href="{{ url_for('browse', sort='critics') }}">{{ t('Critics') }}</a>
         <div class="nav-cat">
-            <a href="{{ url_for('browse') }}" class="cat-toggle">Categories <i class="fas fa-caret-down"></i></a>
+            <a href="{{ url_for('browse') }}" class="cat-toggle">{{ t('Categories') }} <i class="fas fa-caret-down"></i></a>
             <div class="category-menu">
                 <div class="cat-col cat-browse">
-                    <a href="{{ url_for('browse', sort='new') }}">Airing Now</a>
-                    <a href="{{ url_for('browse', sort='upcoming') }}">Upcoming</a>
-                    <a href="{{ url_for('browse', sort='popular') }}">Browse All (A–Z)</a>
+                    <a href="{{ url_for('browse', sort='new') }}">{{ t('Airing Now') }}</a>
+                    <a href="{{ url_for('browse', sort='upcoming') }}">{{ t('Upcoming') }}</a>
+                    <a href="{{ url_for('browse', sort='popular') }}">{{ t('Browse All (A–Z)') }}</a>
                 </div>
                 <div class="cat-col cat-genres">
-                    <span class="cat-heading">Genres</span>
+                    <span class="cat-heading">{{ t('Genres') }}</span>
                     <div class="cat-genre-cols">
                         {% for genre in genres %}
                         <a href="{{ url_for('category', genre=genre) }}">{{ genre }}</a>
@@ -26,16 +26,21 @@
                 </div>
             </div>
         </div>
-        <a href="{{ url_for('browse', sort='underrated') }}">Underrated</a>
-        <a href="{{ url_for('characters') }}">Characters</a>
-        <a href="{{ url_for('reviews_page') }}">Reviews</a>
-        <a href="{{ url_for('threads.index') }}">Threads</a>
+        <a href="{{ url_for('browse', sort='underrated') }}">{{ t('Underrated') }}</a>
+        <a href="{{ url_for('characters') }}">{{ t('Characters') }}</a>
+        <a href="{{ url_for('reviews_page') }}">{{ t('Reviews') }}</a>
+        <a href="{{ url_for('threads.index') }}">{{ t('Threads') }}</a>
 
     </div>
     <div class="nav-right">
+        <button type="button" class="lang-toggle" id="langToggle" onclick="toggleLang()" title="Language / 言語">
+            <span class="lang-en {{ 'active' if current_lang != 'ja' else '' }}">EN</span>
+            <span class="lang-divider">/</span>
+            <span class="lang-ja {{ 'active' if current_lang == 'ja' else '' }}">日本語</span>
+        </button>
         <a href="{{ url_for('for_you') }}" class="mood-btn">
             <i class="fas fa-star"></i>
-            New to Anime
+            {{ t('New to Anime') }}
         </a>
         {% if current_user %}
         <div class="nav-auth-widget">
@@ -63,23 +68,23 @@
                         <span class="nav-user-menu-name">{{ current_user.username }}</span>
                     </a>
                     <a href="{{ url_for('profile.profile', tab='settings') }}" class="nav-user-menu-item">
-                        <i class="fas fa-cog"></i> Settings
+                        <i class="fas fa-cog"></i> {{ t('Settings') }}
                     </a>
                     <a href="{{ url_for('profile.profile', tab='history') }}" class="nav-user-menu-item">
-                        <i class="fas fa-history"></i> History
+                        <i class="fas fa-history"></i> {{ t('History') }}
                     </a>
                     <a href="{{ url_for('profile.profile', tab='lists') }}" class="nav-user-menu-item">
-                        <i class="fas fa-list"></i> Anime List
+                        <i class="fas fa-list"></i> {{ t('Anime List') }}
                     </a>
                     <a href="{{ url_for('auth.logout') }}" class="nav-user-menu-item danger">
-                        <i class="fas fa-sign-out-alt"></i> Log Out
+                        <i class="fas fa-sign-out-alt"></i> {{ t('Log Out') }}
                     </a>
                 </div>
             </div>
         </div>
         {% else %}
         <a href="{{ url_for('auth.login') }}" class="login-btn" style="text-decoration:none;display:inline-block;">
-            Login
+            {{ t('Login') }}
         </a>
         {% endif %}
     </div>
@@ -133,4 +138,11 @@
         }
     });
 })();
+
+// Language toggle — sets cookie and reloads instantly (client-side only).
+function toggleLang() {
+    var next = document.cookie.indexOf("lang=ja") !== -1 ? "en" : "ja";
+    document.cookie = "lang=" + next + "; path=/; max-age=31536000";
+    window.location.reload();
+}
 </script>

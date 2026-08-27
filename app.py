@@ -124,7 +124,13 @@ def _no_store_html(response):
 
 @app.context_processor
 def _inject_user():
-    return {"current_user": g.get("user")}
+    from i18n import t, ja, get_language
+    return {
+        "current_user": g.get("user"),
+        "t": t,
+        "ja": ja,
+        "current_lang": get_language(),
+    }
 
 
 def _hd_anilist_url(image):
@@ -782,6 +788,20 @@ def category(genre):
     )
 
 
+@functools.lru_cache(maxsize=1)
+def _jp_titles_map():
+    """Load the small Japanese-title cache (slug -> {native, romaji})."""
+    try:
+        import os
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "anime_jp_titles.json")
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
 @app.route("/api/search")
 def api_search():
     q = (request.args.get("q") or "").strip().lower()
@@ -806,17 +826,42 @@ def api_search():
             return True
         return len(words) > 1 and all(w in tn for w in words)
 
+    jp_map = _jp_titles_map()
+    matches = set()
+    # First pass: english/romaji title match
     for slug, entry in anime_database.items():
         title = entry.get("title", "")
         if _matches(title):
-            results.append({
-                "slug": slug,
-                "title": title,
-                "image": entry.get("image", ""),
-                "year": entry.get("release", ""),
-                "rating": entry.get("rating", "N/A"),
-                "_members": entry.get("member_count", 0),
-            })
+            matches.add(slug)
+
+    # Second pass: Japanese native / romaji title match (fast, uses small map)
+    if any(ord(c) > 0x2e80 for c in q):  # contains CJK/Kana → search Japanese titles
+        for slug, info in jp_map.items():
+            native = info.get("native") or ""
+            romaji = info.get("romaji") or ""
+            if native and q in native.lower():
+                matches.add(slug)
+            elif romaji and _matches(romaji):
+                matches.add(slug)
+    else:
+        # Romaji search: also match romaji field for JP-only titles
+        for slug, info in jp_map.items():
+            romaji = info.get("romaji") or ""
+            if romaji and _matches(romaji):
+                matches.add(slug)
+
+    for slug in matches:
+        entry = anime_database.get(slug)
+        if not entry:
+            continue
+        results.append({
+            "slug": slug,
+            "title": entry.get("title", ""),
+            "image": entry.get("image", ""),
+            "year": entry.get("release", ""),
+            "rating": entry.get("rating", "N/A"),
+            "_members": entry.get("member_count", 0),
+        })
 
     # Sort by member count (popularity) so main entries rank above spinoffs
     results.sort(key=lambda r: r.get("_members", 0), reverse=True)
@@ -828,7 +873,6 @@ def api_search():
     return jsonify({"success": True, "results": results})
 
 
-@app.route("/anime/<anime_slug>")
 def _smart_recommendations(anime, limit=6):
     """Pick recommendations from the same studio or genre, not random trash."""
     slug = anime.get("slug", "")
@@ -859,6 +903,7 @@ def _smart_recommendations(anime, limit=6):
             for _, _, s, e in scored[:limit]]
 
 
+@app.route("/anime/<anime_slug>")
 def anime(anime_slug):
     anime = anime_database.get(anime_slug)
     if anime is None:
