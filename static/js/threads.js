@@ -3293,6 +3293,9 @@
             if (!document.hidden) api("/threads/api/presence");
         }, 30000);
 
+        // parse URL params once for invite, open, etc.
+        var params = new URLSearchParams(window.location.search);
+
         // join a guild via ?invite=CODE, then open it
         var inviteCode = params.get("invite");
         if (inviteCode) {
@@ -3316,7 +3319,6 @@
         }
 
         // open ?with=dm:3 from a notification click elsewhere
-        var params = new URLSearchParams(window.location.search);
         var open = params.get("open");
         if (open && open.indexOf(":") !== -1) {
             var parts = open.split(":");
