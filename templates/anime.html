@@ -681,38 +681,28 @@
 
         </h2>
 
-        <div class="rating-panel" style="margin-bottom:24px;">
-
-            <div class="big-rating" id="bigRating">--</div>
-
-            <div class="rating-stars" id="ratingStarsDisplay">★★★★★</div>
-
-            <p id="reviewCountLabel">0 Community Reviews</p>
-
-            <div class="rating-breakdown" id="ratingBreakdown"></div>
-
-        </div>
-
         <div class="review-box">
 
             {% if current_user %}
             <div class="review-as-user" style="margin-bottom:10px;color:#9ca3af;font-size:0.9em;">
                 <i class="fas fa-user"></i> Posting as <strong style="color:#fff;">{{ current_user.username }}</strong>
             </div>
-            <div class="review-rate-row">
-                <span class="review-rate-label">Your rating:</span>
-                <div class="user-stars" id="userStars">
-                    <i class="far fa-star" data-value="1"></i>
-                    <i class="far fa-star" data-value="2"></i>
-                    <i class="far fa-star" data-value="3"></i>
-                    <i class="far fa-star" data-value="4"></i>
-                    <i class="far fa-star" data-value="5"></i>
+            <div class="review-composer">
+                <div class="review-rate-row">
+                    <span class="review-rate-label">Your rating:</span>
+                    <div class="user-stars" id="userStars">
+                        <i class="far fa-star" data-value="1"></i>
+                        <i class="far fa-star" data-value="2"></i>
+                        <i class="far fa-star" data-value="3"></i>
+                        <i class="far fa-star" data-value="4"></i>
+                        <i class="far fa-star" data-value="5"></i>
+                    </div>
+                    <p class="selected-rating-label" id="selectedRatingLabel">Tap a star to choose your rating</p>
                 </div>
-                <p class="selected-rating-label" id="selectedRatingLabel">Tap a star to choose your rating</p>
+                <textarea
+                    id="reviewComment"
+                    placeholder="Share your thoughts about this anime..."></textarea>
             </div>
-            <textarea
-                id="reviewComment"
-                placeholder="Share your thoughts about this anime..."></textarea>
             {% else %}
             <div class="review-login-prompt" style="text-align:center;padding:20px;color:#9ca3af;">
                 <p><i class="fas fa-lock"></i> <a href="{{ url_for('auth.login') }}" style="color:#22c55e;font-weight:600;">Log in</a> to post a review.</p>

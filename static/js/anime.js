@@ -253,30 +253,32 @@ function renderStats(data) {
     const average = data.average || 0;
     const votes = data.votes || 0;
 
-    bigRating.textContent = votes > 0 ? average.toFixed(2) : "N/A";
-    ratingStarsDisplay.textContent = votes > 0 ? starsForValue(average) : "\u2606\u2606\u2606\u2606\u2606";
-    reviewCountLabel.textContent = `${votes} Community Review${votes === 1 ? "" : "s"}`;
-    statReviewCount.textContent = votes;
+    if (bigRating) bigRating.textContent = votes > 0 ? average.toFixed(2) : "N/A";
+    if (ratingStarsDisplay) ratingStarsDisplay.textContent = votes > 0 ? starsForValue(average) : "\u2606\u2606\u2606\u2606\u2606";
+    if (reviewCountLabel) reviewCountLabel.textContent = `${votes} Community Review${votes === 1 ? "" : "s"}`;
+    if (statReviewCount) statReviewCount.textContent = votes;
 
     heroScore.textContent = votes > 0 ? average.toFixed(1) : "N/A";
     heroStars.textContent = votes > 0 ? starsForValue(average) : "\u2606\u2606\u2606\u2606\u2606";
     heroVotesLabel.textContent = votes > 0 ? `${votes} vote${votes === 1 ? "" : "s"}` : "No ratings yet";
 
-    ratingBreakdown.innerHTML = "";
-    for (let star = 5; star >= 1; star--) {
-        const count = (data.breakdown && data.breakdown[String(star)]) || 0;
-        const pct = votes > 0 ? Math.round((count / votes) * 100) : 0;
+    if (ratingBreakdown) {
+        ratingBreakdown.innerHTML = "";
+        for (let star = 5; star >= 1; star--) {
+            const count = (data.breakdown && data.breakdown[String(star)]) || 0;
+            const pct = votes > 0 ? Math.round((count / votes) * 100) : 0;
 
-        const row = document.createElement("div");
-        row.className = "breakdown-row";
-        row.innerHTML = `
-            <span class="breakdown-label">${star}\u2605</span>
-            <div class="breakdown-track">
-                <div class="breakdown-fill" style="width:${pct}%"></div>
-            </div>
-            <span class="breakdown-count">${count}</span>
-        `;
-        ratingBreakdown.appendChild(row);
+            const row = document.createElement("div");
+            row.className = "breakdown-row";
+            row.innerHTML = `
+                <span class="breakdown-label">${star}\u2605</span>
+                <div class="breakdown-track">
+                    <div class="breakdown-fill" style="width:${pct}%"></div>
+                </div>
+                <span class="breakdown-count">${count}</span>
+            `;
+            ratingBreakdown.appendChild(row);
+        }
     }
 
     reviewsContainer.querySelectorAll(".review-card").forEach(el => el.remove());
