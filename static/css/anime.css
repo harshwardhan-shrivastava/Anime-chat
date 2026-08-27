@@ -274,6 +274,31 @@ nav{
 
 }
 
+.review-scroll-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:12px 24px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(135deg, #f59e0b, #ef4444);
+    color:#fff;
+    font-weight:700;
+    font-size:15px;
+    cursor:pointer;
+    transition:transform .15s, box-shadow .15s;
+    box-shadow:0 4px 16px rgba(245,158,11,.3);
+}
+
+.review-scroll-btn:hover{
+    transform:translateY(-2px);
+    box-shadow:0 8px 24px rgba(245,158,11,.4);
+}
+
+.review-scroll-btn:active{
+    transform:scale(.97);
+}
+
 .join-btn:hover{
 
     transform:translateY(-4px);

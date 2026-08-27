@@ -224,6 +224,11 @@
 
                     </button>
 
+                    <button type="button" class="review-scroll-btn" onclick="document.getElementById('animeReviewSection').scrollIntoView({behavior:'smooth',block:'start'})">
+                        <i class="fas fa-pen"></i>
+                        Write a Review
+                    </button>
+
                 </div>
 
             </div>
@@ -397,6 +402,7 @@
 
                 <div class="episode-list">
 
+                    {% set epCounter = namespace(val=1) %}
                     {% for episode in season.episodes %}
 
                     {% set ep_stats = (episode_stats.get(season.name, {}) or {}).get(episode.number) %}
@@ -415,9 +421,11 @@
 
                             <h4>
 
-                                Episode {{ episode.number }}
+                                Episode {{ epCounter.val }}
 
                             </h4>
+
+                            {% set epCounter = namespace(val=epCounter.val + 1) %}
 
                             <p>
 
@@ -459,13 +467,15 @@
 
                             <h4>
 
-                                Episode {{ episode.number }}
+                                Episode {{ epCounter.val }}
 
                             </h4>
 
+                            {% set epCounter = namespace(val=epCounter.val + 1) %}
+
                             <p>
 
-                                {{ episode.title | default('Episode ' ~ episode.number) }}
+                                {{ episode.title | default('Episode ' ~ epCounter.val) }}
 
                             </p>
 
@@ -659,74 +669,29 @@
     </section>
     {% endif %}
 
-    <!-- Community Rating -->
+    <!-- Reviews (unified: rating + review composer + existing reviews) -->
 
-    <section class="content-section">
+    <section class="content-section" id="animeReviewSection">
 
         <h2 class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
 
-            <span><i class="fas fa-star"></i> Community Rating</span>
+            <span><i class="fas fa-star"></i> Community Reviews</span>
 
             <a href="/reviews" style="font-size:0.55em;color:#22c55e;text-decoration:none;font-weight:500;white-space:nowrap;"><i class="fas fa-external-link-alt"></i> Go to Reviews →</a>
 
         </h2>
 
-        <div class="rating-panel">
+        <div class="rating-panel" style="margin-bottom:24px;">
 
-            <div class="big-rating" id="bigRating">
+            <div class="big-rating" id="bigRating">--</div>
 
-                --
+            <div class="rating-stars" id="ratingStarsDisplay">★★★★★</div>
 
-            </div>
+            <p id="reviewCountLabel">0 Community Reviews</p>
 
-            <div class="rating-stars" id="ratingStarsDisplay">
-
-                ★★★★★
-
-            </div>
-
-            <p id="reviewCountLabel">
-
-                0 Community Reviews
-
-            </p>
-
-            <div class="rating-breakdown" id="ratingBreakdown">
-
-                <!-- filled by JS: bars for 5,4,3,2,1 star counts -->
-
-            </div>
-
-            <div class="rate-box">
-
-                <h3>
-
-                    Rate This Anime
-
-                </h3>
-
-                <button type="button" class="rating-cta" id="scrollToReviewBtn">
-                    <i class="fas fa-pen"></i> Write a Review
-                    <span class="rating-cta-hint">Pick your stars &amp; share your thoughts below</span>
-                </button>
-
-            </div>
+            <div class="rating-breakdown" id="ratingBreakdown"></div>
 
         </div>
-
-    </section>
-
-    <!-- Reviews -->
-
-    <section class="content-section">
-
-        <h2 class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
-
-            <span><i class="fas fa-comments"></i> Community Reviews</span>
-
-            <a href="/reviews" style="font-size:0.55em;color:#22c55e;text-decoration:none;font-weight:500;white-space:nowrap;"><i class="fas fa-external-link-alt"></i> Go to Reviews →</a>
-
-        </h2>
 
         <div class="review-box">
 
