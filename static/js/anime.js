@@ -315,12 +315,16 @@ function renderStats(data) {
 
     reviewsContainer.querySelectorAll(".review-card").forEach(el => el.remove());
 
-    if (!data.reviews || data.reviews.length === 0) {
+    // Only show the current user's own review on the anime page.
+    // Other users' reviews are on the /reviews page.
+    const myReviews = (data.reviews || []).filter(r => currentUserId && r.user_id === currentUserId);
+
+    if (myReviews.length === 0) {
         noReviewsMsg.style.display = "block";
     } else {
         noReviewsMsg.style.display = "none";
 
-        data.reviews.forEach(review => {
+        myReviews.forEach(review => {
             const card = document.createElement("div");
             card.className = "review-card";
 

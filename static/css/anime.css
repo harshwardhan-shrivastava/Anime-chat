@@ -1279,10 +1279,28 @@ nav{
 .review-box{
 
     max-width:900px;
-    margin:50px auto;
+    margin:0 auto 30px;
     display:flex;
     flex-direction:column;
-    gap:20px;
+    gap:0;
+
+}
+
+.review-box .review-composer{
+
+    background:#171f29;
+    border-radius:30px;
+    padding:30px 35px;
+    border:1px solid rgba(255,255,255,.06);
+    transition:border-color .2s, box-shadow .2s;
+    text-align:center;
+
+}
+
+.review-box .review-composer:focus-within{
+
+    border-color:rgba(34,197,94,.3);
+    box-shadow:0 0 0 3px rgba(34,197,94,.1);
 
 }
 
@@ -1290,10 +1308,10 @@ nav{
 
     display:flex;
     align-items:center;
-    gap:14px;
+    gap:12px;
     flex-wrap:wrap;
-    padding:0 0 12px;
-    margin-bottom:0;
+    justify-content:center;
+    margin-bottom:16px;
 
 }
 
@@ -1307,14 +1325,29 @@ nav{
 
 .review-rate-row .user-stars{
 
-    justify-content:flex-start;
-    gap:8px;
+    justify-content:center;
+    gap:10px;
 
 }
 
 .review-rate-row .user-stars i{
 
-    font-size:28px;
+    font-size:34px;
+    color:#7b8595;
+    cursor:pointer;
+    transition:.2s;
+
+}
+
+.review-rate-row .user-stars i:hover{
+
+    transform:scale(1.2);
+
+}
+
+.review-rate-row .user-stars i.fas{
+
+    color:#ffd54a;
 
 }
 
@@ -1322,37 +1355,30 @@ nav{
 
     margin-top:0;
     width:100%;
-    text-align:left;
-
-}
-
-.review-box .review-composer{
-
-    background:#131c2b;
-    border:1px solid rgba(255,255,255,.08);
-    border-radius:20px;
-    padding:20px 25px;
-    transition:border-color .2s, box-shadow .2s;
-
-}
-
-.review-box .review-composer:focus-within{
-
-    border-color:#22c55e;
-    box-shadow:0 0 0 3px rgba(34,197,94,.15);
+    text-align:center;
+    color:#9ca3af;
+    font-size:.9rem;
 
 }
 
 .review-box textarea{
 
-    min-height:140px;
+    width:100%;
+    min-height:80px;
+    max-height:160px;
     resize:none;
+    overflow-y:auto;
     border:none;
     outline:none;
-    padding:0;
-    background:transparent;
+    border-radius:18px;
+    padding:18px 22px;
+    background:#0f141c;
     color:white;
-    font-size:16px;
+    font-size:15px;
+    font-family:inherit;
+    line-height:1.5;
+    margin-top:12px;
+    box-sizing:border-box;
 
 }
 
@@ -1365,21 +1391,30 @@ nav{
 .review-box button{
 
     align-self:flex-end;
-    padding:15px 35px;
+    padding:14px 32px;
     border:none;
     border-radius:14px;
     background:#00c16a;
     color:white;
     cursor:pointer;
     font-weight:700;
+    font-size:15px;
     transition:.3s;
+    margin-top:14px;
 
 }
 
-.review-box button:hover{
+.review-box button:hover:not(:disabled){
 
     background:#18d67d;
-    transform:translateY(-3px);
+    transform:translateY(-2px);
+
+}
+
+.review-box button:disabled{
+
+    opacity:.45;
+    cursor:not-allowed;
 
 }
 
