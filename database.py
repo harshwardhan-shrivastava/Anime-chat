@@ -1209,6 +1209,16 @@ _anime_stats_cache = {}
 _anime_stats_cache_ttl = 120  # seconds
 _anime_stats_cache_times = {}
 
+# Cache for episode stats (per anime slug)
+_episode_stats_cache = {}
+_episode_stats_cache_ttl = 120  # seconds
+_episode_stats_cache_times = {}
+
+# Cache for global reviews feed
+_all_reviews_cache = None
+_all_reviews_cache_time = 0
+_all_reviews_cache_ttl = 60  # seconds
+
 def get_anime_stats(anime_slug):
     now = time.time()
     cached = _anime_stats_cache.get(anime_slug)
@@ -1285,10 +1295,15 @@ def add_review(anime_slug, username, rating, comment, user_id=None):
     conn.commit()
     conn.close()
     _invalidate_anime_stats_cache(anime_slug)
-
+    global _all_reviews_cache
+    _all_reviews_cache = None
 
 def get_all_reviews(limit=200):
     """Return the most recent reviews across ALL anime (for the /reviews page)."""
+    global _all_reviews_cache, _all_reviews_cache_time
+    now = time.time()
+    if _all_reviews_cache and now - _all_reviews_cache_time < _all_reviews_cache_ttl:
+        return _all_reviews_cache
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -1317,6 +1332,8 @@ def get_all_reviews(limit=200):
         for row in cursor.fetchall()
     ]
     conn.close()
+    _all_reviews_cache = reviews
+    _all_reviews_cache_time = now
     return reviews
 
 
@@ -1400,8 +1417,9 @@ def delete_user_review(review_id, user_id):
     conn.close()
     if deleted:
         _invalidate_anime_stats_cache(row["anime_slug"])
+        global _all_reviews_cache
+        _all_reviews_cache = None
     return deleted
-
 
 def add_episode_review(anime_slug, season_name, episode_number, user_id,
                        username, avatar_color, rating, comment):
@@ -1425,6 +1443,8 @@ def add_episode_review(anime_slug, season_name, episode_number, user_id,
     )
     conn.commit()
     conn.close()
+    _episode_stats_cache.pop(anime_slug, None)
+    _episode_stats_cache_times.pop(anime_slug, None)
 
 
 def delete_episode_review(anime_slug, season_name, episode_number, user_id):
@@ -1445,8 +1465,10 @@ def delete_episode_review(anime_slug, season_name, episode_number, user_id):
     deleted = cursor.rowcount > 0
     conn.commit()
     conn.close()
+    if deleted:
+        _episode_stats_cache.pop(anime_slug, None)
+        _episode_stats_cache_times.pop(anime_slug, None)
     return deleted
-
 
 def get_episode_stats(anime_slug, season_name, episode_number):
     conn = get_connection()
@@ -1514,6 +1536,10 @@ def get_user_episode_review(anime_slug, season_name, episode_number, user_id):
 
 
 def get_all_episode_stats(anime_slug):
+    now = time.time()
+    cached = _episode_stats_cache.get(anime_slug)
+    if cached and now - _episode_stats_cache_times.get(anime_slug, 0) < _episode_stats_cache_ttl:
+        return cached
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -1531,6 +1557,8 @@ def get_all_episode_stats(anime_slug):
             "votes": row["votes"],
         }
     conn.close()
+    _episode_stats_cache[anime_slug] = out
+    _episode_stats_cache_times[anime_slug] = now
     return out
 
 
