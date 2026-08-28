@@ -2240,12 +2240,13 @@ def get_user_xp(user_id):
         (user_id,),
         one=True,
     )
-    if row:
+    if row and row["xp"]:
         return row["xp"]
     try:
-        return _compute_xp(user_id)
+        computed = _compute_xp(user_id)
+        return computed if computed else 100
     except Exception:
-        return 0
+        return 100
 
 
 def get_user_rank(user_id):
@@ -2318,7 +2319,7 @@ def get_all_user_ranks(user_ids):
     """Return {user_id: {xp, rank}} for a list of user IDs.
 
     Every requested user gets an entry -- those without a user_xp row
-    default to 0 XP / rank D so badges always render.
+    default to 100 XP / rank D so badges always render.
     """
     if not user_ids:
         return {}
@@ -2331,6 +2332,8 @@ def get_all_user_ranks(user_ids):
     result = {}
     for uid in user_ids:
         xp = xp_map.get(uid, 0)
+        if not xp:
+            xp = 100
         result[uid] = {"xp": xp, "rank": get_xp_tier(xp)}
     return result
 
