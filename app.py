@@ -163,6 +163,25 @@ def anime_img_large(image):
     return anime_img(image)
 
 
+@app.template_filter("jp_title")
+def jp_title(anime):
+    """Return the Japanese native title for an anime dict when the site is
+    in 日本語 mode; otherwise (or when we don't have a native title) return
+    the English/romaji title. User-facing anime names are translated, which
+    is exactly what the language toggle promises — user content (reviews,
+    chat, guild names) is never touched."""
+    from i18n import get_language
+    if get_language() != "ja":
+        return anime.get("title", "") if isinstance(anime, dict) else str(anime or "")
+    if not isinstance(anime, dict):
+        return str(anime or "")
+    slug = anime.get("slug", "")
+    info = _jp_titles_map().get(slug)
+    if info and info.get("native"):
+        return info["native"]
+    return anime.get("title", "")
+
+
 def _parse_db_time(ts):
     from datetime import datetime, timezone
     if not ts:
@@ -854,9 +873,11 @@ def api_search():
         entry = anime_database.get(slug)
         if not entry:
             continue
+        info = jp_map.get(slug) or {}
         results.append({
             "slug": slug,
             "title": entry.get("title", ""),
+            "jp_title": info.get("native") or "",
             "image": entry.get("image", ""),
             "year": entry.get("release", ""),
             "rating": entry.get("rating", "N/A"),

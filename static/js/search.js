@@ -66,7 +66,7 @@ if (!searchInput || !resultsBox) {
 
                         <div class="search-info">
 
-                            <h4>${anime.title}</h4>
+                            <h4>${(document.cookie.indexOf("lang=ja") !== -1 && anime.jp_title) ? anime.jp_title : anime.title}</h4>
 
                             ${meta ? `<span class="search-meta">${meta}</span>` : ""}
 

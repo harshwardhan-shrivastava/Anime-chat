@@ -77,7 +77,7 @@
                 </div>
                 <div class="pick-info">
                     <h3>
-                        <a href="/anime/{{ pick.slug }}">{{ pick.title }}</a>
+                        <a href="/anime/{{ pick.slug }}">{{ pick | jp_title }}</a>
                     </h3>
                     <div class="pick-meta">
                         {% if pick.year %}

@@ -87,7 +87,12 @@ def search_characters(q, offset=0, limit=60):
     """Return up to `limit` (anime, character) entries matching `q`,
     most relevant first. Same matching rules as before: character NAME
     matches beat anime TITLE matches, full-word beats mid-word. An empty
-    query returns the first (popular-ordered) entries."""
+    query returns the first (popular-ordered) entries.
+
+    Results are deduped by character NAME so searching "Goku" doesn't
+    flood the grid with the same character across 60 anime. Each unique
+    character shows once, preferring MAIN roles and the most popular
+    anime, with an `appearances` count of how many anime they're in."""
     ensure_fresh()
 
     q = (q or "").strip()
@@ -108,13 +113,35 @@ def search_characters(q, offset=0, limit=60):
         args += [f"%{esc}%", f"%{esc}%"]
     candidates = _query("WHERE " + " OR ".join(clauses), args)
 
-    scored = []
+    # Score every candidate, then group by normalized character name so
+    # each character appears at most once in the results.
+    by_name = {}
+    name_counts = {}
     for e in candidates:
+        nm = _norm(e.get("name") or "")
+        name_counts[nm] = name_counts.get(nm, 0) + 1
         s = _score(e, qn, words)
-        if s:
-            scored.append((s, e))
+        if not s:
+            continue
+        # Prefer MAIN over SUPPORTING, then higher member count.
+        role_bonus = 2 if e.get("role") == "MAIN" else 0
+        try:
+            members = int(e.get("members") or 0)
+        except (TypeError, ValueError):
+            members = 0
+        key_tuple = (s, role_bonus, members)
+        prev = by_name.get(nm)
+        if prev is None or key_tuple > prev[0]:
+            by_name[nm] = (key_tuple, e)
+
+    scored = [(t[0], t[1]) for t in by_name.values()]
     scored.sort(key=lambda t: t[0], reverse=True)
-    return [_public(e) for _, e in scored[offset:offset + limit]]
+    out = []
+    for _, e in scored[offset:offset + limit]:
+        pub = _public(e)
+        pub["appearances"] = name_counts.get(_norm(e.get("name") or ""), 1)
+        out.append(pub)
+    return out
 
 
 def _score(e, qn, words):

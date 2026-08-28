@@ -80,6 +80,10 @@
         } else {
             va = '<span class="va-soon">No voice actor listed yet</span>';
         }
+        let appear = "";
+        if (Number(e.appearances || 1) > 1) {
+            appear = '<span class="char-appearances">appears in ' + esc(e.appearances) + " anime</span>";
+        }
         return (
             '<article class="char-card" data-key="' + esc(keyFor(e)) + '">' +
                 '<div class="char-card-img">' +
@@ -89,6 +93,7 @@
                 '<div class="char-card-body">' +
                     '<h3 class="char-name">' + esc(e.name) + "</h3>" +
                     '<p class="char-anime">' + esc(e.title) + "</p>" +
+                    appear +
                     va +
                 "</div>" +
             "</article>"

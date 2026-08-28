@@ -109,7 +109,11 @@ data-user='{{ current_user | tojson if current_user else "null" }}'
 
         {% if current_user %}
 
-        <div class="user-card">
+        <a
+          href="{{ url_for('profile.profile') }}"
+          class="user-card"
+          title="View your profile"
+          style="text-decoration:none;color:inherit;">
 
             {% if current_user.avatar %}
             <img
@@ -149,7 +153,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'
 
             </div>
 
-        </div>
+        </a>
 
         <a
 

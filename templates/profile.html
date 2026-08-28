@@ -166,7 +166,7 @@
                 <div class="profile-settings-id">
                     <div class="profile-avatar">
                         <img src="{{ url_for('static', filename='images/avatars/' ~ user.avatar) }}"
-                             alt="{{ user.username }}'s avatar" class="settings-avatar-img">
+                             alt="{{ user.username }}'s avatar" class="settings-avatar-img" id="selectedAvatarPreview">
                     </div>
                     <div class="settings-fields">
                         <div class="auth-field">
@@ -199,8 +199,12 @@
                     <span class="profile-stat-label">Anime lists</span>
                 </a>
                 <div class="profile-stat">
-                    <span class="profile-stat-num"><i class="fas fa-envelope"></i></span>
-                    <span class="profile-stat-label">{{ user.email }}</span>
+                    <span class="profile-stat-num">{{ user_xp }}</span>
+                    <span class="profile-stat-label">XP</span>
+                </div>
+                <div class="profile-stat">
+                    <span class="profile-stat-num">{{ user_rank }}</span>
+                    <span class="profile-stat-label">Rank</span>
                 </div>
             </div>
         </div>
@@ -292,6 +296,21 @@
                 <button type="button" class="profile-btn-primary" id="confirmRenameBtn">
                     <i class="fas fa-check"></i> Save
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Avatar confirm popup -->
+    <div class="avatar-confirm-popup" id="avatarConfirmPopup" hidden>
+        <div class="avatar-confirm-box">
+            <h3>Choose this avatar?</h3>
+            <p>This avatar will represent your Otakul profile.</p>
+            <div class="confirm-avatar-preview">
+                <img id="confirmAvatarImage" src="" alt="Avatar Preview">
+            </div>
+            <div class="avatar-confirm-buttons">
+                <button type="button" class="cancel-avatar-btn" id="cancelAvatar">NO</button>
+                <button type="button" class="confirm-avatar-btn" id="confirmAvatar">YES, USE AVATAR</button>
             </div>
         </div>
     </div>

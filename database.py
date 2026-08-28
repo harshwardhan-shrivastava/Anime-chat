@@ -2195,15 +2195,57 @@ def xp_progress(xp):
     return rank, pct
 
 
+def _compute_xp(user_id):
+    """Compute XP live from review votes + reviews posted (same formula as
+    recalculate_user_xp, but read-only). Keeps profiles from showing 0 XP
+    when the user_xp cache row hasn't been written yet."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            SELECT
+                SUM(CASE WHEN is_like=1 THEN 1 ELSE 0 END) as likes,
+                SUM(CASE WHEN is_like=0 THEN 1 ELSE 0 END) as dislikes
+            FROM review_likes
+            WHERE user_id = ?
+            """,
+            (user_id,),
+        )
+        row = cursor.fetchone()
+        likes = row["likes"] or 0
+        dislikes = row["dislikes"] or 0
+        total = likes + dislikes
+        cursor.execute("SELECT COUNT(*) as cnt FROM reviews WHERE user_id = ?", (user_id,))
+        review_count = cursor.fetchone()["cnt"] or 0
+        cursor.execute("SELECT COUNT(*) as cnt FROM episode_reviews WHERE user_id = ?", (user_id,))
+        ep_review_count = cursor.fetchone()["cnt"] or 0
+        total_reviews = review_count + ep_review_count
+        if total > 0:
+            ratio = likes / total
+            xp = 100 + int(ratio * total * 25) + (total_reviews * 5)
+        else:
+            xp = 100 + (total_reviews * 5)
+        return xp
+    finally:
+        conn.close()
+
+
 def get_user_xp(user_id):
-    """Get a user's current XP. Returns 0 if no record exists."""
+    """Get a user's current XP. Falls back to a live computation so a
+    missing user_xp row never shows 0 XP on a profile."""
     row = _cached_query(
         f"xp:{user_id}",
         "SELECT xp FROM user_xp WHERE user_id=?",
         (user_id,),
         one=True,
     )
-    return row["xp"] if row else 0
+    if row:
+        return row["xp"]
+    try:
+        return _compute_xp(user_id)
+    except Exception:
+        return 0
 
 
 def get_user_rank(user_id):

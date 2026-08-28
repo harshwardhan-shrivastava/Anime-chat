@@ -164,6 +164,9 @@
             <div class="char-card-body">
                 <h3 class="char-name">{{ entry.name }}</h3>
                 <p class="char-anime">{{ entry.title }}</p>
+                {% if entry.appearances and entry.appearances > 1 %}
+                <span class="char-appearances">appears in {{ entry.appearances }} anime</span>
+                {% endif %}
                 {% if entry.jp or entry.en %}
                 <div class="char-va-chips">
                     {% for va in entry.jp[:2] %}
