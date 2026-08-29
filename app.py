@@ -1090,14 +1090,28 @@ def reviews_page():
         r["episode_thumb"] = None
         r["season_idx"] = 1
         if entry and entry.get("seasons"):
+            # Try matching by name first, then by numeric index.
+            # AJAX reviews store the season index (e.g. "1") in season_name,
+            # while form-POST reviews store the actual name (e.g. "Season 1").
+            matched_season = None
             for si, s in enumerate(entry["seasons"]):
                 if s.get("name") == r["season_name"]:
                     r["season_idx"] = si + 1
-                    for ep in s.get("episodes", []):
-                        if ep.get("number") == r["episode_number"]:
-                            r["episode_thumb"] = ep.get("thumb") or ep.get("image")
-                            break
+                    matched_season = s
                     break
+            if matched_season is None:
+                try:
+                    idx = int(r["season_name"])
+                    if 1 <= idx <= len(entry["seasons"]):
+                        r["season_idx"] = idx
+                        matched_season = entry["seasons"][idx - 1]
+                except (TypeError, ValueError):
+                    pass
+            if matched_season:
+                for ep in matched_season.get("episodes", []):
+                    if ep.get("number") == r["episode_number"]:
+                        r["episode_thumb"] = ep.get("thumb") or ep.get("image")
+                        break
         if not r["episode_thumb"]:
             r["episode_thumb"] = r["anime_image"]
         counts = ep_like_counts.get(r["id"], {"likes": 0, "dislikes": 0})

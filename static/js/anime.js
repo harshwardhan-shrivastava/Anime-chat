@@ -188,6 +188,8 @@ function hideReviewFormFor(myReview) {
     const box = document.querySelector(".review-box");
     if (!box) return;
     box.style.display = "none";
+    // Hide the "no reviews yet" placeholder while showing the already-reviewed notice.
+    if (noReviewsMsg) noReviewsMsg.style.display = "none";
 
     if (document.getElementById("alreadyReviewedMsg")) return;
     const msg = document.createElement("div");
