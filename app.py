@@ -595,7 +595,6 @@ SORT_TITLES = {
     "latest": "Latest Releases",
     "popular": "Most Popular",
     "trending": "Trending Now",
-    "critics": "Critics' Picks",
     "underrated": "Hidden Gems (Underrated)",
     "upcoming": "Upcoming",
 }
@@ -633,8 +632,6 @@ def _sort_value(entry, sort):
 
     if sort == "popular":
         return (popularity, rating)
-    if sort == "critics":
-        return (rating, popularity)
     if sort == "underrated":
         return (rating, -popularity)
     if sort == "trending":
