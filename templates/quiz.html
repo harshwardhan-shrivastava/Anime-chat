@@ -341,6 +341,7 @@
             });
 
             document.getElementById("startQuizBtn").addEventListener("click", openQuiz);
+            openQuiz();
             document.getElementById("quizClose").addEventListener("click", closeQuiz);
             overlay.addEventListener("click", function (e) {
                 if (e.target === overlay) closeQuiz();
