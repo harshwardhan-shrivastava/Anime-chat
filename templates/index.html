@@ -66,6 +66,23 @@
 
 <section class="hero">
 
+    <div class="hero-scene" aria-hidden="true">
+        <div class="hero-moon"></div>
+        <div class="hero-cloud hero-cloud-one"></div>
+        <div class="hero-cloud hero-cloud-two"></div>
+        <div class="hero-scout">
+            <span class="scout-hair"></span>
+            <span class="scout-head"></span>
+            <span class="scout-body"></span>
+            <span class="scout-arm"></span>
+            <span class="scout-bow"></span>
+            <span class="scout-arrow"></span>
+        </div>
+        <span class="hero-spark spark-one"></span>
+        <span class="hero-spark spark-two"></span>
+        <span class="hero-spark spark-three"></span>
+    </div>
+
     <h1>
 
         {% if current_lang == 'ja' %}次の<span>アニメコミュニティ</span>を見つけよう{% else %}Find Your Next
@@ -163,7 +180,8 @@
 </section>
 
 <script src="{{ url_for('static', filename='js/search.js') }}"></script>
-<script src="{{ url_for('static', filename='js/list_picker.js') }}"></script>
+<script src="{{ url_for('static', filename='js/list_picker.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/navigation.js') }}" defer></script>
 </body>
 
 </html>

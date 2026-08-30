@@ -453,16 +453,55 @@ nav{
 ========================================== */
 
 .hero{
-
     width:90%;
-
-    margin:90px auto 70px;
-
+    margin:72px auto 70px;
     text-align:center;
     position:relative;
     z-index:1000;
-
 }
+
+/* Hand-drawn anime story beat: a tiny scout launches a glowing arrow toward discovery. */
+.hero-scene{
+    height:112px;
+    width:min(620px, 86vw);
+    margin:0 auto 18px;
+    position:relative;
+    opacity:.96;
+    pointer-events:none;
+}
+.hero-moon{
+    position:absolute;
+    width:78px;
+    height:78px;
+    right:11%;
+    top:3px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 32%,#fff8d7 0 9%,#ffd76a 10% 52%,#e99a38 53% 100%);
+    box-shadow:0 0 30px rgba(255,205,91,.6);
+}
+.hero-cloud{
+    position:absolute;
+    height:15px;
+    border-radius:50%;
+    background:rgba(174,199,255,.24);
+    filter:blur(1px);
+    animation:cloudDrift 8s ease-in-out infinite alternate;
+}
+.hero-cloud-one{width:140px;left:4%;top:35px}.hero-cloud-two{width:92px;right:0;top:77px;animation-delay:2s}
+.hero-scout{position:absolute;left:19%;bottom:4px;width:92px;height:94px;animation:scoutBreath 2.8s ease-in-out infinite;transform-origin:bottom center}
+.scout-head{position:absolute;width:25px;height:27px;border-radius:48% 48% 45% 45%;background:#f3ae86;left:32px;top:18px;border:2px solid #171326}
+.scout-hair{position:absolute;width:38px;height:28px;background:#24183d;clip-path:polygon(0 55%,15% 0,35% 25%,50% 0,70% 23%,100% 8%,84% 65%,62% 46%,45% 76%,22% 48%);left:25px;top:6px;z-index:2}
+.scout-body{position:absolute;width:38px;height:51px;border-radius:45% 45% 18% 18%;background:linear-gradient(135deg,#3f8cff,#7147d9);left:26px;top:43px;transform:skew(-8deg);border:2px solid #171326}
+.scout-arm{position:absolute;width:48px;height:10px;border-radius:10px;background:#f3ae86;left:5px;top:51px;transform:rotate(-24deg);border:2px solid #171326;z-index:3}
+.scout-bow{position:absolute;width:49px;height:78px;left:-3px;top:16px;border-right:3px solid #f6c86e;border-radius:50%;transform:rotate(-28deg);z-index:4}
+.scout-arrow{position:absolute;width:132px;height:3px;left:10px;top:40px;background:linear-gradient(90deg,#f8dc86,#fff,#8f5bff);transform:rotate(-13deg);transform-origin:left center;animation:arrowLaunch 3.2s ease-in-out infinite;box-shadow:0 0 10px #8f5bff}
+.scout-arrow:after{content:"";position:absolute;right:-1px;top:-4px;border-left:10px solid #fff0a8;border-top:5px solid transparent;border-bottom:5px solid transparent}
+.hero-spark{position:absolute;width:5px;height:5px;border-radius:50%;background:#fff1a8;box-shadow:0 0 12px #ffd45e;animation:sparkle 2.2s ease-in-out infinite}.spark-one{left:45%;top:20px}.spark-two{left:62%;top:65px;animation-delay:.7s}.spark-three{left:76%;top:31px;animation-delay:1.2s}
+@keyframes arrowLaunch{0%,18%{transform:rotate(-13deg) translateX(0);opacity:.2}40%{opacity:1}75%,100%{transform:rotate(-13deg) translateX(34px);opacity:0}}
+@keyframes scoutBreath{50%{transform:translateY(-3px) rotate(-1deg)}}
+@keyframes cloudDrift{to{transform:translateX(18px)}}
+@keyframes sparkle{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.35)}}
+@media (prefers-reduced-motion:reduce){.hero-scene *,.hero-scene{animation:none!important}}
 
 .hero h1{
 
@@ -588,6 +627,9 @@ nav{
 /* ==========================================
         FLOAT ANIMATION
 ========================================== */
+
+.page-leaving{animation:pageFadeOut .11s ease forwards;pointer-events:none}
+@keyframes pageFadeOut{to{opacity:.35;transform:translateY(3px)}}
 
 @keyframes float{
 
