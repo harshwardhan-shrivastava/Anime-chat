@@ -109,15 +109,11 @@
 
 <!-- ================= GRID ================= -->
 
-<section class="anime-grid">
+<div id="browseGridWrap">
 
-{% for anime in anime_list %}
+{% include "_browse_grid.html" %}
 
-{% include "_anime_card.html" %}
-
-{% endfor %}
-
-</section>
+</div>
 
 <!-- ================= FOOTER ================= -->
 
@@ -163,6 +159,40 @@
 </footer>
 
 <script src="{{ url_for('static', filename='js/list_picker.js') }}"></script>
+
+<script>
+(function () {
+    "use strict";
+    var wrap = document.getElementById("browseGridWrap");
+    if (!wrap) return;
+    wrap.addEventListener("click", function (e) {
+        var btn = e.target.closest(".load-more-btn");
+        if (!btn || btn.disabled) return;
+        var url = btn.getAttribute("data-next-url");
+        if (!url) return;
+        btn.disabled = true;
+        var spin = btn.querySelector(".fa-spinner");
+        if (spin) spin.style.display = "inline-block";
+        fetch(url)
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                var tmp = document.createElement("div");
+                tmp.innerHTML = html;
+                var oldGrid = wrap.querySelector(".anime-grid");
+                var newGrid = tmp.querySelector(".anime-grid");
+                if (newGrid && oldGrid) {
+                    Array.prototype.slice.call(newGrid.children).forEach(function (card) {
+                        oldGrid.appendChild(card);
+                    });
+                }
+                var oldWrap = wrap.querySelector(".load-more-wrap");
+                var newWrap = tmp.querySelector(".load-more-wrap");
+                if (oldWrap) oldWrap.remove();
+                if (newWrap) wrap.appendChild(newWrap);
+            });
+    });
+})();
+</script>
 
 </body>
 

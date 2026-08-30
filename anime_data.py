@@ -36,8 +36,14 @@ _ANILIST_LARGE = "/media/anime/cover/large/"
 
 def _upgrade_image_flavors(catalog):
     """Rewrite low-res image URL flavors to their HD equivalents, in
-    place. Cheap (string ops only) and applied once per catalog load."""
-    for entry in catalog.values():
+    place. Cheap (string ops only) and applied once per catalog load.
+
+    NOTE: iterates via dict.values(catalog) on purpose. `catalog` is the
+    _LazyCatalog instance, whose overridden .values() re-enters _ensure();
+    calling that here would deadlock on _reload_lock (it is held by the
+    caller) — the request thread, the preload thread and the airing worker
+    would all block forever on first catalog load."""
+    for entry in dict.values(catalog):
         image = entry.get("image")
         if isinstance(image, str) and _ANILIST_MEDIUM in image:
             entry["image"] = image.replace(_ANILIST_MEDIUM, _ANILIST_LARGE)

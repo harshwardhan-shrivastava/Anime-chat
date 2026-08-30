@@ -1933,3 +1933,47 @@ grid-template-columns:1fr;
     min-width: 10px;
     text-align: center;
 }
+
+/* ============================
+        LOAD MORE
+============================ */
+
+.load-more-wrap{
+    width:90%;
+    margin:-30px auto 90px;
+    text-align:center;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+}
+
+.load-more-btn{
+    background:linear-gradient(135deg,#7b2eff,#4f46e5);
+    color:#fff;
+    border:none;
+    border-radius:14px;
+    padding:14px 38px;
+    font-size:0.98rem;
+    font-weight:700;
+    font-family:inherit;
+    cursor:pointer;
+    transition:.25s;
+    box-shadow:0 10px 26px rgba(123,46,255,.35);
+}
+
+.load-more-btn:hover{
+    transform:translateY(-3px);
+    box-shadow:0 14px 34px rgba(123,46,255,.5);
+}
+
+.load-more-btn:disabled{
+    opacity:.75;
+    cursor:wait;
+    transform:none;
+}
+
+.load-more-info{
+    font-size:0.8rem;
+    color:#8b93b8;
+}

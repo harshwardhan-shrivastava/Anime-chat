@@ -775,33 +775,82 @@ def home():
     )
 
 
+BROWSE_PAGE_SIZE = 60
+
+
+def _browse_page(entries, page):
+    """Slice a full sorted catalog list into one page. Returns
+    (page_entries, page, has_more, loaded_so_far)."""
+    total = len(entries)
+    start = (page - 1) * BROWSE_PAGE_SIZE
+    page_entries = entries[start:start + BROWSE_PAGE_SIZE]
+    loaded = min(start + BROWSE_PAGE_SIZE, total)
+    return page_entries, page, start + BROWSE_PAGE_SIZE < total, loaded, total
+
+
 @app.route("/browse")
 def browse():
     sort = request.args.get("sort", "popular")
     if sort not in SORT_TITLES:
         sort = "popular"
-    entries = _decorate(_catalog_entries(sort=sort), sort)
-    return render_template(
-        "browse.html",
-        anime_list=entries,
+    page = request.args.get("page", type=int) or 1
+    partial = request.args.get("partial") == "1"
+
+    page_entries, page, has_more, loaded, total = _browse_page(
+        _decorate(_catalog_entries(sort=sort), sort), page
+    )
+    next_url = None
+    if has_more:
+        args = {k: v for k, v in request.args.items() if k not in ("page", "partial")}
+        args["page"] = page + 1
+        args["partial"] = "1"
+        next_url = url_for(request.endpoint, **request.view_args, **args)
+
+    ctx = dict(
+        anime_list=page_entries,
         page_title=SORT_TITLES[sort],
         active_sort=sort,
         sort_titles=SORT_TITLES,
         genres=_genre_list(),
+        has_more=has_more,
+        next_url=next_url,
+        loaded_so_far=loaded,
+        total=total,
     )
+    if partial:
+        return render_template("_browse_grid.html", **ctx)
+    return render_template("browse.html", **ctx)
 
 
 @app.route("/category/<genre>")
 def category(genre):
-    entries = _decorate(_catalog_entries(sort="popular", genre=genre), "popular")
-    return render_template(
-        "browse.html",
-        anime_list=entries,
+    page = request.args.get("page", type=int) or 1
+    partial = request.args.get("partial") == "1"
+
+    page_entries, page, has_more, loaded, total = _browse_page(
+        _decorate(_catalog_entries(sort="popular", genre=genre), "popular"), page
+    )
+    next_url = None
+    if has_more:
+        args = {k: v for k, v in request.args.items() if k not in ("page", "partial")}
+        args["page"] = page + 1
+        args["partial"] = "1"
+        next_url = url_for(request.endpoint, genre=genre, **args)
+
+    ctx = dict(
+        anime_list=page_entries,
         page_title=f"{genre} Anime",
         active_genre=genre,
         sort_titles=SORT_TITLES,
         genres=_genre_list(),
+        has_more=has_more,
+        next_url=next_url,
+        loaded_so_far=loaded,
+        total=total,
     )
+    if partial:
+        return render_template("_browse_grid.html", **ctx)
+    return render_template("browse.html", **ctx)
 
 
 @functools.lru_cache(maxsize=1)

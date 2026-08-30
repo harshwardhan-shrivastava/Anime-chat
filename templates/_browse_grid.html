@@ -1,0 +1,21 @@
+<!-- ================= GRID ================= -->
+
+<section class="anime-grid">
+
+{% for anime in anime_list %}
+
+{% include "_anime_card.html" %}
+
+{% endfor %}
+
+</section>
+
+{% if has_more %}
+<div class="load-more-wrap">
+    <button type="button" class="load-more-btn" data-next-url="{{ next_url }}">
+        <i class="fas fa-spinner fa-spin" style="display:none"></i>
+        Load More Anime
+    </button>
+    <div class="load-more-info">{{ loaded_so_far }} / {{ total }} titles</div>
+</div>
+{% endif %}
