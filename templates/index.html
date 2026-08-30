@@ -66,10 +66,17 @@
 
 <section class="hero">
 
-    <div class="hero-scene" aria-hidden="true">
+    <div class="hero-scene" id="heroScene" aria-hidden="true">
         <div class="hero-moon"></div>
         <div class="hero-cloud hero-cloud-one"></div>
         <div class="hero-cloud hero-cloud-two"></div>
+        <div class="hero-battlefield">
+            <span class="monster monster-one"></span>
+            <span class="monster monster-two"></span>
+            <span class="boss-box"><i></i></span>
+            <span class="boss-crack crack-one"></span>
+            <span class="boss-crack crack-two"></span>
+        </div>
         <div class="hero-scout">
             <span class="scout-hair"></span>
             <span class="scout-head"></span>
@@ -77,18 +84,19 @@
             <span class="scout-arm"></span>
             <span class="scout-bow"></span>
             <span class="scout-arrow"></span>
-        <span class="hero-impact"></span>
+            <span class="hero-impact"></span>
         </div>
         <span class="hero-spark spark-one"></span>
         <span class="hero-spark spark-two"></span>
         <span class="hero-spark spark-three"></span>
     </div>
+    <button type="button" class="hero-replay" id="heroReplay">↻ Replay intro</button>
 
     <h1>
 
         {% if current_lang == 'ja' %}次の<span>アニメコミュニティ</span>を見つけよう{% else %}Find Your Next
 
-        <span class="hero-words">Anime Community</span>{% endif %}
+        <span class="hero-words"><span>Anime</span> <span>Community</span></span>{% endif %}
 
     </h1>
 
@@ -183,6 +191,24 @@
 <script src="{{ url_for('static', filename='js/search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/list_picker.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/navigation.js') }}" defer></script>
+<script>
+(function () {
+    var scene = document.getElementById('heroScene');
+    var replay = document.getElementById('heroReplay');
+    if (!scene || !replay) return;
+    function playIntro() {
+        scene.classList.remove('hero-play');
+        void scene.offsetWidth;
+        scene.classList.add('hero-play');
+        document.body.classList.remove('hero-title-reveal');
+        void document.body.offsetWidth;
+        document.body.classList.add('hero-title-reveal');
+        window.sessionStorage.setItem('otakul-hero-played', '1');
+    }
+    if (!window.sessionStorage.getItem('otakul-hero-played')) playIntro();
+    replay.addEventListener('click', playIntro);
+})();
+</script>
 </body>
 
 </html>
