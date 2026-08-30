@@ -1059,13 +1059,24 @@ def user_public_profile(uid):
     # get_user_communities(), which ran get_community_channels() per guild
     # (several sequential round trips over the remote Turso link) and made
     # the mini-profile hang on "Loading…".
+    #
+    # Same-name guilds are separate guild rows (users can join/create two
+    # "Dragon ball" guilds) — dedupe by name so the tag list doesn't show
+    # duplicates, matching the rail behavior.
     guilds = threads_db.get_user_public_guild_tags(uid)
-    tags = [{
-        "id": g["id"],
-        "name": g["name"],
-        "genre": g.get("genre"),
-        "role": g.get("role") or "member",
-    } for g in guilds]
+    tags = []
+    seen_names = set()
+    for g in guilds:
+        key = (g["name"] or "").strip().lower()
+        if key in seen_names:
+            continue
+        seen_names.add(key)
+        tags.append({
+            "id": g["id"],
+            "name": g["name"],
+            "genre": g.get("genre"),
+            "role": g.get("role") or "member",
+        })
     return jsonify({
         "success": True,
         "user": {

@@ -1178,7 +1178,6 @@
         document.getElementById("upBarFill").style.width = "0%";
         document.getElementById("upJoined").innerHTML = '<i class="fas fa-spinner fa-spin"></i> &nbsp;Loading profile…';
         document.getElementById("upGuilds").innerHTML = "";
-        document.getElementById("upFullProfile").href = "#";
         openModal("modalUserProfile");
         api("/threads/api/users/" + uid + "/profile").then(function (res) {
             if (!res.success) { handleApiError(res); return; }
@@ -1214,8 +1213,6 @@
                     (g.role !== "member" ? '<span class="thr-tag-role">' + escapeHtml(g.role) + "</span>" : "") +
                     "</span>";
             }).join("") : '<span class="thr-profile-empty">No public guilds yet</span>';
-            var link = document.getElementById("upFullProfile");
-            link.href = "/user/" + encodeURIComponent(u.username || "");
             // NOTE: do NOT call openModal here — the modal is already open
             // (opened instantly at click time). Re-opening after the fetch
             // resolves made the close (×) button look broken: the box would
