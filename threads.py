@@ -996,6 +996,53 @@ def community_leave(cid):
     return jsonify({"success": True, "community_gone": not threads_db.get_community(cid)})
 
 
+@bp.route("/threads/api/users/<int:uid>/profile")
+def user_public_profile(uid):
+    """Public mini-profile for another user inside Threads: rank, XP, account
+    join date, and the public guilds they're a member of (as tags)."""
+    user, err = _json_user()
+    if err:
+        return err
+    target = site_db.get_user_by_id(uid)
+    if target is None:
+        return jsonify({"success": False, "error": "no_such_user"}), 404
+    xp = site_db.get_user_xp(uid)
+    try:
+        rank, xp_pct = site_db.xp_progress(xp)
+    except Exception:
+        rank, xp_pct = None, 0
+    try:
+        created_at = target.get("created_at")
+    except Exception:
+        created_at = None
+    guilds = threads_db.get_user_communities(uid)
+    tags = []
+    for c in guilds:
+        if not c.get("is_public"):
+            # For other people, only public guilds are shown as tags.
+            continue
+        tags.append({
+            "id": c["id"],
+            "name": c["name"],
+            "genre": c.get("genre"),
+            "role": c.get("role") or "member",
+        })
+    return jsonify({
+        "success": True,
+        "user": {
+            "id": target["id"],
+            "username": target["username"],
+            "avatar": target.get("avatar"),
+            "avatar_color": target.get("avatar_color") or "#8b5cf6",
+        },
+        "rank": rank,
+        "xp": xp,
+        "xp_pct": xp_pct,
+        "joined_at": created_at,
+        "guilds": tags,
+    })
+
+
 @bp.route("/threads/api/communities/<int:cid>/mute", methods=["POST"])
 def community_mute(cid):
     user, community, err = _community_guard(cid)

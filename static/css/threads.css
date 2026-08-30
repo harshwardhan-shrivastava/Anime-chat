@@ -1765,6 +1765,20 @@ html, body {
     font-size: 10px;
 }
 
+.thr-rail-count {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    font-size: 9px;
+    font-weight: 800;
+    color: #fff;
+    background: #4b5563;
+    border: 2px solid var(--thr-bg, #13111c);
+    border-radius: 999px;
+    padding: 1px 5px;
+    line-height: 1.2;
+}
+
 .thr-rail-empty {
     width: 46px;
     height: 46px;

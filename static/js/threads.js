@@ -661,10 +661,10 @@
         }
 
         return '<div class="' + cls + '" data-mid="' + m.id + '">' +
-            '<div class="thr-msg-avatar" style="background:' + escapeHtml(sender.avatar_color || "#8b5cf6") + '">' +
+            '<div class="thr-msg-avatar thr-profile-open" data-uid="' + sender.id + '" style="background:' + escapeHtml(sender.avatar_color || "#8b5cf6") + '">' +
             avatarInner(sender) + "</div>" +
             '<div class="thr-msg-main">' +
-            '<div class="thr-msg-head"><span class="thr-msg-user">' + escapeHtml(sender.username || "unknown") + "</span>" +
+            '<div class="thr-msg-head"><span class="thr-msg-user thr-profile-open" data-uid="' + sender.id + '">' + escapeHtml(sender.username || "unknown") + "</span>" +
             thrRankBadgeHtml(sender.id, _thrRankCache[sender.id] ? _thrRankCache[sender.id].rank : null, _thrRankCache[sender.id] ? _thrRankCache[sender.id].xp : 0) +
             '<span class="thr-msg-time">' + fmtClock(m.created_at) + "</span></div>" +
             body +
@@ -1148,6 +1148,57 @@
     // ----------------------------------------------------------
     function openModal(id) { $("#" + id).classList.remove("hidden"); }
     function closeModal(id) { $("#" + id).classList.add("hidden"); }
+
+    function fmtDate(iso) {
+        if (!iso) return "";
+        try {
+            var d = new Date(iso.indexOf("T") === -1 ? iso.replace(" ", "T") + "Z" : iso);
+            return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+        } catch (e) { return iso; }
+    }
+
+    // ---- Other-user mini profile modal ----
+    function openUserProfile(uid) {
+        if (!uid) return;
+        api("/threads/api/users/" + uid + "/profile").then(function (res) {
+            if (!res.success) { handleApiError(res); return; }
+            var u = res.user || {};
+            var av = document.getElementById("upAvatar");
+            if (u.avatar) {
+                av.innerHTML = '<img class="thr-avatar-img" src="/static/images/avatars/' + escapeHtml(u.avatar) + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+                av.style.background = "transparent";
+            } else {
+                av.textContent = initials(u.username);
+                av.style.background = u.avatar_color || "#8b5cf6";
+            }
+            av.style.display = "inline-flex";
+            document.getElementById("upName").textContent = "@" + (u.username || "user");
+            var rank = res.rank || "D";
+            document.getElementById("upRole").textContent = "Rank " + rank;
+            var badge = document.getElementById("upBadge");
+            badge.textContent = rank;
+            badge.classList.remove("rank-F", "rank-D", "rank-C", "rank-B", "rank-A", "rank-S", "rank-S+");
+            badge.classList.add("rank-" + rank);
+            document.getElementById("upXp").textContent = (res.xp || 0).toLocaleString() + " XP";
+            document.getElementById("upPct").textContent = (res.xp_pct || 0) + "%";
+            var bar = document.getElementById("upBar");
+            bar.classList.remove("rank-F", "rank-D", "rank-C", "rank-B", "rank-A", "rank-S", "rank-S+");
+            bar.classList.add("rank-" + rank);
+            document.getElementById("upBarFill").style.width = (res.xp_pct || 0) + "%";
+            var joined = document.getElementById("upJoined");
+            joined.innerHTML = '<i class="fas fa-calendar-alt"></i> &nbsp;Joined ' + (fmtDate(res.joined_at) || "unknown");
+            var tagsWrap = document.getElementById("upGuilds");
+            var guilds = res.guilds || [];
+            tagsWrap.innerHTML = guilds.length ? guilds.map(function (g) {
+                return '<span class="thr-profile-tag"><i class="fas fa-hashtag"></i>' + escapeHtml(g.name) +
+                    (g.role !== "member" ? '<span class="thr-tag-role">' + escapeHtml(g.role) + "</span>" : "") +
+                    "</span>";
+            }).join("") : '<span class="thr-profile-empty">No public guilds yet</span>';
+            var link = document.getElementById("upFullProfile");
+            link.href = "/user/" + encodeURIComponent(u.username || "");
+            openModal("modalUserProfile");
+        });
+    }
 
     function wireModalClose() {
         $$(".thr-modal-close").forEach(function (b) {
@@ -1671,7 +1722,7 @@
                 return '<div class="thr-member-row">' +
                     '<span class="thr-avatar thr-avatar-md" style="background:' + escapeHtml(m.avatar_color) + '">' +
                     avatarInner(m) + "</span>" + dot +
-                    '<span class="thr-member-name">' + escapeHtml(m.username) + (m.id === State.me.id ? " (you)" : "") + "</span>" +
+                    '<span class="thr-member-name" data-uid="' + m.id + '">' + escapeHtml(m.username) + (m.id === State.me.id ? " (you)" : "") + "</span>" +
                     role + "<span class='thr-member-actions'>" + remove + "</span></div>";
             }).join("");
         }
@@ -1818,13 +1869,21 @@
 
     function renderRail() {
         var html = "";
+        // Flag guilds whose names collide with another of your guilds so we can
+        // label them (they're separate guilds, not a duplicate row).
+        var counts = {};
+        State.communities.forEach(function (c) { counts[escapeHtml(c.name || "")] = (counts[escapeHtml(c.name || "")] || 0) + 1; });
         State.communities.forEach(function (c) {
             var active = State.activeCommunity && State.activeCommunity.id === c.id;
+            var dup = counts[escapeHtml(c.name || "")] > 1;
+            var roleTag = c.role === "owner" ? " (owner)" : c.role === "moderator" ? " (mod)" : "";
+            var title = escapeHtml(c.name || "") + (dup ? " · " + (c.member_count || "?") + " members" + roleTag : (roleTag ? roleTag : ""));
             html += '<div class="thr-rail-item' + (active ? " active" : "") + '" data-comm="' + c.id + '" title="' +
-                escapeHtml(c.name) + '">' +
+                title + '">' +
                 (c.icon_url
                     ? '<span class="thr-rail-icon thr-rail-icon-img" style="background:' + escapeHtml(c.icon_color || "#8b5cf6") + '"><img src="' + escapeHtml(c.icon_url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.parentNode.textContent=\'' + escapeHtml(initials(c.name)) + '\'"></span>'
                     : '<span class="thr-rail-icon" style="background:' + escapeHtml(c.icon_color || "#8b5cf6") + '">' + escapeHtml(initials(c.name)) + "</span>") +
+                (dup ? '<span class="thr-rail-count" title="Another guild shares this name">' + (c.member_count || "?") + "</span>" : "") +
                 (c.unread ? '<span class="thr-unread-badge thr-rail-badge">' + (c.unread > 99 ? "99+" : c.unread) + "</span>" : "") +
                 "</div>";
         });
@@ -2247,7 +2306,7 @@
             return '<div class="thr-member-row">' +
                 '<span class="thr-avatar thr-avatar-md" style="background:' + escapeHtml(m.avatar_color) + '">' +
                 avatarInner(m) + "</span>" +
-                '<span class="thr-member-name">' + escapeHtml(m.username) + (m.id === me.id ? " (you)" : "") + "</span>" +
+                '<span class="thr-member-name" data-uid="' + m.id + '">' + escapeHtml(m.username) + (m.id === me.id ? " (you)" : "") + "</span>" +
                 (m.muted ? '<span class="thr-muted-chip">muted</span>' : "") + role +
                 '<span class="thr-member-actions">' + actions + "</span></div>";
         }).join("");
@@ -2745,10 +2804,19 @@
 
         // community modal: member actions
         $("#commMemberList").addEventListener("click", function (e) {
-            var b = e.target.closest("[data-role],[data-kick],[data-mute],[data-ban],[data-block]");
+            var row = e.target.closest(".thr-member-row");
+            var b = e.target.closest("[data-role],[data-kick],[data-mute],[data-ban],[data-block],[data-unban]");
+            if (!b && row) {
+                var uName = row.querySelector(".thr-member-name");
+                if (uName && uName.getAttribute("data-uid")) {
+                    openUserProfile(parseInt(uName.getAttribute("data-uid"), 10));
+                }
+                return;
+            }
             if (!b) return;
             var uid = parseInt(b.getAttribute("data-uid") || b.getAttribute("data-kick") ||
-                b.getAttribute("data-mute") || b.getAttribute("data-ban") || b.getAttribute("data-block"), 10);
+                b.getAttribute("data-mute") || b.getAttribute("data-ban") || b.getAttribute("data-block") ||
+                b.getAttribute("data-unban"), 10);
             var base = "/threads/api/communities/" + State.activeCommunity.id + "/members/" + uid;
             if (b.hasAttribute("data-role")) {
                 api(base + "/role", { json: { role: b.getAttribute("data-role") } }).then(function (res) {
@@ -2817,11 +2885,21 @@
             }
             input.select();
             input.setSelectionRange(0, 99999);
+            var done = false;
             try {
-                navigator.clipboard.writeText(input.value);
-                toast("Invite link copied!");
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(input.value).then(function () {
+                        toast("Invite link copied!");
+                    }).catch(function () {
+                        done = true;
+                        try { document.execCommand("copy"); toast("Invite link copied!"); } catch (e2) { toast("Press Ctrl+C to copy", "info"); }
+                    });
+                } else {
+                    done = true;
+                    try { document.execCommand("copy"); toast("Invite link copied!"); } catch (e2) { toast("Press Ctrl+C to copy", "info"); }
+                }
             } catch (e) {
-                toast("Invite link copied!");
+                try { document.execCommand("copy"); toast("Invite link copied!"); } catch (e2) { toast("Press Ctrl+C to copy", "info"); }
             }
         });
         $("#commInviteLink").addEventListener("click", function () {
@@ -3200,6 +3278,23 @@
             } else if (kind === "mod-delete") {
                 modDeleteMessage(parseInt(act.getAttribute("data-id"), 10));
             }
+        });
+
+        // open mini-profile when clicking a message author / avatar
+        $("#msgList").addEventListener("click", function (e) {
+            var who = e.target.closest(".thr-profile-open");
+            if (!who) return;
+            var uid = parseInt(who.getAttribute("data-uid"), 10);
+            if (uid && uid !== State.me.id) openUserProfile(uid);
+        });
+
+        // open mini-profile when clicking a member in the DM members modal
+        $("#memberList").addEventListener("click", function (e) {
+            var row = e.target.closest(".thr-member-row");
+            if (!row || e.target.closest("button,[data-kick],[data-leave]")) return;
+            var name = row.querySelector(".thr-member-name");
+            var uid = name ? parseInt(name.getAttribute("data-uid"), 10) : null;
+            if (uid && uid !== State.me.id) openUserProfile(uid);
         });
 
         // channel search filter

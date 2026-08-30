@@ -650,6 +650,42 @@
     </div>
 </div>
 
+<!-- ===================== OTHER USER PROFILE MODAL ===================== -->
+<div class="thr-modal hidden" id="modalUserProfile">
+    <div class="thr-modal-card thr-modal-user-card">
+        <div class="thr-modal-head">
+            <h3>Profile</h3>
+            <button class="thr-modal-close" data-close="modalUserProfile"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <div class="thr-mine-card">
+                <div class="thr-mine-top">
+                    <div class="thr-mine-avatar" id="upAvatar"></div>
+                    <div class="thr-mine-id">
+                        <div class="thr-mine-username" id="upName">@user</div>
+                        <div class="thr-mine-role" id="upRole"></div>
+                    </div>
+                </div>
+                <div class="thr-mine-rank">
+                    <span class="rank-badge" id="upBadge"></span>
+                </div>
+                <div class="thr-mine-xp">
+                    <div class="thr-mine-xp-label"><span id="upXp">0 XP</span><span id="upPct">0%</span></div>
+                    <div class="xp-bar" id="upBar"><span class="xp-bar-fill" id="upBarFill" style="width:0%"></span></div>
+                </div>
+                <div class="thr-mine-joined" id="upJoined"></div>
+                <div class="thr-profile-tags-wrap">
+                    <div class="thr-profile-tags-label">Guilds</div>
+                    <div class="thr-profile-tags" id="upGuilds"></div>
+                </div>
+                <a href="#" class="thr-btn thr-btn-primary thr-btn-block thr-mine-link" id="upFullProfile">
+                    <i class="fas fa-id-card"></i> Full profile
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="{{ url_for('static', filename='js/threads.js') }}?v=20260827f"></script>
 <script>
 (function () {
