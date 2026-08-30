@@ -462,78 +462,56 @@ nav{
 
 /* Manga-run hero: a short, stocky, faceless & colourless ink silhouette
    (Vegeta-style) sprints along the heading from "Find", jumps over "Your",
-   lands screaming near "You" with an electrifying burst. Loops. */
-.hero h1{position:relative}
+   lands screaming near "You" with an electrifying burst. Loops. */.hero h1{position:relative}
 
-/* White manga speed streaks drifting behind the heading */
-.hero::before{content:"";position:absolute;left:6%;right:6%;top:24px;bottom:44px;pointer-events:none;z-index:0;opacity:.55;
-    background:repeating-linear-gradient(112deg,transparent 0 26px,rgba(255,255,255,.06) 26px 40px,transparent 40px 70px,rgba(143,91,255,.10) 70px 86px)}
-
-/* The running silhouette wrapper: short stocky Vegeta-style body */
-.hero-runner{position:absolute;top:-16px;left:-3%;width:66px;height:82px;z-index:14;pointer-events:none;
-    filter:drop-shadow(0 0 4px rgba(255,255,255,.95)) drop-shadow(0 0 16px rgba(205,208,255,.5));
-    animation:runGo 7.5s linear infinite}
-.rn-fig{position:absolute;inset:0;animation:figRun .42s linear infinite}
-.rn-fig > span{position:absolute;display:block;background:#0b0912;border:2px solid #fff;box-sizing:border-box}
-/* spiky hair crown */
-.rn-hair{left:16px;top:0;width:36px;height:30px;border:0;box-shadow:none;
-    clip-path:polygon(6% 100%,4% 46%,0 46%,24% 12%,38% 2%,48% 26%,60% 0,70% 18%,82% 4%,80% 34%,98% 22%,88% 52%,100% 60%,84% 68%,92% 100%)}
-/* faceless head silhouette */
-.rn-head{left:17px;top:22px;width:33px;height:26px;border-radius:46% 46% 40% 40%}
-/* front + back arms (raised-fist silhouette) */
-.rn-arm{width:15px;height:9px;border-radius:9px;background:#0b0912;border:2px solid #fff}
-.rn-arm-f{left:40px;top:46px;transform:rotate(26deg)}
-.rn-arm-b{left:-2px;top:42px;transform:rotate(-152deg)}
-.rn-arm-b::after{content:"";position:absolute;left:-5px;top:-11px;width:13px;height:13px;border-radius:50%;background:#0b0912;border:2px solid #fff}
-/* short barrel torso */
-.rn-body{left:19px;top:46px;width:29px;height:24px;border-radius:42% 42% 26% 26%}
-/* short legs (toddling run) */
-.rn-leg{position:absolute;bottom:0;width:11px;height:20px;border-radius:6px;background:#0b0912;border:2px solid #fff}
-.rn-leg-a{left:17px;animation:stepA .42s ease-in-out infinite}
-.rn-leg-b{left:36px;animation:stepB .42s ease-in-out infinite}
-/* white speed streaks trailing the runner */
-.rn-streak{position:absolute;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,#fff);opacity:.7;top:38px}
-.rn-streak.s1{left:-32px;width:46px}
-.rn-streak.s2{left:-48px;width:28px;top:54px}
-/* run + jump along the heading */
+/* The running figure: manga-styled Goku (orange gi, black spiky hair, blue
+   pants) sprints across the heading from "Find", jumps over "Your", then
+   screams near "You" with an electrifying burst. Loops. */
+.hero-runner{position:absolute;top:-26px;left:-4%;width:96px;height:106px;z-index:14;pointer-events:none;
+    filter:drop-shadow(0 10px 14px rgba(0,0,0,.45));
+    animation:runGo 8s linear infinite}
+.rn-fig{position:absolute;inset:0;display:flex;align-items:flex-end;animation:figRun .5s linear infinite}
+.rn-goku{width:86px;height:98px;display:block}
+/* white run-speed streaks trailing behind */
+.rn-streak{position:absolute;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,#fff);opacity:.8}
+.rn-streak.s1{right:14px;top:6px;width:34px}
+.rn-streak.s2{right:-18px;top:24px;width:22px}
 @keyframes runGo{
-    0%  {left:-3%;opacity:0;transform:translateY(20px) scale(.9)}
-    6%  {left:4%;opacity:1;transform:translateY(2px) scale(1)}
-    22% {left:26%;transform:translateY(0) rotate(-1deg)}
-    36% {left:42%;transform:translateY(-3px)}
-    42% {left:47%;transform:translateY(-64px) rotate(-8deg)}
-    49% {left:54%;transform:translateY(-64px) rotate(-3deg)}
-    55% {left:60%;transform:translateY(-28px) rotate(0)}
-    60% {left:60%;transform:translateY(-12px) scale(1.1)}
-    72% {left:58%;transform:translateY(-10px) scale(1.06) rotate(2deg)}
-    80% {left:54%;transform:translateY(-3px) rotate(0)}
-    85% {left:50%;opacity:0;transform:translateY(28px) rotate(7deg)}
-    90% {left:-3%;opacity:0;transform:translateY(20px)}
-    100%{left:-3%;opacity:0;transform:translateY(20px)}
+    0%  {left:-4%;opacity:0;transform:translateY(24px) scale(.9)}
+    7%  {left:4%;opacity:1;transform:translateY(2px) scale(1)}
+    24% {left:27%;transform:translateY(0) rotate(-1deg)}
+    38% {left:43%;transform:translateY(-3px)}
+    44% {left:48%;transform:translateY(-72px) rotate(-7deg)}
+    51% {left:55%;transform:translateY(-72px) rotate(-3deg)}
+    57% {left:61%;transform:translateY(-26px) rotate(0)}
+    62% {left:61%;transform:translateY(-12px) scale(1.1)}
+    74% {left:58%;transform:translateY(-10px) scale(1.05) rotate(2deg)}
+    82% {left:52%;transform:translateY(-3px) rotate(0)}
+    87% {left:48%;opacity:0;transform:translateY(30px) rotate(7deg)}
+    92% {left:-4%;opacity:0;transform:translateY(24px)}
+    100%{left:-4%;opacity:0;transform:translateY(24px)}
 }
-@keyframes figRun{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-2px) rotate(-2deg)}50%{transform:translateY(0) rotate(0)}75%{transform:translateY(-2px) rotate(2deg)}}
-@keyframes stepA{0%,100%{transform:translateX(0)}50%{transform:translateX(-4px)}}
-@keyframes stepB{0%,100%{transform:translateX(-4px)}50%{transform:translateX(0)}}
+@keyframes figRun{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-3px) rotate(-2deg)}48%{transform:translateY(0) rotate(0)}72%{transform:translateY(-3px) rotate(2deg)}}
 
 /* Electrifying burst when he reaches "You" */
-.rn-elect{position:absolute;left:52%;top:-38px;width:96px;height:124px;transform:translateX(-50%) scale(.3);opacity:0;pointer-events:none;z-index:13;animation:electGo 7.5s linear infinite}
-.rn-elect .rn-bolt{position:absolute;width:32px;height:56px;background:repeating-linear-gradient(100deg,rgba(255,255,255,.98) 0 2px,transparent 3px 8px);filter:drop-shadow(0 0 6px #ffe9a0);clip-path:polygon(30% 0,55% 30%,35% 36%,60% 62%,42% 66%,64% 100%,85% 58%,58% 50%,82% 18%,50% 28%)}
-.rn-elect .bt-l{left:5px;top:8px;transform:rotate(-16deg)}
-.rn-elect .bt-r{right:2px;top:22px;transform:rotate(20deg) scale(.9)}
-.rn-elect .rn-ring{position:absolute;left:50%;top:66%;width:72px;height:72px;border:3px solid #fff;border-radius:50%;transform:translate(-50%,-50%) scale(.3);box-shadow:0 0 20px rgba(255,220,120,.75)}
-.rn-elect .rn-flash{position:absolute;left:50%;top:62%;width:120px;height:120px;border-radius:50%;transform:translate(-50%,-50%) scale(.4);background:radial-gradient(circle,rgba(255,255,255,.95),rgba(255,214,90,.5) 40%,transparent 70%)}
-.rn-kiai{position:absolute;right:-34px;top:-20px;font:800 22px Montserrat,sans-serif;letter-spacing:2px;white-space:nowrap;color:transparent;background:linear-gradient(180deg,#fff,#ffd83d);-webkit-background-clip:text;background-clip:text}
+.rn-elect{position:absolute;left:52%;top:-40px;width:104px;height:130px;transform:translateX(-50%) scale(.3);opacity:0;pointer-events:none;z-index:13;animation:electGo 8s linear infinite}
+.rn-elect .rn-bolt{position:absolute;width:34px;height:58px;background:repeating-linear-gradient(100deg,rgba(255,255,255,.98) 0 2px,transparent 3px 8px);filter:drop-shadow(0 0 6px #ffe9a0);clip-path:polygon(30% 0,55% 30%,35% 36%,60% 62%,42% 66%,64% 100%,85% 58%,58% 50%,82% 18%,50% 28%)}
+.rn-elect .bt-l{left:6px;top:8px;transform:rotate(-16deg)}
+.rn-elect .bt-r{right:4px;top:22px;transform:rotate(20deg) scale(.9)}
+.rn-elect .rn-ring{position:absolute;left:50%;top:66%;width:76px;height:76px;border:3px solid #fff;border-radius:50%;transform:translate(-50%,-50%) scale(.3);box-shadow:0 0 20px rgba(255,220,120,.75)}
+.rn-elect .rn-flash{position:absolute;left:50%;top:62%;width:124px;height:124px;border-radius:50%;transform:translate(-50%,-50%) scale(.4);background:radial-gradient(circle,rgba(255,255,255,.95),rgba(255,214,90,.5) 40%,transparent 70%)}
+.rn-kiai{position:absolute;right:-34px;top:-22px;font:800 22px Montserrat,sans-serif;letter-spacing:2px;white-space:nowrap;color:transparent;background:linear-gradient(180deg,#fff,#ffd83d);-webkit-background-clip:text;background-clip:text}
 @keyframes electGo{
-    0%,52%{opacity:0}
-    56%{opacity:.5}
-    60%{opacity:1;transform:translateX(-50%) scale(.75)}
-    66%{opacity:1;transform:translateX(-50%) scale(1)}
-    73%{opacity:.95}
-    82%{opacity:0;transform:translateX(-50%) scale(1.28)}
+    0%,58%{opacity:0}
+    62%{opacity:.5}
+    66%{opacity:1;transform:translateX(-50%) scale(.8)}
+    72%{opacity:1;transform:translateX(-50%) scale(1)}
+    79%{opacity:.9}
+    86%{opacity:0;transform:translateX(-50%) scale(1.3)}
     100%{opacity:0}
 }
 
-@media (prefers-reduced-motion:reduce){.hero-runner,.rn-fig,.rn-elect,.rn-streak,.hero::before{display:none!important;animation:none!important}}
+@media (prefers-reduced-motion:reduce){.hero-runner,.rn-fig,.rn-elect,.rn-streak,.rn-goku{display:none!important;animation:none!important}}
 
 .hero h1{
 
