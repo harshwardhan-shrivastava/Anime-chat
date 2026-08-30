@@ -1133,10 +1133,44 @@ def reviews_page():
     episode_reviews.sort(
         key=lambda x: (RANK_TIER.get(x["rank"], 5), -x["user_xp"], -x["id"])
     )
+
+    # ---- Top reviewers leaderboard (aggregated from both feeds) ----
+    leaderboard = {}
+    for r in list(reviews) + list(episode_reviews):
+        uid = r.get("user_id")
+        if not uid:
+            continue
+        entry = leaderboard.get(uid)
+        if entry is None:
+            entry = {
+                "user_id": uid,
+                "username": r.get("username") or "user",
+                "avatar": r.get("avatar"),
+                "avatar_color": r.get("avatar_color") or "#374151",
+                "rank": r.get("rank") or "D",
+                "user_xp": r.get("user_xp") or 0,
+                "xp_pct": r.get("xp_pct") or 0,
+                "review_count": 0,
+            }
+            leaderboard[uid] = entry
+        entry["review_count"] += 1
+        if (r.get("user_xp") or 0) > entry["user_xp"]:
+            entry["user_xp"] = r.get("user_xp") or 0
+            entry["xp_pct"] = r.get("xp_pct") or 0
+            entry["rank"] = r.get("rank") or "D"
+    top_reviewers = sorted(
+        leaderboard.values(),
+        key=lambda x: (RANK_TIER.get(x["rank"], 5), -x["user_xp"], -x["review_count"]),
+    )[:12]
+
     return render_template(
         "reviews.html",
         reviews=reviews,
         episode_reviews=episode_reviews,
+        top_reviewers=top_reviewers,
+        anime_review_count=len(reviews),
+        episode_review_count=len(episode_reviews),
+        RANK_TIER=RANK_TIER,
         current_user=user,
     )
 

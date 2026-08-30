@@ -3,667 +3,573 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Community Reviews | Otakul</title>
-
-    <link rel="icon" type="image/svg+xml"
-    href="{{ url_for('static', filename='favicon.svg') }}">
-
-    <link rel="stylesheet"
-    href="{{ url_for('static', filename='css/style.css') }}?v=20260827a">
-
-    <link rel="stylesheet"
-    href="{{ url_for('static', filename='css/auth.css') }}">
-
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet"
-        href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260827a">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260830a">
 
     <style>
-        body {
-            background: #0a0e14;
-            color: #e5e7eb;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            margin: 0;
-            min-height: 100vh;
+        :root {
+            --rv-bg: #070b12;
+            --rv-card: #101720;
+            --rv-card-2: #141d2a;
+            --rv-border: #1f2b3a;
+            --rv-accent: #22c55e;
+            --rv-accent-2: #0ea5e9;
+            --rv-gold: #facc15;
+            --rv-text: #e7ecf3;
+            --rv-muted: #8b98ab;
+            --rv-muted-2: #5c6777;
         }
-        .reviews-page {
-            max-width: 980px;
-            margin: 0 auto;
-            padding: 48px 20px 80px;
-        }
-        .reviews-hero {
-            display: flex;
-            align-items: center;
-            gap: 16px;
+        body { background: var(--rv-bg); color: var(--rv-text); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; min-height: 100vh; }
+        .rv-page { max-width: 1180px; margin: 0 auto; padding: 40px 22px 90px; }
+
+        /* ===== Hero ===== */
+        .rv-hero {
+            position: relative;
+            border-radius: 22px;
+            padding: 40px 34px;
+            overflow: hidden;
             margin-bottom: 28px;
+            background:
+                radial-gradient(900px 300px at 15% -10%, rgba(34,197,94,0.18), transparent 60%),
+                radial-gradient(700px 300px at 90% 0%, rgba(14,165,233,0.16), transparent 60%),
+                linear-gradient(135deg, #0d1521, #101a29);
+            border: 1px solid var(--rv-border);
         }
-        .reviews-hero .hero-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 16px;
-            background: linear-gradient(135deg, #22c55e, #0ea5e9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.6rem;
-            color: #fff;
-            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3);
-            flex-shrink: 0;
-        }
-        .reviews-hero h1 {
-            margin: 0;
-            font-size: 2.2rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-        }
-        .reviews-hero p {
-            margin: 4px 0 0;
-            color: #9ca3af;
-            font-size: 0.95rem;
-        }
-
-        /* ===== How-it-works info box ===== */
-        .reviews-guide {
-            background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(14,165,233,0.06));
-            border: 1px solid rgba(34,197,94,0.25);
-            border-radius: 18px;
-            margin-bottom: 24px;
-            overflow: hidden;
-        }
-        .reviews-guide-head {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 16px 24px;
-            cursor: pointer;
-            user-select: none;
-            transition: background 0.2s;
-        }
-        .reviews-guide-head:hover {
-            background: rgba(34,197,94,0.08);
-        }
-        .reviews-guide-head i {
-            color: #22c55e;
-            font-size: 1.2rem;
-        }
-        .reviews-guide-head h2 {
-            margin: 0;
-            font-size: 1.1rem;
-            font-weight: 800;
-            letter-spacing: -0.01em;
-            flex: 1;
-        }
-        .reviews-guide-head .guide-toggle {
-            color: #6b7280;
-            font-size: 0.85rem;
-            transition: transform 0.3s;
-        }
-        .reviews-guide.open .reviews-guide-head .guide-toggle {
-            transform: rotate(180deg);
-        }
-        .reviews-guide-body {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s ease, padding 0.3s ease;
-            padding: 0 24px;
-        }
-        .reviews-guide.open .reviews-guide-body {
-            max-height: 600px;
-            padding: 0 24px 22px;
-        }
-        .reviews-guide-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 14px;
-        }
-        .guide-col {
-            background: rgba(17, 24, 39, 0.6);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 14px;
-            padding: 16px;
-        }
-        .guide-col h3 {
-            margin: 0 0 8px;
-            font-size: 0.95rem;
-            font-weight: 800;
-            color: #22c55e;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .guide-col h3 i { font-size: 0.9rem; }
-        .guide-col p {
-            margin: 0;
-            color: #9ca3af;
-            font-size: 0.85rem;
-            line-height: 1.55;
-        }
-        .guide-col p strong { color: #e5e7eb; }
-        .guide-rank-row {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 6px;
-            font-size: 0.82rem;
-            color: #cbd5e1;
-        }
-        .guide-rank-row .rank-chip {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 26px;
-            height: 26px;
-            border-radius: 8px;
-            font-weight: 800;
-            font-size: 0.8rem;
-            color: #fff;
-            flex-shrink: 0;
-        }
-        .rank-chip.rk-Splus { background: linear-gradient(135deg,#f59e0b,#ef4444); }
-        .rank-chip.rk-S { background: linear-gradient(135deg,#eab308,#f97316); }
-        .rank-chip.rk-A { background: linear-gradient(135deg,#22c55e,#0ea5e9); }
-        .rank-chip.rk-B { background: linear-gradient(135deg,#0ea5e9,#6366f1); }
-        .rank-chip.rk-C { background: linear-gradient(135deg,#6366f1,#a855f7); }
-        .rank-chip.rk-D { background: linear-gradient(135deg,#64748b,#475569); }
-        .rank-chip.rk-F { background: linear-gradient(135deg,#ef4444,#7f1d1d); }
-
-        /* ===== Tabs ===== */
-        .reviews-tabs {
-            display: flex;
-            gap: 8px;
-            margin: 0 0 24px;
-            background: #111827;
-            border: 1px solid #1f2937;
-            border-radius: 16px;
-            padding: 6px;
-        }
-        .reviews-tab {
-            flex: 1;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 13px 16px;
-            border: none;
-            border-radius: 12px;
-            background: transparent;
-            color: #9ca3af;
-            font-size: 0.95rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background 0.15s, color 0.15s, transform 0.1s;
-        }
-        .reviews-tab:hover { background: #1f2937; color: #e5e7eb; }
-        .reviews-tab.active {
-            background: linear-gradient(135deg, #22c55e, #16a34a);
-            color: #fff;
-            box-shadow: 0 4px 16px rgba(34,197,94,0.35);
-        }
-        .reviews-tab.active i { color: #fff; }
-
-        /* ===== Review cards ===== */
-        .global-review-card {
-            background: linear-gradient(180deg, #131c2b, #111827);
-            border: 1px solid #1f2937;
-            border-radius: 18px;
-            padding: 20px 22px;
-            margin-bottom: 16px;
-            transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
-            overflow: hidden;
-            position: relative;
-        }
-        .global-review-card::before {
+        .rv-hero::after {
             content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, rgba(34,197,94,0.5), transparent);
-            opacity: 0;
-            transition: opacity 0.2s;
+            position: absolute; inset: 0;
+            background:
+                linear-gradient(120deg, transparent 0%, rgba(34,197,94,0.05) 40%, transparent 70%),
+                radial-gradient(300px 80px at 60% 120%, rgba(34,197,94,0.10), transparent 70%);
+            pointer-events: none;
         }
-        .global-review-card:hover {
-            border-color: #374151;
-            transform: translateY(-3px);
-            box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+        .rv-hero-inner { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+        .rv-hero-left { flex: 1 1 380px; }
+        .rv-hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(34,197,94,0.14); color: #4ade80;
+            border: 1px solid rgba(34,197,94,0.3);
+            padding: 6px 14px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.5px;
+            text-transform: uppercase; margin-bottom: 16px;
         }
-        .global-review-card:hover::before { opacity: 1; }
-        .grc-top {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
+        .rv-hero h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+        .rv-hero h1 .grad { background: linear-gradient(90deg, #4ade80, #38bdf8); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .rv-hero p { margin: 12px 0 0; color: var(--rv-muted); font-size: 1.02rem; max-width: 560px; line-height: 1.6; }
+        .rv-hero-stats { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 22px; }
+        .rv-stat {
+            background: rgba(10,17,28,0.7); border: 1px solid var(--rv-border);
+            border-radius: 16px; padding: 14px 20px; min-width: 120px; text-align: center;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
         }
-        .review-avatar-initial {
-            width: 46px;
-            height: 46px;
-            border-radius: 50%;
-            object-fit: cover;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: #fff;
-            background: #374151;
-            position: relative;
-            overflow: hidden;
+        .rv-stat .n { font-size: 1.7rem; font-weight: 800; color: #4ade80; line-height: 1; }
+        .rv-stat .l { font-size: 0.78rem; color: var(--rv-muted-2); margin-top: 6px; font-weight: 600; }
+
+        /* ===== Leaderboard ===== */
+        .rv-board {
+            flex: 0 1 300px; background: rgba(10,17,28,0.75); border: 1px solid var(--rv-border);
+            border-radius: 18px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+        }
+        .rv-board h3 { margin: 0 0 4px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
+        .rv-board h3 i { color: var(--rv-gold); }
+        .rv-board .sub { font-size: 0.8rem; color: var(--rv-muted-2); margin-bottom: 14px; }
+        .rv-rank-row {
+            display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 12px;
+            transition: background 0.15s; text-decoration: none; color: inherit;
+        }
+        .rv-rank-row:hover { background: rgba(34,197,94,0.08); }
+        .rv-rank-pos { width: 26px; font-weight: 800; color: var(--rv-muted-2); font-size: 0.9rem; text-align: center; flex-shrink: 0; }
+        .rv-rank-pos.top { color: var(--rv-gold); }
+        .rv-rank-pos.top2 { color: #cbd5e1; }
+        .rv-rank-pos.top3 { color: #d97706; }
+        .rv-rank-avatar {
+            width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; color: #fff; font-size: 0.85rem; object-fit: cover;
             box-shadow: 0 0 0 2px rgba(255,255,255,0.06);
         }
-        .review-avatar-initial img {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        .rv-rank-main { flex: 1; min-width: 0; }
+        .rv-rank-name { font-weight: 700; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rv-rank-meta { font-size: 0.72rem; color: var(--rv-muted-2); }
+        .rv-rank-rb { width: 54px; text-align: right; }
+
+        /* ===== Toolbar / tabs ===== */
+        .rv-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 0 0 22px; }
+        .rv-tabs { display: flex; gap: 8px; background: #0d1521; border: 1px solid var(--rv-border); border-radius: 16px; padding: 6px; }
+        .rv-tab {
+            display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border: none; border-radius: 12px;
+            background: transparent; color: var(--rv-muted); font-size: 0.92rem; font-weight: 700; cursor: pointer;
+            transition: all 0.16s;
         }
-        .grc-user {
-            font-weight: 700;
-            font-size: 1rem;
-            margin: 0;
+        .rv-tab .cnt { background: rgba(255,255,255,0.08); border-radius: 999px; padding: 1px 8px; font-size: 0.72rem; font-weight: 700; color: var(--rv-muted); }
+        .rv-tab:hover { background: #182234; color: #e7ecf3; }
+        .rv-tab.active { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; box-shadow: 0 4px 16px rgba(34,197,94,0.35); }
+        .rv-tab.active .cnt { background: rgba(255,255,255,0.22); color: #fff; }
+        .rv-spacer { flex: 1; }
+        .rv-search {
+            display: flex; align-items: center; gap: 9px; background: #0d1521; border: 1px solid var(--rv-border);
+            border-radius: 12px; padding: 0 14px; height: 42px; min-width: 220px;
         }
-        .grc-meta {
-            color: #9ca3af;
-            font-size: 0.85rem;
-            margin: 2px 0 0;
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 4px;
-        }
-        .grc-meta .stars { color: #facc15; letter-spacing: 1px; }
-        .grc-meta .grc-score {
-            background: rgba(250,204,21,0.12);
-            color: #facc15;
-            border-radius: 6px;
-            padding: 1px 8px;
-            font-weight: 700;
-            font-size: 0.78rem;
-        }
-        .grc-body-wrap {
-            overflow: hidden;
-        }
-        .grc-poster {
-            float: right;
-            margin: -20px -22px 12px 22px;
-            shape-outside: margin-box;
-            flex-shrink: 0;
-        }
-        .grc-poster img {
-            width: 180px;
-            height: 252px;
-            object-fit: cover;
-            border-radius: 0 18px 18px 0;
-            display: block;
-            box-shadow: -4px 4px 18px rgba(0,0,0,0.5);
-            transition: transform 0.2s;
-        }
-        .grc-poster:hover img {
-            transform: scale(1.04);
-        }
-        /* Episode review: landscape thumbnail floated right (16:9 ratio) */
-        .grc-poster.ep-thumb {
-            float: right;
-            margin: 0 0 8px 16px;
-            shape-outside: margin-box;
-            flex-shrink: 0;
-        }
-        .grc-poster.ep-thumb img {
-            width: 220px;
-            height: 124px;
-            object-fit: cover;
-            border-radius: 12px;
-            display: block;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.5);
-            transition: transform 0.2s;
-        }
-        .grc-poster.ep-thumb:hover img {
-            transform: scale(1.04);
-        }
-        .grc-comment {
-            margin: 0;
-            line-height: 1.6;
-            color: #d1d5db;
-            white-space: pre-wrap;
-            font-size: 0.95rem;
-        }
-        .grc-anime-link {
-            color: #22c55e;
-            font-weight: 600;
-            text-decoration: none;
-            transition: color 0.15s;
-        }
-        .grc-anime-link:hover { color: #4ade80; text-decoration: underline; }
-        .grc-ep-label {
-            color: #facc15;
-            font-weight: 600;
+        .rv-search i { color: var(--rv-muted-2); }
+        .rv-search input { background: transparent; border: none; outline: none; color: var(--rv-text); width: 100%; font-size: 0.9rem; }
+        .rv-sort {
+            background: #0d1521; border: 1px solid var(--rv-border); color: var(--rv-text);
+            border-radius: 12px; height: 42px; padding: 0 14px; font-size: 0.88rem; font-weight: 600; cursor: pointer;
         }
 
-        /* ===== Vote buttons ===== */
-        .vote-btn-wrap {
-            display: flex;
-            gap: 10px;
-            margin-top: 14px;
-            padding-top: 14px;
-            border-top: 1px solid rgba(255,255,255,0.05);
+        /* ===== Guide ===== */
+        .rv-guide { background: rgba(13,21,33,0.7); border: 1px solid var(--rv-border); border-radius: 16px; margin-bottom: 24px; overflow: hidden; }
+        .rv-guide-head { display: flex; align-items: center; gap: 12px; padding: 15px 20px; cursor: pointer; user-select: none; }
+        .rv-guide-head:hover { background: rgba(34,197,94,0.06); }
+        .rv-guide-head i { color: var(--rv-accent); font-size: 1.1rem; }
+        .rv-guide-head h3 { margin: 0; font-size: 1rem; font-weight: 800; flex: 1; }
+        .rv-guide-head .tgl { color: var(--rv-muted-2); transition: transform 0.3s; }
+        .rv-guide.open .rv-guide-head .tgl { transform: rotate(180deg); }
+        .rv-guide-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.3s ease; padding: 0 20px; }
+        .rv-guide.open .rv-guide-body { max-height: 700px; padding: 0 20px 22px; }
+        .rv-guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+        .rv-gcol { background: rgba(16,23,32,0.8); border: 1px solid var(--rv-border); border-radius: 14px; padding: 16px; }
+        .rv-gcol h4 { margin: 0 0 8px; font-size: 0.92rem; font-weight: 800; color: #4ade80; display: flex; align-items: center; gap: 8px; }
+        .rv-gcol p { margin: 0; color: var(--rv-muted); font-size: 0.85rem; line-height: 1.55; }
+        .rv-gcol p strong { color: #e7ecf3; }
+        .rv-rank-row-l { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.82rem; color: #c6d1e0; }
+        .rv-chip-s { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 9px; font-weight: 800; font-size: 0.85rem; color: #fff; flex-shrink: 0; }
+        .rk-Splus { background: linear-gradient(135deg,#f59e0b,#ef4444); }
+        .rk-S { background: linear-gradient(135deg,#eab308,#f97316); }
+        .rk-A { background: linear-gradient(135deg,#22c55e,#0ea5e9); }
+        .rk-B { background: linear-gradient(135deg,#0ea5e9,#6366f1); }
+        .rk-C { background: linear-gradient(135deg,#6366f1,#a855f7); }
+        .rk-D { background: linear-gradient(135deg,#64748b,#475569); }
+
+        /* ===== Review cards ===== */
+        .rv-feed { display: flex; flex-direction: column; gap: 16px; }
+        .rv-card {
+            display: grid; grid-template-columns: 1fr; gap: 0;
+            background: linear-gradient(180deg, var(--rv-card-2), var(--rv-card));
+            border: 1px solid var(--rv-border); border-radius: 18px; overflow: hidden;
+            transition: transform 0.18s, box-shadow 0.2s, border-color 0.2s;
+            position: relative;
         }
-        .vote-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 9px 18px;
-            min-width: 80px;
-            justify-content: center;
-            border: 1px solid #1f2937;
-            border-radius: 12px;
-            background: #0d1420;
-            color: #9ca3af;
+        .rv-card:hover { transform: translateY(-3px); border-color: #2e4160; box-shadow: 0 16px 44px rgba(0,0,0,0.45); }
+        .rv-card-body { padding: 20px 22px; min-width: 0; }
+
+        .rv-user-line { display: flex; align-items: center; gap: 12px; }
+        .rv-avatar {
+            width: 48px; height: 48px; border-radius: 50%; overflow: hidden; flex-shrink: 0; text-decoration: none;
+            display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; font-size: 1.1rem; object-fit: cover;
+            position: relative; box-shadow: 0 0 0 2px rgba(255,255,255,0.06); transition: transform 0.15s;
+        }
+        .rv-avatar:hover { transform: scale(1.06); }
+        .rv-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .rv-user-meta { min-width: 0; flex: 1; }
+        .rv-username { text-decoration: none; color: inherit; }
+        .rv-username h3 { margin: 0; font-size: 1.02rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+        .rv-username h3:hover { color: #4ade80; }
+        .rv-badges { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+
+        .rv-anime-line {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 16px 0 0;
             font-size: 0.95rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background 0.12s, border-color 0.12s, transform 0.08s, color 0.12s, box-shadow 0.12s;
-            user-select: none;
         }
-        .vote-btn:hover {
-            background: #16202e;
-            border-color: #374151;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        .rv-anime-line a.rv-anime { color: #4ade80; font-weight: 700; text-decoration: none; font-size: 1.02rem; }
+        .rv-anime-line a.rv-anime:hover { text-decoration: underline; }
+        .rv-anime-line .dot-sep { color: var(--rv-muted-2); }
+        .rv-stars { color: var(--rv-gold); letter-spacing: 1px; font-size: 0.95rem; }
+        .rv-score { background: rgba(250,204,21,0.12); color: #fde047; border-radius: 7px; padding: 2px 10px; font-weight: 800; font-size: 0.82rem; }
+        .rv-time { color: var(--rv-muted-2); font-size: 0.8rem; }
+        .rv-ep { color: #fde047; font-weight: 700; font-size: 0.82rem; background: rgba(250,204,21,0.1); padding: 3px 9px; border-radius: 7px; }
+
+        .rv-comment { margin: 14px 0 0; color: #d7deea; line-height: 1.65; font-size: 0.98rem; white-space: pre-wrap; word-break: break-word; position: relative; }
+        .rv-comment.clamp { max-height: 84px; overflow: hidden; }
+        .rv-more-btn { display: none; background: none; border: none; color: #4ade80; font-size: 0.82rem; font-weight: 700; cursor: pointer; margin-top: 6px; padding: 0; }
+        .rv-comment.clamped + .rv-more-btn { display: inline-block; }
+
+        .rv-footer { display: flex; align-items: center; gap: 10px; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap; }
+        .rv-vote { display: flex; gap: 8px; }
+        .rv-vote-btn {
+            display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; min-width: 64px; justify-content: center;
+            border: 1px solid var(--rv-border); border-radius: 11px; background: #0c131f; color: var(--rv-muted);
+            font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: all 0.14s; user-select: none;
         }
-        .vote-btn:active { transform: scale(0.95); }
-        .vote-btn.voted-like {
-            background: rgba(34, 197, 94, 0.16);
-            border-color: #22c55e;
-            color: #22c55e;
-            box-shadow: 0 0 0 1px rgba(34,197,94,0.2), 0 4px 14px rgba(34,197,94,0.15);
+        .rv-vote-btn:hover { background: #141e2d; border-color: #31445e; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .rv-vote-btn:active { transform: scale(0.95); }
+        .rv-vote-btn.voted-like { background: rgba(34,197,94,0.16); border-color: #22c55e; color: #4ade80; box-shadow: 0 0 0 1px rgba(34,197,94,0.2), 0 4px 14px rgba(34,197,94,0.15); }
+        .rv-vote-btn.voted-dislike { background: rgba(239,68,68,0.14); border-color: #ef4444; color: #f87171; box-shadow: 0 0 0 1px rgba(239,68,68,0.2), 0 4px 14px rgba(239,68,68,0.12); }
+        .rv-vote-count { font-variant-numeric: tabular-nums; }
+        .rv-link-btn {
+            display: inline-flex; align-items: center; gap: 7px; padding: 8px 13px; border: 1px solid var(--rv-border);
+            border-radius: 11px; background: #0c131f; color: var(--rv-muted); font-size: 0.85rem; font-weight: 600;
+            cursor: pointer; text-decoration: none; transition: all 0.14s;
         }
-        .vote-btn.voted-dislike {
-            background: rgba(239, 68, 68, 0.14);
-            border-color: #ef4444;
-            color: #ef4444;
-            box-shadow: 0 0 0 1px rgba(239,68,68,0.2), 0 4px 14px rgba(239,68,68,0.12);
+        .rv-link-btn:hover { background: #141e2d; color: #91a4c0; border-color: #31445e; }
+        .rv-link-btn.primary { color: #4ade80; }
+        .rv-link-btn.primary:hover { background: rgba(34,197,94,0.1); border-color: #22c55e; }
+        .rv-foot-spacer { flex: 1; }
+
+        /* poster/thumbnail (wide card: content right of a hero art strip) */
+        .rv-card.art .rv-art {
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+            background: #0a101c; position: relative;
         }
-        .vote-count { font-variant-numeric: tabular-nums; }
-        .vote-btn .vote-emoji { font-size: 1.05rem; line-height: 1; }
-        .reviews-empty {
-            text-align: center;
-            color: #6b7280;
-            padding: 60px 0;
-            font-size: 1.05rem;
+        .rv-card.art .rv-art img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+        .rv-card.art:hover .rv-art img { transform: scale(1.05); }
+        .rv-card.art .rv-art::after { content:""; position:absolute; inset:0; background:linear-gradient(90deg, var(--rv-card), transparent 60%); pointer-events:none; }
+        @media (min-width: 640px) {
+            .rv-card.art { grid-template-columns: 1fr 180px; }
+            .rv-card.art.ep { grid-template-columns: 1fr 260px; }
         }
-        .own-review-note {
-            opacity: 0.55;
-            font-size: 0.82rem;
-            color: #9ca3af;
-            padding-top: 4px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+        @media (max-width: 639px) {
+            .rv-card.art .rv-art { min-height: 200px; }
+        }
+
+        .rv-empty { text-align: center; color: var(--rv-muted); padding: 60px 0; font-size: 1.05rem; }
+        .rv-empty i { display: block; font-size: 2.4rem; margin-bottom: 12px; color: var(--rv-muted-2); }
+        .rv-mine-note { color: var(--rv-muted-2); font-size: 0.8rem; display: flex; align-items: center; gap: 6px; }
+
+        @keyframes rvPop { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+        .rv-vote-btn.pulse .vote-emoji { animation: rvPop 0.3s ease; }
+
+        @media (max-width: 720px) {
+            .rv-board { flex: 1 1 100%; }
+            .rv-hero { padding: 28px 22px; }
         }
     </style>
 </head>
 <body>
     {% include "_navbar.html" %}
 
-    <div class="reviews-page">
-        <div class="reviews-hero">
-            <div class="hero-icon"><i class="fas fa-comments"></i></div>
-            <div>
-                <h1>Community Reviews</h1>
-                <p>Every review from across Otakul — highest ranked first.</p>
+    <div class="rv-page">
+        <!-- ===== HERO ===== -->
+        <div class="rv-hero">
+            <div class="rv-hero-inner">
+                <div class="rv-hero-left">
+                    <span class="rv-hero-badge"><i class="fas fa-fire"></i> The Community Live Feed</span>
+                    <h1>Community <span class="grad">Reviews</span></h1>
+                    <p>Anime and episode reviews from across Otakul, ranked by reputation. Like great reviews to help them climb — your upvotes power each reviewer's <b style="color:#4ade80;">XP and Rank</b>.</p>
+                    <div class="rv-hero-stats">
+                        <div class="rv-stat"><div class="n">{{ reviews | length }}+</div><div class="l">Anime Reviews</div></div>
+                        <div class="rv-stat"><div class="n">{{ episode_reviews | length }}+</div><div class="l">Episode Reviews</div></div>
+                        <div class="rv-stat"><div class="n">{{ top_reviewers | length }}</div><div class="l">Active Reviewers</div></div>
+                    </div>
+                </div>
+
+                {% if top_reviewers %}
+                <div class="rv-board">
+                    <h3><i class="fas fa-trophy"></i> Top Reviewers</h3>
+                    <div class="sub">Highest ranked, most XP</div>
+                    {% for u in top_reviewers %}
+                    <a class="rv-rank-row" href="/user/{{ u.username | urlencode }}">
+                        <span class="rv-rank-pos {{ 'top' if loop.index == 1 else ('top2' if loop.index == 2 else ('top3' if loop.index == 3 else '')) }}">
+                            {{ ['🥇','🥈','🥉'][loop.index0] if loop.index <= 3 else loop.index }}
+                        </span>
+                        {% if u.avatar %}
+                        <img class="rv-rank-avatar" src="/static/images/avatars/{{ u.avatar }}" alt="">
+                        {% else %}
+                        <span class="rv-rank-avatar" style="background:{{ u.avatar_color }}">{{ u.username[:1]|upper }}</span>
+                        {% endif %}
+                        <span class="rv-rank-main">
+                            <span class="rv-rank-name">{{ u.username }}</span>
+                            <span class="rv-rank-meta">{{ u.review_count }} reviews · {{ u.user_xp }} XP</span>
+                        </span>
+                        <span class="rv-rank-rb"><span class="rank-badge rank-{{ u.rank }}" style="font-size:0.72rem;padding:2px 9px;">{{ u.rank }}</span></span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
         </div>
 
-        <div class="reviews-guide" id="reviewsGuide">
-            <div class="reviews-guide-head" onclick="document.getElementById('reviewsGuide').classList.toggle('open')">
+        <!-- ===== GUIDE ===== -->
+        <div class="rv-guide" id="rvGuide">
+            <div class="rv-guide-head" onclick="document.getElementById('rvGuide').classList.toggle('open')">
                 <i class="fas fa-circle-info"></i>
-                <h2>How Reviews &amp; XP Work</h2>
-                <span class="guide-toggle"><i class="fas fa-chevron-down"></i></span>
+                <h3>How Reviews &amp; XP Work</h3>
+                <span class="tgl"><i class="fas fa-chevron-down"></i></span>
             </div>
-            <div class="reviews-guide-body">
-                <div class="reviews-guide-grid">
-                    <div class="guide-col">
-                        <h3><i class="fas fa-star"></i> Rating</h3>
-                        <p>Rate anime on <strong>5 stars</strong>. Rate episodes on <strong>5 stars</strong> too
-                        (shown as /10 on the card). Your rating + optional comment becomes a review.</p>
-                        <p style="margin-top:10px;color:#9ca3af;font-size:0.82rem;">Pick stars, write your thoughts, and hit <strong style="color:#22c55e;">Post Review</strong>. That's it — your opinion is now part of the community.</p>
+            <div class="rv-guide-body">
+                <div class="rv-guide-grid">
+                    <div class="rv-gcol">
+                        <h4><i class="fas fa-star"></i> Rating</h4>
+                        <p>Rate anime on <strong>5 stars</strong> and episodes on <strong>5 stars</strong> (shown as /10). Your rating — plus an optional comment — becomes a review that lands here.</p>
                     </div>
-                    <div class="guide-col">
-                        <h3><i class="fas fa-bolt"></i> XP &amp; Votes</h3>
-                        <p>Every <strong>like</strong> earns the author XP, every <strong>dislike</strong> hurts it —
-                        it's all about your <strong>ratio</strong>. Posting reviews also gives a small XP bonus.
-                        Your XP bar fills as you climb toward the next rank.</p>
-                        <p style="margin-top:10px;color:#9ca3af;font-size:0.82rem;">10 likes + 0 dislikes = strong ratio. 5 likes + 5 dislikes = 50% ratio. Keep your reviews helpful and constructive to earn more likes!</p>
+                    <div class="rv-gcol">
+                        <h4><i class="fas fa-bolt"></i> XP &amp; Votes</h4>
+                        <p>Every <strong>like</strong> earns the author XP; every <strong>dislike</strong> hurts it — it's all about your <strong>ratio</strong>. New accounts start with <strong>100 XP</strong> (a sign-in bonus). Higher rank ⇒ more visible.</p>
                     </div>
-                    <div class="guide-col">
-                        <h3><i class="fas fa-trophy"></i> Ranks</h3>
-                        <div class="guide-rank-row"><span class="rank-chip rk-Splus">S+</span> <span>15,000+ XP</span></div>
-                        <div class="guide-rank-row"><span class="rank-chip rk-S">S</span> <span>5,000 XP</span></div>
-                        <div class="guide-rank-row"><span class="rank-chip rk-A">A</span> <span>2,000 XP</span></div>
-                        <div class="guide-rank-row"><span class="rank-chip rk-B">B</span> <span>1,000 XP</span></div>
-                        <div class="guide-rank-row"><span class="rank-chip rk-C">C</span> <span>500 XP</span></div>
-                        <div class="guide-rank-row"><span class="rank-chip rk-D">D</span> <span>0 XP (everyone starts here)</span></div>
-                        <p style="margin-top:10px;color:#9ca3af;font-size:0.82rem;">Higher ranked reviews <strong style="color:#e5e7eb;">show first</strong> in the feed. Climb the ranks to get your reviews seen by more people!</p>
+                    <div class="rv-gcol">
+                        <h4><i class="fas fa-trophy"></i> Ranks</h4>
+                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-Splus">S+</span> <span>15,000+ XP</span></div>
+                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-S">S</span> <span>5,000 XP</span></div>
+                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-A">A</span> <span>2,000 XP</span></div>
+                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-B">B</span> <span>1,000 XP</span></div>
+                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-C">C</span> <span>500 XP</span></div>
+                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-D">D</span> <span>100 XP sign-in bonus</span></div>
+                        <p style="margin-top:8px;color:var(--rv-muted-2);font-size:0.8rem;">Click any reviewer to see their full history.</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="reviews-tabs">
-            <button type="button" class="reviews-tab active" data-rtab="anime">
-                <i class="fas fa-film"></i> Anime Reviews
-            </button>
-            <button type="button" class="reviews-tab" data-rtab="episode">
-                <i class="fas fa-tv"></i> Episode Reviews
-            </button>
+        <!-- ===== TOOLBAR / TABS ===== -->
+        <div class="rv-toolbar">
+            <div class="rv-tabs">
+                <button type="button" class="rv-tab active" data-rtab="anime"><i class="fas fa-film"></i> Anime Reviews <span class="cnt">{{ reviews | length }}</span></button>
+                <button type="button" class="rv-tab" data-rtab="episode"><i class="fas fa-tv"></i> Episode Reviews <span class="cnt">{{ episode_reviews | length }}</span></button>
+            </div>
+            <div class="rv-spacer"></div>
+            <div class="rv-search">
+                <i class="fas fa-search"></i>
+                <input id="rvSearch" type="text" placeholder="Search reviews…" autocomplete="off">
+            </div>
+            <select class="rv-sort" id="rvSort">
+                <option value="rank">Highest ranked</option>
+                <option value="new">Newest</option>
+                <option value="rated">Most rated</option>
+            </select>
         </div>
 
-        <div id="rtab-anime" class="reviews-tab-pane">
-        {% for r in reviews %}
-        <div class="global-review-card">
-            <div class="grc-body-wrap">
+        <!-- ===== ANIME REVIEWS ===== -->
+        <div id="rvtab-anime" class="rv-feed" data-kind="anime">
+            {% for r in reviews %}
+            {% set mine = current_user and current_user.id == r.user_id %}
+            <div class="rv-card art"
+                 data-title="{{ r.anime_title | lower }}"
+                 data-user="{{ r.username | lower }}"
+                 data-rank="{{ RANK_TIER.get(r['rank'], 5) }}"
+                 data-created="{{ r.created_at }}"
+                 data-votes="{{ r.likes + r.dislikes }}">
                 {% if r.anime_image %}
-                <a class="grc-poster" href="/anime/{{ r.anime_slug }}" title="{{ r.anime_title }}">
-                    <img src="{{ r.anime_image }}" alt="{{ r.anime_title }}">
+                <a class="rv-art" href="/anime/{{ r.anime_slug }}" aria-label="{{ r.anime_title }}">
+                    <img src="{{ r.anime_image }}" alt="{{ r.anime_title }}" loading="lazy" onerror="this.closest('.rv-art').style.display='none'">
                 </a>
                 {% endif %}
-                <div class="grc-top">
-                <div class="review-avatar-initial" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[0]|upper }}{% if r.avatar %}<img src="/static/images/avatars/{{ r.avatar }}" alt="{{ r.username }}" onerror="this.remove()">{% endif %}</div>
-                <div>                    <p class="grc-user">{{ r.username }}</p>
-                    {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:1rem;padding:4px 18px;letter-spacing:2px;">{{ r.rank }}</span><span class="xp-bar rank-{{ r.rank }}"><span class="xp-bar-fill" style="width:{{ r.xp_pct or 0 }}%"></span><span class="xp-bar-text">{{ r.user_xp or 0 }} XP</span></span>{% endif %}
-                    <p class="grc-meta">
-                        <a class="grc-anime-link" href="/anime/{{ r.anime_slug }}">{{ r.anime_title }}</a> ·
-                        <span class="stars">{% for i in range(1,6) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
-                        <span class="grc-score">{{ r.rating }}/5</span> ·
-                        {{ r.created_at }}
-                    </p>
+                <div class="rv-card-body">
+                    <div class="rv-user-line">
+                        <a class="rv-avatar" href="/user/{{ r.username | urlencode }}" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[0]|upper }}{% if r.avatar %}<img src="/static/images/avatars/{{ r.avatar }}" alt="{{ r.username }}" loading="lazy" onerror="this.remove()">{% endif %}</a>
+                        <div class="rv-user-meta">
+                            <a class="rv-username" href="/user/{{ r.username | urlencode }}"><h3>{{ r.username }}{% if mine %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> you</span>{% endif %}</h3></a>
+                            <div class="rv-badges">
+                                {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:0.95rem;padding:3px 14px;letter-spacing:2px;">{{ r.rank }}</span>
+                                <span class="xp-bar rank-{{ r.rank }}" style="max-width:130px;height:16px;"><span class="xp-bar-fill" style="width:{{ r.xp_pct or 0 }}%"></span><span class="xp-bar-text">{{ r.user_xp or 0 }}</span></span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rv-anime-line">
+                        <a class="rv-anime" href="/anime/{{ r.anime_slug }}">{{ r.anime_title }}</a>
+                        <span class="rv-stars">{% for i in range(1,6) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
+                        <span class="rv-score">{{ r.rating }}/5</span>
+                        <span class="dot-sep">·</span>
+                        <span class="rv-time">{{ r.created_at }}</span>
+                    </div>
+
+                    {% if r.comment %}<p class="rv-comment">{{ r.comment }}</p><button type="button" class="rv-more-btn" data-more>Show more</button>{% endif %}
+
+                    <div class="rv-footer">
+                        {% if current_user and not mine %}
+                        <div class="rv-vote" data-review-id="{{ r.id }}" data-review-type="anime">
+                            <button type="button" class="rv-vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like"><span class="vote-emoji">👍</span><span class="rv-vote-count">{{ r.likes or 0 }}</span></button>
+                            <button type="button" class="rv-vote-btn gvote {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike"><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span></button>
+                        </div>
+                        {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
+                        <div class="rv-foot-spacer"></div>
+                        <a class="rv-link-btn" href="/user/{{ r.username | urlencode }}"><i class="fas fa-user"></i> History</a>
+                        <button type="button" class="rv-link-btn primary" data-share="/anime/{{ r.anime_slug }}"><i class="fas fa-share-nodes"></i> Share</button>
+                    </div>
                 </div>
-                </div>
-                {% if r.comment %}<p class="grc-comment">{{ r.comment }}</p>{% endif %}
             </div>
-            {% if current_user and current_user.id != r.user_id %}
-            <div class="vote-btn-wrap" data-review-id="{{ r.id }}" data-review-type="anime">
-                <button type="button" class="vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like">
-                    <span class="vote-emoji">👍</span>
-                    <span class="vote-count">{{ r.likes or 0 }}</span>
-                </button>
-                <button type="button" class="vote-btn gvote {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike">
-                    <span class="vote-emoji">👎</span>
-                    <span class="vote-count">{{ r.dislikes or 0 }}</span>
-                </button>
-            </div>
-            {% elif current_user %}
-            <div class="own-review-note"><i class="fas fa-user-check"></i> Your review</div>
-            {% endif %}
-        </div>
-        {% else %}
-        <div class="reviews-empty">
-            No reviews yet — be the first to rate an anime! 🎌
-        </div>
-        {% endfor %}
+            {% else %}
+            <div class="rv-empty"><i class="fas fa-film"></i>No reviews yet — be the first to rate an anime! 🎌</div>
+            {% endfor %}
         </div>
 
-        <div id="rtab-episode" class="reviews-tab-pane" hidden>
-        {% for r in episode_reviews %}
-        <div class="global-review-card">
-            <div class="grc-body-wrap">
+        <!-- ===== EPISODE REVIEWS ===== -->
+        <div id="rvtab-episode" class="rv-feed" style="display:none" data-kind="episode">
+            {% for r in episode_reviews %}
+            {% set mine = current_user and current_user.id == r.user_id %}
+            <div class="rv-card art ep"
+                 data-title="{{ r.anime_title | lower }}"
+                 data-user="{{ r.username | lower }}"
+                 data-rank="{{ RANK_TIER.get(r['rank'], 5) }}"
+                 data-created="{{ r.created_at }}"
+                 data-votes="{{ r.likes + r.dislikes }}">
                 {% if r.episode_thumb %}
-                <a class="grc-poster ep-thumb" href="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}" title="{{ r.anime_title }} — {{ r.season_name }}">
-                    <img src="{{ r.episode_thumb }}" alt="{{ r.anime_title }}">
+                <a class="rv-art" href="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}" aria-label="{{ r.anime_title }}">
+                    <img src="{{ r.episode_thumb }}" alt="{{ r.anime_title }}" loading="lazy" onerror="this.closest('.rv-art').style.display='none'">
                 </a>
                 {% endif %}
-                <div class="grc-top">
-                <div class="review-avatar-initial" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[0]|upper }}{% if r.avatar %}<img src="/static/images/avatars/{{ r.avatar }}" alt="{{ r.username }}" onerror="this.remove()">{% endif %}</div>
-                <div>                    <p class="grc-user">{{ r.username }}</p>
-                    {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:1rem;padding:4px 18px;letter-spacing:2px;">{{ r.rank }}</span><span class="xp-bar rank-{{ r.rank }}"><span class="xp-bar-fill" style="width:{{ r.xp_pct or 0 }}%"></span><span class="xp-bar-text">{{ r.user_xp or 0 }} XP</span></span>{% endif %}
-                    <p class="grc-meta">
-                        <a class="grc-anime-link" href="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}">{{ r.anime_title }}</a> ·
-                        <span class="grc-ep-label">Ep {{ r.episode_number }}{% if r.season_name %} · {{ r.season_name }}{% endif %}</span> ·
-                        <span class="stars">{% for i in range(1,6) %}{% if i <= (r.rating // 2) %}★{% else %}☆{% endif %}{% endfor %}</span>
-                        <span class="grc-score">{{ r.rating }}/10</span> ·
-                        {{ r.created_at }}
-                    </p>
+                <div class="rv-card-body">
+                    <div class="rv-user-line">
+                        <a class="rv-avatar" href="/user/{{ r.username | urlencode }}" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[0]|upper }}{% if r.avatar %}<img src="/static/images/avatars/{{ r.avatar }}" alt="{{ r.username }}" loading="lazy" onerror="this.remove()">{% endif %}</a>
+                        <div class="rv-user-meta">
+                            <a class="rv-username" href="/user/{{ r.username | urlencode }}"><h3>{{ r.username }}{% if mine %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> you</span>{% endif %}</h3></a>
+                            <div class="rv-badges">
+                                {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:0.95rem;padding:3px 14px;letter-spacing:2px;">{{ r.rank }}</span>
+                                <span class="xp-bar rank-{{ r.rank }}" style="max-width:130px;height:16px;"><span class="xp-bar-fill" style="width:{{ r.xp_pct or 0 }}%"></span><span class="xp-bar-text">{{ r.user_xp or 0 }}</span></span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rv-anime-line">
+                        <a class="rv-anime" href="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}">{{ r.anime_title }}</a>
+                        {% if r.episode_number %}<span class="rv-ep">Ep {{ r.episode_number }}{% if r.season_name %} · {{ r.season_name }}{% endif %}</span>{% endif %}
+                        <span class="rv-stars">{% for i in range(1,6) %}{% if i <= (r.rating // 2) %}★{% else %}☆{% endif %}{% endfor %}</span>
+                        <span class="rv-score">{{ r.rating }}/10</span>
+                        <span class="dot-sep">·</span>
+                        <span class="rv-time">{{ r.created_at }}</span>
+                    </div>
+
+                    {% if r.comment %}<p class="rv-comment">{{ r.comment }}</p><button type="button" class="rv-more-btn" data-more>Show more</button>{% endif %}
+
+                    <div class="rv-footer">
+                        {% if current_user and not mine %}
+                        <div class="rv-vote" data-review-id="{{ r.id }}" data-review-type="episode">
+                            <button type="button" class="rv-vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like"><span class="vote-emoji">👍</span><span class="rv-vote-count">{{ r.likes or 0 }}</span></button>
+                            <button type="button" class="rv-vote-btn gvote {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike"><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span></button>
+                        </div>
+                        {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
+                        <div class="rv-foot-spacer"></div>
+                        <a class="rv-link-btn" href="/user/{{ r.username | urlencode }}"><i class="fas fa-user"></i> History</a>
+                        <button type="button" class="rv-link-btn primary" data-share="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}"><i class="fas fa-share-nodes"></i> Share</button>
+                    </div>
                 </div>
-                </div>
-                {% if r.comment %}<p class="grc-comment">{{ r.comment }}</p>{% endif %}
             </div>
-            {% if current_user and current_user.id != r.user_id %}
-            <div class="vote-btn-wrap" data-review-id="{{ r.id }}" data-review-type="episode">
-                <button type="button" class="vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like">
-                    <span class="vote-emoji">👍</span>
-                    <span class="vote-count">{{ r.likes or 0 }}</span>
-                </button>
-                <button type="button" class="vote-btn gvote {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike">
-                    <span class="vote-emoji">👎</span>
-                    <span class="vote-count">{{ r.dislikes or 0 }}</span>
-                </button>
-            </div>
-            {% elif current_user %}
-            <div class="own-review-note"><i class="fas fa-user-check"></i> Your review</div>
-            {% endif %}
-        </div>
-        {% else %}
-        <div class="reviews-empty">
-            No episode reviews yet — rate an episode to kick things off! 🎬
-        </div>
-        {% endfor %}
+            {% else %}
+            <div class="rv-empty"><i class="fas fa-tv"></i>No episode reviews yet — rate an episode to kick things off! 🎬</div>
+            {% endfor %}
         </div>
     </div>
 
-    {% if current_user %}
     <script>
-    // ?rank=S+ in URL forces all badges to that rank (for preview)
-    const params = new URLSearchParams(window.location.search);
-    const previewRank = params.get("rank");
-    if (previewRank) {
-        document.querySelectorAll(".rank-badge").forEach(b => {
-            b.className = `rank-badge rank-${previewRank}`;
-            b.textContent = previewRank;
-        });
-        document.querySelectorAll(".xp-bar").forEach(bar => {
-            bar.className = `xp-bar rank-${previewRank}`;
-        });
-    }
-    </script>
-    {% endif %}
+    (function () {
+        "use strict";
+        function $(s){ return document.querySelector(s); }
+        function $$(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); }
 
-    <script>
-    // Tab switching: Anime Reviews <-> Episode Reviews
-    document.querySelectorAll(".reviews-tab").forEach(tab => {
-        tab.addEventListener("click", () => {
-            document.querySelectorAll(".reviews-tab").forEach(t => t.classList.remove("active"));
-            tab.classList.add("active");
-            const name = tab.getAttribute("data-rtab");
-            document.querySelectorAll(".reviews-tab-pane").forEach(p => { p.hidden = true; });
-            const pane = document.getElementById("rtab-" + name);
-            if (pane) pane.hidden = false;
-        });
-    });
-    </script>
-
-    {% if current_user %}
-    <script>
-    // Fast, optimistic like/dislike voting for anime + episode reviews.
-    document.querySelectorAll(".vote-btn-wrap").forEach(bar => {
-        const reviewId = bar.dataset.reviewId;
-        const reviewType = bar.dataset.reviewType || "anime";
-        let busy = false;
-        bar.querySelectorAll(".gvote").forEach(btn => {
-            btn.addEventListener("click", () => {
-                if (busy) return;
-                busy = true;
-                const isLike = btn.dataset.kind === "like";
-                // Optimistic UI: flip state immediately, then reconcile.
-                const prevLike = bar.querySelector('[data-kind="like"]').classList.contains("voted-like");
-                const prevDislike = bar.querySelector('[data-kind="dislike"]').classList.contains("voted-dislike");
-                const prevLikeCount = parseInt(bar.querySelector('[data-kind="like"] .vote-count').textContent || "0", 10);
-                const prevDislikeCount = parseInt(bar.querySelector('[data-kind="dislike"] .vote-count').textContent || "0", 10);
-                const wasActive = isLike ? prevLike : prevDislike;
-                // Apply optimistic change.
-                bar.querySelectorAll(".gvote").forEach(b => {
-                    const kind = b.dataset.kind;
-                    b.classList.remove("voted-like", "voted-dislike");
-                    if (!wasActive && kind === (isLike ? "like" : "dislike")) {
-                        b.classList.add(kind === "like" ? "voted-like" : "voted-dislike");
-                    }
-                });
-                let likeDelta = 0, dislikeDelta = 0;
-                if (wasActive) {
-                    if (isLike) likeDelta = -1; else dislikeDelta = -1;
-                } else {
-                    if (prevLike) likeDelta = -1;
-                    if (prevDislike) dislikeDelta = -1;
-                    if (isLike) likeDelta += 1; else dislikeDelta += 1;
-                }
-                bar.querySelector('[data-kind="like"] .vote-count').textContent = Math.max(0, prevLikeCount + likeDelta);
-                bar.querySelector('[data-kind="dislike"] .vote-count').textContent = Math.max(0, prevDislikeCount + dislikeDelta);
-                fetch(`/api/review/${reviewId}/vote`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ is_like: isLike, review_type: reviewType })
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (!data.success) {
-                            // Revert on error.
-                            bar.querySelector('[data-kind="like"] .vote-count').textContent = prevLikeCount;
-                            bar.querySelector('[data-kind="dislike"] .vote-count').textContent = prevDislikeCount;
-                            bar.querySelectorAll(".gvote").forEach(b => {
-                                const kind = b.dataset.kind;
-                                b.classList.toggle("voted-like", kind === "like" && prevLike);
-                                b.classList.toggle("voted-dislike", kind === "dislike" && prevDislike);
-                            });
-                            return;
-                        }
-                        bar.querySelectorAll(".gvote").forEach(b => {
-                            const kind = b.dataset.kind;
-                            const active = data.user_vote === (kind === "like" ? 1 : 0);
-                            b.classList.toggle("voted-like", kind === "like" && active);
-                            b.classList.toggle("voted-dislike", kind === "dislike" && active);
-                            b.querySelector(".vote-count").textContent =
-                                kind === "like" ? data.likes : data.dislikes;
-                        });
-                    })
-                    .catch(() => {
-                        bar.querySelector('[data-kind="like"] .vote-count').textContent = prevLikeCount;
-                        bar.querySelector('[data-kind="dislike"] .vote-count').textContent = prevDislikeCount;
-                        bar.querySelectorAll(".gvote").forEach(b => {
-                            const kind = b.dataset.kind;
-                            b.classList.toggle("voted-like", kind === "like" && prevLike);
-                            b.classList.toggle("voted-dislike", kind === "dislike" && prevDislike);
-                        });
-                    })
-                    .finally(() => { busy = false; });
+        // ---- Tabs ----
+        $$(".rv-tab").forEach(function (tab) {
+            tab.addEventListener("click", function () {
+                $$(".rv-tab").forEach(function (t) { t.classList.remove("active"); });
+                tab.classList.add("active");
+                var name = tab.getAttribute("data-rtab");
+                $$(".rv-feed").forEach(function (p) { p.style.display = "none"; });
+                var pane = $("#rvtab-" + name);
+                if (pane) pane.style.display = "flex";
+                applyFilter();
             });
         });
-    });
+
+        // ---- Expand long comments ----
+        $$(".rv-comment").forEach(function (p) {
+            if (p.scrollHeight <= 96 && p.textContent.length <= 220) return;
+            p.classList.add("clamp", "clamped");
+        });
+        document.addEventListener("click", function (e) {
+            var btn = e.target.closest("[data-more]");
+            if (!btn) return;
+            var wrap = btn.previousElementSibling;
+            if (wrap && wrap.classList && wrap.classList.contains("rv-comment")) {
+                var open = !wrap.classList.contains("clamp");
+                wrap.classList.toggle("clamp", !open);
+                btn.textContent = open ? "Show less" : "Show more";
+            }
+        });
+
+        // ---- Search + sort ----
+        var activeKind = "anime";
+        function activePane() { return $("#rvtab-" + activeKind); }
+        function applyFilter() {
+            var pane = activePane();
+            var q = ($("#rvSearch").value || "").toLowerCase().trim();
+            var sort = $("#rvSort").value;
+            var cards = $$(".rv-card", pane);
+            cards.forEach(function (c) {
+                var hit = !q || (c.dataset.title || "").indexOf(q) !== -1 || (c.dataset.user || "").indexOf(q) !== -1;
+                c.style.display = hit ? "" : "none";
+            });
+            var visible = cards.filter(function (c) { return c.style.display !== "none"; });
+            if (sort === "new") {
+                visible.sort(function (a, b) { return (b.dataset.created || "").localeCompare(a.dataset.created || ""); });
+            } else if (sort === "rated") {
+                visible.sort(function (a, b) { return (parseInt(b.dataset.votes,10)||0) - (parseInt(a.dataset.votes,10)||0); });
+            } else {
+                visible.sort(function (a, b) { return (parseInt(a.dataset.rank,10)||5) - (parseInt(b.dataset.rank,10)||5); });
+            }
+            visible.forEach(function (c) { pane.appendChild(c); });
+        }
+        $("#rvSearch").addEventListener("input", applyFilter);
+        $("#rvSort").addEventListener("change", applyFilter);
+
+        // ---- Optimistic voting ----
+        $$(".rv-vote").forEach(function (bar) {
+            var reviewId = bar.dataset.reviewId;
+            var reviewType = bar.dataset.reviewType || "anime";
+            var busy = false;
+            bar.querySelectorAll(".gvote").forEach(function (btn) {
+                btn.addEventListener("click", function () {
+                    if (busy) return; busy = true;
+                    var isLike = btn.dataset.kind === "like";
+                    var likeBtn = bar.querySelector('[data-kind="like"]');
+                    var disBtn = bar.querySelector('[data-kind="dislike"]');
+                    var prevLike = likeBtn.classList.contains("voted-like");
+                    var prevDislike = disBtn.classList.contains("voted-dislike");
+                    var prevLikeC = parseInt(likeBtn.querySelector(".rv-vote-count").textContent||"0",10);
+                    var prevDisC = parseInt(disBtn.querySelector(".rv-vote-count").textContent||"0",10);
+                    var wasActive = isLike ? prevLike : prevDislike;
+                    bar.querySelectorAll(".gvote").forEach(function (b) {
+                        b.classList.remove("voted-like","voted-dislike");
+                        if (!wasActive && b.dataset.kind === (isLike?"like":"dislike")) b.classList.add(isLike?"voted-like":"voted-dislike");
+                    });
+                    var lD=0, dD=0;
+                    if (wasActive) { if(isLike) lD=-1; else dD=-1; }
+                    else { if(prevLike) lD=-1; if(prevDislike) dD=-1; if(isLike) lD+=1; else dD+=1; }
+                    likeBtn.querySelector(".rv-vote-count").textContent = Math.max(0,prevLikeC+lD);
+                    disBtn.querySelector(".rv-vote-count").textContent = Math.max(0,prevDisC+dD);
+                    btn.querySelector(".vote-emoji").style.animation = "rvPop 0.3s ease";
+                    fetch("/api/review/" + reviewId + "/vote", {
+                        method:"POST", headers:{"Content-Type":"application/json"},
+                        body: JSON.stringify({ is_like: isLike, review_type: reviewType })
+                    }).then(function(r){return r.json();}).then(function(data){
+                        if (!data.success) { revert(); return; }
+                        bar.querySelectorAll(".gvote").forEach(function(b){
+                            var kind=b.dataset.kind; var active=data.user_vote===(kind==="like"?1:0);
+                            b.classList.toggle("voted-like", kind==="like"&&active);
+                            b.classList.toggle("voted-dislike", kind==="dislike"&&active);
+                            b.querySelector(".rv-vote-count").textContent = kind==="like"?data.likes:data.dislikes;
+                        });
+                    }).catch(revert).finally(function(){busy=false;});
+                    function revert(){
+                        likeBtn.querySelector(".rv-vote-count").textContent=prevLikeC;
+                        disBtn.querySelector(".rv-vote-count").textContent=prevDisC;
+                        bar.querySelectorAll(".gvote").forEach(function(b){
+                            var k=b.dataset.kind;
+                            b.classList.toggle("voted-like", k==="like"&&prevLike);
+                            b.classList.toggle("voted-dislike", k==="dislike"&&prevDislike);
+                        });
+                    }
+                });
+            });
+        });
+
+        // ---- Share (copy link) ----
+        document.addEventListener("click", function (e) {
+            var btn = e.target.closest("[data-share]");
+            if (!btn) return;
+            var url = window.location.origin + btn.getAttribute("data-share");
+            var done = function(){ var old=btn.innerHTML; btn.innerHTML='<i class="fas fa-check"></i> Copied!'; setTimeout(function(){btn.innerHTML=old;},1600); };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(done, function(){ /* below */ });
+            }
+            var ta = document.createElement("textarea"); ta.value=url; document.body.appendChild(ta); ta.select();
+            try { document.execCommand("copy"); done(); } catch(e){}
+            document.body.removeChild(ta);
+        });
+    })();
     </script>
-    {% endif %}
 </body>
 </html>
