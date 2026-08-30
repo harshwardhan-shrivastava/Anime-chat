@@ -460,8 +460,9 @@ nav{
     z-index:1000;
 }
 
-/* Super Saiyan intro: the character powers up, releases an energy blast, and
-   the "Find Your Next Anime Community" heading is revealed. Runs every load. */
+/* Super Saiyan intro: the character powers up with a scream (two hands raised),
+   releases an energy blast, and the "Find Your Next Anime Community" heading is
+   revealed. Runs every load. */
 .hero-scene{
     height:150px;
     width:min(620px, 86vw);
@@ -469,16 +470,6 @@ nav{
     position:relative;
     opacity:.96;
     pointer-events:none;
-}
-.hero-moon{
-    position:absolute;
-    width:78px;
-    height:78px;
-    right:11%;
-    top:3px;
-    border-radius:50%;
-    background:radial-gradient(circle at 35% 32%,#fff8d7 0 9%,#ffd76a 10% 52%,#e99a38 53% 100%);
-    box-shadow:0 0 30px rgba(255,205,91,.6);
 }
 .hero-cloud{
     position:absolute;
@@ -492,9 +483,13 @@ nav{
 .hero-battlefield{position:absolute;inset:0;z-index:2}
 .ssj{position:absolute;left:16%;bottom:2px;width:110px;height:136px;z-index:5;transform-origin:bottom center}
 .ssj-head{position:absolute;width:36px;height:38px;left:36px;top:42px;border-radius:48% 48% 45% 45%;background:#f6c692;border:2px solid #171326;z-index:2}
-.ssj-hair{position:absolute;width:48px;height:44px;left:30px;top:20px;background:linear-gradient(180deg,#fff6c8,#ffd83d 45%,#ffb100);border:2px solid #7a5403;clip-path:polygon(2% 62%,16% 20%,30% 44%,38% 0,50% 38%,62% 0,72% 36%,84% 8%,92% 44%,98% 26%,90% 68%,66% 52%,48% 82%,26% 52%);box-shadow:0 0 14px #ffd83d,0 0 30px rgba(255,180,0,.5);z-index:3;transform-origin:bottom center}
-.ssj-body{position:absolute;width:44px;height:60px;border-radius:40% 40% 14% 14%;background:linear-gradient(160deg,#2f7ff0,#1e3fd4);left:32px;top:80px;border:2px solid #171326;z-index:1}
-.ssj-arm{position:absolute;width:62px;height:11px;border-radius:11px;background:#f6c692;left:6px;top:92px;transform:rotate(16deg);border:2px solid #171326;z-index:4}
+.ssj-mouth{position:absolute;left:45px;top:66px;width:18px;height:6px;background:#7c2430;border:2px solid #171326;border-radius:4px 4px 8px 8px;z-index:3;transform-origin:top center;animation:ssjScream 5s ease-in-out both}
+.ssj-mouth:after{content:"";position:absolute;left:4px;top:5px;width:7px;height:3px;background:#ff6b6b;border-radius:50%}
+.scream-wave{position:absolute;left:50%;top:22%;width:60px;height:60px;border:3px solid rgba(255,216,90,.8);border-radius:50%;opacity:0;z-index:6;transform:translate(-50%,-50%);box-shadow:0 0 18px rgba(255,180,0,.5);pointer-events:none}
+.scream-wave.scream-one{animation:screamOne 5s ease-out both}.scream-wave.scream-two{animation:screamTwo 5s ease-out both}
+.ssj-hair{position:absolute;width:48px;height:44px;left:30px;top:20px;background:linear-gradient(180deg,#fff6c8,#ffd83d 45%,#ffb100);border:2px solid #7a5403;clip-path:polygon(2% 62%,16% 20%,30% 44%,38% 0,50% 38%,62% 0,72% 36%,84% 8%,92% 44%,98% 26%,90% 68%,66% 52%,48% 82%,26% 52%);box-shadow:0 0 14px #ffd83d,0 0 30px rgba(255,180,0,.5);z-index:3;transform-origin:bottom center}.ssj-body{position:absolute;width:44px;height:60px;border-radius:40% 40% 14% 14%;background:linear-gradient(160deg,#2f7ff0,#1e3fd4);left:32px;top:80px;border:2px solid #171326;z-index:1}
+.ssj-arm{position:absolute;width:58px;height:11px;border-radius:11px;background:#f6c692;border:2px solid #171326;z-index:5}
+.ssj-arm.arm-left{left:2px;top:90px;transform:rotate(-24deg);animation:armRaiseOne 5s ease-in-out both}.ssj-arm.arm-right{left:34px;top:86px;transform:rotate(24deg);animation:armRaiseTwo 5s ease-in-out both}
 .ssj-aura{position:absolute;left:50%;bottom:-4px;width:128px;height:128px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,rgba(255,240,150,.9) 0%,rgba(255,190,40,.5) 38%,rgba(255,220,90,.18) 62%,transparent 76%);filter:blur(4px);z-index:0}
 .ssj-lightning{position:absolute;left:38px;top:-2px;width:36px;height:46px;opacity:0;background:repeating-linear-gradient(100deg,rgba(255,255,255,.95) 0 2px,transparent 3px 7px);mix-blend-mode:screen;filter:drop-shadow(0 0 4px #fff);z-index:4}
 .blast-core{position:absolute;left:calc(16% + 66px);top:54px;width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff 0 22%,#fff0b0 30%,#ffcf3f 55%,#ff8a00 100%);box-shadow:0 0 20px #ffe27a,0 0 50px #ffb300;opacity:0;z-index:6}
@@ -510,6 +505,11 @@ nav{
 @keyframes ssjHairFlash{0%,18%{filter:brightness(.7)}26%,100%{filter:brightness(1.3) saturate(1.5) drop-shadow(0 0 14px #ffd83d)}}
 @keyframes ssjAura{0%,16%{opacity:0;transform:translateX(-50%) scale(.4)}26%{opacity:.7;transform:translateX(-50%) scale(1)}40%{opacity:1;transform:translateX(-50%) scale(1.5)}60%,100%{opacity:.35;transform:translateX(-50%) scale(.95)}}
 @keyframes ssjLightning{0%,20%{opacity:0}24%{opacity:.9}26%{opacity:.1}30%{opacity:.85}34%{opacity:.1}38%{opacity:.7}42%,100%{opacity:0}}
+@keyframes ssjScream{0%,16%{transform:scaleY(.2);opacity:.8}26%{transform:scaleY(1.9);opacity:1}34%{transform:scaleY(.5)}40%{transform:scaleY(2.3);opacity:1}52%,100%{transform:scaleY(1);opacity:.9}}
+@keyframes armRaiseOne{0%,18%{transform:translate(-6px,8px) rotate(8deg)}30%{transform:translate(-10px,-14px) rotate(-34deg)}44%{transform:translate(-11px,-16px) rotate(-20deg)}58%,100%{transform:translate(-8px,-8px) rotate(22deg)}}
+@keyframes armRaiseTwo{0%,18%{transform:translate(6px,10px) rotate(-8deg)}30%{transform:translate(16px,-10px) rotate(34deg)}44%{transform:translate(17px,-12px) rotate(20deg)}58%,100%{transform:translate(2px,2px) rotate(-24deg)}}
+@keyframes screamOne{0%,24%{opacity:0;transform:translate(-50%,-50%) scale(.4)}32%{opacity:.9;transform:translate(-50%,-50%) scale(1)}44%{opacity:.4;transform:translate(-50%,-50%) scale(1.9)}56%,100%{opacity:0;transform:translate(-50%,-50%) scale(2.4)}}
+@keyframes screamTwo{0%,30%{opacity:0;transform:translate(-50%,-50%) scale(.3)}40%{opacity:.8;transform:translate(-50%,-50%) scale(1)}54%{opacity:.25;transform:translate(-50%,-50%) scale(1.7)}64%,100%{opacity:0;transform:translate(-50%,-50%) scale(2.2)}}
 @keyframes blastCore{0%,40%{opacity:0;transform:scale(.2)}46%{opacity:1;transform:scale(1.35)}60%{opacity:.6;transform:scale(1.6)}100%{opacity:0;transform:scale(1.9)}}
 @keyframes blastFire{0%,46%{opacity:0;width:0}52%{opacity:1;width:55%}72%{opacity:.9;width:88%}86%,100%{opacity:0;width:96%}}
 @keyframes heroTitleReveal{0%,58%{opacity:0;filter:none;transform:translateY(20px) scale(.9)}64%{opacity:1;filter:brightness(2.2);transform:translateY(-6px) scale(1.08);text-shadow:0 0 10px #fff,0 0 38px #ffd83d,0 0 90px #8f5bff}74%,100%{opacity:1;filter:none;transform:translateY(0) scale(1)}}
