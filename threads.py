@@ -197,6 +197,33 @@ def index():
     # Pre-load the first conversation's 30 messages so the page opens
     # instantly with messages visible (like community chat).
     preloaded = {}
+    # Also pre-load the first community's default channel so switching to the
+    # Guilds tab opens its chat instantly instead of a blank/spinner.
+    preloadedGuild = {}
+    user_communities = threads_db.get_user_communities(user["id"])
+    if user_communities:
+        first_comm = user_communities[0]
+        channels = first_comm.get("channels") or []
+        # Prefer #general (is_default) for the fastest, most expected open.
+        first_ch = next((ch for ch in channels if ch.get("is_default")), channels[0] if channels else None)
+        if first_ch:
+            gchid = first_ch.get("id")
+            if gchid and threads_db.can_access_context("channel", gchid, user["id"]):
+                drows = threads_db.get_messages("channel", gchid, limit=30)
+                denriched = _enrich_messages(drows)
+                preloadedGuild = {
+                    "ctx": "channel:" + str(gchid),
+                    "community_id": first_comm.get("id"),
+                    "channel_id": gchid,
+                    "messages": denriched,
+                    "afterId": denriched[-1]["id"] if denriched else 0,
+                    "firstId": denriched[0]["id"] if denriched else 0,
+                    "hasMore": len(denriched) >= 30,
+                    "pins": _enrich_messages(threads_db.get_pinned_messages("channel", gchid)),
+                    "members": threads_db.get_community_members_public(first_comm.get("id")),
+                    "polls": threads_db.get_channel_polls(gchid, user["id"]),
+                    "parties": _enrich_parties(threads_db.get_channel_parties(gchid, user["id"])),
+                }
     if conversations:
         first = conversations[0]
         ctype = first.get("type", "dm")
@@ -235,6 +262,7 @@ def index():
         conversations=conversations,
         unread_notifications=threads_db.unread_notification_count(user["id"]),
         preloaded=preloaded,
+        preloaded_guild=preloadedGuild,
         user_xp=user_xp,
         user_rank=user_rank or "D",
         xp_pct=xp_pct,

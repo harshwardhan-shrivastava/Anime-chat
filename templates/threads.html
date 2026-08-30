@@ -20,7 +20,8 @@
     data-user='{{ current_user | tojson if current_user else "null" }}'
     data-conversations='{{ conversations | tojson }}'
     data-notifications='{{ unread_notifications }}'
-    data-preloaded='{{ preloaded | tojson if preloaded else "{}" }}'>
+    data-preloaded='{{ preloaded | tojson if preloaded else "{}" }}'
+    data-preloaded-guild='{{ preloaded_guild | tojson if preloaded_guild else "{}" }}'>
 
 <div id="threads-app">
 

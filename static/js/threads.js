@@ -3407,6 +3407,29 @@
             }
         } catch (e) { /* preloaded parse fail — no big deal */ }
 
+        // Pre-loaded guild channel: seed the message cache so opening that
+        // guild's default channel is instant (no blank/spinner).
+        try {
+            var gpre = JSON.parse(document.body.getAttribute("data-preloaded-guild") || "{}");
+            if (gpre.ctx && gpre.messages && gpre.messages.length && State.activeTab !== "communities") {
+                var gkey = gpre.ctx;
+                if (!msgCache[gkey]) {
+                    msgCache[gkey] = {
+                        messages: gpre.messages,
+                        afterId: gpre.afterId,
+                        firstId: gpre.firstId,
+                        hasMore: gpre.hasMore,
+                        members: gpre.members || [],
+                        pins: gpre.pins || [],
+                        polls: gpre.polls || [],
+                        parties: gpre.parties || [],
+                        html: "",
+                        at: Date.now(),
+                    };
+                }
+            }
+        } catch (e2) { /* ignore */ }
+
         // heartbeat + polling (paused when the tab is hidden to save CPU/network)
         refreshPresence();
         refreshCommunities();
