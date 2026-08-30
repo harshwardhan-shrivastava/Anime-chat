@@ -1055,18 +1055,17 @@ def user_public_profile(uid):
         created_at = target.get("created_at")
     except Exception:
         created_at = None
-    guilds = threads_db.get_user_communities(uid)
-    tags = []
-    for c in guilds:
-        if not c.get("is_public"):
-            # For other people, only public guilds are shown as tags.
-            continue
-        tags.append({
-            "id": c["id"],
-            "name": c["name"],
-            "genre": c.get("genre"),
-            "role": c.get("role") or "member",
-        })
+    # Lightweight: ONE query for public guild tags. The old version called
+    # get_user_communities(), which ran get_community_channels() per guild
+    # (several sequential round trips over the remote Turso link) and made
+    # the mini-profile hang on "Loading…".
+    guilds = threads_db.get_user_public_guild_tags(uid)
+    tags = [{
+        "id": g["id"],
+        "name": g["name"],
+        "genre": g.get("genre"),
+        "role": g.get("role") or "member",
+    } for g in guilds]
     return jsonify({
         "success": True,
         "user": {

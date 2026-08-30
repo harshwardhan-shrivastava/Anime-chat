@@ -1521,6 +1521,31 @@ def get_community_channels(cid, user_id):
     return out
 
 
+def get_user_public_guild_tags(user_id):
+    """Public guild tags for another user's mini-profile.
+
+    ONE query, no per-guild channel/unread work. get_user_communities() is
+    too heavy for this — it runs get_community_channels() per guild, which
+    is several sequential round trips over the remote Turso link and made
+    the profile modal hang on "Loading…".
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT c.id, c.name, c.genre, c.is_public, m.role
+        FROM thr_communities c
+        JOIN thr_community_members m ON m.community_id = c.id AND m.user_id = ?
+        WHERE c.is_public = 1
+        ORDER BY c.id ASC
+        """,
+        (user_id,),
+    )
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
+
+
 def get_user_communities(user_id):
     """Rail list: communities the user belongs to, each with its channels,
     total unread and per-community mute flag."""

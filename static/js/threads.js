@@ -1216,7 +1216,10 @@
             }).join("") : '<span class="thr-profile-empty">No public guilds yet</span>';
             var link = document.getElementById("upFullProfile");
             link.href = "/user/" + encodeURIComponent(u.username || "");
-            openModal("modalUserProfile");
+            // NOTE: do NOT call openModal here — the modal is already open
+            // (opened instantly at click time). Re-opening after the fetch
+            // resolves made the close (×) button look broken: the box would
+            // reappear seconds after you closed it.
         });
     }
 
