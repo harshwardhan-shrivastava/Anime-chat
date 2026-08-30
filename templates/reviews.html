@@ -252,16 +252,18 @@
             .rv-card.art:not(.ep) .rv-art { width: 96px; }
         }
 
-        /* episode card: 16:9 episode thumbnail banner on top, content below */
+        /* episode card: 16:9 episode thumbnail right (landscape, wider than
+           the anime poster so the two card shapes stay distinct), content left */
         .rv-card.ep {
-            grid-template-columns: 1fr;
-            grid-template-areas: "art" "body";
+            grid-template-columns: minmax(0, 1fr) 220px;
+            grid-template-areas: "body art";
+            gap: 16px; padding: 18px 20px;
         }
-        .rv-card.ep .rv-art { grid-area: art; width: 100%; height: 200px; border-radius: 0; }
+        .rv-card.ep .rv-art { grid-area: art; width: 220px; aspect-ratio: 16 / 9; }
         .rv-card.ep .rv-card-body { grid-area: body; }
-        .rv-card.ep .rv-art::after {
-            content: ""; position: absolute; inset: 0; pointer-events: none;
-            background: linear-gradient(transparent 35%, rgba(10,16,28,0.7) 85%, var(--rv-card));
+        @media (max-width: 639px) {
+            .rv-card.ep { grid-template-columns: 1fr; grid-template-areas: "art" "body"; }
+            .rv-card.ep .rv-art { width: 100%; height: 170px; border-radius: 0; }
         }
 
         .rv-empty { text-align: center; color: var(--rv-muted); padding: 60px 0; font-size: 1.05rem; }
