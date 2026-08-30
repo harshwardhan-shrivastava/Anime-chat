@@ -1167,7 +1167,12 @@ def reviews_page():
                         break
         if not r.get("season_name_display"):
             r["season_name_display"] = r["season_name"]
+        # No real 16:9 episode still: fall back to the anime poster, and
+        # flag it so the card renders it as a poster (fill the box) instead
+        # of a landscape thumb (which would letterbox it into a black bar).
+        r["episode_thumb_is_poster"] = False
         if not r["episode_thumb"]:
+            r["episode_thumb_is_poster"] = True
             r["episode_thumb"] = r["anime_image"]
         counts = ep_like_counts.get(r["id"], {"likes": 0, "dislikes": 0})
         r["likes"] = counts["likes"]

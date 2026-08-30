@@ -261,6 +261,10 @@
         }
         .rv-card.ep .rv-art { grid-area: art; width: 360px; align-self: start; }
         .rv-card.ep .rv-art img { width: 100%; height: auto; max-height: 235px; object-fit: contain; }
+        /* No episode still: fall back to the anime poster and fill the 16:9
+           box like the anime page does (no black bars around a tall poster). */
+        .rv-card.ep .rv-art.poster-fallback { aspect-ratio: 16 / 9; height: auto; }
+        .rv-card.ep .rv-art.poster-fallback img { max-height: none; height: 100%; object-fit: cover; object-position: center 22%; }
         .rv-card.ep .rv-card-body { grid-area: body; }
         @media (max-width: 639px) {
             .rv-card.ep { grid-template-columns: 1fr; grid-template-areas: "art" "body"; }
@@ -439,7 +443,7 @@
                  data-created="{{ r.created_at }}"
                  data-votes="{{ r.likes + r.dislikes }}">
                 {% if r.episode_thumb %}
-                <a class="rv-art" href="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}" aria-label="{{ r.anime_title }}">
+                <a class="rv-art{% if r.episode_thumb_is_poster %} poster-fallback{% endif %}" href="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}" aria-label="{{ r.anime_title }}">
                     <img src="{{ r.episode_thumb }}" alt="{{ r.anime_title }}" loading="lazy" onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src=this.src.replace('/original_untouched/','/original/')}else{this.closest('.rv-art').style.display='none'}">
                 </a>
                 {% endif %}
