@@ -1211,7 +1211,6 @@ grid-template-columns:1fr;
 .nav-cat.open .category-menu{
     display:flex;
     gap:34px;
-    animation:catIn .25s ease;
 }
 .nav-cat.open .cat-toggle{
     color:white;

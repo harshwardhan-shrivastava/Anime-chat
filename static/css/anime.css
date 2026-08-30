@@ -2743,7 +2743,6 @@ footer p{
     border-radius:16px;
     padding:8px;
     box-shadow:0 22px 60px rgba(0,0,0,.7),0 0 30px rgba(123,46,255,.15);
-    animation:navDrop .22s ease;
 }
 .nav-user-menu[hidden]{
     display:none;
