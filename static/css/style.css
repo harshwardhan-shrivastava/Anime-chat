@@ -496,11 +496,18 @@ nav{
 .scout-bow{position:absolute;width:49px;height:78px;left:-3px;top:16px;border-right:3px solid #f6c86e;border-radius:50%;transform:rotate(-28deg);z-index:4}
 .scout-arrow{position:absolute;width:132px;height:3px;left:10px;top:40px;background:linear-gradient(90deg,#f8dc86,#fff,#8f5bff);transform:rotate(-13deg);transform-origin:left center;animation:arrowLaunch 3.2s ease-in-out infinite;box-shadow:0 0 10px #8f5bff}
 .scout-arrow:after{content:"";position:absolute;right:-1px;top:-4px;border-left:10px solid #fff0a8;border-top:5px solid transparent;border-bottom:5px solid transparent}
+.hero-impact{position:absolute;width:22px;height:22px;left:calc(100% + 30px);top:23px;border-radius:50%;border:2px solid #ffe38b;opacity:0;animation:impactBurst 3.2s ease-in-out infinite;box-shadow:0 0 18px #ffd45e,0 0 35px #8f5bff}
+.hero-impact:before,.hero-impact:after{content:"";position:absolute;left:50%;top:50%;width:38px;height:2px;background:#ffe38b;transform-origin:left center}.hero-impact:before{transform:rotate(45deg)}.hero-impact:after{transform:rotate(-45deg)}
+.hero-words{display:inline-block;animation:wordReaction 3.2s ease-in-out infinite;transform-origin:50% 65%;}
+.hero-words::after{content:"";position:absolute;pointer-events:none}
+@keyframes wordReaction{0%,42%,100%{filter:none;text-shadow:0 0 25px rgba(143,91,255,.7);transform:translateX(0)}47%{filter:brightness(1.45);text-shadow:0 0 8px #fff,0 0 30px #ffd45e,0 0 55px #8f5bff;transform:translateX(2px) scale(1.035)}52%{filter:brightness(1.15);transform:translateX(-2px) scale(.99)}60%{filter:none;transform:translateX(0)}}
+@keyframes impactBurst{0%,43%{opacity:0;transform:scale(.2)}48%{opacity:1;transform:scale(1.2)}55%,100%{opacity:0;transform:scale(2.2)}}
 .hero-spark{position:absolute;width:5px;height:5px;border-radius:50%;background:#fff1a8;box-shadow:0 0 12px #ffd45e;animation:sparkle 2.2s ease-in-out infinite}.spark-one{left:45%;top:20px}.spark-two{left:62%;top:65px;animation-delay:.7s}.spark-three{left:76%;top:31px;animation-delay:1.2s}
 @keyframes arrowLaunch{0%,18%{transform:rotate(-13deg) translateX(0);opacity:.2}40%{opacity:1}75%,100%{transform:rotate(-13deg) translateX(34px);opacity:0}}
 @keyframes scoutBreath{50%{transform:translateY(-3px) rotate(-1deg)}}
 @keyframes cloudDrift{to{transform:translateX(18px)}}
 @keyframes sparkle{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.35)}}
+@media (prefers-reduced-motion:reduce){.hero-words{animation:none!important}}
 @media (prefers-reduced-motion:reduce){.hero-scene *,.hero-scene{animation:none!important}}
 
 .hero h1{
