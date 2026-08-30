@@ -230,30 +230,34 @@
         .rv-link-btn.primary:hover { background: rgba(34,197,94,0.1); border-color: #22c55e; }
         .rv-foot-spacer { flex: 1; }
 
-        /* poster/thumbnail (wide card: content right of a hero art strip) */
+        /* compact review cards — fixed proportions, nothing stretches */
         .rv-card.art .rv-art {
-            display: flex; align-items: center; justify-content: center; overflow: hidden;
-            background: #0a101c; position: relative;
+            overflow: hidden; background: #0a101c; position: relative; border-radius: 12px;
         }
-        .rv-card.art .rv-art img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
-        .rv-card.art:hover .rv-art img { transform: scale(1.05); }
-        .rv-card.art .rv-art::after { content:""; position:absolute; inset:0; background:linear-gradient(90deg, var(--rv-card), transparent 60%); pointer-events:none; }
+        .rv-card.art .rv-art img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
+        .rv-card.art:hover .rv-art img { transform: scale(1.04); }
+        .rv-feed { scroll-margin-top: 96px; }
+
+        /* anime card: content left, fixed-size poster right */
+        .rv-card.art:not(.ep) {
+            grid-template-columns: minmax(0, 1fr) 128px;
+            gap: 18px; padding: 18px 20px; align-items: start;
+        }
+        .rv-card.art:not(.ep) .rv-card-body { grid-column: 1; padding: 0; min-width: 0; }
+        .rv-card.art:not(.ep) .rv-art { grid-column: 2; width: 128px; aspect-ratio: 2 / 3; align-self: start; }
         @media (max-width: 639px) {
-            .rv-card.art:not(.ep) .rv-art { min-height: 190px; }
+            .rv-card.art:not(.ep) { grid-template-columns: 96px minmax(0, 1fr); gap: 14px; padding: 14px 16px; }
+            .rv-card.art:not(.ep) .rv-art { width: 96px; }
         }
-        /* anime card: content left, tall poster right strip */
-        @media (min-width: 640px) {
-            .rv-card.art:not(.ep) { grid-template-columns: minmax(0, 1fr) 180px; }
-            .rv-card.art:not(.ep) .rv-card-body { grid-column: 1; min-width: 0; }
-            .rv-card.art:not(.ep) .rv-art { grid-column: 2; width: 100%; align-self: stretch; }
-            .rv-card.art:not(.ep) .rv-art img { width: 100%; height: 100%; object-fit: cover; }
-        }
-        /* episode card: 16:9 thumbnail banner on top, content below */
+
+        /* episode card: 16:9 episode thumbnail banner on top, content below */
         .rv-card.ep { grid-template-columns: 1fr; }
-        .rv-card.ep .rv-art { grid-column: auto; width: 100%; height: clamp(190px, 38vw, 250px); align-self: auto; }
-        .rv-card.ep .rv-card-body { grid-column: auto; }
-        .rv-card.ep .rv-art::after { background: linear-gradient(transparent 30%, rgba(16,23,32,0.55) 72%, var(--rv-card)); }
-        .rv-card.ep .rv-art img { width: 100%; height: 100%; object-fit: cover; }
+        .rv-card.ep .rv-art { grid-column: 1; width: 100%; height: 200px; border-radius: 0; }
+        .rv-card.ep .rv-card-body { grid-column: 1; }
+        .rv-card.ep .rv-art::after {
+            content: ""; position: absolute; inset: 0; pointer-events: none;
+            background: linear-gradient(transparent 35%, rgba(10,16,28,0.7) 85%, var(--rv-card));
+        }
 
         .rv-empty { text-align: center; color: var(--rv-muted); padding: 60px 0; font-size: 1.05rem; }
         .rv-empty i { display: block; font-size: 2.4rem; margin-bottom: 12px; color: var(--rv-muted-2); }
@@ -493,7 +497,10 @@
                 activeKind = name;
                 $$(".rv-feed").forEach(function (p) { p.style.display = "none"; });
                 var pane = $("#rvtab-" + name);
-                if (pane) pane.style.display = "flex";
+                if (pane) {
+                    pane.style.display = "flex";
+                    pane.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
                 applyFilter();
             });
         });
