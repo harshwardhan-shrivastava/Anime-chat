@@ -1088,6 +1088,8 @@ def reviews_page():
         r["anime_title"] = entry.get("title", r["anime_slug"]) if entry else r["anime_slug"]
         r["anime_image"] = entry.get("image") if entry else None
         r["episode_thumb"] = None
+        r["episode_title"] = None
+        r["season_name_display"] = None
         r["season_idx"] = 1
         if entry and entry.get("seasons"):
             # Try matching by name first, then by numeric index.
@@ -1108,10 +1110,14 @@ def reviews_page():
                 except (TypeError, ValueError):
                     pass
             if matched_season:
+                r["season_name_display"] = matched_season.get("name") or f"Season {r['season_idx']}"
                 for ep in matched_season.get("episodes", []):
                     if ep.get("number") == r["episode_number"]:
                         r["episode_thumb"] = ep.get("thumb") or ep.get("image")
+                        r["episode_title"] = ep.get("title")
                         break
+        if not r.get("season_name_display"):
+            r["season_name_display"] = r["season_name"]
         if not r["episode_thumb"]:
             r["episode_thumb"] = r["anime_image"]
         counts = ep_like_counts.get(r["id"], {"likes": 0, "dislikes": 0})
