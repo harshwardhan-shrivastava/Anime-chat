@@ -237,9 +237,11 @@
         .rv-card.art:hover .rv-art img { transform: scale(1.05); }
         .rv-card.art .rv-art::after { content:""; position:absolute; inset:0; background:linear-gradient(90deg, var(--rv-card), transparent 60%); pointer-events:none; }
         @media (min-width: 640px) {
-            .rv-card.art { grid-template-columns: 1fr 168px; }
-            .rv-card.art.ep { grid-template-columns: 1fr 236px; }
-            .rv-card.art .rv-art { max-height: 240px; width: 100%; }
+            .rv-card.art { grid-template-columns: minmax(0, 1fr) 208px; }
+            .rv-card.art.ep { grid-template-columns: minmax(0, 1fr) 216px; }
+            .rv-card.art .rv-card-body { grid-column: 1; min-width: 0; }
+            .rv-card.art .rv-art { grid-column: 2; width: 100%; align-self: stretch; }
+            .rv-card.art .rv-art img { width: 100%; height: 100%; object-fit: cover; }
         }
         @media (max-width: 639px) {
             .rv-card.art .rv-art { min-height: 200px; }
@@ -478,6 +480,7 @@
                 $$(".rv-tab").forEach(function (t) { t.classList.remove("active"); });
                 tab.classList.add("active");
                 var name = tab.getAttribute("data-rtab");
+                activeKind = name;
                 $$(".rv-feed").forEach(function (p) { p.style.display = "none"; });
                 var pane = $("#rvtab-" + name);
                 if (pane) pane.style.display = "flex";
