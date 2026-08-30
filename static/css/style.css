@@ -475,13 +475,35 @@ nav{
 }
 
 .hero h1 .hero-words span{
+    display:inline-block;
+}
 
-    color:#8F5BFF;
-
-    text-shadow:
-
-    0 0 25px rgba(143,91,255,.7);
-
+/* Chill living effect on the heading: gentle float, slow iridescent
+   shimmer across "Anime Community", soft breathing glow. All slow + subtle. */
+.hero h1{
+    animation:h1Float 8s ease-in-out infinite;
+}
+@keyframes h1Float{
+    0%,100%{transform:translateY(0)}
+    50%{transform:translateY(-6px)}
+}
+.hero h1 .hero-words{
+    background:linear-gradient(100deg,#9b6bff,#c9a6ff 30%,#79e0ff 55%,#c9a6ff 80%,#9b6bff);
+    background-size:280% 100%;
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+    color:transparent;
+    animation:wordShimmer 9s linear infinite;
+    filter:drop-shadow(0 0 16px rgba(150,105,235,.55)) drop-shadow(0 0 44px rgba(120,80,235,.35));
+}
+@keyframes wordShimmer{
+    0%{background-position:0% 50%}
+    100%{background-position:280% 50%}
+}
+@media (prefers-reduced-motion:reduce){
+    .hero h1{animation:none}
+    .hero h1 .hero-words{animation:none}
 }
 
 .hero p{
