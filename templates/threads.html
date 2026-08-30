@@ -58,7 +58,7 @@
                 </div>
             </div>
             {% if current_user %}
-            <div class="thr-user-pill">
+            <div class="thr-user-pill" id="btnUserMenu" role="button" tabindex="0" title="Your profile &amp; rank">
                 {% if current_user.avatar %}
                 <img class="thr-avatar" style="object-fit:cover" src="{{ url_for('static', filename='images/avatars/' ~ current_user.avatar) }}" alt="">
                 {% else %}
@@ -67,7 +67,8 @@
                 </span>
                 {% endif %}
                 <span class="thr-user-name">{{ current_user.username }}</span>
-                <a href="{{ url_for('auth.logout') }}" class="thr-logout" title="Log out">
+                <i class="fas fa-chevron-down thr-user-caret"></i>
+                <a href="{{ url_for('auth.logout') }}" class="thr-logout" title="Log out" data-stop="1">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
             </div>
@@ -591,6 +592,65 @@
     </div>
 </div>
 
+<!-- ===================== PROFILE / XP-RANK MODAL ===================== -->
+<div class="thr-modal hidden" id="modalUserInfo">
+    <div class="thr-modal-card thr-modal-user-card">
+        <div class="thr-modal-head">
+            <h3>{{ t('Your profile') }}</h3>
+            <button class="thr-modal-close" data-close="modalUserInfo"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <div class="thr-mine-card">
+                <div class="thr-mine-top">
+                    {% if current_user.avatar %}
+                    <img class="thr-mine-avatar" src="{{ url_for('static', filename='images/avatars/' ~ current_user.avatar) }}" alt="">
+                    {% else %}
+                    <span class="thr-mine-avatar" style="background:{{ current_user.avatar_color }}">{{ current_user.username[:2]|upper }}</span>
+                    {% endif %}
+                    <div class="thr-mine-id">
+                        <div class="thr-mine-username">@{{ current_user.username }}</div>
+                        <div class="thr-mine-role">{{ t('Rank') }} {{ user_rank }}</div>
+                    </div>
+                </div>
+                <div class="thr-mine-rank">
+                    <span class="rank-badge rank-{{ user_rank }}">{{ user_rank }}</span>
+                </div>
+                <div class="thr-mine-xp">
+                    <div class="thr-mine-xp-label"><span>{{ user_xp }} {{ t('XP') }}</span><span>{{ xp_pct }}%</span></div>
+                    <div class="xp-bar rank-{{ user_rank }}"><span class="xp-bar-fill" style="width:{{ xp_pct }}%"></span></div>
+                </div>
+                <a href="{{ url_for('profile.profile') }}" class="thr-btn thr-btn-primary thr-btn-block thr-mine-link">
+                    <i class="fas fa-id-card"></i> {{ t('Your profile') }}
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="thr-link-btn danger thr-mine-logout">
+                    <i class="fas fa-sign-out-alt"></i> {{ t('Log Out') }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="{{ url_for('static', filename='js/threads.js') }}?v=20260827f"></script>
+<script>
+(function () {
+    var pill = document.getElementById('btnUserMenu');
+    var modal = document.getElementById('modalUserInfo');
+    if (!pill || !modal) return;
+    function open() {
+        modal.classList.remove('hidden');
+    }
+    pill.addEventListener('click', function (e) {
+        if (e.target && e.target.closest && e.target.closest('a.thr-logout')) {
+            e.stopPropagation();
+            return;
+        }
+        e.preventDefault();
+        open();
+    });
+    pill.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+    });
+})();
+</script>
 </body>
 </html>

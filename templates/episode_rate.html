@@ -215,11 +215,11 @@
 
     <section class="content-section">
 
-        <h2 class="section-title">
+        <h2 class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
 
-            <i class="fas fa-pen"></i>
+            <span><i class="fas fa-pen"></i> Rate This Episode</span>
 
-            Rate This Episode
+            <a href="/reviews" style="font-size:0.5em;color:#22c55e;text-decoration:none;font-weight:500;white-space:nowrap;"><i class="fas fa-external-link-alt"></i> {{ t('Go to Reviews') }} →</a>
 
         </h2>
 
@@ -306,80 +306,74 @@
 
     </section>
 
-    <!-- Reviews -->
+    <!-- Your Review -->
 
     <section class="content-section">
 
-        <h2 class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <h2 class="section-title">
 
-            <span><i class="fas fa-comments"></i> Episode Reviews</span>
+            <i class="fas fa-comments"></i>
 
-            <a href="/reviews" style="font-size:0.55em;color:#22c55e;text-decoration:none;font-weight:500;white-space:nowrap;"><i class="fas fa-external-link-alt"></i> {{ t('Go to Reviews') }} →</a>
+            Your Review
 
         </h2>
 
         <div class="reviews">
 
-            {% if stats.reviews %}
-
+            {% set my_ep_review = none %}
+            {% if current_user and stats.reviews %}
             {% for review in stats.reviews %}
+                {% if review.user_id == current_user.id %}
+                    {% set my_ep_review = review %}
+                {% endif %}
+            {% endfor %}
+            {% endif %}
 
-            <div class="review-card"{% if current_user and review.user_id == current_user.id %} style="border-color:#22c55e;"{% endif %}>
+            {% if my_ep_review %}
+
+            <div class="review-card" style="border-color:#22c55e;">
 
                 <div class="review-header">
 
                     <div class="review-avatar-initial"
-                         style="background:{{ review.avatar_color or '#00c16a' }}">
-                        {{ review.username[:1] | upper }}
+                         style="background:{{ my_ep_review.avatar_color or '#00c16a' }}">
+                        {{ my_ep_review.username[:1] | upper }}
                     </div>
 
                     <div>
 
-                        <h3>{{ review.username }}</h3>
+                        <h3>{{ my_ep_review.username }}</h3>
 
-                        <span>{% for i in range(1,6) %}{% if i <= (review.rating // 2) %}★{% else %}☆{% endif %}{% endfor %}<span class="review-score"> {{ review.rating }}/10</span></span>
+                        <span>{% for i in range(1,6) %}{% if i <= (my_ep_review.rating // 2) %}★{% else %}☆{% endif %}{% endfor %}<span class="review-score"> {{ my_ep_review.rating }}/10</span></span>
 
                     </div>
 
-                    {% if current_user and review.user_id == current_user.id %}
                     <div style="margin-left:auto;position:relative;">
                         <button type="button" class="review-menu-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:1.6rem;padding:4px 12px;border-radius:8px;line-height:1;">⋮</button>
                         <div style="display:none;position:absolute;right:0;top:100%;background:#1f2937;border:1px solid #374151;border-radius:8px;min-width:130px;z-index:20;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.4);">
                             <button type="button" onclick="if(confirm('Delete your review? You can write a new one after, but you will lose all XP from its likes/dislikes.')){fetch('/delete-episode-review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({anime_slug:'{{ anime.slug }}',season_name:'{{ season_idx }}',episode_number:{{ episode_number }}})}).then(function(r){return r.json()}).then(function(d){if(d.success)window.location.reload();else alert(d.error||'Could not delete.')})}" style="display:block;width:100%;text-align:left;background:none;border:none;color:#f87171;padding:10px 14px;cursor:pointer;font-size:0.9rem;">🗑 Delete</button>
                         </div>
                     </div>
-                    {% endif %}
 
                 </div>
 
                 <p>
 
-                    {{ review.comment if review.comment else '(No written review, just a rating.)' }}
+                    {{ my_ep_review.comment if my_ep_review.comment else '(No written review, just a rating.)' }}
 
                 </p>
 
-                {% if not current_user or review.user_id != current_user.id %}
-                <div class="vote-btn-wrap" data-review-id="{{ review.id }}" data-review-type="episode">
-                    <button type="button" class="vote-btn gvote" data-kind="like">
-                        <span class="vote-emoji">👍</span>
-                        <span class="vote-count">{{ review.likes or 0 }}</span>
-                    </button>
-                    <button type="button" class="vote-btn gvote" data-kind="dislike">
-                        <span class="vote-emoji">👎</span>
-                        <span class="vote-count">{{ review.dislikes or 0 }}</span>
-                    </button>
-                </div>
-                {% else %}
                 <div class="own-review-note"><i class="fas fa-user-check"></i> Your review</div>
-                {% endif %}
 
             </div>
 
-            {% endfor %}
+            {% elif current_user %}
+
+            <p class="no-reviews">You haven't reviewed this episode yet. Rate it above!</p>
 
             {% else %}
 
-            <p class="no-reviews">No reviews yet — be the first to rate {{ episode_title }}!</p>
+            <p class="no-reviews">Log in to see your review here.</p>
 
             {% endif %}
 

@@ -223,11 +223,21 @@ def index():
                     preloaded["parties"] = _enrich_parties(threads_db.get_channel_parties(cid, user["id"]))
             preloaded["settings"] = threads_db.get_settings(user["id"])
 
+    user_xp = site_db.get_user_xp(user["id"])
+    user_rank = site_db.get_user_rank(user["id"])
+    try:
+        _xp_rank, xp_pct = site_db.xp_progress(user_xp)
+    except Exception:
+        xp_pct = 0
+
     return render_template(
         "threads.html",
         conversations=conversations,
         unread_notifications=threads_db.unread_notification_count(user["id"]),
         preloaded=preloaded,
+        user_xp=user_xp,
+        user_rank=user_rank or "D",
+        xp_pct=xp_pct,
     )
 
 
@@ -819,6 +829,17 @@ def communities_create():
     name = (data.get("name") or "").strip()
     if not name or len(name) > 60:
         return jsonify({"success": False, "error": "bad_name"}), 400
+    # Dedupe: don't create a second guild with the exact same name that the
+    # same user already owns (e.g. double-clicking "Create guild"). Returns
+    # the existing guild so the UI still behaves correctly.
+    existing = next(
+        (c for c in threads_db.get_user_communities(user["id"])
+         if c.get("owner_id") == user["id"]
+         and (c.get("name") or "").strip().casefold() == name.casefold()),
+        None,
+    )
+    if existing:
+        return jsonify({"success": True, "community": existing, "already_exists": True})
     cid = threads_db.create_community(
         name,
         (data.get("description") or "").strip()[:500],
