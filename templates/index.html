@@ -71,9 +71,81 @@
 
     <!-- Cinematic outline duel intro (wide shot, no faces) -->
 
-    <img class="hero-fight" src="{{ url_for('static', filename='images/hero-duel.gif') }}"
-         alt="Anime samurai duel"
-         loading="eager" decoding="async">
+    <div class="duel" aria-hidden="true">
+
+        <i class="wl wl-a"></i>
+        <i class="wl wl-b"></i>
+        <i class="wl wl-c"></i>
+
+        <svg class="duel-svg" viewBox="0 0 560 190" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+
+            <!-- LEFT samurai silhouette: flowing hair, filled robe, thick limbs, curved katana -->
+            <g class="swordsman" fill="none" stroke="currentColor">
+                <path d="M173 103 C151 101 144 119 147 139" stroke-width="7"/>
+                <path d="M182 101 C165 96 155 113 157 130" stroke-width="7"/>
+                <path d="M188 104 C177 99 170 114 170 128" stroke-width="7"/>
+                <circle cx="178" cy="99" r="4" fill="currentColor" stroke="none"/>
+                <ellipse cx="187" cy="120" rx="7" ry="8" fill="currentColor" stroke="none"/>
+                <path d="M178 129 L174 150 L180 158 L194 158 L201 150 L201 139 L196 129 Z" fill="currentColor" stroke-width="2"/>
+                <path d="M184 130 L196 129 M187 132 L187 150" stroke-width="4"/>
+                <path d="M173 152 L203 152" stroke-width="6"/>
+                <path d="M180 151 C176 156 176 160 179 163" stroke-width="4"/>
+                <path d="M185 133 C180 139 179 145 180 151" stroke-width="6"/>
+                <path d="M180 154 L172 162" stroke-width="3"/>
+                <path d="M192 158 C195 164 197 170 199 177" stroke-width="7"/>
+                <path d="M184 158 C180 164 178 170 178 177" stroke-width="7"/>
+                <path d="M196 177 L201 179 M178 177 L173 179" stroke-width="3"/>
+                <g class="sword-arm">
+                    <path d="M197 131 C209 136 216 142 222 149" stroke-width="7"/>
+                    <circle cx="223" cy="150" r="4" fill="currentColor" stroke="none"/>
+                    <path d="M223 151 C230 142 238 137 247 131" stroke-width="2.6"/>
+                    <path d="M222 153 L227 149" stroke-width="3"/>
+                    <path d="M221 155 C218 159 216 161 213 163" stroke-width="3"/>
+                </g>
+            </g>
+
+            <!-- RIGHT samurai, upper half (head + robe + arms + katana guard) splits off -->
+            <g class="opp-top" fill="none" stroke="currentColor">
+                <path d="M359 103 C377 99 386 116 383 137" stroke-width="7"/>
+                <path d="M353 101 C369 96 378 113 376 129" stroke-width="7"/>
+                <path d="M347 104 C360 99 365 112 365 127" stroke-width="7"/>
+                <circle cx="357" cy="99" r="4" fill="currentColor" stroke="none"/>
+                <ellipse cx="362" cy="120" rx="7" ry="8" fill="currentColor" stroke="none"/>
+                <path d="M366 129 L371 150 L365 158 L351 158 L344 150 L344 139 L350 129 Z" fill="currentColor" stroke-width="2"/>
+                <path d="M362 131 L353 129 M362 132 L362 150" stroke-width="4"/>
+                <path d="M343 152 L373 152" stroke-width="6"/>
+                <path d="M363 151 C367 156 367 160 364 163" stroke-width="4"/>
+                <path d="M353 132 C345 137 341 143 337 150" stroke-width="7"/>
+                <circle cx="336" cy="151" r="4" fill="currentColor" stroke="none"/>
+                <path d="M336 152 C329 138 331 123 341 115" stroke-width="2.6"/>
+                <path d="M334 153 L339 149" stroke-width="3"/>
+                <circle cx="346" cy="151" r="3.5" fill="currentColor" stroke="none"/>
+                <path d="M368 133 C376 139 381 145 383 152" stroke-width="6"/>
+            </g>
+
+            <!-- RIGHT samurai, lower half (legs) falls after the slice -->
+            <g class="opp-bottom" fill="none" stroke="currentColor">
+                <path d="M366 159 C369 165 370 171 370 177" stroke-width="7"/>
+                <path d="M360 159 C356 165 354 171 354 177" stroke-width="7"/>
+                <path d="M367 177 L372 179 M353 177 L348 179" stroke-width="3"/>
+            </g>
+
+        </svg>
+
+        <i class="duel-flash"></i>
+
+        <i class="br br-a"><i class="slash"></i></i>
+        <i class="br br-b"><i class="slash"></i></i>
+        <i class="br br-c"><i class="slash"></i></i>
+        <i class="br br-d"><i class="slash"></i></i>
+        <i class="br br-e"><i class="slash"></i></i>
+
+        <i class="petal pt-a"></i>
+        <i class="petal pt-b"></i>
+        <i class="petal pt-c"></i>
+        <i class="petal pt-d"></i>
+
+    </div>
 
     <h1>
 
