@@ -1024,6 +1024,18 @@ def community_leave(cid):
     return jsonify({"success": True, "community_gone": not threads_db.get_community(cid)})
 
 
+@bp.route("/threads/api/communities/<int:cid>/delete", methods=["POST"])
+def community_delete(cid):
+    """Owner-only permanent delete of a guild + all its data."""
+    user, community, err = _community_guard(cid)
+    if err:
+        return err
+    if community.get("owner_id") != user["id"]:
+        return jsonify({"success": False, "error": "You can only delete a guild you own."}), 403
+    threads_db.delete_community(cid)
+    return jsonify({"success": True, "community_gone": True})
+
+
 @bp.route("/threads/api/users/<int:uid>/profile")
 def user_public_profile(uid):
     """Public mini-profile for another user inside Threads: rank, XP, account

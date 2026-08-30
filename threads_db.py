@@ -1430,7 +1430,7 @@ def create_community(name, description, genre, owner_id, icon_color=None, icon_u
         """
         INSERT INTO thr_communities
         (name, slug, description, genre, icon_color, icon_url, is_public, owner_id, rules)
-        VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (name.strip(), slug, (description or "").strip(), (genre or "").strip(),
          icon_color or "#8b5cf6", icon_url or None, 1 if is_public else 0, owner_id, DEFAULT_RULES),
@@ -1733,6 +1733,38 @@ def join_community_by_invite(code, user_id):
         return None, "banned"
     join_community(cid, user_id)
     return cid, None
+
+
+def delete_community(cid):
+    """Permanently delete a guild and all of its channels, messages, parties,
+    polls, members, bans, reports and mod log. Owner-only in the route guard."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM thr_channels WHERE community_id = ?", (cid,))
+    ch_ids = [r["id"] for r in cur.fetchall()]
+    if ch_ids:
+        ph = ",".join("?" for _ in ch_ids)
+        cur.execute(f"DELETE FROM thr_messages WHERE context_type='channel' AND context_id IN ({ph})", ch_ids)
+        cur.execute(f"DELETE FROM thr_reports WHERE message_id IN (SELECT id FROM thr_messages WHERE context_type='channel' AND context_id IN ({ph}))", ch_ids)
+        cur.execute(f"DELETE FROM thr_mentions WHERE message_id IN (SELECT id FROM thr_messages WHERE context_type='channel' AND context_id IN ({ph}))", ch_ids)
+        cur.execute(f"DELETE FROM thr_channel_reads WHERE channel_id IN ({ph})", ch_ids)
+        cur.execute(f"DELETE FROM thr_poll_votes WHERE poll_id IN (SELECT id FROM thr_polls WHERE channel_id IN ({ph}))", ch_ids)
+        cur.execute(f"DELETE FROM thr_poll_options WHERE poll_id IN (SELECT id FROM thr_polls WHERE channel_id IN ({ph}))", ch_ids)
+        cur.execute(f"DELETE FROM thr_polls WHERE channel_id IN ({ph})", ch_ids)
+        cur.execute(f"DELETE FROM thr_watch_party_rsvps WHERE party_id IN (SELECT id FROM thr_watch_parties WHERE channel_id IN ({ph}))", ch_ids)
+        cur.execute(f"DELETE FROM thr_watch_parties WHERE channel_id IN ({ph})", ch_ids)
+        cur.execute(f"DELETE FROM thr_channels WHERE id IN ({ph})", ch_ids)
+    cur.execute("DELETE FROM thr_community_members WHERE community_id = ?", (cid,))
+    cur.execute("DELETE FROM thr_community_bans WHERE community_id = ?", (cid,))
+    cur.execute("DELETE FROM thr_mod_log WHERE community_id = ?", (cid,))
+    cur.execute(
+        "DELETE FROM thr_notifications WHERE (context_type = 'community' AND context_id = ?) OR (context_type = 'channel' AND context_id IN (SELECT id FROM thr_channels WHERE community_id = ?))",
+        (cid, cid),
+    )
+    cur.execute("DELETE FROM thr_communities WHERE id = ?", (cid,))
+    conn.commit()
+    conn.close()
+    return True
 
 
 def leave_community(cid, user_id):

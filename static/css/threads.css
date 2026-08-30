@@ -772,6 +772,22 @@ html, body {
 
 .thr-msg-user { font-size: 14px; font-weight: 700; color: var(--thr-text); }
 
+/* Clickable user identity (message author + avatar) — show it's tappable */
+.thr-msg-user.thr-profile-open,
+.thr-msg-avatar.thr-profile-open {
+    cursor: pointer;
+}
+.thr-msg-user.thr-profile-open { transition: color .15s ease, text-shadow .15s ease; }
+.thr-msg-user.thr-profile-open:hover {
+    color: #fff;
+    text-shadow: 0 0 12px rgba(139, 92, 246, .85), 0 0 26px rgba(139, 92, 246, .45);
+}
+.thr-msg-avatar.thr-profile-open { transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease; box-shadow: 0 0 0 1px rgba(255,255,255,0); }
+.thr-msg-avatar.thr-profile-open:hover {
+    box-shadow: 0 0 0 2px var(--thr-accent), 0 0 18px rgba(139, 92, 246, .8);
+    transform: scale(1.06);
+}
+
 .thr-msg-time {
     font-size: 11px;
     color: var(--thr-muted-2);
@@ -1482,6 +1498,13 @@ html, body {
 
 .thr-member-name { flex: 1; font-size: 13.5px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Member names are clickable profiles — show it on hover */
+.thr-member-name[data-uid] { cursor: pointer; transition: color .15s ease, text-shadow .15s ease; }
+.thr-member-name[data-uid]:hover {
+    color: #fff;
+    text-shadow: 0 0 12px rgba(139, 92, 246, .85), 0 0 24px rgba(139, 92, 246, .45);
+}
+
 .thr-role-chip {
     font-size: 10px;
     font-weight: 700;
@@ -1765,19 +1788,7 @@ html, body {
     font-size: 10px;
 }
 
-.thr-rail-count {
-    position: absolute;
-    bottom: -4px;
-    right: -4px;
-    font-size: 9px;
-    font-weight: 800;
-    color: #fff;
-    background: #4b5563;
-    border: 2px solid var(--thr-bg, #13111c);
-    border-radius: 999px;
-    padding: 1px 5px;
-    line-height: 1.2;
-}
+
 
 .thr-rail-empty {
     width: 46px;

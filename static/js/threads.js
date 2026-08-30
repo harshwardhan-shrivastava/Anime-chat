@@ -1883,7 +1883,7 @@
                 (c.icon_url
                     ? '<span class="thr-rail-icon thr-rail-icon-img" style="background:' + escapeHtml(c.icon_color || "#8b5cf6") + '"><img src="' + escapeHtml(c.icon_url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.parentNode.textContent=\'' + escapeHtml(initials(c.name)) + '\'"></span>'
                     : '<span class="thr-rail-icon" style="background:' + escapeHtml(c.icon_color || "#8b5cf6") + '">' + escapeHtml(initials(c.name)) + "</span>") +
-                (dup ? '<span class="thr-rail-count" title="Another guild shares this name">' + (c.member_count || "?") + "</span>" : "") +
+
                 (c.unread ? '<span class="thr-unread-badge thr-rail-badge">' + (c.unread > 99 ? "99+" : c.unread) + "</span>" : "") +
                 "</div>";
         });
@@ -2232,6 +2232,9 @@
         _editCommAvatar = c.icon_url || null;
         if (State._editPicker) State._editPicker.set(_editCommAvatar);
         var canMod = isCommMod();
+        var isOwnerGuild = State.communities.some(function (x) { return x.id === c.id; }) && !!(c.role === "owner");
+        var delBtn = document.getElementById("btnDeleteCommunity");
+        if (delBtn) delBtn.classList.toggle("hidden", !isOwnerGuild);
         $$(".thr-comm-tab").forEach(function (t) {
             var name = t.getAttribute("data-ctab");
             t.classList.toggle("hidden", !canMod && name !== "info" && name !== "members");
@@ -2408,6 +2411,23 @@
             toast(next ? "Guild muted — no unread badges" : "Unmuted");
             $("#btnMuteCommunity").textContent = next ? "Unmute guild" : "Mute guild";
             refreshCommunities();
+        });
+    }
+
+    function deleteCommunityAction() {
+        var c = State.activeCommunity;
+        if (!c) return;
+        if (!window.confirm("Permanently delete \"" + c.name + "\" and all its channels, messages, parties and members? This CANNOT be undone.")) return;
+        if (!window.confirm("Are you really sure? Delete \"" + c.name + "\" forever?")) return;
+        api("/threads/api/communities/" + c.id + "/delete", { json: {} }).then(function (res) {
+            if (!res.success) { handleApiError(res); return; }
+            closeModal("modalCommunity");
+            State.activeCommunity = null;
+            State.active = null;
+            $("#convView").classList.add("hidden");
+            $("\#emptyState").classList.remove("hidden");
+            refreshCommunities();
+            toast("Guild deleted");
         });
     }
 
@@ -2801,6 +2821,8 @@
         $("#btnSaveCommunity").addEventListener("click", saveCommunityEdit);
         $("#btnLeaveCommunity").addEventListener("click", leaveCommunityAction);
         $("#btnMuteCommunity").addEventListener("click", toggleCommunityMute);
+        var _delCommBtn = document.getElementById("btnDeleteCommunity");
+        if (_delCommBtn) _delCommBtn.addEventListener("click", deleteCommunityAction);
 
         // community modal: member actions
         $("#commMemberList").addEventListener("click", function (e) {
@@ -2876,6 +2898,24 @@
         });
 
         // guild invite link: load it whenever the modal opens, copy on click
+        function copyTextToClipboard(text) {
+            // Reliable everywhere: build a detached textarea, select, execCommand.
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed";
+            ta.style.left = "-9999px";
+            ta.style.top = "0";
+            ta.setAttribute("readonly", "");
+            document.body.appendChild(ta);
+            ta.select();
+            ta.setSelectionRange(0, text.length);
+            var ok = false;
+            try {
+                ok = document.execCommand("copy");
+            } catch (e) { ok = false; }
+            document.body.removeChild(ta);
+            return ok;
+        }
         $("#btnCopyInvite").addEventListener("click", function () {
             var input = $("#commInviteLink");
             if (!input || !input.value) {
@@ -2883,23 +2923,17 @@
                 toast("Generating invite link…", "info");
                 return;
             }
-            input.select();
-            input.setSelectionRange(0, 99999);
-            var done = false;
-            try {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(input.value).then(function () {
-                        toast("Invite link copied!");
-                    }).catch(function () {
-                        done = true;
-                        try { document.execCommand("copy"); toast("Invite link copied!"); } catch (e2) { toast("Press Ctrl+C to copy", "info"); }
-                    });
-                } else {
-                    done = true;
-                    try { document.execCommand("copy"); toast("Invite link copied!"); } catch (e2) { toast("Press Ctrl+C to copy", "info"); }
-                }
-            } catch (e) {
-                try { document.execCommand("copy"); toast("Invite link copied!"); } catch (e2) { toast("Press Ctrl+C to copy", "info"); }
+            var val = input.value;
+            // Try modern async first, fall back to the sync textarea copy.
+            var copied = false;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(val).then(function () {
+                    toast("Invite link copied!");
+                }).catch(function () {
+                    toast(copyTextToClipboard(val) ? "Invite link copied!" : "Press Ctrl+C to copy", copyTextToClipboard(val) ? undefined : "info");
+                });
+            } else {
+                toast(copyTextToClipboard(val) ? "Invite link copied!" : "Press Ctrl+C to copy");
             }
         });
         $("#commInviteLink").addEventListener("click", function () {
