@@ -313,6 +313,19 @@ TVMAZE_ALIASES = {
     "jujutsu-kaisen-season-3-the-culling-game-part-1": 48450,
 }
 
+# Hard show+season overrides. TVmaze splits Bleach: TYBW into one show
+# (80375) with one season per cour; the title matcher can fall back to the
+# head name "BLEACH" and incorrectly resolve to the ORIGINAL 2004 Bleach
+# (show 1905), then badge every aired episode with the wrong show's stills.
+# Pin each cour to 80375 + its real season so the runtime + disk enrichment
+# can never re-introduce cross-series contamination.
+TVMAZE_SEASON_OVERRIDES = {
+    "bleach-thousand-year-blood-war": (80375, 1),            # The Blood Warfare
+    "bleach-thousand-year-blood-war-the-separation": (80375, 2),  # The Separation
+    "bleach-thousand-year-blood-war-the-conflict": (80375, 3),    # The Conflict
+    "bleach-thousand-year-blood-war-the-calamity": (80375, 4),    # The Calamity
+}
+
 
 def _pick_tvmaze_season(eps_by_season, slug, named_hits, our_seasons=0):
     """Choose the TVmaze season matching this card."""
@@ -344,12 +357,21 @@ def _backfill_one(entry, aired):
     if m:
         y = int(m.group(1))
 
-    sid = _search_tvmaze(title, y)
-    if not sid:
-        # Hand-verified alternate-name alias (see TVMAZE_ALIASES).
-        sid = TVMAZE_ALIASES.get(slug)
-    if not sid:
-        return 0, 0
+    # Hard-coded show+season override (never lets a fuzzy title match land
+    # on the wrong show/season, as happened with Bleach TYBW vs original
+    # Bleach). Falls back to the normal title search otherwise.
+    ovr = TVMAZE_SEASON_OVERRIDES.get(slug)
+    if ovr:
+        sid = ovr[0]
+        forced_season = ovr[1]
+    else:
+        forced_season = None
+        sid = _search_tvmaze(title, y)
+        if not sid:
+            # Hand-verified alternate-name alias (see TVMAZE_ALIASES).
+            sid = TVMAZE_ALIASES.get(slug)
+        if not sid:
+            return 0, 0
     eps = _tvmaze_episodes(sid)
     if not eps:
         return 0, 0
@@ -373,9 +395,12 @@ def _backfill_one(entry, aired):
                         named_hits.append(tseason)
                         break
 
-    tseason = _pick_tvmaze_season(
-        by_season, slug, named_hits, our_seasons=len(entry.get("seasons") or [])
-    )
+    if forced_season is not None:
+        tseason = forced_season
+    else:
+        tseason = _pick_tvmaze_season(
+            by_season, slug, named_hits, our_seasons=len(entry.get("seasons") or [])
+        )
     tvm = by_season.get(tseason) or []
     if not tvm:
         return 0, 0

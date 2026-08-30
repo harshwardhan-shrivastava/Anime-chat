@@ -460,7 +460,8 @@ nav{
     z-index:1000;
 }
 
-/* Hand-drawn anime story beat: a tiny scout launches a glowing arrow toward discovery. */
+/* Super Saiyan intro: the character powers up, releases an energy blast, and
+   the "Find Your Next Anime Community" heading is revealed. Runs every load. */
 .hero-scene{
     height:150px;
     width:min(620px, 86vw);
@@ -488,47 +489,39 @@ nav{
     animation:cloudDrift 8s ease-in-out infinite alternate;
 }
 .hero-cloud-one{width:140px;left:4%;top:35px}.hero-cloud-two{width:92px;right:0;top:77px;animation-delay:2s}
-.hero-scout{position:absolute;left:19%;bottom:4px;width:92px;height:94px;animation:scoutBreath 2.8s ease-in-out infinite;transform-origin:bottom center;z-index:5}
-.hero-battlefield{position:absolute;inset:0;z-index:3}
-.monster{position:absolute;bottom:16px;width:22px;height:25px;background:#ef476f;border:2px solid #211936;border-radius:45% 45% 35% 35%;animation:monsterRush 5s ease-in-out infinite;opacity:0}
-.monster:before,.monster:after{content:"";position:absolute;top:6px;width:4px;height:4px;border-radius:50%;background:#fff}.monster:before{left:4px}.monster:after{right:4px}
-.monster-one{left:49%;animation-delay:.85s}.monster-two{left:59%;background:#ff8c42;animation-delay:1.05s;transform:scale(.8)}
-.boss-box{position:absolute;right:18%;bottom:8px;width:76px;height:66px;border:3px solid #e7b74d;border-radius:8px;background:linear-gradient(135deg,#542c83,#29204d);box-shadow:inset 0 0 0 5px rgba(255,255,255,.06),0 0 14px rgba(143,91,255,.4);animation:bossDefeat 5s ease-in-out infinite;opacity:0}
-.boss-box:before,.boss-box:after{content:"";position:absolute;width:14px;height:14px;border-radius:50%;background:#ffe28a;top:18px;box-shadow:0 0 8px #ffd45e}.boss-box:before{left:16px}.boss-box:after{right:16px}.boss-box i{position:absolute;left:31px;top:38px;width:13px;height:5px;border-bottom:2px solid #ffe28a;border-radius:50%}
-.boss-crack{position:absolute;width:2px;height:28px;background:#ffe28a;right:calc(18% + 34px);bottom:43px;transform:rotate(35deg);opacity:0;animation:crackFlash 5s ease-in-out infinite}.crack-two{height:20px;right:calc(18% + 20px);bottom:35px;transform:rotate(-48deg);animation-delay:.05s}
-.hero-replay{display:block;margin:-3px auto 0;background:rgba(255,255,255,.05);color:#aeb6d7;border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 14px;font:600 11px Montserrat,sans-serif;cursor:pointer;opacity:.75;transition:.25s}.hero-replay:hover{color:#fff;border-color:#8f5bff;opacity:1;transform:translateY(-2px)}
+.hero-battlefield{position:absolute;inset:0;z-index:2}
+.ssj{position:absolute;left:16%;bottom:2px;width:110px;height:136px;z-index:5;transform-origin:bottom center}
+.ssj-head{position:absolute;width:36px;height:38px;left:36px;top:42px;border-radius:48% 48% 45% 45%;background:#f6c692;border:2px solid #171326;z-index:2}
+.ssj-hair{position:absolute;width:48px;height:44px;left:30px;top:20px;background:linear-gradient(180deg,#fff6c8,#ffd83d 45%,#ffb100);border:2px solid #7a5403;clip-path:polygon(2% 62%,16% 20%,30% 44%,38% 0,50% 38%,62% 0,72% 36%,84% 8%,92% 44%,98% 26%,90% 68%,66% 52%,48% 82%,26% 52%);box-shadow:0 0 14px #ffd83d,0 0 30px rgba(255,180,0,.5);z-index:3;transform-origin:bottom center}
+.ssj-body{position:absolute;width:44px;height:60px;border-radius:40% 40% 14% 14%;background:linear-gradient(160deg,#2f7ff0,#1e3fd4);left:32px;top:80px;border:2px solid #171326;z-index:1}
+.ssj-arm{position:absolute;width:62px;height:11px;border-radius:11px;background:#f6c692;left:6px;top:92px;transform:rotate(16deg);border:2px solid #171326;z-index:4}
+.ssj-aura{position:absolute;left:50%;bottom:-4px;width:128px;height:128px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,rgba(255,240,150,.9) 0%,rgba(255,190,40,.5) 38%,rgba(255,220,90,.18) 62%,transparent 76%);filter:blur(4px);z-index:0}
+.ssj-lightning{position:absolute;left:38px;top:-2px;width:36px;height:46px;opacity:0;background:repeating-linear-gradient(100deg,rgba(255,255,255,.95) 0 2px,transparent 3px 7px);mix-blend-mode:screen;filter:drop-shadow(0 0 4px #fff);z-index:4}
+.blast-core{position:absolute;left:calc(16% + 66px);top:54px;width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff 0 22%,#fff0b0 30%,#ffcf3f 55%,#ff8a00 100%);box-shadow:0 0 20px #ffe27a,0 0 50px #ffb300;opacity:0;z-index:6}
+.ssj-blast{position:absolute;left:calc(16% + 86px);top:61px;height:16px;border-radius:20px;background:linear-gradient(90deg,#fff0b0,#ffd83d 45%,#ff9d1f 75%,rgba(255,170,60,.25));opacity:0;z-index:6;box-shadow:0 0 16px #ffce45,0 0 38px rgba(255,160,40,.7)}
+.hero-play .ssj{animation:ssjCharge 5s cubic-bezier(.3,.8,.2,1) both}
 .hero-title-reveal .hero-words span{display:inline-block}.hero-title-reveal .hero-words span:first-child{animation:titleWordHit 5s ease-in-out both}.hero-title-reveal .hero-words span:last-child{animation:titleWordHit 5s .08s ease-in-out both}
-@keyframes monsterRush{0%,13%{opacity:0;transform:translateX(40px) scale(.4)}18%{opacity:1;transform:translateX(0) scale(1)}26%{opacity:1;transform:translateX(-18px) scale(.1) rotate(35deg)}32%,100%{opacity:0;transform:translateX(-18px) scale(.1) rotate(35deg)}}
-.hero-play .hero-scout{animation:scoutAttack 5s cubic-bezier(.2,.8,.2,1) both}
-.hero-play .scout-arrow{animation:arrowAttack 5s ease-in-out both}
-.hero-play .monster-one{animation:monsterRush 5s ease-in-out both}.hero-play .monster-two{animation:monsterRush 5s 0.12s ease-in-out both}
-@keyframes scoutAttack{0%,10%{transform:translate(0,0) rotate(0)}18%{transform:translate(35px,-20px) rotate(12deg)}29%{transform:translate(8px,3px) rotate(-8deg)}38%{transform:translate(48px,-13px) rotate(16deg)}52%,100%{transform:translate(0,0) rotate(0)}}
-@keyframes arrowAttack{0%,14%{opacity:0;transform:rotate(-13deg) translateX(0) scaleX(.2)}21%{opacity:1;transform:rotate(-13deg) translateX(28px) scaleX(1)}31%{opacity:0;transform:rotate(-13deg) translateX(105px) scaleX(1.2)}42%{opacity:1;transform:rotate(-13deg) translateX(25px) scaleX(1)}55%,100%{opacity:0;transform:rotate(-13deg) translateX(140px) scaleX(1.25)}}
-@keyframes bossDefeat{0%,34%{opacity:0;transform:translateX(24px) scale(.8)}40%{opacity:1;transform:translateX(0) scale(1)}58%{transform:translateX(0) scale(1.05) rotate(-3deg)}67%,100%{opacity:0;transform:translateY(-8px) scale(1.45) rotate(12deg);filter:brightness(2)}}
-@keyframes crackFlash{0%,53%{opacity:0;transform:scaleY(0)}60%{opacity:1;transform:scaleY(1.2)}72%,100%{opacity:0;transform:scaleY(2)}}
-@keyframes heroTitleReveal{0%,64%{opacity:0;filter:none;transform:translateY(18px) scale(.92)}68%{opacity:1;filter:brightness(2);transform:translateY(-4px) scale(1.06);text-shadow:0 0 8px #fff,0 0 32px #ffd45e,0 0 70px #8f5bff}75%,100%{opacity:1;filter:none;transform:translateY(0) scale(1)}}
+.hero-play .ssj-hair{animation:ssjHairFlash 5s ease-in-out both}
+.hero-play .ssj-aura{animation:ssjAura 5s ease-in-out both}
+.hero-play .ssj-lightning{animation:ssjLightning 5s steps(2,end) both}
+.hero-play .blast-core{animation:blastCore 5s ease-in-out both}
+.hero-play .ssj-blast{animation:blastFire 5s ease-in-out both}
+@keyframes ssjCharge{0%,30%{transform:translateY(0) rotate(0) scale(1)}8%{transform:translateY(-6px) rotate(-1deg)}16%{transform:translateY(-2px) rotate(1deg)}26%{transform:translateY(-9px) rotate(0) scale(1.05)}38%{transform:translateY(-13px) rotate(-2deg) scale(1.14)}48%{transform:translateY(-18px) scale(1.2) skew(-7deg)}60%,100%{transform:translateY(0) rotate(0) scale(1)}}
+@keyframes ssjHairFlash{0%,18%{filter:brightness(.7)}26%,100%{filter:brightness(1.3) saturate(1.5) drop-shadow(0 0 14px #ffd83d)}}
+@keyframes ssjAura{0%,16%{opacity:0;transform:translateX(-50%) scale(.4)}26%{opacity:.7;transform:translateX(-50%) scale(1)}40%{opacity:1;transform:translateX(-50%) scale(1.5)}60%,100%{opacity:.35;transform:translateX(-50%) scale(.95)}}
+@keyframes ssjLightning{0%,20%{opacity:0}24%{opacity:.9}26%{opacity:.1}30%{opacity:.85}34%{opacity:.1}38%{opacity:.7}42%,100%{opacity:0}}
+@keyframes blastCore{0%,40%{opacity:0;transform:scale(.2)}46%{opacity:1;transform:scale(1.35)}60%{opacity:.6;transform:scale(1.6)}100%{opacity:0;transform:scale(1.9)}}
+@keyframes blastFire{0%,46%{opacity:0;width:0}52%{opacity:1;width:55%}72%{opacity:.9;width:88%}86%,100%{opacity:0;width:96%}}
+@keyframes heroTitleReveal{0%,58%{opacity:0;filter:none;transform:translateY(20px) scale(.9)}64%{opacity:1;filter:brightness(2.2);transform:translateY(-6px) scale(1.08);text-shadow:0 0 10px #fff,0 0 38px #ffd83d,0 0 90px #8f5bff}74%,100%{opacity:1;filter:none;transform:translateY(0) scale(1)}}
 @keyframes titleWordHit{0%,63%{transform:translateY(0)}67%{transform:translateY(-8px) rotate(-2deg)}72%{transform:translateY(2px) rotate(1deg)}78%,100%{transform:translateY(0)}}
-.scout-head{position:absolute;width:25px;height:27px;border-radius:48% 48% 45% 45%;background:#f3ae86;left:32px;top:18px;border:2px solid #171326}
-.scout-hair{position:absolute;width:38px;height:28px;background:#24183d;clip-path:polygon(0 55%,15% 0,35% 25%,50% 0,70% 23%,100% 8%,84% 65%,62% 46%,45% 76%,22% 48%);left:25px;top:6px;z-index:2}
-.scout-body{position:absolute;width:38px;height:51px;border-radius:45% 45% 18% 18%;background:linear-gradient(135deg,#3f8cff,#7147d9);left:26px;top:43px;transform:skew(-8deg);border:2px solid #171326}
-.scout-arm{position:absolute;width:48px;height:10px;border-radius:10px;background:#f3ae86;left:5px;top:51px;transform:rotate(-24deg);border:2px solid #171326;z-index:3}
-.scout-bow{position:absolute;width:49px;height:78px;left:-3px;top:16px;border-right:3px solid #f6c86e;border-radius:50%;transform:rotate(-28deg);z-index:4}
-.scout-arrow{position:absolute;width:132px;height:3px;left:10px;top:40px;background:linear-gradient(90deg,#f8dc86,#fff,#8f5bff);transform:rotate(-13deg);transform-origin:left center;animation:arrowLaunch 3.2s ease-in-out infinite;box-shadow:0 0 10px #8f5bff}
-.scout-arrow:after{content:"";position:absolute;right:-1px;top:-4px;border-left:10px solid #fff0a8;border-top:5px solid transparent;border-bottom:5px solid transparent}
-.hero-impact{position:absolute;width:22px;height:22px;left:calc(100% + 30px);top:23px;border-radius:50%;border:2px solid #ffe38b;opacity:0;animation:impactBurst 3.2s ease-in-out infinite;box-shadow:0 0 18px #ffd45e,0 0 35px #8f5bff}
-.hero-impact:before,.hero-impact:after{content:"";position:absolute;left:50%;top:50%;width:38px;height:2px;background:#ffe38b;transform-origin:left center}.hero-impact:before{transform:rotate(45deg)}.hero-impact:after{transform:rotate(-45deg)}
 .hero-words{display:inline-block;position:relative;opacity:0;transform:translateY(18px) scale(.92);transform-origin:50% 65%;}
 .hero-title-reveal .hero-words{opacity:1;animation:heroTitleReveal 5s ease-in-out both}
 .hero-words::after{content:"";position:absolute;pointer-events:none}
-@keyframes wordReaction{0%,42%,100%{filter:none;text-shadow:0 0 25px rgba(143,91,255,.7);transform:translateX(0)}47%{filter:brightness(1.45);text-shadow:0 0 8px #fff,0 0 30px #ffd45e,0 0 55px #8f5bff;transform:translateX(2px) scale(1.035)}52%{filter:brightness(1.15);transform:translateX(-2px) scale(.99)}60%{filter:none;transform:translateX(0)}}
-@keyframes impactBurst{0%,43%{opacity:0;transform:scale(.2)}48%{opacity:1;transform:scale(1.2)}55%,100%{opacity:0;transform:scale(2.2)}}
 .hero-spark{position:absolute;width:5px;height:5px;border-radius:50%;background:#fff1a8;box-shadow:0 0 12px #ffd45e;animation:sparkle 2.2s ease-in-out infinite}.spark-one{left:45%;top:20px}.spark-two{left:62%;top:65px;animation-delay:.7s}.spark-three{left:76%;top:31px;animation-delay:1.2s}
-@keyframes arrowLaunch{0%,18%{transform:rotate(-13deg) translateX(0);opacity:.2}40%{opacity:1}75%,100%{transform:rotate(-13deg) translateX(34px);opacity:0}}
-@keyframes scoutBreath{50%{transform:translateY(-3px) rotate(-1deg)}}
 @keyframes cloudDrift{to{transform:translateX(18px)}}
 @keyframes sparkle{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.35)}}
 @media (prefers-reduced-motion:reduce){.hero-words{animation:none!important}}
-@media (prefers-reduced-motion:reduce){.hero-scene *,.hero-scene{animation:none!important}.hero-replay{display:none}}
+@media (prefers-reduced-motion:reduce){.hero-scene *,.hero-scene{animation:none!important}}
 
 .hero h1{
 

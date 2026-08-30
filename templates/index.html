@@ -70,27 +70,20 @@
         <div class="hero-moon"></div>
         <div class="hero-cloud hero-cloud-one"></div>
         <div class="hero-cloud hero-cloud-two"></div>
-        <div class="hero-battlefield">
-            <span class="monster monster-one"></span>
-            <span class="monster monster-two"></span>
-            <span class="boss-box"><i></i></span>
-            <span class="boss-crack crack-one"></span>
-            <span class="boss-crack crack-two"></span>
-        </div>
-        <div class="hero-scout">
-            <span class="scout-hair"></span>
-            <span class="scout-head"></span>
-            <span class="scout-body"></span>
-            <span class="scout-arm"></span>
-            <span class="scout-bow"></span>
-            <span class="scout-arrow"></span>
-            <span class="hero-impact"></span>
-        </div>
+        <span class="ssj">
+            <span class="ssj-hair"></span>
+            <span class="ssj-head"></span>
+            <span class="ssj-body"></span>
+            <span class="ssj-arm"></span>
+            <span class="ssj-aura"></span>
+            <span class="ssj-lightning"></span>
+        </span>
+        <span class="blast-core"></span>
+        <span class="ssj-blast"></span>
         <span class="hero-spark spark-one"></span>
         <span class="hero-spark spark-two"></span>
         <span class="hero-spark spark-three"></span>
     </div>
-    <button type="button" class="hero-replay" id="heroReplay">↻ Replay intro</button>
 
     <h1>
 
@@ -195,7 +188,7 @@
 (function () {
     var scene = document.getElementById('heroScene');
     var replay = document.getElementById('heroReplay');
-    if (!scene || !replay) return;
+    if (!scene) return;
     function playIntro() {
         scene.classList.remove('hero-play');
         void scene.offsetWidth;
@@ -203,11 +196,9 @@
         document.body.classList.remove('hero-title-reveal');
         void document.body.offsetWidth;
         document.body.classList.add('hero-title-reveal');
-        window.sessionStorage.setItem('otakul-hero-played', '1');
     }
-    // Replay once on each fresh browser visit; reloads in the same tab stay quiet.
-    if (performance.getEntriesByType('navigation')[0]?.type !== 'reload') playIntro();
-    replay.addEventListener('click', playIntro);
+    // Super Saiyan intro plays on every page load.
+    playIntro();
 })();
 </script>
 </body>
