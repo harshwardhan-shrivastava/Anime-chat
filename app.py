@@ -423,6 +423,76 @@ def _apply_episode_state(entry, st, nxt):
                     ep.pop("title", None)
 
 
+# ---------------------------------------------------------------------------
+# Live TVmaze title/thumb fill for aired episodes (runs inside the airing
+# worker, on every host including Render — in-memory only, no disk writes,
+# so it can't OOM the 512MB free tier like the heavy disk enrichment).
+# ---------------------------------------------------------------------------
+
+_TVMAZE_FILL_ONGOING_QUOTA = 12   # ongoing shows looked up per cycle
+_TVMAZE_FILL_COMPLETED_QUOTA = 6   # completed shows per cycle (long tail)
+_TVMAZE_FILL_ONGOING_TTL = 6 * 3600      # retry an ongoing miss after 6h
+_TVMAZE_FILL_COMPLETED_TTL = 24 * 3600   # completed shows: once a day max
+_tvmaze_fill_state = {"last_attempt": {}}
+
+
+def _tvmaze_live_fill():
+    """Fill real titles + HD thumbs for aired episodes straight from TVmaze.
+
+    A freshly-aired episode keeps showing 'TBC' with no still until someone
+    re-enriches the static catalog and redeploys. This closes that gap: every
+    airing cycle we look up the most popular ongoing shows that still have
+    aired episodes missing a title or thumb, and patch the in-memory catalog
+    from TVmaze (real names + original_untouched HD stills). New episodes
+    appear with their name and artwork within ~10 minutes of TVmaze
+    publishing them, on Render included.
+
+    Bounded: at most _TVMAZE_FILL_QUOTA shows per cycle, misses backed off
+    (6h ongoing / 24h completed), so TVmaze sees a handful of requests per
+    10-minute cycle.
+    """
+    try:
+        from scripts.enrich_airing import _backfill_one, _needs_backfill
+    except Exception:
+        return
+    now = time.time()
+    candidates = []
+    for slug, entry in anime_database.items():
+        status = entry.get("status")
+        if status == "Ongoing":
+            nxt = entry.get("next_episode")
+            aired = (nxt - 1) if nxt else (entry.get("total_episodes") or 0)
+            backoff = _TVMAZE_FILL_ONGOING_TTL
+        elif status == "Completed":
+            aired = entry.get("total_episodes") or 0
+            backoff = _TVMAZE_FILL_COMPLETED_TTL
+        else:
+            continue
+        if aired <= 0 or not _needs_backfill(entry, aired):
+            continue
+        last = _tvmaze_fill_state["last_attempt"].get(slug, 0.0)
+        if now - last < backoff:
+            continue
+        candidates.append((status, entry.get("member_count") or 0, entry, aired))
+    candidates.sort(key=lambda c: -c[1])
+
+    def _run(entries, quota):
+        for _, _, entry, aired in entries[:quota]:
+            try:
+                t, th = _backfill_one(entry, aired)
+            except Exception as exc:
+                t, th = 0, 0
+                print(f"[tvmaze-fill] {entry.get('slug')} failed: {exc}", flush=True)
+            _tvmaze_fill_state["last_attempt"][entry.get("slug")] = now
+            if t or th:
+                print(f"[tvmaze-fill] {entry.get('slug')}: +{t} titles, +{th} HD thumbs", flush=True)
+            time.sleep(0.15)
+
+    # Ongoing first (new episodes must appear asap), completed after.
+    _run([c for c in candidates if c[0] == "Ongoing"], _TVMAZE_FILL_ONGOING_QUOTA)
+    _run([c for c in candidates if c[0] != "Ongoing"], _TVMAZE_FILL_COMPLETED_QUOTA)
+
+
 def _refresh_airing_schedule_worker():
     ids, seen = [], set()
     for entry in anime_database.values():
@@ -472,6 +542,12 @@ def _refresh_airing_schedule_worker():
         except Exception:
             continue
         time.sleep(1.0)
+
+    # Patch aired-but-missing titles/thumbs from TVmaze (in-memory, bounded).
+    try:
+        _tvmaze_live_fill()
+    except Exception as exc:
+        print(f"[tvmaze-fill] pass failed: {exc}", flush=True)
 
     if fresh:
         _save_fresh_airing_cache(fresh)
