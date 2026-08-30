@@ -1160,6 +1160,26 @@
     // ---- Other-user mini profile modal ----
     function openUserProfile(uid) {
         if (!uid) return;
+        // Open the modal INSTANTLY with a loading state, then fill the data
+        // when the profile fetch resolves. Before, the box only appeared after
+        // the request finished, so a slow endpoint made it feel minutes late.
+        var av = document.getElementById("upAvatar");
+        av.innerHTML = "";
+        av.style.background = "rgba(139, 92, 246, 0.25)";
+        av.textContent = "…";
+        av.style.display = "inline-flex";
+        document.getElementById("upName").textContent = "Loading…";
+        document.getElementById("upRole").textContent = "";
+        document.getElementById("upBadge").textContent = "";
+        document.getElementById("upBadge").className = "rank-badge";
+        document.getElementById("upXp").textContent = "… XP";
+        document.getElementById("upPct").textContent = "…";
+        document.getElementById("upBar").className = "xp-bar";
+        document.getElementById("upBarFill").style.width = "0%";
+        document.getElementById("upJoined").innerHTML = '<i class="fas fa-spinner fa-spin"></i> &nbsp;Loading profile…';
+        document.getElementById("upGuilds").innerHTML = "";
+        document.getElementById("upFullProfile").href = "#";
+        openModal("modalUserProfile");
         api("/threads/api/users/" + uid + "/profile").then(function (res) {
             if (!res.success) { handleApiError(res); return; }
             var u = res.user || {};
@@ -1873,7 +1893,13 @@
         // label them (they're separate guilds, not a duplicate row).
         var counts = {};
         State.communities.forEach(function (c) { counts[escapeHtml(c.name || "")] = (counts[escapeHtml(c.name || "")] || 0) + 1; });
+        // Hide same-name duplicates from the rail — only the first (upper)
+        // guild of each name shows, so empty copies stop cluttering the bar.
+        var seen = {};
         State.communities.forEach(function (c) {
+            var key = (c.name || "").toLowerCase().trim();
+            if (seen[key]) return;
+            seen[key] = true;
             var active = State.activeCommunity && State.activeCommunity.id === c.id;
             var dup = counts[escapeHtml(c.name || "")] > 1;
             var roleTag = c.role === "owner" ? " (owner)" : c.role === "moderator" ? " (mod)" : "";
