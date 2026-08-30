@@ -2933,6 +2933,7 @@
             ta.style.top = "0";
             ta.setAttribute("readonly", "");
             document.body.appendChild(ta);
+            ta.focus();
             ta.select();
             ta.setSelectionRange(0, text.length);
             var ok = false;
@@ -2950,17 +2951,16 @@
                 return;
             }
             var val = input.value;
-            // Try modern async first, fall back to the sync textarea copy.
-            var copied = false;
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(val).then(function () {
-                    toast("Invite link copied!");
-                }).catch(function () {
-                    toast(copyTextToClipboard(val) ? "Invite link copied!" : "Press Ctrl+C to copy", copyTextToClipboard(val) ? undefined : "info");
-                });
-            } else {
-                toast(copyTextToClipboard(val) ? "Invite link copied!" : "Press Ctrl+C to copy");
+            // Copy SYNCHRONOUSLY inside the click gesture first — the async
+            // navigator.clipboard path can hang or fail silently (lost focus,
+            // permissions), which made "Copy link" feel dead after opening
+            // other modals. execCommand in a click always works; the async
+            // API is only a bonus retry afterwards.
+            var ok = copyTextToClipboard(val);
+            if (ok && navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(val).catch(function () {});
             }
+            toast(ok ? "Invite link copied!" : "Press Ctrl+C to copy", ok ? undefined : "info");
         });
         $("#commInviteLink").addEventListener("click", function () {
             if (this.value) window.open(this.value, "_blank");
