@@ -259,11 +259,12 @@
             grid-template-areas: "body art";
             gap: 16px; padding: 18px 20px;
         }
-        .rv-card.ep .rv-art { grid-area: art; width: 220px; aspect-ratio: 16 / 9; }
+        .rv-card.ep .rv-art { grid-area: art; width: 220px; align-self: start; }
+        .rv-card.ep .rv-art img { width: 100%; height: auto; object-fit: contain; }
         .rv-card.ep .rv-card-body { grid-area: body; }
         @media (max-width: 639px) {
             .rv-card.ep { grid-template-columns: 1fr; grid-template-areas: "art" "body"; }
-            .rv-card.ep .rv-art { width: 100%; height: 170px; border-radius: 0; }
+            .rv-card.ep .rv-art { width: 100%; height: auto; border-radius: 0; }
         }
 
         .rv-empty { text-align: center; color: var(--rv-muted); padding: 60px 0; font-size: 1.05rem; }
