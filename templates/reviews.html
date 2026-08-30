@@ -255,12 +255,12 @@
         /* episode card: 16:9 episode thumbnail right (landscape, wider than
            the anime poster so the two card shapes stay distinct), content left */
         .rv-card.ep {
-            grid-template-columns: minmax(0, 1fr) 220px;
+            grid-template-columns: minmax(0, 1fr) 300px;
             grid-template-areas: "body art";
             gap: 16px; padding: 18px 20px;
         }
-        .rv-card.ep .rv-art { grid-area: art; width: 220px; align-self: start; }
-        .rv-card.ep .rv-art img { width: 100%; height: auto; object-fit: contain; }
+        .rv-card.ep .rv-art { grid-area: art; width: 300px; align-self: start; }
+        .rv-card.ep .rv-art img { width: 100%; height: auto; max-height: 235px; object-fit: contain; }
         .rv-card.ep .rv-card-body { grid-area: body; }
         @media (max-width: 639px) {
             .rv-card.ep { grid-template-columns: 1fr; grid-template-areas: "art" "body"; }
@@ -385,7 +385,7 @@
                  data-votes="{{ r.likes + r.dislikes }}">
                 {% if r.anime_image %}
                 <a class="rv-art" href="/anime/{{ r.anime_slug }}" aria-label="{{ r.anime_title }}">
-                    <img src="{{ r.anime_image }}" alt="{{ r.anime_title }}" loading="lazy" onerror="this.closest('.rv-art').style.display='none'">
+                    <img src="{{ r.anime_image }}" alt="{{ r.anime_title }}" loading="lazy" onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src=this.src.replace('/cover/large/','/cover/medium/')}else{this.closest('.rv-art').style.display='none'}">
                 </a>
                 {% endif %}
                 <div class="rv-card-body">
@@ -440,7 +440,7 @@
                  data-votes="{{ r.likes + r.dislikes }}">
                 {% if r.episode_thumb %}
                 <a class="rv-art" href="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}" aria-label="{{ r.anime_title }}">
-                    <img src="{{ r.episode_thumb }}" alt="{{ r.anime_title }}" loading="lazy" onerror="this.closest('.rv-art').style.display='none'">
+                    <img src="{{ r.episode_thumb }}" alt="{{ r.anime_title }}" loading="lazy" onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src=this.src.replace('/original_untouched/','/original/')}else{this.closest('.rv-art').style.display='none'}">
                 </a>
                 {% endif %}
                 <div class="rv-card-body">

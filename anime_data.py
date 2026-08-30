@@ -17,6 +17,39 @@ _DATA_PATH = os.path.join(_DIR, "anime_data.json")
 
 _reload_lock = threading.Lock()
 
+# TVmaze serves two flavors of the same episode still: the compressed
+# proxy (/uploads/images/original/ and /uploads/images/medium*/) and the
+# full-res master (/uploads/images/original_untouched/, 1920x1080 when
+# available). Rewriting the URL flavor is a pure string swap -- no API
+# calls -- so every consumer of the catalog serves HD thumbs.
+_TVMAZE_HD_FLAVORS = (
+    "/uploads/images/medium_landscape/",
+    "/uploads/images/medium/",
+    "/uploads/images/original/",
+)
+_TVMAZE_HD_FLAVOR = "/uploads/images/original_untouched/"
+# AniList covers likewise come in ~230px medium and ~460px+ large; review
+# cards render them at retina sizes, so prefer the large flavor.
+_ANILIST_MEDIUM = "/media/anime/cover/medium/"
+_ANILIST_LARGE = "/media/anime/cover/large/"
+
+
+def _upgrade_image_flavors(catalog):
+    """Rewrite low-res image URL flavors to their HD equivalents, in
+    place. Cheap (string ops only) and applied once per catalog load."""
+    for entry in catalog.values():
+        image = entry.get("image")
+        if isinstance(image, str) and _ANILIST_MEDIUM in image:
+            entry["image"] = image.replace(_ANILIST_MEDIUM, _ANILIST_LARGE)
+        for season in entry.get("seasons") or ():
+            for ep in season.get("episodes") or ():
+                thumb = ep.get("thumb")
+                if isinstance(thumb, str) and "static.tvmaze.com/uploads/images/" in thumb:
+                    for old in _TVMAZE_HD_FLAVORS:
+                        if old in thumb:
+                            ep["thumb"] = thumb.replace(old, _TVMAZE_HD_FLAVOR)
+                            break
+
 
 class _LazyCatalog(dict):
     """A dict that loads anime_data.json the first time anything reads
@@ -32,6 +65,7 @@ class _LazyCatalog(dict):
                 if not self._loaded:
                     with open(_DATA_PATH, "r", encoding="utf-8") as _f:
                         self.update(json.load(_f))
+                    _upgrade_image_flavors(self)
                     self._loaded = True
 
     def __getitem__(self, key):
@@ -110,4 +144,5 @@ def reload_database():
             new = json.load(_f)
         anime_database.clear()
         anime_database.update(new)
+        _upgrade_image_flavors(anime_database)
         anime_database._loaded = True
