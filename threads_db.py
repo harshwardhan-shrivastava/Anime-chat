@@ -1411,7 +1411,7 @@ def community_member_count(cid):
     return n
 
 
-def create_community(name, description, genre, owner_id, icon_color=None, icon_url=None):
+def create_community(name, description, genre, owner_id, icon_color=None, icon_url=None, is_public=True):
     """Create a community owned by the caller, with the four default channels."""
     conn = get_connection()
     cur = conn.cursor()
@@ -1433,7 +1433,7 @@ def create_community(name, description, genre, owner_id, icon_color=None, icon_u
         VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
         """,
         (name.strip(), slug, (description or "").strip(), (genre or "").strip(),
-         icon_color or "#8b5cf6", icon_url or None, owner_id, DEFAULT_RULES),
+         icon_color or "#8b5cf6", icon_url or None, 1 if is_public else 0, owner_id, DEFAULT_RULES),
     )
     cid = cur.lastrowid
     cur.execute(
@@ -1894,7 +1894,7 @@ def get_member_muted(cid, user_id):
     return bool(row and row["muted"])
 
 
-def update_community(cid, name=None, description=None, genre=None, icon_color=None, icon_url=None, rules=None):
+def update_community(cid, name=None, description=None, genre=None, icon_color=None, icon_url=None, rules=None, is_public=None):
     sets, args = [], []
     if name is not None:
         sets.append("name = ?")
@@ -1914,6 +1914,9 @@ def update_community(cid, name=None, description=None, genre=None, icon_color=No
     if rules is not None:
         sets.append("rules = ?")
         args.append((rules or "").strip())
+    if is_public is not None:
+        sets.append("is_public = ?")
+        args.append(1 if is_public else 0)
     if not sets:
         return False
     conn = get_connection()

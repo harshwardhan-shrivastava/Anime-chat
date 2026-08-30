@@ -1835,7 +1835,7 @@
         var c = State.activeCommunity;
         if (!c) return;
         $("#commName").textContent = c.name || "";
-        $("#commMeta").textContent = (c.member_count || 0) + " members" + (c.genre ? " · " + c.genre : "");
+        $("#commMeta").textContent = (c.is_public ? "Public · " : "Private · ") + (c.member_count || 0) + " members" + (c.genre ? " · " + c.genre : "");
         var headAv = $("#commHeadAvatar");
         if (c.icon_url) {
             headAv.innerHTML = '<img src="' + escapeHtml(c.icon_url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">';
@@ -2168,6 +2168,7 @@
         $("#commEditGenre").value = c.genre || "";
         $("#commEditDesc").value = c.description || "";
         $("#commEditRules").value = c.rules || "";
+        seedVisToggle("#modalCommunity", c.is_public !== 0);
         $("#btnMuteCommunity").textContent = c.muted ? "Unmute guild" : "Mute guild";
         _editCommAvatar = c.icon_url || null;
         if (State._editPicker) State._editPicker.set(_editCommAvatar);
@@ -2312,6 +2313,7 @@
                 description: $("#commEditDesc").value,
                 icon_url: _editCommAvatar,
                 rules: $("#commEditRules").value,
+                is_public: thrVisValue("#modalCommunity"),
             },
         }).then(function (res) {
             if (!res.success) { handleApiError(res); return; }
@@ -2583,6 +2585,28 @@
 
     var chosenCommAvatar = null;
     var chosenCommColor = COMM_COLORS[0];
+    function thrVisValue(scope) {
+        var a = document.querySelector(scope + ' .thr-vis-opt.active');
+        return a ? (a.getAttribute('data-vis') === '1') : true;
+    }
+    function wireVisToggle(scope) {
+        var w = document.querySelector(scope + ' .thr-vis-toggle');
+        if (!w) return;
+        w.addEventListener('click', function (e) {
+            var o = e.target.closest('.thr-vis-opt');
+            if (!o) return;
+            w.querySelectorAll('.thr-vis-opt').forEach(function (b) { b.classList.remove('active'); });
+            o.classList.add('active');
+        });
+    }
+    function seedVisToggle(scope, isPublic) {
+        var w = document.querySelector(scope + ' .thr-vis-toggle');
+        if (!w) return;
+        w.querySelectorAll('.thr-vis-opt').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-vis') === (isPublic ? '1' : '0'));
+        });
+    }
+
 
     function wireNewCommunityModal() {
         var swatches = $("#commColors");
@@ -2596,7 +2620,7 @@
             $$(".thr-swatch", swatches).forEach(function (s) { s.classList.remove("chosen"); });
             sw.classList.add("chosen");
         });
-        $("#btnCreateComm").addEventListener("click", function () { openModal("modalNewCommunity"); });
+        $("#btnCreateComm").addEventListener("click", function () { seedVisToggle("#modalNewCommunity", true); openModal("modalNewCommunity"); });
         $("#btnCreateCommSubmit").addEventListener("click", function () {
             var name = $("#commNameInput").value.trim();
             if (!name) { toast("Give the guild a name", "error"); return; }
@@ -2607,6 +2631,7 @@
                     description: $("#commDescInput").value.trim(),
                     icon_color: chosenCommColor,
                     icon_url: chosenCommAvatar,
+                    is_public: thrVisValue("#modalNewCommunity"),
                 },
             }).then(function (res) {
                 if (!res.success) { handleApiError(res); return; }
@@ -2628,6 +2653,7 @@
 
     function wireCommunities() {
         wireNewCommunityModal();
+        wireVisToggle("#modalCommunity");
         wirePollModal();
         wirePartyModal();
 

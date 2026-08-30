@@ -433,6 +433,14 @@
                 <option value="Shonen"></option><option value="Seinen"></option>
             </datalist>
             <textarea id="commDescInput" class="thr-textarea" rows="3" placeholder="What's this guild about?" maxlength="500"></textarea>
+            <div class="thr-vis-row">
+                <span class="thr-label">Visibility</span>
+                <div class="thr-vis-toggle" role="radiogroup" aria-label="Guild visibility">
+                    <button type="button" class="thr-vis-opt active" data-vis="1"><i class="fas fa-globe"></i> Public</button>
+                    <button type="button" class="thr-vis-opt" data-vis="0"><i class="fas fa-lock"></i> Private</button>
+                </div>
+                <p class="thr-vis-hint">Public guilds appear in Discover so anyone can join. Private guilds are only reachable via its invite link.</p>
+            </div>
             <div class="thr-color-row">
                 <span class="thr-label">Icon color</span>
                 <div id="commColors" class="thr-color-swatches"></div>
@@ -485,6 +493,14 @@
                 <input id="commEditName" class="thr-text-input" type="text" maxlength="60">
                 <input id="commEditGenre" class="thr-text-input" type="text" maxlength="40">
                 <textarea id="commEditDesc" class="thr-textarea" rows="2" maxlength="500"></textarea>
+                <div class="thr-vis-row">
+                    <span class="thr-label">Visibility</span>
+                    <div class="thr-vis-toggle" role="radiogroup" aria-label="Guild visibility">
+                        <button type="button" class="thr-vis-opt" data-vis="1"><i class="fas fa-globe"></i> Public</button>
+                        <button type="button" class="thr-vis-opt" data-vis="0"><i class="fas fa-lock"></i> Private</button>
+                    </div>
+                    <p class="thr-vis-hint">Public = anyone can discover &amp; join. Private = invite link only.</p>
+                </div>
                 <label class="thr-label">Guild rules <em>(shown in #general and the channel panel)</em></label>
                 <textarea id="commEditRules" class="thr-textarea" rows="5" maxlength="2000"></textarea>
                 <button id="btnSaveCommunity" class="thr-btn thr-btn-primary">Save changes</button>

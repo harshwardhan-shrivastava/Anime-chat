@@ -1335,6 +1335,43 @@ html, body {
 .thr-swatch:hover { transform: scale(1.15); }
 .thr-swatch.chosen { border-color: #fff; }
 
+.thr-vis-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+.thr-vis-toggle {
+    display: inline-flex;
+    gap: 6px;
+    align-self: flex-start;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 10px;
+    padding: 4px;
+}
+.thr-vis-opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--thr-muted);
+    font: 600 13px Montserrat, sans-serif;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+}
+.thr-vis-opt i { font-size: 13px; }
+.thr-vis-opt:hover { color: #fff; }
+.thr-vis-opt.active {
+    background: linear-gradient(135deg, #8b5cf6, #6d8bff);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(139,92,246,.35);
+}
+.thr-vis-hint { font-size: 12px; color: var(--thr-muted); line-height: 1.5; margin: 0; opacity: .9; }
+
 .thr-gif-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);

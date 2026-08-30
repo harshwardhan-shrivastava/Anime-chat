@@ -840,6 +840,7 @@ def communities_create():
     )
     if existing:
         return jsonify({"success": True, "community": existing, "already_exists": True})
+    is_public = bool(data.get("is_public", True))
     cid = threads_db.create_community(
         name,
         (data.get("description") or "").strip()[:500],
@@ -847,6 +848,7 @@ def communities_create():
         user["id"],
         data.get("icon_color"),
         (data.get("icon_url") or "").strip()[:500] or None,
+        is_public=is_public,
     )
     communities = threads_db.get_user_communities(user["id"])
     community = next((c for c in communities if c["id"] == cid), None)
@@ -889,6 +891,10 @@ def community_update(cid):
     if mod_err:
         return mod_err
     data = request.get_json(silent=True) or {}
+    if "is_public" in data:
+        is_public = bool(data.get("is_public"))
+    else:
+        is_public = None
     threads_db.update_community(
         cid,
         name=data.get("name"),
@@ -897,6 +903,7 @@ def community_update(cid):
         icon_color=data.get("icon_color"),
         icon_url=(data.get("icon_url") or "").strip()[:500] or None,
         rules=data.get("rules"),
+        is_public=is_public,
     )
     threads_db.log_mod_action(cid, user["id"], "update_community")
     return jsonify({"success": True, "community": threads_db.get_community(cid)})
