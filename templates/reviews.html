@@ -246,6 +246,7 @@
         }
         .rv-card.art:not(.ep) .rv-card-body { grid-area: body; padding: 0; min-width: 0; }
         .rv-card.art:not(.ep) .rv-art { grid-area: art; width: 128px; aspect-ratio: 2 / 3; }
+        .rv-card.art.noart { grid-template-columns: 1fr; grid-template-areas: "body"; }
         @media (max-width: 639px) {
             .rv-card.art:not(.ep) { grid-template-columns: 96px minmax(0, 1fr); grid-template-areas: "art body"; gap: 14px; padding: 14px 16px; }
             .rv-card.art:not(.ep) .rv-art { width: 96px; }
@@ -373,7 +374,7 @@
         <div id="rvtab-anime" class="rv-feed" data-kind="anime">
             {% for r in reviews %}
             {% set mine = current_user and current_user.id == r.user_id %}
-            <div class="rv-card art"
+            <div class="rv-card art{% if not r.anime_image %} noart{% endif %}"
                  data-title="{{ r.anime_title | lower }}"
                  data-user="{{ r.username | lower }}"
                  data-rank="{{ RANK_TIER.get(r['rank'], 5) }}"
