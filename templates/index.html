@@ -205,7 +205,8 @@
         document.body.classList.add('hero-title-reveal');
         window.sessionStorage.setItem('otakul-hero-played', '1');
     }
-    if (!window.sessionStorage.getItem('otakul-hero-played')) playIntro();
+    // Replay once on each fresh browser visit; reloads in the same tab stay quiet.
+    if (performance.getEntriesByType('navigation')[0]?.type !== 'reload') playIntro();
     replay.addEventListener('click', playIntro);
 })();
 </script>
