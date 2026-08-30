@@ -66,35 +66,28 @@
 
 <section class="hero">
 
-    <div class="hero-scene manga-scene" id="heroScene" aria-hidden="true">
-        <div class="manga-tone"></div>
-        <span class="manga-line ml-one"></span>
-        <span class="manga-line ml-two"></span>
-        <span class="manga-line ml-three"></span>
-        <span class="ssj-aura"></span>
-        <span class="ssj-lightning"></span>
-        <span class="manga-burst burst-one"></span>
-        <span class="manga-burst burst-two"></span>
-        <span class="scream-wave scream-one"></span>
-        <span class="scream-wave scream-two"></span>
-        <span class="ssj">
-            <i class="ssj-hair"></i>
-            <i class="ssj-head"></i>
-            <i class="ssj-scowl"></i>
-            <span class="ssj-mouth"></span>
-            <i class="ssj-torso"></i>
-            <i class="ssj-arm arm-left"></i>
-            <i class="ssj-arm arm-right"></i>
-        </span>
-        <span class="manga-slash slash-one"></span>
-        <span class="manga-slash slash-two"></span>
-        <span class="manga-kiai">URAAAAAA!!</span>
-        <span class="hero-spark spark-one"></span>
-        <span class="hero-spark spark-two"></span>
-        <span class="hero-spark spark-three"></span>
-    </div>
-
     <h1>
+
+        <span class="hero-runner" id="heroRunner" aria-hidden="true">
+            <span class="rn-streak s1"></span>
+            <span class="rn-streak s2"></span>
+            <span class="rn-fig">
+                <span class="rn-hair"></span>
+                <span class="rn-head"></span>
+                <span class="rn-arm rn-arm-f"></span>
+                <span class="rn-arm rn-arm-b"></span>
+                <span class="rn-body"></span>
+                <span class="rn-leg rn-leg-a"></span>
+                <span class="rn-leg rn-leg-b"></span>
+            </span>
+        </span>
+        <span class="rn-elect" aria-hidden="true">
+            <span class="rn-flash"></span>
+            <span class="rn-ring"></span>
+            <span class="rn-bolt bt-l"></span>
+            <span class="rn-bolt bt-r"></span>
+            <span class="rn-kiai">URAAAAH!!</span>
+        </span>
 
         {% if current_lang == 'ja' %}次の<span>アニメコミュニティ</span>を見つけよう{% else %}Find Your Next
 
@@ -193,23 +186,6 @@
 <script src="{{ url_for('static', filename='js/search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/list_picker.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/navigation.js') }}" defer></script>
-<script>
-(function () {
-    var scene = document.getElementById('heroScene');
-    var replay = document.getElementById('heroReplay');
-    if (!scene) return;
-    function playIntro() {
-        scene.classList.remove('hero-play');
-        void scene.offsetWidth;
-        scene.classList.add('hero-play');
-        document.body.classList.remove('hero-title-reveal');
-        void document.body.offsetWidth;
-        document.body.classList.add('hero-title-reveal');
-    }
-    // Super Saiyan intro plays on every page load.
-    playIntro();
-})();
-</script>
 </body>
 
 </html>

@@ -460,86 +460,80 @@ nav{
     z-index:1000;
 }
 
-/* Manga-style intro: an inked, faceless Saiyan bust (Goku/Vegeta-like) powers up,
-   screams with shockwaves and speed lines, then the "Find Your Next Anime
-   Community" heading is revealed. Runs every load. */
-.hero-scene.manga-scene{
-    height:180px;
-    width:min(664px, 92vw);
-    margin:0 auto 12px;
-    position:relative;
-    pointer-events:none;
-    border-radius:22px;
-    overflow:hidden;
+/* Manga-run hero: a short, stocky, faceless & colourless ink silhouette
+   (Vegeta-style) sprints along the heading from "Find", jumps over "Your",
+   lands screaming near "You" with an electrifying burst. Loops. */
+.hero h1{position:relative}
+
+/* White manga speed streaks drifting behind the heading */
+.hero::before{content:"";position:absolute;left:6%;right:6%;top:24px;bottom:44px;pointer-events:none;z-index:0;opacity:.55;
+    background:repeating-linear-gradient(112deg,transparent 0 26px,rgba(255,255,255,.06) 26px 40px,transparent 40px 70px,rgba(143,91,255,.10) 70px 86px)}
+
+/* The running silhouette wrapper: short stocky Vegeta-style body */
+.hero-runner{position:absolute;top:-16px;left:-3%;width:66px;height:82px;z-index:14;pointer-events:none;
+    filter:drop-shadow(0 0 4px rgba(255,255,255,.95)) drop-shadow(0 0 16px rgba(205,208,255,.5));
+    animation:runGo 7.5s linear infinite}
+.rn-fig{position:absolute;inset:0;animation:figRun .42s linear infinite}
+.rn-fig > span{position:absolute;display:block;background:#0b0912;border:2px solid #fff;box-sizing:border-box}
+/* spiky hair crown */
+.rn-hair{left:16px;top:0;width:36px;height:30px;border:0;box-shadow:none;
+    clip-path:polygon(6% 100%,4% 46%,0 46%,24% 12%,38% 2%,48% 26%,60% 0,70% 18%,82% 4%,80% 34%,98% 22%,88% 52%,100% 60%,84% 68%,92% 100%)}
+/* faceless head silhouette */
+.rn-head{left:17px;top:22px;width:33px;height:26px;border-radius:46% 46% 40% 40%}
+/* front + back arms (raised-fist silhouette) */
+.rn-arm{width:15px;height:9px;border-radius:9px;background:#0b0912;border:2px solid #fff}
+.rn-arm-f{left:40px;top:46px;transform:rotate(26deg)}
+.rn-arm-b{left:-2px;top:42px;transform:rotate(-152deg)}
+.rn-arm-b::after{content:"";position:absolute;left:-5px;top:-11px;width:13px;height:13px;border-radius:50%;background:#0b0912;border:2px solid #fff}
+/* short barrel torso */
+.rn-body{left:19px;top:46px;width:29px;height:24px;border-radius:42% 42% 26% 26%}
+/* short legs (toddling run) */
+.rn-leg{position:absolute;bottom:0;width:11px;height:20px;border-radius:6px;background:#0b0912;border:2px solid #fff}
+.rn-leg-a{left:17px;animation:stepA .42s ease-in-out infinite}
+.rn-leg-b{left:36px;animation:stepB .42s ease-in-out infinite}
+/* white speed streaks trailing the runner */
+.rn-streak{position:absolute;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,#fff);opacity:.7;top:38px}
+.rn-streak.s1{left:-32px;width:46px}
+.rn-streak.s2{left:-48px;width:28px;top:54px}
+/* run + jump along the heading */
+@keyframes runGo{
+    0%  {left:-3%;opacity:0;transform:translateY(20px) scale(.9)}
+    6%  {left:4%;opacity:1;transform:translateY(2px) scale(1)}
+    22% {left:26%;transform:translateY(0) rotate(-1deg)}
+    36% {left:42%;transform:translateY(-3px)}
+    42% {left:47%;transform:translateY(-64px) rotate(-8deg)}
+    49% {left:54%;transform:translateY(-64px) rotate(-3deg)}
+    55% {left:60%;transform:translateY(-28px) rotate(0)}
+    60% {left:60%;transform:translateY(-12px) scale(1.1)}
+    72% {left:58%;transform:translateY(-10px) scale(1.06) rotate(2deg)}
+    80% {left:54%;transform:translateY(-3px) rotate(0)}
+    85% {left:50%;opacity:0;transform:translateY(28px) rotate(7deg)}
+    90% {left:-3%;opacity:0;transform:translateY(20px)}
+    100%{left:-3%;opacity:0;transform:translateY(20px)}
 }
-/* Manga halftone + speed-streak panel background */
-.manga-tone{position:absolute;inset:0;background:radial-gradient(circle at 76% 30%,rgba(255,196,40,.14),transparent 52%),radial-gradient(circle at 18% 74%,rgba(143,91,255,.16),transparent 50%)}
-.manga-tone::before{content:"";position:absolute;inset:0;opacity:.5;background-image:radial-gradient(rgba(255,255,255,.16) 1.3px,transparent 1.5px);background-size:13px 13px;-webkit-mask-image:linear-gradient(90deg,#000,transparent 72%);mask-image:linear-gradient(90deg,#000,transparent 72%)}
-.manga-tone::after{content:"";position:absolute;right:-20px;top:-40px;bottom:-60px;width:230px;background:repeating-linear-gradient(115deg,transparent 0 12px,rgba(255,255,255,.09) 12px 22px,transparent 22px 34px,rgba(143,91,255,.12) 34px 48px);transform:rotate(8deg)}
-.manga-line{position:absolute;height:3px;border-radius:4px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.9),transparent);opacity:0}
-.ml-one{left:6%;top:20%;width:190px;transform:rotate(-24deg);animation:lineFlicker 5.5s ease-in-out both}
-.ml-two{left:36%;top:68%;width:160px;transform:rotate(24deg);animation:lineFlicker 5.5s .12s ease-in-out both}
-.ml-three{right:4%;top:42%;width:130px;transform:rotate(-8deg);animation:lineFlicker 5.5s .2s ease-in-out both}
-@keyframes lineFlicker{0%,26%,60%,100%{opacity:0}30%,46%{opacity:.9}52%{opacity:0}}
-/* Golden aura behind the figure */
-.ssj-aura{position:absolute;left:50%;top:52%;width:250px;height:250px;transform:translate(-50%,-50%) scale(.35);border-radius:50%;background:radial-gradient(circle,rgba(255,240,150,.95) 0%,rgba(255,196,40,.45) 34%,rgba(255,180,40,.16) 55%,transparent 70%);filter:blur(6px);opacity:0;z-index:0}
-.hero-play .ssj-aura{animation:mangaAura 5.5s ease-in-out both}
-@keyframes mangaAura{0%,12%{opacity:0;transform:translate(-50%,-50%) scale(.35)}26%{opacity:.6;transform:translate(-50%,-50%) scale(.7)}40%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}54%{opacity:.85;transform:translate(-50%,-50%) scale(1.2)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.25)}}
-/* Crackling aura lightning (zigzag) */
-.ssj-lightning{position:absolute;left:36%;top:24%;width:130px;height:130px;opacity:0;background:repeating-linear-gradient(100deg,rgba(255,255,255,.95) 0 2px,transparent 3px 8px);mix-blend-mode:screen;filter:blur(1px) drop-shadow(0 0 5px #fff6c8);clip-path:polygon(12% 0,30% 24%,14% 34%,44% 46%,20% 68%,48% 62%,32% 88%,64% 60%,84% 84%,68% 50%,96% 44%,62% 32%,88% 14%,52% 26%,40% 2%);z-index:6}
-.hero-play .ssj-lightning{animation:mangaLightning 5.5s steps(2,end) both}
-@keyframes mangaLightning{0%,16%{opacity:0}22%{opacity:.95}26%{opacity:.1}32%{opacity:.85}38%{opacity:.1}46%{opacity:.7}52%,100%{opacity:0}}
-/* Character: bold ink silhouette, Goku/Vegeta-style bust, no facial features */
-.ssj{position:absolute;left:12.5%;bottom:2px;width:160px;height:176px;z-index:5;transform-origin:bottom center;filter:drop-shadow(0 14px 22px rgba(0,0,0,.45))}
-.hero-play .ssj{animation:ssjCharge 5.5s cubic-bezier(.3,.8,.2,1) both}
-.ssj-hair{position:absolute;width:104px;height:86px;left:28px;top:0;z-index:3;background:linear-gradient(180deg,#fff09a,#ffd83d 52%,#ffb100);clip-path:polygon(8% 62%,20% 48%,14% 26%,34% 34%,26% 10%,46% 22%,44% 0%,60% 18%,64% 2%,74% 22%,90% 8%,84% 30%,100% 34%,88% 50%,96% 64%,74% 56%,66% 78%,52% 66%,40% 84%,26% 66%,10% 76%);transform-origin:50% 78%;filter:drop-shadow(0 5px 6px rgba(120,70,0,.5)) drop-shadow(0 0 16px rgba(255,205,60,.55))}
-.hero-play .ssj-hair{animation:ssjHairFlash 5.5s ease-in-out both}
-.ssj-head{position:absolute;width:52px;height:54px;left:54px;top:58px;border-radius:50% 50% 46% 46%;background:linear-gradient(160deg,#ffe1b3,#f0b170);border:3px solid #1b1430;z-index:2;box-shadow:inset 14px -12px 0 rgba(120,70,20,.16)}
-.ssj-scowl{position:absolute;left:56px;top:70px;width:48px;height:3px;background:#1b1430;border-radius:2px;z-index:3;transform:rotate(-2deg)}
-.ssj-scowl::before{content:"";position:absolute;left:4px;top:5px;width:3px;height:5px;background:#1b1430}
-.ssj-scowl::after{content:"";position:absolute;right:4px;top:4px;width:16px;height:3px;background:#1b1430;transform:rotate(-14deg);transform-origin:right center}
-.ssj-mouth{position:absolute;left:63px;top:88px;width:24px;height:8px;border-radius:45% 45% 52% 52%;background:radial-gradient(circle at 50% 18%,#7c2430,#3a0f18 70%);border:2px solid #1b1430;z-index:3;transform-origin:top center;animation:ssjScream 5.5s ease-in-out both}
-.ssj-torso{position:absolute;width:80px;height:70px;left:40px;top:107px;border-radius:48% 48% 26% 26%;background:linear-gradient(160deg,#3a5fe0,#243ea8);border:3px solid #1b1430;z-index:1;box-shadow:inset 18px 6px 0 rgba(255,255,255,.10),inset -12px -8px 0 rgba(0,0,40,.28)}
-.ssj-torso::before{content:"";position:absolute;left:-3px;top:26px;width:80px;height:8px;background:linear-gradient(90deg,#1b1430,rgba(27,20,48,.35));border-radius:4px;opacity:.5}
-.ssj-arm{position:absolute;width:18px;height:56px;border-radius:10px;background:linear-gradient(180deg,#ffe1b3,#e8a86a);border:3px solid #1b1430;z-index:4;box-shadow:inset 0 0 0 2px rgba(120,70,20,.14)}
-.ssj-arm::before{content:"";position:absolute;width:22px;height:22px;border-radius:50%;background:#ffe9c2;border:3px solid #1b1430;left:-4px;top:-13px;box-shadow:inset 4px 6px 0 rgba(120,70,20,.18)}
-.ssj-arm.arm-left{left:15px;top:62px;transform-origin:80% 100%;transform:rotate(-16deg);animation:armLeftUp 5.5s ease-in-out both}
-.ssj-arm.arm-right{left:127px;top:62px;transform-origin:20% 100%;transform:rotate(16deg);animation:armRightUp 5.5s ease-in-out both}
-/* Manga burst slashes flaring off the raised fists */
-.manga-burst{position:absolute;height:130px;width:132px;border-radius:50%;opacity:0;z-index:4;pointer-events:none;transform:scale(.2)}
-.burst-one{left:-2%;top:38px;background:repeating-conic-gradient(from 0deg,rgba(255,236,150,.55) 0deg 8deg,transparent 8deg 22deg);-webkit-mask-image:radial-gradient(circle,#000 0 40%,transparent 72%);mask-image:radial-gradient(circle,#000 0 40%,transparent 72%);animation:burstSpinLeft 5.5s ease-in-out both}
-.burst-two{right:-2%;top:20px;background:repeating-conic-gradient(from 90deg,rgba(255,220,120,.5) 0deg 7deg,transparent 7deg 20deg);-webkit-mask-image:radial-gradient(circle,#000 0 46%,transparent 74%);mask-image:radial-gradient(circle,#000 0 46%,transparent 74%);animation:burstSpinRight 5.5s .1s ease-in-out both}
-@keyframes burstSpinLeft{0%,60%{opacity:0;transform:scale(.2) rotate(0deg)}72%{opacity:1;transform:scale(1) rotate(24deg)}84%{opacity:.55;transform:scale(1.08) rotate(44deg)}100%{opacity:0;transform:scale(1.08) rotate(60deg)}}
-@keyframes burstSpinRight{0%,62%{opacity:0;transform:scale(.2) rotate(0deg)}74%{opacity:1;transform:scale(.95) rotate(-22deg)}86%{opacity:.5;transform:scale(1.05) rotate(-44deg)}100%{opacity:0;transform:scale(1.05) rotate(-60deg)}}
-/* White manga speed slashes during the scream */
-.manga-slash{position:absolute;width:8px;height:6px;background:linear-gradient(90deg,transparent,#fff 38%,#fff 62%,transparent);opacity:0;z-index:6;pointer-events:none}
-.slash-one{left:2%;top:40px;transform:rotate(-32deg);animation:slashGrow 5.5s ease-in-out both}
-.slash-two{right:1%;top:32px;transform:rotate(32deg);animation:slashGrow 5.5s .08s ease-in-out both}
-@keyframes slashGrow{0%,52%{width:8px;opacity:0}62%{width:96px;opacity:1}78%{width:120px;opacity:.8}100%{width:132px;opacity:0}}
-/* Scream shockwave rings */
-.scream-wave{position:absolute;left:29%;top:46%;width:92px;height:92px;border:3px solid rgba(255,220,90,.85);border-radius:50%;opacity:0;z-index:6;transform:translate(-50%,-50%);box-shadow:0 0 18px rgba(255,180,0,.5);pointer-events:none}
-.scream-wave.scream-one{animation:screamOne 5.5s ease-out both}.scream-wave.scream-two{animation:screamTwo 5.5s ease-out both}
-@keyframes screamOne{0%,26%{opacity:0;transform:translate(-50%,-50%) scale(.3)}36%{opacity:.95;transform:translate(-50%,-50%) scale(1)}52%{opacity:.4;transform:translate(-50%,-50%) scale(2)}64%,100%{opacity:0;transform:translate(-50%,-50%) scale(2.5)}}
-@keyframes screamTwo{0%,32%{opacity:0;transform:translate(-50%,-50%) scale(.25)}42%{opacity:.8;transform:translate(-50%,-50%) scale(1)}58%{opacity:.25;transform:translate(-50%,-50%) scale(1.8)}68%,100%{opacity:0;transform:translate(-50%,-50%) scale(2.3)}}
-/* Manga onomatopoeia: the scream word */
-.manga-kiai{position:absolute;left:34%;top:2px;font:800 26px Montserrat,sans-serif;letter-spacing:3px;color:transparent;background:linear-gradient(180deg,#fff,#ffd83d);-webkit-background-clip:text;background-clip:text;opacity:0;transform:scale(.4) rotate(-6deg);transform-origin:left center;z-index:6;animation:kiaiPop 5.5s ease-in-out both}
-@keyframes kiaiPop{0%,44%{opacity:0;transform:scale(.4) rotate(-6deg)}55%{opacity:1;transform:scale(1.06) rotate(-2deg)}67%{opacity:.95;transform:scale(1) rotate(0)}76%{opacity:.3;transform:scale(1.15) translateX(28px)}100%{opacity:0;transform:scale(1.28) translateX(64px)}}
-/* Character feel keyframes */
-@keyframes ssjCharge{0%,14%{transform:translateY(0) scale(1) skew(0)}24%{transform:translateY(-6px) rotate(-1deg)}34%{transform:translateY(-11px) scale(1.05)}44%{transform:translateY(-17px) scale(1.12) skew(-7deg)}54%{transform:translateY(-6px) scale(1.05)}100%{transform:translateY(0) scale(1)}}
-@keyframes ssjHairFlash{0%,16%{filter:brightness(.72) drop-shadow(0 5px 6px rgba(120,70,0,.5))}28%,100%{filter:brightness(1.35) saturate(1.5) drop-shadow(0 5px 6px rgba(120,70,0,.5)) drop-shadow(0 0 18px #ffd83d)}}
-@keyframes ssjScream{0%,15%{transform:scaleY(.4);opacity:.75}27%{transform:scaleY(1.9);opacity:1}37%{transform:scaleY(.6)}45%{transform:scaleY(2.4);opacity:1}56%,100%{transform:scaleY(1.1);opacity:.9}}
-@keyframes armLeftUp{0%,16%{transform:rotate(-16deg) translateY(6px)}34%{transform:rotate(-60deg) translateY(-8px)}50%{transform:rotate(-52deg) translateY(-12px)}100%{transform:rotate(-44deg)}}
-@keyframes armRightUp{0%,16%{transform:rotate(16deg) translateY(6px)}34%{transform:rotate(60deg) translateY(-8px)}50%{transform:rotate(52deg) translateY(-12px)}100%{transform:rotate(44deg)}}
-@keyframes heroTitleReveal{0%,58%{opacity:0;filter:none;transform:translateY(20px) scale(.9)}64%{opacity:1;filter:brightness(2.2);transform:translateY(-6px) scale(1.08);text-shadow:0 0 10px #fff,0 0 38px #ffd83d,0 0 90px #8f5bff}74%,100%{opacity:1;filter:none;transform:translateY(0) scale(1)}}
-@keyframes titleWordHit{0%,63%{transform:translateY(0)}67%{transform:translateY(-8px) rotate(-2deg)}72%{transform:translateY(2px) rotate(1deg)}78%,100%{transform:translateY(0)}}
-.hero-title-reveal .hero-words span{display:inline-block}.hero-title-reveal .hero-words span:first-child{animation:titleWordHit 5.5s ease-in-out both}.hero-title-reveal .hero-words span:last-child{animation:titleWordHit 5.5s .08s ease-in-out both}
-.hero-words{display:inline-block;position:relative;opacity:0;transform:translateY(18px) scale(.92);transform-origin:50% 65%;}
-.hero-title-reveal .hero-words{opacity:1;animation:heroTitleReveal 5.5s ease-in-out both}
-.hero-words::after{content:"";position:absolute;pointer-events:none}
-.hero-spark{position:absolute;width:5px;height:5px;border-radius:50%;background:#fff1a8;box-shadow:0 0 12px #ffd45e;animation:sparkle 2.2s ease-in-out infinite}.spark-one{left:45%;top:20px}.spark-two{left:62%;top:65px;animation-delay:.7s}.spark-three{left:78%;top:31px;animation-delay:1.2s}
-@keyframes sparkle{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.35)}}
-@media (prefers-reduced-motion:reduce){.hero-scene *,.hero-scene{animation:none!important;display:none}}
-@media (prefers-reduced-motion:reduce){.hero-words{animation:none!important;opacity:1;transform:none}}
+@keyframes figRun{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-2px) rotate(-2deg)}50%{transform:translateY(0) rotate(0)}75%{transform:translateY(-2px) rotate(2deg)}}
+@keyframes stepA{0%,100%{transform:translateX(0)}50%{transform:translateX(-4px)}}
+@keyframes stepB{0%,100%{transform:translateX(-4px)}50%{transform:translateX(0)}}
+
+/* Electrifying burst when he reaches "You" */
+.rn-elect{position:absolute;left:52%;top:-38px;width:96px;height:124px;transform:translateX(-50%) scale(.3);opacity:0;pointer-events:none;z-index:13;animation:electGo 7.5s linear infinite}
+.rn-elect .rn-bolt{position:absolute;width:32px;height:56px;background:repeating-linear-gradient(100deg,rgba(255,255,255,.98) 0 2px,transparent 3px 8px);filter:drop-shadow(0 0 6px #ffe9a0);clip-path:polygon(30% 0,55% 30%,35% 36%,60% 62%,42% 66%,64% 100%,85% 58%,58% 50%,82% 18%,50% 28%)}
+.rn-elect .bt-l{left:5px;top:8px;transform:rotate(-16deg)}
+.rn-elect .bt-r{right:2px;top:22px;transform:rotate(20deg) scale(.9)}
+.rn-elect .rn-ring{position:absolute;left:50%;top:66%;width:72px;height:72px;border:3px solid #fff;border-radius:50%;transform:translate(-50%,-50%) scale(.3);box-shadow:0 0 20px rgba(255,220,120,.75)}
+.rn-elect .rn-flash{position:absolute;left:50%;top:62%;width:120px;height:120px;border-radius:50%;transform:translate(-50%,-50%) scale(.4);background:radial-gradient(circle,rgba(255,255,255,.95),rgba(255,214,90,.5) 40%,transparent 70%)}
+.rn-kiai{position:absolute;right:-34px;top:-20px;font:800 22px Montserrat,sans-serif;letter-spacing:2px;white-space:nowrap;color:transparent;background:linear-gradient(180deg,#fff,#ffd83d);-webkit-background-clip:text;background-clip:text}
+@keyframes electGo{
+    0%,52%{opacity:0}
+    56%{opacity:.5}
+    60%{opacity:1;transform:translateX(-50%) scale(.75)}
+    66%{opacity:1;transform:translateX(-50%) scale(1)}
+    73%{opacity:.95}
+    82%{opacity:0;transform:translateX(-50%) scale(1.28)}
+    100%{opacity:0}
+}
+
+@media (prefers-reduced-motion:reduce){.hero-runner,.rn-fig,.rn-elect,.rn-streak,.hero::before{display:none!important;animation:none!important}}
 
 .hero h1{
 
@@ -551,7 +545,7 @@ nav{
 
 }
 
-.hero h1 span{
+.hero h1 .hero-words span{
 
     color:#8F5BFF;
 
