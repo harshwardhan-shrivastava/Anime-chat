@@ -35,7 +35,11 @@ jobs:
 
       - name: Commit fresh data
         run: |
-          git add \
+          # Some of these are transient build artifacts (todo/cross lists)
+          # that only exist during a run — git add fails hard on a missing
+          # path, which used to kill the whole workflow after enrichment
+          # had already succeeded. Only stage files that actually exist.
+          for f in \
             anime_data.json \
             anime_airing_a0.json \
             anime_airing_a1.json \
@@ -46,7 +50,9 @@ jobs:
             anime_character_va.json \
             anime_characters_index.json \
             anime_characters_progress.json \
-            anime_character_va_progress.json
+            anime_character_va_progress.json; do
+            if [ -f "$f" ]; then git add "$f"; fi
+          done
 
           if git diff --cached --quiet; then
             echo "No data changes this run — nothing to commit."
