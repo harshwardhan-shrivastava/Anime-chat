@@ -141,6 +141,105 @@ def get_user_anime_review_votes(review_ids, user_id):
     return get_user_review_votes("anime", review_ids, user_id)
 
 
+# =====================================================================
+# Grade engine (trusted vs audience two-score system)
+#
+# Design decided with the user:
+#  * Every review maps to a letter grade a reviewer gave (5-star rating).
+#  * The HEADLINE grade / badge is computed ONLY from trusted reviewers
+#    (B-rank and above), weighted by reviewer rank: S+=15, S=10, A=8, B=5.
+#    A flood of low-rank dislikes can mathematically never move it.
+#  * The AUDIENCE score is a separate plain average of everyone, so the
+#    crowd is never silenced -- it just can't hijack the badge.
+#  * "S+ 10/10" is the rare elite tag, only reachable with real S-tier
+#    weight behind it (trusted score >= 9.5).
+# =====================================================================
+
+# Weight a reviewer's vote by their own rank tier.
+RANK_WEIGHTS = {"S+": 15, "S": 10, "A": 8, "B": 5, "C": 2, "D": 1, "F": 1}
+
+# Only these ranks count toward the trusted headline score.
+TRUSTED_RANKS = frozenset({"B", "A", "S", "S+"})
+
+GRADE_ORDER = ["D", "C", "B", "A", "S", "S+"]
+
+# Star rating (1-5) -> the letter grade that reviewer effectively gave.
+def grade_for_stars(stars):
+    stars = int(stars or 0)
+    return {5: "S", 4: "A", 3: "B", 2: "C", 1: "D"}.get(stars, "D")
+
+
+def grade_for_score(score10):
+    """Map a 0-10 score to a headline grade letter."""
+    if score10 is None:
+        return None
+    if score10 >= 9.0:
+        return "S+"
+    if score10 >= 8.0:
+        return "S"
+    if score10 >= 7.0:
+        return "A"
+    if score10 >= 6.0:
+        return "B"
+    if score10 >= 5.0:
+        return "C"
+    return "D"
+
+
+def anime_grade_engine(reviews, rank_map):
+    """Compute the two-score grade model for one anime's reviews.
+
+    reviews: list of dicts each with a 1-5 'rating' (and optionally user_id).
+    rank_map: {user_id: {'rank': 'S+'/'S'/..., 'xp': int}} from
+              get_bulk_reviewer_ranks().
+
+    Returns a dict with an anime-wide grade, the trusted/audience scores,
+    the elite S+ 10/10 flag, and the grade distribution bars.
+    """
+    dist = {g: 0 for g in GRADE_ORDER}
+    trusted_w = 0
+    trusted_sum = 0.0
+    trusted_n = 0
+    aud_sum = 0.0
+    aud_n = 0
+
+    for r in reviews:
+        stars = max(1, min(5, int(r.get("rating") or 0)))
+        val = stars * 2.0  # 1-5 stars -> 2-10 /10 score
+        aud_sum += val
+        aud_n += 1
+        dist[grade_for_stars(stars)] += 1
+
+        rid = r.get("user_id")
+        rinfo = rank_map.get(rid, {})
+        rank = (rinfo.get("rank") if isinstance(rinfo, dict) else rinfo) or "D"
+        if rank in TRUSTED_RANKS:
+            w = RANK_WEIGHTS.get(rank, 1)
+            trusted_w += w
+            trusted_sum += val * w
+            trusted_n += 1
+
+    audience = round(aud_sum / aud_n, 1) if aud_n else None
+    trusted = round(trusted_sum / trusted_w, 1) if trusted_w else None
+    grade = grade_for_score(trusted)
+    elite = grade == "S+" and trusted is not None and trusted >= 9.5
+
+    total = aud_n or 1
+    dist_pct = {g: round(100 * c / total) for g, c in dist.items()}
+
+    return {
+        "trusted_score": trusted,
+        "audience_score": audience,
+        "trusted_count": trusted_n,
+        "audience_count": aud_n,
+        "grade": grade,
+        "elite": elite,
+        "trusted_label": f"{trusted:.1f}" if trusted is not None else "—",
+        "audience_label": f"{audience:.1f}" if audience is not None else "—",
+        "distribution": dist_pct,
+    }
+
+
 def get_user_review_votes(review_type, review_ids, user_id):
     """Return {review_id: 1 (liked) | 0 (disliked)} for votes the user cast
     on a given review type ('anime' or 'episode')."""

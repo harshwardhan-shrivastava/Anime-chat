@@ -66,7 +66,9 @@ from review_votes import (
     toggle_anime_review_vote,
     get_user_anime_review_votes,
     get_bulk_reviewer_ranks,
+    anime_grade_engine,
     RANK_COLORS,
+    GRADE_ORDER,
 )
 from chat import chat_bp
 from profile_routes import bp as profile_bp
@@ -1058,11 +1060,23 @@ def anime(anime_slug):
     smart_recs = _smart_recommendations(anime)
     anime_with_recs = dict(anime)
     anime_with_recs["recommendations"] = smart_recs
+    # ---- Grade / badge engine for this anime (trusted vs audience) ----
+    grade_card = None
+    try:
+        stats = get_anime_stats(anime_slug)
+        revs = stats.get("reviews") or []
+        if revs:
+            rank_map = get_bulk_reviewer_ranks([r.get("user_id") for r in revs])
+            grade_card = anime_grade_engine(revs, rank_map)
+    except Exception:
+        grade_card = None
     return render_template(
         "anime.html",
         anime=anime_with_recs,
         next_episode_label=_episode_badge(anime),
         episode_stats=get_all_episode_stats(anime_slug),
+        grade_card=grade_card,
+        GRADE_ORDER=GRADE_ORDER,
     )
 
 
@@ -1307,11 +1321,41 @@ def reviews_page():
         key=lambda x: (RANK_TIER.get(x["rank"], 5), -x["user_xp"], -x["review_count"]),
     )[:12]
 
+    # ---- Top Graded Anime leaderboard (trusted-score engine) ----
+    graded = {}
+    for r in reviews:
+        slug = r.get("anime_slug")
+        if not slug:
+            continue
+        graded.setdefault(slug, {"slug": slug, "title": r.get("anime_title") or slug, "reviews": []})["reviews"].append(r)
+    top_graded = []
+    for slug, ginfo in graded.items():
+        eng = anime_grade_engine(ginfo["reviews"], rank_map)
+        if not eng["grade"]:
+            continue
+        top_graded.append({
+            "slug": slug,
+            "title": ginfo["title"],
+            "grade": eng["grade"],
+            "elite": eng["elite"],
+            "trusted_label": eng["trusted_label"],
+            "audience_label": eng["audience_label"],
+            "trusted_count": eng["trusted_count"],
+            "audience_count": eng["audience_count"],
+            "img": anime_database.get(slug).get("image") if anime_database.get(slug) else None,
+        })
+    # Rank by headline grade tier, then trusted score desc.
+    GRADE_TIER = {"S+": 0, "S": 1, "A": 2, "B": 3, "C": 4, "D": 5}
+    top_graded.sort(key=lambda x: (GRADE_TIER.get(x["grade"], 9), -x["trusted_count"]))
+    top_graded = top_graded[:8]
+
     return render_template(
         "reviews.html",
         reviews=reviews,
         episode_reviews=episode_reviews,
         top_reviewers=top_reviewers,
+        top_graded=top_graded,
+        GRADE_ORDER=GRADE_ORDER,
         anime_review_count=len(reviews),
         episode_review_count=len(episode_reviews),
         RANK_TIER=RANK_TIER,

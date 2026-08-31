@@ -329,6 +329,32 @@
             </div>
         </div>
 
+        {% if top_graded %}
+        <!-- ===== TOP GRADED ANIME (trusted-score badge leaderboard) ===== -->
+        <div style="background:#0d1521;border:1px solid var(--rv-border);border-radius:18px;padding:20px 22px;margin-bottom:22px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+                <i class="fas fa-crown" style="color:var(--rv-gold);"></i>
+                <h3 style="margin:0;font-size:1.1rem;font-weight:800;">Top Graded Anime</h3>
+                <span style="font-size:0.78rem;color:var(--rv-muted-2);font-weight:600;">Badges earned from B+ (trusted) reviewers only — a vote mob can't move these</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">
+                {% for a in top_graded %}
+                <a href="/anime/{{ a.slug }}" style="text-decoration:none;color:inherit;display:flex;gap:12px;align-items:center;background:#101720;border:1px solid var(--rv-border);border-radius:14px;padding:12px;transition:transform .15s, border-color .15s;">
+                    <div style="flex:0 0 auto;text-align:center;">
+                        <div style="width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:1.2rem;
+                            background:{{ {'S+': 'linear-gradient(135deg,#f59e0b,#ef4444)', 'S': 'linear-gradient(135deg,#eab308,#f97316)', 'A': 'linear-gradient(135deg,#22c55e,#0ea5e9)', 'B': 'linear-gradient(135deg,#0ea5e9,#6366f1)', 'C': 'linear-gradient(135deg,#6366f1,#a855f7)', 'D': 'linear-gradient(135deg,#64748b,#475569)'}[a.grade] }};">{{ a.grade }}</div>
+                        <div style="font-size:0.6rem;color:var(--rv-gold);font-weight:800;margin-top:3px;">{% if a.elite %}10/10{% else %}{{ a.trusted_label }}<span style="color:var(--rv-muted-2);">/10</span>{% endif %}</div>
+                    </div>
+                    <div style="min-width:0;">
+                        <div style="font-weight:700;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.title }}</div>
+                        <div style="font-size:0.72rem;color:var(--rv-muted-2);">{{ a.trusted_count }} trusted · {{ a.audience_count }} reviews</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- ===== GUIDE ===== -->
         <div class="rv-guide" id="rvGuide">
             <div class="rv-guide-head" onclick="document.getElementById('rvGuide').classList.toggle('open')">
@@ -339,12 +365,12 @@
             <div class="rv-guide-body">
                 <div class="rv-guide-grid">
                     <div class="rv-gcol">
-                        <h4><i class="fas fa-star"></i> Rating</h4>
-                        <p>Rate anime on <strong>5 stars</strong> and episodes on <strong>5 stars</strong> (shown as /10). Your rating — plus an optional comment — becomes a review that lands here.</p>
+                        <h4><i class="fas fa-star"></i> Ratings &amp; Grades</h4>
+                        <p>Rate anime on <strong>5 stars</strong>. Each rating maps to a grade — <strong>5★ = S, 4★ = A, 3★ = B, 2★ = C, 1★ = D</strong>. An anime's <strong>headline badge</strong> (S+/S/A/B/C/D) is earned only from <strong>B+ reviewers</strong>, weighted by rank. A separate <strong>audience score</strong> shows everyone's average — so a downvote mob can't hijack the badge.</p>
                     </div>
                     <div class="rv-gcol">
-                        <h4><i class="fas fa-bolt"></i> XP &amp; Votes</h4>
-                        <p>Every <strong>like</strong> earns the author XP; every <strong>dislike</strong> hurts it — it's all about your <strong>ratio</strong>. New accounts start with <strong>100 XP</strong> (a sign-in bonus). Higher rank ⇒ more visible.</p>
+                        <h4><i class="fas fa-rocket"></i> Rank Up &amp; Earn XP</h4>
+                        <p><strong>New users get an XP boost on their first reviews to climb faster.</strong> Every <strong>like</strong> earns XP; every <strong>dislike</strong> costs it. Higher rank = your reviews weigh more toward an anime's badge. Spam to attack and you lose the very reputation that gives you weight.</p>
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-trophy"></i> Ranks</h4>
@@ -407,6 +433,8 @@
 
                     <div class="rv-anime-line">
                         <a class="rv-anime" href="/anime/{{ r.anime_slug }}">{{ r.anime_title }}</a>
+                        {% set rg = {5:'S',4:'A',3:'B',2:'C',1:'D'}.get(r.rating, 'D') %}
+                        <span class="rv-chip-s rk-{{ rg }}" title="Reviewer gave this anime a {{ rg }} grade">{{ rg }}</span>
                         <span class="rv-stars">{% for i in range(1,6) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
                         <span class="rv-score">{{ r.rating }}/5</span>
                         <span class="dot-sep">·</span>

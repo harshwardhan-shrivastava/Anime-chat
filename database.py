@@ -1298,6 +1298,26 @@ def add_review(anime_slug, username, rating, comment, user_id=None):
     global _all_reviews_cache
     _all_reviews_cache = None
 
+    if user_id:
+        # Posting deserves XP (matches the recalc formula's +5 per review), and
+        # fresh reviewers earn a one-time boost on their very first review so
+        # they can climb out of D faster (marketed on the reviews page).
+        recalculate_user_xp(user_id)
+        if _count_user_reviews(user_id) == 1:
+            add_xp(user_id, 40)
+
+
+def _count_user_reviews(user_id):
+    """Total anime + episode reviews a user has posted."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) as c FROM reviews WHERE user_id=?", (user_id,))
+    n = cursor.fetchone()["c"] or 0
+    cursor.execute("SELECT COUNT(*) as c FROM episode_reviews WHERE user_id=?", (user_id,))
+    n += cursor.fetchone()["c"] or 0
+    conn.close()
+    return n
+
 def get_all_reviews(limit=200):
     """Return the most recent reviews across ALL anime (for the /reviews page)."""
     global _all_reviews_cache, _all_reviews_cache_time
