@@ -68,6 +68,7 @@ from review_votes import (
     get_bulk_reviewer_ranks,
     anime_grade_engine,
     RANK_COLORS,
+    RANK_WEIGHTS,
     GRADE_ORDER,
 )
 from chat import chat_bp
@@ -1211,6 +1212,9 @@ def reviews_page():
         r["user_xp"] = rinfo["xp"] if isinstance(rinfo, dict) else 0
         r["xp_pct"] = xp_progress(r["user_xp"])[1]
         r["rank_color"] = RANK_COLORS.get(r["rank"], "#9ca3af")
+        # Only trusted (B+) reviewers earn the grade chip -- a D-rank user's
+        # 5-star rating must not read as "this anime is S-rank".
+        r["is_trusted"] = r["rank"] in RANK_WEIGHTS and r["rank"] in ("B", "A", "S", "S+")
         reviews.append(r)
 
     # ---- Episode reviews (second tab) ----
@@ -1281,6 +1285,7 @@ def reviews_page():
         r["user_xp"] = rinfo["xp"] if isinstance(rinfo, dict) else 0
         r["xp_pct"] = xp_progress(r["user_xp"])[1]
         r["rank_color"] = RANK_COLORS.get(r["rank"], "#9ca3af")
+        r["is_trusted"] = r["rank"] in RANK_WEIGHTS and r["rank"] in ("B", "A", "S", "S+")
         episode_reviews.append(r)
 
     # Higher-ranked reviewers first, then more XP, then newest.
