@@ -130,39 +130,6 @@
             </div>
         </div>
 
-        {% if top_graded %}
-        <!-- ===== TOP GRADED ANIME (trusted-score badge leaderboard) ===== -->
-        <div style="background:#0d1521;border:1px solid var(--rv-border);border-radius:18px;padding:20px 22px;margin-bottom:22px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-                <i class="fas fa-crown" style="color:var(--rv-gold);"></i>
-                <h3 style="margin:0;font-size:1.1rem;font-weight:800;">Top Graded Anime</h3>
-                <span style="font-size:0.78rem;color:var(--rv-muted-2);font-weight:600;">Badges earned from B+ (trusted) reviewers only — a vote mob can't move these</span>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">
-                {% for a in top_graded %}
-                <a href="/anime/{{ a.slug }}" style="text-decoration:none;color:inherit;display:flex;gap:12px;align-items:center;background:#101720;border:1px solid var(--rv-border);border-radius:14px;padding:12px;transition:transform .15s, border-color .15s;">
-                    <div style="flex:0 0 auto;text-align:center;">
-                        <div style="width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:1.2rem;
-                            background:{{ {'S+': 'linear-gradient(135deg,#f59e0b,#ef4444)', 'S': 'linear-gradient(135deg,#eab308,#f97316)', 'A': 'linear-gradient(135deg,#22c55e,#0ea5e9)', 'B': 'linear-gradient(135deg,#0ea5e9,#6366f1)', 'C': 'linear-gradient(135deg,#6366f1,#a855f7)', 'D': 'linear-gradient(135deg,#64748b,#475569)'}[a.grade] }};">{{ a.grade }}</div>
-                        <div style="font-size:0.6rem;color:var(--rv-gold);font-weight:800;margin-top:3px;">{% if a.elite %}10/10{% else %}{{ a.trusted_label }}<span style="color:var(--rv-muted-2);">/10</span>{% endif %}</div>
-                    </div>
-                    <div style="min-width:0;">
-                        <div style="font-weight:700;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.title }}</div>
-                        {% if a.hidden_gem %}
-                        <div style="font-size:0.72rem;color:#38bdf8;font-weight:700;margin-top:2px;"><i class="fas fa-gem"></i> Hidden Gem — needs trusted reviews</div>
-                        {% endif %}
-                        <div style="font-size:0.72rem;color:var(--rv-muted-2);">{{ a.trusted_count }} trusted · {{ a.audience_count }} reviews</div>
-                        {% if a.xp_tier %}
-                        <div style="font-size:0.72rem;color:#fde047;font-weight:700;margin-top:2px;"><i class="fas fa-bolt"></i> {{ a.xp_tier }} tier · {{ a.trusted_xp_label }} XP</div>
-                        {% else %}
-                        <div style="font-size:0.72rem;color:var(--rv-muted-2);margin-top:2px;"><i class="fas fa-bolt"></i> {{ a.trusted_xp_label }} XP</div>
-                        {% endif %}
-                    </div>
-                </a>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
 
         <!-- ===== GUIDE ===== -->
         <div class="rv-guide" id="rvGuide">
@@ -292,7 +259,7 @@
                         {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
                         <span class="rv-xp-bottle" title="Review's own liquid XP — poured by the likes it drew, drained by dislikes. Separate from {{ r.username }}'s profile XP.">
                             <span class="rv-bottle-glass">
-                                <span class="rv-bottle-liquid" style="height:{{ [r.review_xp|int, 100]|min }}%;opacity:{{ (0.35 + ([r.review_xp|int, 40]|min / 40) * 0.6) | round(2) }}"></span>
+                                <span class="rv-bottle-liquid" style="height:{{ [(((r.review_xp|int) / 50)), 100]|min }}%;opacity:{{ (0.3 + (([r.review_xp|int, 15000]|min / 15000)) * 0.7) | round(2) }}"></span>
                                 <span class="rv-bottle-level">{% if r.review_level %}{{ r.review_level }}{% else %}—{% endif %}</span>
                                 <span class="rv-bottle-num">{{ r.review_xp }} <i class="fas fa-bolt"></i></span>
                             </span>
@@ -369,7 +336,7 @@
                         {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
                         <span class="rv-xp-bottle" title="Review's own liquid XP — poured by the likes it drew, drained by dislikes. Separate from {{ r.username }}'s profile XP.">
                             <span class="rv-bottle-glass">
-                                <span class="rv-bottle-liquid" style="height:{{ [r.review_xp|int, 100]|min }}%;opacity:{{ (0.35 + ([r.review_xp|int, 40]|min / 40) * 0.6) | round(2) }}"></span>
+                                <span class="rv-bottle-liquid" style="height:{{ [(((r.review_xp|int) / 50)), 100]|min }}%;opacity:{{ (0.3 + (([r.review_xp|int, 15000]|min / 15000)) * 0.7) | round(2) }}"></span>
                                 <span class="rv-bottle-level">{% if r.review_level %}{{ r.review_level }}{% else %}—{% endif %}</span>
                                 <span class="rv-bottle-num">{{ r.review_xp }} <i class="fas fa-bolt"></i></span>
                             </span>

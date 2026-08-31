@@ -5,7 +5,12 @@ S+ is intentionally almost impossible (50,000 XP). A reviewer whose
 received votes are overwhelmingly dislikes drops to F regardless of XP.
 """
 from database import get_connection, recalculate_user_xp_preserving_rewards, get_user_xp, war_is_live, recalculate_user_xp
-from dev_accounts import is_dev_username
+from dev_accounts import is_dev_username, DEV_USERNAMES
+
+# Developer accounts read as S+ (their raw user_xp row lags behind the
+# runtime dev boost), so vote pricing must honor them or a dev's like would
+# only price at D tier. Matched case-insensitively against the username.
+_DEV_USERNAMES = tuple(u.lower() for u in sorted(DEV_USERNAMES))
 
 
 def _voter_rank(user_id):
@@ -591,23 +596,30 @@ def get_review_reasons(review_type, review_ids, user_id):
 # including the legacy toggle -- prices votes correctly). Mirrors the
 # VOTE_SCALE above: D like +3, C +5/-2, B +7/-3, A +9/-4, S +11/-5, S+ +15/-7.
 # Dislikes below C price at 0 (D accounts can't dislike).
+# Effective voter XP for pricing: developers always price as S+ (15000),
+# mirroring the runtime get_user_xp boost; real users use their stored tier.
+_EFF_XP_SQL = """
+CASE WHEN LOWER(COALESCE(u.username,'')) IN {dev} THEN 15000
+     ELSE COALESCE(ux.xp, 0) END
+""".format(dev=tuple(_DEV_USERNAMES))
+
 _VOTE_PTS_SQL = """
 CASE WHEN rl.is_like=1 THEN
-  CASE WHEN ux.xp >= 15000 THEN 15
-       WHEN ux.xp >= 5000  THEN 11
-       WHEN ux.xp >= 2000  THEN 9
-       WHEN ux.xp >= 1000  THEN 7
-       WHEN ux.xp >= 500   THEN 5
+  CASE WHEN ({eff}) >= 15000 THEN 15
+       WHEN ({eff}) >= 5000  THEN 11
+       WHEN ({eff}) >= 2000  THEN 9
+       WHEN ({eff}) >= 1000  THEN 7
+       WHEN ({eff}) >= 500   THEN 5
        ELSE 3 END
 ELSE
-  CASE WHEN ux.xp >= 15000 THEN -7
-       WHEN ux.xp >= 5000  THEN -5
-       WHEN ux.xp >= 2000  THEN -4
-       WHEN ux.xp >= 1000  THEN -3
-       WHEN ux.xp >= 500   THEN -2
+  CASE WHEN ({eff}) >= 15000 THEN -7
+       WHEN ({eff}) >= 5000  THEN -5
+       WHEN ({eff}) >= 2000  THEN -4
+       WHEN ({eff}) >= 1000  THEN -3
+       WHEN ({eff}) >= 500   THEN -2
        ELSE 0 END
 END
-"""
+""".format(eff=_EFF_XP_SQL)
 
 
 def get_dislike_gating(review_type, review_ids):
@@ -631,6 +643,7 @@ def get_dislike_gating(review_type, review_ids):
             ELSE 0 END) as effective,
         SUM(CASE WHEN rr.id IS NOT NULL AND (rv.likes - rv.dislikes) <= 0 THEN 1 ELSE 0 END) as contested
         FROM review_likes rl
+        LEFT JOIN users u ON u.id = rl.user_id
         LEFT JOIN user_xp ux ON ux.user_id = rl.user_id
         LEFT JOIN review_reasons rr
             ON rr.user_id = rl.user_id AND rr.review_type = rl.review_type AND rr.review_id = rl.review_id
@@ -669,6 +682,7 @@ def get_bulk_review_points(review_type, review_ids):
         SUM(CASE WHEN rl.is_like=1 THEN {_VOTE_PTS_SQL} ELSE 0 END) as like_points,
         SUM(CASE WHEN rl.is_like=0 THEN {_VOTE_PTS_SQL} ELSE 0 END) as dislike_points
         FROM review_likes rl
+        LEFT JOIN users u ON u.id = rl.user_id
         LEFT JOIN user_xp ux ON ux.user_id = rl.user_id
         WHERE rl.review_type=? AND rl.review_id IN ({placeholders})
         GROUP BY rl.review_id""",
