@@ -18,6 +18,7 @@
     {% include "_navbar.html" %}
 
     {% macro war_strip(r, w) %}
+    {% if False %}
     <div class="rv-war" data-review-id="{{ r.id }}">
         {% if not w or not w.entries %}
         <div class="rv-war-strip">
@@ -48,6 +49,7 @@
         </div>
         {% endif %}
     </div>
+    {% endif %}
     {% endmacro %}
 
     <div class="rv-page">
@@ -101,6 +103,7 @@
                 No rank-weight math. Every <b style="color:#4ade80;">👍 like is worth +10 XP</b> and every <b style="color:#f87171;">👎 dislike −5 XP</b> — that's it.
                 A review's XP is just the raw points it racked up. <b style="color:#f87171;">Dislikes and war replies require C rank (500 XP)</b>, so D-rank accounts can only like — a fresh-account mob has no dislike weapon at all.
             </p>
+            {% if False %}
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px;">
                 <div style="background:#101720;border:1px solid var(--rv-border);border-radius:14px;padding:14px 16px;">
                     <div style="font-size:0.78rem;color:var(--rv-muted-2);font-weight:700;margin-bottom:8px;">REVIEW RANK LADDER</div>
@@ -114,8 +117,9 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
             <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);font-size:0.78rem;color:var(--rv-muted-2);line-height:1.6;">
-                <b style="color:#4ade80;">👍 +10</b> and <b style="color:#f87171;">👎 −5</b>, no multipliers. A settled <b style="color:#fbbf24;">Reply War</b> can add or knock off more: a <b style="color:#f87171;">decisive Negative win</b> (75%+ likes) deducts <b style="color:#f87171;">−15</b>, a <b style="color:#4ade80;">decisive Positive win</b> adds <b style="color:#4ade80;">+15</b>.
+                <b style="color:#4ade80;">👍 +10</b> and <b style="color:#f87171;">👎 −5</b>, no multipliers — a review's XP is its raw like/dislike points.
             </div>
         </div>
 
@@ -279,7 +283,7 @@
                             {% endif %}
                         </div>
                         {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
-                        <span class="rv-xp-pill" title="The rank this review earned from its Review XP — same ladder as anime ranks (500 D … 5000 S+). A Negative Reply War winner can knock it down. Separate from {{ r.username }}'s profile XP.">
+                        <span class="rv-xp-pill" title="This review's Review XP rank — separate from {{ r.username }}'s profile XP.">
                             {% if r.review_level %}<span class="rv-level rk-{{ r.review_level }}">{{ r.review_level }}</span>
                             {% else %}<span class="rv-level rk-none">—</span>{% endif %}
                             <span class="rv-xp-num">{{ r.review_xp }} <i class="fas fa-bolt"></i></span>
@@ -354,7 +358,7 @@
                             {% endif %}
                         </div>
                         {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
-                        <span class="rv-xp-pill" title="The rank this review earned from its Review XP — same ladder as anime ranks (500 D … 5000 S+). A Negative Reply War winner can knock it down. Separate from {{ r.username }}'s profile XP.">
+                        <span class="rv-xp-pill" title="This review's Review XP rank — separate from {{ r.username }}'s profile XP.">
                             {% if r.review_level %}<span class="rv-level rk-{{ r.review_level }}">{{ r.review_level }}</span>
                             {% else %}<span class="rv-level rk-none">—</span>{% endif %}
                             <span class="rv-xp-num">{{ r.review_xp }} <i class="fas fa-bolt"></i></span>
