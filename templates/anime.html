@@ -631,6 +631,20 @@
                     <div style="margin-top:8px;font-size:0.72rem;color:#8b98ab;font-weight:600;">HEADLINE GRADE</div>
                 </div>
 
+                {% if grade_card.trusted_xp %}
+                <!-- ===== Anime overall vote as an exilar bottle ===== -->
+                <div style="flex:0 0 auto;text-align:center;">
+                    <div class="elix-bottle" title="The anime's overall community vote — poured by C+ reviewer likes, drained by dislikes. Full bottle = S+ tier (5,000 Trusted XP).">
+                        <div class="elix-glass">
+                            <div class="elix-liquid" style="height:{{ [grade_card.trusted_xp / 50, 100]|min }}%;"></div>
+                            <span class="elix-level">{{ grade_card.grade if grade_card.grade else (grade_card.xp_tier or '—') }}</span>
+                            <span class="elix-num">{{ grade_card.trusted_xp_label }} <i class="fas fa-bolt"></i></span>
+                        </div>
+                        <span class="elix-label">Overall Vote</span>
+                    </div>
+                </div>
+                {% endif %}
+
                 <div style="flex:1 1 300px;min-width:240px;">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
                         {% if grade_card.elite %}
