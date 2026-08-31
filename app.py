@@ -19,6 +19,8 @@ from flask import make_response, Flask, render_template, request, jsonify, g, ur
 from anime_data import anime_database, preload_catalog
 from review_vote_gate import apply_review_vote_gate
 apply_review_vote_gate()
+from review_history_patch import apply_review_history_fix
+apply_review_history_fix()
 from characters_data import search_characters, index_stats, reload_characters
 from database import (
     create_tables,
@@ -151,7 +153,17 @@ def _inject_user():
         "t": t,
         "ja": ja,
         "current_lang": get_language(),
+        "is_developer": is_developer,
     }
+
+
+# Accounts that run Otakul — their badge gets a Developer tag next to it.
+DEVELOPER_USERNAMES = {"kakkarot69", "kageyama"}
+
+
+def is_developer(username):
+    """True if this username is an Otakul developer (badge tag)."""
+    return bool(username) and str(username).strip().lower() in DEVELOPER_USERNAMES
 
 
 def _hd_anilist_url(image):

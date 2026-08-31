@@ -47,8 +47,8 @@
                         <span class="rv-rank-avatar" style="background:{{ u.avatar_color }}">{{ u.username[:1]|upper }}</span>
                         {% endif %}
                         <span class="rv-rank-main">
-                            <span class="rv-rank-name">{{ u.username }}</span>
-                            <span class="rv-rank-meta">{{ u.review_count }} reviews · {{ u.user_xp }} XP</span>
+                        <span class="rv-rank-name">{{ u.username }}{% if is_developer(u.username) %} <span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}</span>
+                        <span class="rv-rank-meta">{{ u.review_count }} reviews · {{ u.user_xp }} XP</span>
                         </span>
                         <span class="rv-rank-rb"><span class="rank-badge rank-{{ u.rank }}" style="font-size:0.72rem;padding:2px 9px;">{{ u.rank }}</span></span>
                     </a>
@@ -229,8 +229,9 @@
                         <div class="rv-user-meta">
                             <a class="rv-username" href="/user/{{ r.username | urlencode }}"><h3>{{ r.username }}{% if mine %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> you</span>{% endif %}</h3></a>
                             <div class="rv-badges">
-                                {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:0.95rem;padding:3px 14px;letter-spacing:2px;">{{ r.rank }}</span>
-                                <span class="xp-bar rank-{{ r.rank }}" style="max-width:130px;height:16px;"><span class="xp-bar-fill" style="width:{{ r.xp_pct or 0 }}%"></span><span class="xp-bar-text">{{ r.user_xp or 0 }}</span></span>{% endif %}
+                                {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:0.95rem;padding:3px 14px;letter-spacing:2px;">{{ r.rank }}</span>{% endif %}
+                                {% if is_developer(r.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
+                                {% if r.rank %}<span class="xp-bar rank-{{ r.rank }}" style="max-width:130px;height:16px;"><span class="xp-bar-fill" style="width:{{ r.xp_pct or 0 }}%"></span><span class="xp-bar-text">{{ r.user_xp or 0 }}</span></span>{% endif %}
                             </div>
                         </div>
                     </div>
@@ -312,7 +313,7 @@
                         </div>
                         {% set leaders = war.get(r.id, [])|selectattr('is_leader')|list %}
                         {% if leaders %}
-                        <div class="rv-war-leader"><span class="rv-war-crown">👑</span> <b>{{ leaders[0].username }}</b> <span class="rank-badge rank-{{ leaders[0].rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ leaders[0].rank }}</span> wins the war: <span class="rv-war-leader-txt">{{ leaders[0].content }}</span></div>
+                        <div class="rv-war-leader"><span class="rv-war-crown">👑</span> <b>{{ leaders[0].username }}</b> <span class="rank-badge rank-{{ leaders[0].rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ leaders[0].rank }}</span>{% if is_developer(leaders[0].username) %} <span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %} wins the war: <span class="rv-war-leader-txt">{{ leaders[0].content }}</span></div>
                         {% else %}
                         <div class="rv-war-leader none"><i class="fas fa-hourglass-half"></i> No champion yet — <b>3+ votes</b> crown the best like-ratio take.</div>
                         {% endif %}
@@ -322,6 +323,7 @@
                                 {% if we.avatar %}<img class="rv-reply-avatar" src="/static/images/avatars/{{ we.avatar }}" alt="">
                                 {% else %}<span class="rv-reply-avatar" style="background:{{ we.avatar_color }}">{{ we.username[:1]|upper }}</span>{% endif %}
                                 <span class="rank-badge rank-{{ we.rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ we.rank }}</span>
+                                {% if is_developer(we.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
                                 <b class="rv-reply-name">{{ we.username }}</b>
                                 <span class="rv-reply-text">{{ we.content }}</span>
                                 <span class="rv-reply-time">{{ we.created_at }}</span>
@@ -377,8 +379,9 @@
                         <div class="rv-user-meta">
                             <a class="rv-username" href="/user/{{ r.username | urlencode }}"><h3>{{ r.username }}{% if mine %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> you</span>{% endif %}</h3></a>
                             <div class="rv-badges">
-                                {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:0.95rem;padding:3px 14px;letter-spacing:2px;">{{ r.rank }}</span>
-                                <span class="xp-bar rank-{{ r.rank }}" style="max-width:130px;height:16px;"><span class="xp-bar-fill" style="width:{{ r.xp_pct or 0 }}%"></span><span class="xp-bar-text">{{ r.user_xp or 0 }}</span></span>{% endif %}
+                                {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:0.95rem;padding:3px 14px;letter-spacing:2px;">{{ r.rank }}</span>{% endif %}
+                                {% if is_developer(r.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
+                                {% if r.rank %}<span class="xp-bar rank-{{ r.rank }}" style="max-width:130px;height:16px;"><span class="xp-bar-fill" style="width:{{ r.xp_pct or 0 }}%"></span><span class="xp-bar-text">{{ r.user_xp or 0 }}</span></span>{% endif %}
                             </div>
                         </div>
                     </div>
@@ -466,7 +469,7 @@
                         </div>
                         {% set leaders = war.get(r.id, [])|selectattr('is_leader')|list %}
                         {% if leaders %}
-                        <div class="rv-war-leader"><span class="rv-war-crown">👑</span> <b>{{ leaders[0].username }}</b> <span class="rank-badge rank-{{ leaders[0].rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ leaders[0].rank }}</span> wins the war: <span class="rv-war-leader-txt">{{ leaders[0].content }}</span></div>
+                        <div class="rv-war-leader"><span class="rv-war-crown">👑</span> <b>{{ leaders[0].username }}</b> <span class="rank-badge rank-{{ leaders[0].rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ leaders[0].rank }}</span>{% if is_developer(leaders[0].username) %} <span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %} wins the war: <span class="rv-war-leader-txt">{{ leaders[0].content }}</span></div>
                         {% else %}
                         <div class="rv-war-leader none"><i class="fas fa-hourglass-half"></i> No champion yet — <b>3+ votes</b> crown the best like-ratio take.</div>
                         {% endif %}
@@ -476,6 +479,7 @@
                                 {% if we.avatar %}<img class="rv-reply-avatar" src="/static/images/avatars/{{ we.avatar }}" alt="">
                                 {% else %}<span class="rv-reply-avatar" style="background:{{ we.avatar_color }}">{{ we.username[:1]|upper }}</span>{% endif %}
                                 <span class="rank-badge rank-{{ we.rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ we.rank }}</span>
+                                {% if is_developer(we.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
                                 <b class="rv-reply-name">{{ we.username }}</b>
                                 <span class="rv-reply-text">{{ we.content }}</span>
                                 <span class="rv-reply-time">{{ we.created_at }}</span>

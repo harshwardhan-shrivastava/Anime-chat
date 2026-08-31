@@ -900,3 +900,13 @@
     color: rgba(255,255,255,.5);
     line-height: 1.5;
 }
+
+/* ---- Developer tag ---- */
+.dev-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.66rem; font-weight: 800; letter-spacing: 0.04em;
+    color: #5eead4; background: rgba(45,212,191,0.12);
+    border: 1px solid rgba(45,212,191,0.4); border-radius: 999px;
+    padding: 2px 9px; vertical-align: middle; white-space: nowrap;
+}
+.dev-tag i { color: #5eead4; font-size: 0.62rem; }

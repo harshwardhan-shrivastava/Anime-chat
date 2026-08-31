@@ -21,7 +21,7 @@
                      alt="{{ target.username }}'s avatar" class="settings-avatar-img">
             </div>
             <div class="profile-info">
-                <h1>{{ target.username }}</h1>
+                <h1>{{ target.username }}{% if is_developer(target.username) %} <span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}</h1>
                 <div class="profile-rank-badge rank-badge-{{ user_rank | lower | replace('+', 'p') }}">
                     {{ user_rank }} Rank
                     <span class="rank-xp">{{ user_xp }} XP</span>
