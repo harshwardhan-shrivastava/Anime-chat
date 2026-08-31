@@ -173,6 +173,10 @@
                         <p><strong>Dislikes require C rank (500 XP)</strong> — same as replies, so D-rank accounts can only like. And even for C+ reviewers, a <strong>dislike requires a reason</strong> — one per person, per review. That reason is <strong>public and 👍/👎-rateable by everyone</strong>. Your dislike only counts if the community <strong>agrees with your reason</strong> (more 👍 than 👎). Give a bad or brigading reason and it <strong>backfires</strong>: your dislike does nothing and shows as <strong>Contested</strong>. Review-bombing is nearly impossible when every bomber has to post <em>and defend</em> a reason.</p>
                     </div>
                     <div class="rv-gcol">
+                        <h4><i class="fas fa-swords"></i> Reply War</h4>
+                        <p>Replies are now a <strong>War</strong>: every C+ reviewer can post one take on the review, and <strong>anyone</strong> votes 👍/👎. The entry with the <strong>best like-ratio (3+ votes)</strong> becomes the <strong>👑 champion</strong> and is the reply shown under the review — everyone else stays in the arena. One entry per person per review, so a comment section can never be flooded. The champion earns a crown XP bonus.</p>
+                    </div>
+                    <div class="rv-gcol">
                         <h4><i class="fas fa-trophy"></i> Ranks</h4>
                         <div class="rv-rank-row-l"><span class="rv-chip-s rk-Splus">S+</span> <span>15,000+ XP</span></div>
                         <div class="rv-rank-row-l"><span class="rv-chip-s rk-S">S</span> <span>5,000 XP</span></div>
@@ -301,29 +305,50 @@
                     </div>
                     {% endif %}
 
-                    <div class="rv-replies" data-review-id="{{ r.id }}">
-                        {% for rp in replies.get(r.id, []) %}
-                        <div class="rv-reply-row">
-                            {% if rp.avatar %}<img class="rv-reply-avatar" src="/static/images/avatars/{{ rp.avatar }}" alt="">
-                            {% else %}<span class="rv-reply-avatar" style="background:{{ rp.avatar_color }}">{{ rp.username[:1]|upper }}</span>{% endif %}
-                            <span class="rank-badge rank-{{ rp.rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ rp.rank }}</span>
-                            <b class="rv-reply-name">{{ rp.username }}</b>
-                            <span class="rv-reply-text">{{ rp.content }}</span>
-                            <span class="rv-reply-time">{{ rp.created_at }}</span>
+                    <div class="rv-war" data-review-id="{{ r.id }}">
+                        <div class="rv-war-head">
+                            <span class="rv-war-title"><i class="fas fa-crosshairs"></i> Reply War <span class="rv-war-count">{{ war.get(r.id, [])|length }} battler{{ 's' if war.get(r.id, [])|length != 1 }}</span></span>
+                            <button type="button" class="rv-war-toggle"><i class="fas fa-swords"></i> <span class="rv-war-toggle-txt">War</span></button>
                         </div>
-                        {% endfor %}
-                    </div>
-                    {% if current_user %}
-                    <div class="rv-reply-composer">
-                        {% if user_rank in ('C', 'B', 'A', 'S', 'S+') %}
-                        <span class="rv-reply-cta"><span class="rank-badge rank-{{ user_rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ user_rank }}</span> Reply as a trusted reviewer</span>
-                        <input class="rv-reply-input" type="text" maxlength="500" placeholder="Your reply…" autocomplete="off">
-                        <button type="button" class="rv-reply-submit"><i class="fas fa-reply"></i> Reply</button>
+                        {% set leaders = war.get(r.id, [])|selectattr('is_leader')|list %}
+                        {% if leaders %}
+                        <div class="rv-war-leader"><span class="rv-war-crown">👑</span> <b>{{ leaders[0].username }}</b> <span class="rank-badge rank-{{ leaders[0].rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ leaders[0].rank }}</span> wins the war: <span class="rv-war-leader-txt">{{ leaders[0].content }}</span></div>
                         {% else %}
-                        <span class="rv-reply-lock"><i class="fas fa-lock"></i> Replies require <b>C rank (500 XP)</b> — keep getting likes on your reviews to unlock.</span>
+                        <div class="rv-war-leader none"><i class="fas fa-hourglass-half"></i> No champion yet — <b>3+ votes</b> crown the best like-ratio take.</div>
                         {% endif %}
+                        <div class="rv-war-arena" style="display:none">
+                            {% for we in war.get(r.id, []) %}
+                            <div class="rv-war-entry {{ 'leader' if we.is_leader }}">
+                                {% if we.avatar %}<img class="rv-reply-avatar" src="/static/images/avatars/{{ we.avatar }}" alt="">
+                                {% else %}<span class="rv-reply-avatar" style="background:{{ we.avatar_color }}">{{ we.username[:1]|upper }}</span>{% endif %}
+                                <span class="rank-badge rank-{{ we.rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ we.rank }}</span>
+                                <b class="rv-reply-name">{{ we.username }}</b>
+                                <span class="rv-reply-text">{{ we.content }}</span>
+                                <span class="rv-reply-time">{{ we.created_at }}</span>
+                                {% if current_user %}
+                                <span class="rv-war-vote" data-war-entry="{{ we.id }}">
+                                    <button type="button" class="rv-war-vbtn {{ 'voted' if we.my_vote == 1 else '' }}" data-kind="like">👍 <span class="rv-wl">{{ we.likes }}</span></button>
+                                    <button type="button" class="rv-war-vbtn {{ 'voted' if we.my_vote == 0 else '' }}" data-kind="dislike">👎 <span class="rv-wd">{{ we.dislikes }}</span></button>
+                                </span>
+                                {% endif %}
+                                {% if we.is_leader %}<span class="rv-war-crown">👑</span>{% endif %}
+                            </div>
+                            {% else %}
+                            <div class="rv-war-empty"><i class="fas fa-swords"></i> No warriors yet — the first C+ take starts the war.</div>
+                            {% endfor %}
+                            {% if current_user %}
+                            <div class="rv-war-composer">
+                                {% if user_rank in ('C', 'B', 'A', 'S', 'S+') %}
+                                <span class="rv-war-cta"><span class="rank-badge rank-{{ user_rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ user_rank }}</span> Post your take — win the war</span>
+                                <input class="rv-war-input" type="text" maxlength="500" placeholder="Your take on this review…" autocomplete="off">
+                                <button type="button" class="rv-war-submit"><i class="fas fa-swords"></i> Enter the War</button>
+                                {% else %}
+                                <span class="rv-war-lock"><i class="fas fa-lock"></i> War entries require <b>C rank (500 XP)</b> — keep getting likes on your reviews to unlock.</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
-                    {% endif %}
                 </div>
             </div>
             {% else %}
@@ -434,29 +459,50 @@
                     </div>
                     {% endif %}
 
-                    <div class="rv-replies" data-review-id="{{ r.id }}">
-                        {% for rp in replies.get(r.id, []) %}
-                        <div class="rv-reply-row">
-                            {% if rp.avatar %}<img class="rv-reply-avatar" src="/static/images/avatars/{{ rp.avatar }}" alt="">
-                            {% else %}<span class="rv-reply-avatar" style="background:{{ rp.avatar_color }}">{{ rp.username[:1]|upper }}</span>{% endif %}
-                            <span class="rank-badge rank-{{ rp.rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ rp.rank }}</span>
-                            <b class="rv-reply-name">{{ rp.username }}</b>
-                            <span class="rv-reply-text">{{ rp.content }}</span>
-                            <span class="rv-reply-time">{{ rp.created_at }}</span>
+                    <div class="rv-war" data-review-id="{{ r.id }}">
+                        <div class="rv-war-head">
+                            <span class="rv-war-title"><i class="fas fa-crosshairs"></i> Reply War <span class="rv-war-count">{{ war.get(r.id, [])|length }} battler{{ 's' if war.get(r.id, [])|length != 1 }}</span></span>
+                            <button type="button" class="rv-war-toggle"><i class="fas fa-swords"></i> <span class="rv-war-toggle-txt">War</span></button>
                         </div>
-                        {% endfor %}
-                    </div>
-                    {% if current_user %}
-                    <div class="rv-reply-composer">
-                        {% if user_rank in ('C', 'B', 'A', 'S', 'S+') %}
-                        <span class="rv-reply-cta"><span class="rank-badge rank-{{ user_rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ user_rank }}</span> Reply as a trusted reviewer</span>
-                        <input class="rv-reply-input" type="text" maxlength="500" placeholder="Your reply…" autocomplete="off">
-                        <button type="button" class="rv-reply-submit"><i class="fas fa-reply"></i> Reply</button>
+                        {% set leaders = war.get(r.id, [])|selectattr('is_leader')|list %}
+                        {% if leaders %}
+                        <div class="rv-war-leader"><span class="rv-war-crown">👑</span> <b>{{ leaders[0].username }}</b> <span class="rank-badge rank-{{ leaders[0].rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ leaders[0].rank }}</span> wins the war: <span class="rv-war-leader-txt">{{ leaders[0].content }}</span></div>
                         {% else %}
-                        <span class="rv-reply-lock"><i class="fas fa-lock"></i> Replies require <b>C rank (500 XP)</b> — keep getting likes on your reviews to unlock.</span>
+                        <div class="rv-war-leader none"><i class="fas fa-hourglass-half"></i> No champion yet — <b>3+ votes</b> crown the best like-ratio take.</div>
                         {% endif %}
+                        <div class="rv-war-arena" style="display:none">
+                            {% for we in war.get(r.id, []) %}
+                            <div class="rv-war-entry {{ 'leader' if we.is_leader }}">
+                                {% if we.avatar %}<img class="rv-reply-avatar" src="/static/images/avatars/{{ we.avatar }}" alt="">
+                                {% else %}<span class="rv-reply-avatar" style="background:{{ we.avatar_color }}">{{ we.username[:1]|upper }}</span>{% endif %}
+                                <span class="rank-badge rank-{{ we.rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ we.rank }}</span>
+                                <b class="rv-reply-name">{{ we.username }}</b>
+                                <span class="rv-reply-text">{{ we.content }}</span>
+                                <span class="rv-reply-time">{{ we.created_at }}</span>
+                                {% if current_user %}
+                                <span class="rv-war-vote" data-war-entry="{{ we.id }}">
+                                    <button type="button" class="rv-war-vbtn {{ 'voted' if we.my_vote == 1 else '' }}" data-kind="like">👍 <span class="rv-wl">{{ we.likes }}</span></button>
+                                    <button type="button" class="rv-war-vbtn {{ 'voted' if we.my_vote == 0 else '' }}" data-kind="dislike">👎 <span class="rv-wd">{{ we.dislikes }}</span></button>
+                                </span>
+                                {% endif %}
+                                {% if we.is_leader %}<span class="rv-war-crown">👑</span>{% endif %}
+                            </div>
+                            {% else %}
+                            <div class="rv-war-empty"><i class="fas fa-swords"></i> No warriors yet — the first C+ take starts the war.</div>
+                            {% endfor %}
+                            {% if current_user %}
+                            <div class="rv-war-composer">
+                                {% if user_rank in ('C', 'B', 'A', 'S', 'S+') %}
+                                <span class="rv-war-cta"><span class="rank-badge rank-{{ user_rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ user_rank }}</span> Post your take — win the war</span>
+                                <input class="rv-war-input" type="text" maxlength="500" placeholder="Your take on this review…" autocomplete="off">
+                                <button type="button" class="rv-war-submit"><i class="fas fa-swords"></i> Enter the War</button>
+                                {% else %}
+                                <span class="rv-war-lock"><i class="fas fa-lock"></i> War entries require <b>C rank (500 XP)</b> — keep getting likes on your reviews to unlock.</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
-                    {% endif %}
                 </div>
             </div>
             {% else %}

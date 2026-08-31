@@ -475,6 +475,44 @@ def toggle_reason_vote(user_id, reason_id, is_like):
     return user_vote, counts["likes"] or 0, counts["dislikes"] or 0
 
 
+def toggle_war_vote(user_id, entry_id, is_like):
+    """Vote on a reply-war entry (any logged-in user).
+
+    Returns (user_vote, likes, dislikes). Votes live in review_likes with
+    review_type='war' and price rank-weighted like every other vote.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, is_like FROM review_likes WHERE user_id=? AND review_type='war' AND review_id=?",
+        (user_id, entry_id),
+    )
+    existing = cursor.fetchone()
+    user_vote = None
+    if existing:
+        if existing["is_like"] == (1 if is_like else 0):
+            cursor.execute("DELETE FROM review_likes WHERE id=?", (existing["id"],))
+        else:
+            cursor.execute("UPDATE review_likes SET is_like=? WHERE id=?", (1 if is_like else 0, existing["id"]))
+            user_vote = 1 if is_like else 0
+    else:
+        cursor.execute(
+            "INSERT INTO review_likes (user_id, review_type, review_id, is_like, points) VALUES (?, 'war', ?, ?, 0)",
+            (user_id, entry_id, 1 if is_like else 0),
+        )
+        user_vote = 1 if is_like else 0
+    conn.commit()
+    cursor.execute(
+        "SELECT SUM(CASE WHEN is_like=1 THEN 1 ELSE 0 END) as likes, "
+        "SUM(CASE WHEN is_like=0 THEN 1 ELSE 0 END) as dislikes "
+        "FROM review_likes WHERE review_type='war' AND review_id=?",
+        (entry_id,),
+    )
+    counts = cursor.fetchone()
+    conn.close()
+    return user_vote, counts["likes"] or 0, counts["dislikes"] or 0
+
+
 def get_review_reasons(review_type, review_ids, user_id):
     """Return {review_id: [reason dicts]} with vote counts + my vote."""
     if not review_ids:

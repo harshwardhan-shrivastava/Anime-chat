@@ -291,56 +291,122 @@
         }
     });
 
-    // ---- Reply to a review (C rank + only) ----
+    // ---- Reply War (C+ entry, crowd votes, best ratio wins) ----
     function cardReviewType(card) {
         var share = card.querySelector("[data-share]");
         if (share && (share.getAttribute("data-share") || "").indexOf("/episode/") !== -1) return "episode";
         return "anime";
     }
-    function replyRowHtml(rp) {
-        var av = rp.avatar
-            ? '<img class="rv-reply-avatar" src="/static/images/avatars/' + escHtml(rp.avatar) + '" alt="">'
-            : '<span class="rv-reply-avatar" style="background:' + (rp.avatar_color || "#374151") + '">' + escHtml((rp.username || "?")[0]).toUpperCase() + '</span>';
-        return '<div class="rv-reply-row">'
+    function warEntryHtml(we) {
+        var av = we.avatar
+            ? '<img class="rv-reply-avatar" src="/static/images/avatars/' + escHtml(we.avatar) + '" alt="">'
+            : '<span class="rv-reply-avatar" style="background:' + (we.avatar_color || "#374151") + '">' + escHtml((we.username || "?")[0]).toUpperCase() + '</span>';
+        return '<div class="rv-war-entry">'
             + av
-            + '<span class="rank-badge rank-' + escHtml(rp.rank || "D") + '" style="font-size:0.6rem;padding:1px 6px;">' + escHtml(rp.rank || "D") + '</span>'
-            + '<b class="rv-reply-name">' + escHtml(rp.username) + '</b>'
-            + '<span class="rv-reply-text">' + escHtml(rp.content) + '</span>'
-            + '<span class="rv-reply-time">' + escHtml(rp.created_at || "") + '</span>'
+            + '<span class="rank-badge rank-' + escHtml(we.rank || "D") + '" style="font-size:0.6rem;padding:1px 6px;">' + escHtml(we.rank || "D") + '</span>'
+            + '<b class="rv-reply-name">' + escHtml(we.username) + '</b>'
+            + '<span class="rv-reply-text">' + escHtml(we.content) + '</span>'
+            + '<span class="rv-reply-time">' + escHtml(we.created_at || "") + '</span>'
             + '</div>';
     }
-    document.addEventListener("click", function (e) {
-        var sbtn = e.target.closest(".rv-reply-submit");
-        if (!sbtn) return;
-        var comp = sbtn.closest(".rv-reply-composer");
-        var card = comp.closest(".rv-card");
-        var input = comp.querySelector(".rv-reply-input");
-        var content = (input.value || "").trim();
-        if (content.length < 2) { input.focus(); return; }
-        sbtn.disabled = true;
-        var reviewId = card.querySelector(".rv-replies").getAttribute("data-review-id");
-        fetch("/api/review/" + reviewId + "/reply", {
-            method: "POST", headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ review_type: cardReviewType(card), content: content })
-        }).then(function (r) { return r.json(); }).then(function (data) {
-            if (!data.success) {
-                var box = comp.querySelector(".rv-reply-err");
-                if (!box) {
-                    box = document.createElement("p"); box.className = "rv-reply-err";
-                    comp.appendChild(box);
-                }
-                box.textContent = data.error || "Could not reply.";
-                sbtn.disabled = false;
-                return;
+    function refreshWarLeader(card) {
+        // Compute the live leader from the arena's current counts: best
+        // like-ratio among entries with 3+ votes (tie -> most likes).
+        var warEl = card.querySelector(".rv-war");
+        var leaderBox = warEl.querySelector(".rv-war-leader");
+        var best = null, bestRatio = -1, bestLikes = -1;
+        warEl.querySelectorAll(".rv-war-entry").forEach(function (row) {
+            var likes = parseInt(row.querySelector(".rv-wl").textContent || "0", 10);
+            var dislikes = parseInt(row.querySelector(".rv-wd").textContent || "0", 10);
+            var total = likes + dislikes;
+            var ratio = total ? likes / total : 0;
+            row.classList.remove("leader");
+            var crown = row.querySelector(".rv-war-crown");
+            if (crown) crown.remove();
+            if (total >= 3 && (ratio > bestRatio || (ratio === bestRatio && likes > bestLikes))) {
+                best = row; bestRatio = ratio; bestLikes = likes;
             }
-            input.value = "";
-            var err = comp.querySelector(".rv-reply-err");
-            if (err) err.remove();
-            card.querySelector(".rv-replies").insertAdjacentHTML("beforeend", replyRowHtml(data.reply));
-            sbtn.disabled = false;
-        }).catch(function () {
-            sbtn.disabled = false;
         });
+        if (best) {
+            best.classList.add("leader");
+            best.insertAdjacentHTML("beforeend", '<span class="rv-war-crown">👑</span>');
+            var name = best.querySelector(".rv-reply-name").textContent;
+            var txt = best.querySelector(".rv-reply-text").textContent;
+            var rank = "";
+            var rb = best.querySelector(".rank-badge");
+            if (rb) rank = '<span class="rank-badge ' + rb.className + '" style="font-size:0.6rem;padding:1px 6px;">' + escHtml(rb.textContent) + '</span>';
+            leaderBox.className = "rv-war-leader";
+            leaderBox.innerHTML = '<span class="rv-war-crown">👑</span> <b>' + escHtml(name) + '</b> ' + rank + ' wins the war: <span class="rv-war-leader-txt">' + escHtml(txt) + '</span>';
+        } else {
+            leaderBox.className = "rv-war-leader none";
+            leaderBox.innerHTML = '<i class="fas fa-hourglass-half"></i> No champion yet — <b>3+ votes</b> crown the best like-ratio take.';
+        }
+    }
+    document.addEventListener("click", function (e) {
+        // War toggle: open/close the arena.
+        var tgl = e.target.closest(".rv-war-toggle");
+        if (tgl) {
+            var war = tgl.closest(".rv-war");
+            var arena = war.querySelector(".rv-war-arena");
+            var open = arena.style.display !== "none";
+            arena.style.display = open ? "none" : "block";
+            tgl.querySelector(".rv-war-toggle-txt").textContent = open ? "War" : "Close";
+            return;
+        }
+        // Submit a war entry.
+        var wbtn = e.target.closest(".rv-war-submit");
+        if (wbtn) {
+            var comp = wbtn.closest(".rv-war-composer");
+            var card = comp.closest(".rv-card");
+            var input = comp.querySelector(".rv-war-input");
+            var content = (input.value || "").trim();
+            if (content.length < 2) { input.focus(); return; }
+            wbtn.disabled = true;
+            var war = card.querySelector(".rv-war");
+            var reviewId = war.getAttribute("data-review-id");
+            fetch("/api/review/" + reviewId + "/war", {
+                method: "POST", headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ review_type: cardReviewType(card), content: content })
+            }).then(function (r) { return r.json(); }).then(function (data) {
+                wbtn.disabled = false;
+                if (!data.success) {
+                    var errEl = comp.querySelector(".rv-war-err");
+                    if (!errEl) { errEl = document.createElement("p"); errEl.className = "rv-war-err"; comp.appendChild(errEl); }
+                    errEl.textContent = data.error || "Could not enter the war.";
+                    return;
+                }
+                input.value = "";
+                var errEl = comp.querySelector(".rv-war-err");
+                if (errEl) errEl.remove();
+                var arena = war.querySelector(".rv-war-arena");
+                var empty = arena.querySelector(".rv-war-empty");
+                if (empty) empty.remove();
+                arena.insertAdjacentHTML("beforeend", warEntryHtml(data.entry));
+                var cnt = war.querySelector(".rv-war-count");
+                if (cnt) cnt.textContent = (parseInt(cnt.textContent, 10) || 0) + 1 + " battlers";
+            }).catch(function () { wbtn.disabled = false; });
+            return;
+        }
+        // Vote on a war entry (the crowd decides).
+        var wvb = e.target.closest(".rv-war-vbtn");
+        if (wvb) {
+            var voteEl = wvb.closest(".rv-war-vote");
+            var entryId = voteEl.getAttribute("data-war-entry");
+            var isLike = wvb.dataset.kind === "like";
+            fetch("/api/war/" + entryId + "/vote", {
+                method: "POST", headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ is_like: isLike })
+            }).then(function (r) { return r.json(); }).then(function (data) {
+                if (!data.success) return;
+                voteEl.querySelector(".rv-wl").textContent = data.likes;
+                voteEl.querySelector(".rv-wd").textContent = data.dislikes;
+                voteEl.querySelectorAll(".rv-war-vbtn").forEach(function (b) {
+                    b.classList.toggle("voted", data.user_vote === (b.dataset.kind === "like" ? 1 : 0));
+                });
+                refreshWarLeader(voteEl.closest(".rv-card"));
+            });
+            return;
+        }
     });
 
     // ---- Share (copy link) ----

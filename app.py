@@ -57,6 +57,10 @@ from database import (
     get_review_likes,
     add_review_reply,
     get_review_replies,
+    add_war_entry,
+    get_war_entries,
+    migrate_replies_to_war,
+    reward_war_leaders,
     get_bulk_review_likes,
     get_user_review_history,
     get_user_review,
@@ -78,6 +82,7 @@ from review_votes import (
     submit_review_dislike,
     can_dislike,
     toggle_reason_vote,
+    toggle_war_vote,
     get_review_reasons,
     RANK_COLORS,
     RANK_WEIGHTS,
@@ -1424,6 +1429,10 @@ def reviews_page():
     reasons_map.update(get_review_reasons("episode", ep_ids, _uid))
     replies_map = get_review_replies("anime", review_ids)
     replies_map.update(get_review_replies("episode", ep_ids))
+    migrate_replies_to_war()
+    war_map = get_war_entries("anime", review_ids, _uid)
+    war_map.update(get_war_entries("episode", ep_ids, _uid))
+    reward_war_leaders()
     user_rank = get_user_rank(_uid) if _uid else None
 
     return render_template(
@@ -1435,6 +1444,7 @@ def reviews_page():
         vote_schedule=vote_schedule,
         reasons=reasons_map,
         replies=replies_map,
+        war=war_map,
         user_rank=user_rank,
         GRADE_ORDER=GRADE_ORDER,
         anime_review_count=len(reviews),
@@ -1572,6 +1582,54 @@ def review_remove_reason(review_id):
     counts = get_review_likes(review_type, review_id)
     conn.close()
     return jsonify({"success": True, "likes": counts["likes"], "dislikes": counts["dislikes"], "user_vote": None})
+
+
+@app.route("/api/review/<int:review_id>/war", methods=["POST"])
+def review_war_submit(review_id):
+    """Enter the Reply War on a review — C rank (500 XP) and above, one
+    entry per user per review. The crowd votes; the best like-ratio wins."""
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in to enter the war."}), 401
+    rank = get_user_rank(user["id"])
+    if rank not in ("C", "B", "A", "S", "S+"):
+        return jsonify({
+            "success": False,
+            "error": "War entries require C rank (500 XP) — keep getting likes on your reviews to unlock.",
+        }), 403
+    if _vote_rate_hit("u:" + str(user["id"]), 40, 300) or _vote_rate_hit(
+        "ip:" + (request.remote_addr or "?"), 120, 300
+    ):
+        return jsonify({"success": False, "error": "You're posting too fast. Take a break."}), 429
+    data = request.get_json(silent=True) or {}
+    review_type = data.get("review_type") or "anime"
+    if review_type not in ("anime", "episode"):
+        return jsonify({"success": False, "error": "Bad review type."}), 400
+    ok, err, entry = add_war_entry(user["id"], review_type, review_id, data.get("content"))
+    if not ok:
+        return jsonify({"success": False, "error": err or "Could not enter the war."}), 400
+    return jsonify({"success": True, "entry": entry})
+
+
+@app.route("/api/war/<int:entry_id>/vote", methods=["POST"])
+def war_vote(entry_id):
+    """Vote on a war entry — any logged-in user (the crowd decides)."""
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in to vote."}), 401
+    if _vote_rate_hit("u:" + str(user["id"]), 40, 300) or _vote_rate_hit(
+        "ip:" + (request.remote_addr or "?"), 120, 300
+    ):
+        return jsonify({"success": False, "error": "You're voting too fast. Take a break."}), 429
+    data = request.get_json(silent=True) or {}
+    is_like = data.get("is_like")
+    if is_like is None:
+        return jsonify({"success": False, "error": "Missing vote type."}), 400
+    try:
+        user_vote, likes, dislikes = toggle_war_vote(user["id"], entry_id, bool(is_like))
+    except Exception:
+        return jsonify({"success": False, "error": "Entry not found."}), 404
+    return jsonify({"success": True, "likes": likes, "dislikes": dislikes, "user_vote": user_vote})
 
 
 @app.route("/api/review/<int:review_id>/reply", methods=["POST"])

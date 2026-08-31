@@ -509,6 +509,20 @@ def create_tables():
     """)
 
     cursor.execute("""
+        CREATE TABLE IF NOT EXISTS reply_war(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            review_id INTEGER NOT NULL,
+            review_type TEXT NOT NULL DEFAULT 'anime',
+            user_id INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            rewarded INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, review_type, review_id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS claims(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -1542,6 +1556,161 @@ def get_review_replies(review_type, review_ids):
             "rank": get_xp_tier(row["xp"] or 0),
         })
     return out
+
+
+def add_war_entry(user_id, review_type, review_id, content):
+    """Post a reply-war entry on a review (one per user per review).
+
+    Returns (ok, err, entry). Rank gating (C+ only) is enforced by the
+    endpoint before calling this.
+    """
+    content = (content or "").strip()
+    if len(content) < 2:
+        return False, "Your war entry is too short.", None
+    if len(content) > 500:
+        return False, "War entries must be 500 characters or fewer.", None
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id FROM reply_war WHERE user_id=? AND review_type=? AND review_id=?",
+        (user_id, review_type, review_id),
+    )
+    if cursor.fetchone():
+        conn.close()
+        return False, "You already posted an entry in this war.", None
+    cursor.execute(
+        "INSERT INTO reply_war (review_id, review_type, user_id, content) VALUES (?, ?, ?, ?)",
+        (review_id, review_type, user_id, content),
+    )
+    conn.commit()
+    eid = cursor.lastrowid
+    conn.close()
+    rows = get_war_entries(review_type, [review_id], user_id)
+    entry = next((e for e in rows.get(review_id, []) if e["id"] == eid), None)
+    return True, None, entry
+
+
+def get_war_entries(review_type, review_ids, user_id=None):
+    """Return {review_id: [war entry dicts]} with like/dislike counts, my
+    vote and the live leader (best like-ratio among entries with 3+ votes)."""
+    if not review_ids:
+        return {}
+    conn = get_connection()
+    cursor = conn.cursor()
+    placeholders = ",".join("?" * len(review_ids))
+    cursor.execute(
+        f"""SELECT w.id, w.review_id, w.user_id, w.content, w.rewarded, w.created_at,
+        u.username, u.avatar, u.avatar_color, ux.xp,
+        SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) as likes,
+        SUM(CASE WHEN rl.is_like=0 THEN 1 ELSE 0 END) as dislikes
+        FROM reply_war w
+        LEFT JOIN users u ON u.id = w.user_id
+        LEFT JOIN user_xp ux ON ux.user_id = w.user_id
+        LEFT JOIN review_likes rl ON rl.review_type='war' AND rl.review_id = w.id
+        WHERE w.review_type=? AND w.review_id IN ({placeholders})
+        GROUP BY w.id ORDER BY w.id ASC""",
+        [review_type] + list(review_ids),
+    )
+    rows = cursor.fetchall()
+    ids = [row["id"] for row in rows]
+    my_votes = {}
+    if user_id and ids:
+        p2 = ",".join("?" * len(ids))
+        cursor.execute(
+            f"SELECT review_id, is_like FROM review_likes WHERE review_type='war' AND user_id=? AND review_id IN ({p2})",
+            [user_id] + ids,
+        )
+        my_votes = {row["review_id"]: row["is_like"] for row in cursor.fetchall()}
+    conn.close()
+    out = {}
+    for row in rows:
+        likes = row["likes"] or 0
+        dislikes = row["dislikes"] or 0
+        total = likes + dislikes
+        ratio = (likes / total) if total else 0.0
+        out.setdefault(row["review_id"], []).append({
+            "id": row["id"],
+            "user_id": row["user_id"],
+            "username": row["username"] or "user",
+            "avatar": row["avatar"],
+            "avatar_color": row["avatar_color"] or "#374151",
+            "rank": get_xp_tier(row["xp"] or 0),
+            "content": row["content"],
+            "created_at": row["created_at"],
+            "likes": likes,
+            "dislikes": dislikes,
+            "total": total,
+            "ratio": ratio,
+            "my_vote": my_votes.get(row["id"]),
+            "rewarded": bool(row["rewarded"]),
+        })
+    # Live leader: best like-ratio among entries with 3+ votes; tie -> most likes.
+    for rid, entries in out.items():
+        eligible = [e for e in entries if e["total"] >= 3]
+        if not eligible:
+            continue
+        best = max(eligible, key=lambda e: (e["ratio"], e["likes"]))
+        for e in entries:
+            e["is_leader"] = e["id"] == best["id"]
+    return out
+
+
+def migrate_replies_to_war():
+    """One-time migration: existing review replies become war entries so
+    nothing already posted is lost when the War replaces the reply stream."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "SELECT COUNT(*) as c FROM review_replies WHERE NOT EXISTS (SELECT 1 FROM reply_war w WHERE w.review_type=review_replies.review_type AND w.review_id=review_replies.review_id AND w.user_id=review_replies.user_id)"
+        )
+        _row = cursor.fetchone()
+        n = _row["c"] if _row else 0
+        if n:
+            cursor.execute(
+                """INSERT OR IGNORE INTO reply_war (review_id, review_type, user_id, content, created_at)
+                SELECT review_id, review_type, user_id, content, created_at FROM review_replies"""
+            )
+            conn.commit()
+    except Exception:
+        conn.rollback()
+    conn.close()
+
+
+def reward_war_leaders():
+    """Give a one-time +25 XP crown bonus to any war entry that is currently
+    the leader (3+ votes, best ratio). Flag guards against double rewards."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        # All entries with 3+ votes, ranked per review by (ratio, likes).
+        cursor.execute(
+            """SELECT w.id, w.user_id, w.review_id, w.review_type,
+            SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) as likes,
+            SUM(CASE WHEN rl.is_like=0 THEN 1 ELSE 0 END) as dislikes
+            FROM reply_war w
+            LEFT JOIN review_likes rl ON rl.review_type='war' AND rl.review_id = w.id
+            WHERE w.rewarded=0
+            GROUP BY w.id HAVING (likes + dislikes) >= 3"""
+        )
+        rows = cursor.fetchall()
+        leaders = {}
+        for row in rows:
+            total = (row["likes"] or 0) + (row["dislikes"] or 0)
+            ratio = (row["likes"] or 0) / total if total else 0.0
+            key = (row["review_id"], row["review_type"])
+            cur = leaders.get(key)
+            if cur is None or (ratio, row["likes"] or 0) > (cur[0], cur[1]):
+                leaders[key] = (ratio, row["likes"] or 0, row["id"], row["user_id"])
+        for (_, _, eid, _) in leaders.values():
+            cursor.execute("UPDATE reply_war SET rewarded=1 WHERE id=?", (eid,))
+        conn.commit()
+        # Pay XP after the commit so add_xp's own connection doesn't lock.
+        for (_, _, _, uid) in leaders.values():
+            add_xp(uid, 25)
+    except Exception:
+        conn.rollback()
+    conn.close()
 
 
 def add_episode_review(anime_slug, season_name, episode_number, user_id,
