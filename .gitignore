@@ -37,6 +37,7 @@ anime_thumb_mismatch.json
 anime_airing_thumbs_todo.json
 anime_airing_todo.json
 anime_mal_episodes.json
+anime_banners.json
 
 # Runtime SQLite database (dev fallback only — production uses Turso)
 animechat.db
