@@ -12,6 +12,11 @@
     <link rel="icon" type="image/svg+xml"
     href="{{ url_for('static', filename='favicon.svg') }}">
 
+    {% if anime.banner %}
+    <!-- Start the hero background download immediately so the page opens already painted -->
+    <link rel="preload" as="image" fetchpriority="high" href="{{ anime.banner | anime_img_large }}">
+    {% endif %}
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/anime.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}">
 
@@ -31,6 +36,7 @@
     <link rel="dns-prefetch" href="https://s4.anilist.co">
     <link rel="preconnect" href="https://static.tvmaze.com" crossorigin>
     <link rel="dns-prefetch" href="https://static.tvmaze.com">
+    <link rel="preconnect" href="https://media.kitsu.app" crossorigin>
     <link rel="dns-prefetch" href="https://media.kitsu.app">
 
 </head>

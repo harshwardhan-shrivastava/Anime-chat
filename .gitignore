@@ -39,6 +39,7 @@ anime_airing_todo.json
 anime_mal_episodes.json
 anime_banners.json
 anime_kitsu.json
+anime_anilist_counts.json
 
 # Runtime SQLite database (dev fallback only — production uses Turso)
 animechat.db
