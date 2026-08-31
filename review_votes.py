@@ -191,14 +191,13 @@ def grade_for_stars(stars):
 
 
 # Anime / episode XP tiers (from combined trusted-XP behind the grade):
-# 500 = D, 1000 = C, 1500 = B, 2000 = A, 3000 = S, 5000 = S+.
+# 500 = C, 1000 = B, 1500 = A, 2000 = S, 5000 = S+ (below 500 = ungraded).
 ANIME_XP_TIERS = [
     (5000, "S+"),
-    (3000, "S"),
-    (2000, "A"),
-    (1500, "B"),
-    (1000, "C"),
-    (500, "D"),
+    (2000, "S"),
+    (1500, "A"),
+    (1000, "B"),
+    (500, "C"),
 ]
 
 

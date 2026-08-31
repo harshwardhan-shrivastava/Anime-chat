@@ -1082,6 +1082,7 @@ def anime(anime_slug):
         next_episode_label=_episode_badge(anime),
         episode_stats=get_all_episode_stats(anime_slug),
         grade_card=grade_card,
+        vote_schedule=_build_vote_schedule(),
         GRADE_ORDER=GRADE_ORDER,
     )
 
@@ -1192,6 +1193,24 @@ def community(anime_slug):
         user_xp=user_xp,
         user_rank=user_rank,
     )
+
+
+def _build_vote_schedule():
+    """Vote point schedule D->S+ with D-equivalence ratios for the legend box."""
+    d_like = vote_points_for_rank("D", True)          # 5
+    d_dislike = abs(vote_points_for_rank("D", False))  # 3
+    schedule = []
+    for rk in ("D", "C", "B", "A", "S", "S+"):
+        like = vote_points_for_rank(rk, True)
+        dislike = vote_points_for_rank(rk, False)
+        schedule.append({
+            "rank": rk,
+            "like": like,
+            "dislike": dislike,
+            "like_x_d": round(like / d_like, 1),
+            "dislike_x_d": round(abs(dislike) / d_dislike, 1),
+        })
+    return schedule
 
 
 @app.route("/reviews")
@@ -1379,15 +1398,9 @@ def reviews_page():
     top_graded.sort(key=lambda x: (GRADE_TIER.get(x["grade"], 9), -x["trusted_xp"]))
     top_graded = top_graded[:8]
 
-    # Vote point schedule (D -> S+) shown in the legend box on the page.
-    vote_schedule = [
-        {
-            "rank": rk,
-            "like": vote_points_for_rank(rk, True),
-            "dislike": vote_points_for_rank(rk, False),
-        }
-        for rk in ("D", "C", "B", "A", "S", "S+")
-    ]
+    # Vote point schedule (D -> S+) shown in the legend box on the page,
+    # with the D-equivalence ratio (one vote of this rank = N D-rank votes).
+    vote_schedule = _build_vote_schedule()
 
     return render_template(
         "reviews.html",
