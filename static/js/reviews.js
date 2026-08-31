@@ -127,9 +127,24 @@
     // ---- Dislike with reason (anti-bombing) ----
     function escHtml(s) {
         return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
-            return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
         });
     }
+
+    // ---- Deep link from a war page: #rv-<kind>-<id> opens the right tab
+    // and scrolls to + flashes that exact review so the war context is clear ----
+    (function () {
+        var m = (location.hash || "").match(/^#rv-(anime|episode)-(\d+)$/);
+        if (!m) return;
+        var kind = m[1], id = m[2];
+        var tab = document.querySelector('.rv-tab[data-rtab="' + kind + '"]');
+        if (tab) tab.click();
+        var card = document.getElementById("rv-" + kind + "-" + id);
+        if (!card) return;
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+        card.classList.add("war-jump");
+        setTimeout(function () { card.classList.remove("war-jump"); }, 3600);
+    })();
     function buildReasonRow(re) {
         var mine = re.my_reason ? ' data-mine="1"' : "";
         var good = !!re.ratio_ok;

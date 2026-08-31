@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260831a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260901a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -246,7 +246,7 @@
             {% for r in reviews %}
             {% set wkey = ('anime', r.id) %}
             {% set mine = current_user and current_user.id == r.user_id %}
-            <div class="rv-card art{% if not r.anime_image %} noart{% endif %}"
+            <div id="rv-anime-{{ r.id }}" class="rv-card art{% if not r.anime_image %} noart{% endif %}"
                  data-title="{{ r.anime_title | lower }}"
                  data-user="{{ r.username | lower }}"
                  data-rank="{{ RANK_TIER.get(r['rank'], 5) }}"
@@ -353,7 +353,7 @@
             {% for r in episode_reviews %}
             {% set wkey = ('episode', r.id) %}
             {% set mine = current_user and current_user.id == r.user_id %}
-            <div class="rv-card art ep"
+            <div id="rv-episode-{{ r.id }}" class="rv-card art ep"
                  data-title="{{ r.anime_title | lower }}"
                  data-user="{{ r.username | lower }}"
                  data-rank="{{ RANK_TIER.get(r['rank'], 5) }}"
@@ -462,6 +462,6 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/reviews.js') }}?v=20260831a"></script>
+    <script src="{{ url_for('static', filename='js/reviews.js') }}?v=20260901a"></script>
 </body>
 </html>

@@ -7,8 +7,8 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260831a">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260901a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260901a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260901b">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -49,6 +49,7 @@
                         {% if is_developer(r.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
                         <span class="war-orig-xp">{{ r.user_xp }} XP</span>
                     </div>
+                    <span class="war-orig-open-hint" title="Open this review on the Reviews page"><i class="fas fa-arrow-up-right-from-square"></i> View on Reviews</span>
                 </div>
                 <div class="war-orig-title">
                     <div class="war-anime-title">{{ r.anime_title }}{% if r.episode_title %} <span class="war-ep">· {{ r.season_name_display }} · Ep {{ r.episode_number }} — {{ r.episode_title }}</span>{% elif r.season_name_display %} <span class="war-ep">· {{ r.season_name_display }} · Ep {{ r.episode_number }}</span>{% endif %}</div>
@@ -188,6 +189,6 @@
         {% endif %}
     </div>
 
-    <script src="{{ url_for('static', filename='js/war.js') }}?v=20260831b"></script>
+    <script src="{{ url_for('static', filename='js/war.js') }}?v=20260901a"></script>
 </body>
 </html>

@@ -275,6 +275,13 @@ body { background: var(--rv-bg); color: var(--rv-text); font-family: 'Inter', -a
     .rv-card.ep .rv-art { width: 100%; height: auto; border-radius: 0; }
 }
 
+/* Deep-link flash: a card jumped to from a war page gets a golden pulse */
+.rv-card.war-jump { animation: war-jump-flash 1.2s ease-in-out 3; }
+@keyframes war-jump-flash {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.12); }
+    50% { box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.8), 0 0 26px rgba(251, 191, 36, 0.3); }
+}
+
 .rv-empty { text-align: center; color: var(--rv-muted); padding: 60px 0; font-size: 1.05rem; }
 .rv-empty i { display: block; font-size: 2.4rem; margin-bottom: 12px; color: var(--rv-muted-2); }
 .rv-mine-note { color: var(--rv-muted-2); font-size: 0.8rem; display: flex; align-items: center; gap: 6px; }

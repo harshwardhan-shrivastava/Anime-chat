@@ -124,6 +124,17 @@
         });
     }
 
+    // ---- Click the original review box -> the exact review on /reviews ----
+    var origBox = document.querySelector(".war-page.detail .war-original");
+    if (origBox && reviewId) {
+        origBox.classList.add("clickable");
+        origBox.addEventListener("click", function (e) {
+            if (e.target.closest("a, button")) return;          // History / Share still work
+            if (window.getSelection && window.getSelection().toString()) return; // don't steal text select
+            window.location.href = "/reviews#rv-" + reviewType + "-" + reviewId;
+        });
+    }
+
     // ---- Join the war: your take = a dislike with reason ----
     var submitBtn = document.querySelector(".war-composer-submit");
     if (submitBtn) {
