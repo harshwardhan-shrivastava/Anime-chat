@@ -7,6 +7,7 @@ votes by like-ratio. Guild / GvG duels (declaration -> claim -> owner accept
 
 Kept as a Flask blueprint so app.py can register it from a reachable spot.
 """
+import re
 import time
 
 from flask import Blueprint, g, request, jsonify, abort, render_template
@@ -119,9 +120,26 @@ def warzone_detail(wid):
         my_entry = next((e for e in war["entries"] if e["user_id"] == user["id"]), None)
     user_rank = get_user_rank(user["id"]) if user else None
     entry = anime_database.get(war["anime_slug"]) if war.get("anime_slug") else None
+    ep_img = None
+    ep_title = None
+    if entry and war.get("topic_type") == "episode" and war.get("episode_ref"):
+        # episode_ref is stored as "SnEm <title>" by the picker - find the
+        # episode (for its thumbnail) inside the catalog's seasons.
+        m = re.match(r"S(\d+)E(\d+)", war["episode_ref"] or "")
+        if m:
+            seasons = entry.get("seasons") or []
+            try:
+                si, en = int(m.group(1)), int(m.group(2))
+                for e in (seasons[si - 1].get("episodes") or []) if si and si <= len(seasons) else []:
+                    if e.get("number") == en:
+                        ep_img = e.get("thumb") or e.get("image")
+                        ep_title = (e.get("title") or "").strip()
+                        break
+            except Exception:
+                pass
     topic = {
-        "title": (entry.get("title") if entry else None) or war.get("anime_slug"),
-        "image": (entry.get("image") if entry else None) or (war.get("gif_url") if war.get("gif_url") else None),
+        "title": (ep_title or (entry.get("title") if entry else None)) or war.get("anime_slug"),
+        "image": (ep_img or (entry.get("image") if entry else None)) or (war.get("gif_url") if war.get("gif_url") else None),
     }
     return render_template(
         "war_zone.html",
@@ -291,3 +309,33 @@ def wz_pick(war_id):
     if not ok:
         return jsonify({"success": False, "error": err or "Could not pick a rival."}), 400
     return jsonify({"success": True, "ends_at": ends, "url": "/war/zone/{}".format(war_id)})
+
+
+@wz_bp.route("/api/warzone/episodes")
+def wz_episodes():
+    """The episode picker: given an anime slug, return its episodes as
+    [{global_number, season, number, title, image}] so the create-war panel
+    can search-and-pick a specific episode (with its thumbnail)."""
+    slug = (request.args.get("slug") or "").strip()
+    entry = anime_database.get(slug) if slug else None
+    if not entry:
+        return jsonify({"success": False, "error": "Anime not found."}), 404
+    out = []
+    for si, season in enumerate(entry.get("seasons") or [], start=1):
+        sname = season.get("name") or f"S{si}"
+        for ep in season.get("episodes") or []:
+            num = ep.get("number")
+            if num is None:
+                continue
+            global_num = sum(
+                len((s.get("episodes") or [])) for s in (entry.get("seasons") or [])[:si - 1]
+            ) + num
+            out.append({
+                "global": global_num,
+                "season": sname,
+                "season_index": si,
+                "number": num,
+                "title": (ep.get("title") or "").strip()[:120],
+                "image": (ep.get("thumb") or ep.get("image") or ""),
+            })
+    return jsonify({"success": True, "slug": slug, "title": entry.get("title"), "episodes": out})

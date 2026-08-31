@@ -152,7 +152,7 @@ def _gated_toggle_review_like(user_id, review_type, review_id, is_like):
     conn.commit()  # release the write lock BEFORE the recalc connection writes
     if review_author_id:
         try:
-            _db.recalculate_user_xp(review_author_id)
+            _db.recalculate_user_xp_preserving_rewards(review_author_id)
         except Exception:
             pass  # the vote is already saved — XP recalc can retry next vote
     conn.close()

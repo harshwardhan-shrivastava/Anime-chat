@@ -378,7 +378,8 @@ def _wz_entries(wid, user_id=None):
     cur = conn.cursor()
     cur.execute(
         """SELECT e.id, e.user_id, e.content, e.created_at,
-        u.username, u.avatar, u.avatar_color, ux.xp,
+        u.username, u.avatar, u.avatar_color,
+        (ux.xp + IFNULL(ux.war_reward_xp, 0)) as xp,
         SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) as likes,
         SUM(CASE WHEN rl.is_like=0 THEN 1 ELSE 0 END) as dislikes
         FROM war_entries e
@@ -584,6 +585,13 @@ def add_warzone_entry(user_id, wid, content):
 GUILD_MIN_MEMBERS = 50
 GUILD_XP_WIN = 100
 GUILD_XP_LOSE = 20
+# Personal war-reward pool (permanent): winner-guild every member +30,
+# top-3 battlers +60 each, winner-guild owner +42 (30:42:60 = 5:7:10).
+GUILD_REWARD_MEMBER = 30
+GUILD_REWARD_OWNER = 42
+GUILD_REWARD_TOP3 = 60
+# Cooldown: a guild can only join a war once every 15 days (2 wars/month).
+GUILD_WAR_COOLDOWN_DAYS = 15
 
 
 def _guild_info(gid):
@@ -630,6 +638,30 @@ def _guild_active_war(gid):
     return row is not None
 
 
+def _guild_war_block(gid):
+    """Return an error string if this guild can't start/join a war right now
+    (already in one, or on cooldown from a war that ended within the last 15
+    days), else None."""
+    if _guild_active_war(gid):
+        return 'Your guild already has a war in flight.'
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """SELECT MAX(ends_at) as last FROM warzones
+        WHERE (guild_a=? OR guild_b=?) AND settled=1 AND mode IN ('gvg','guild')""",
+        (gid, gid),
+    )
+    row = cur.fetchone()
+    conn.close()
+    if row and row['last']:
+        days = (int(time.time()) - _iso_to_ts(row['last'])) / 86400.0
+        if days < GUILD_WAR_COOLDOWN_DAYS:
+            left = int(GUILD_WAR_COOLDOWN_DAYS - days) + 1
+            plural = '' if left == 1 else 's'
+            return f'Your guild is on war cooldown - you can declare/join again in about {left} day{plural}.'
+    return None
+
+
 def create_guild_war(user_id, guild_id, title, declaration, hours=48, is_private=False,
                      topic_type='blank', anime_slug=None, episode_ref=None, gif_url=None):
     """A single-guild battle: only that guild's members can enter battlers."""
@@ -659,8 +691,9 @@ def create_gvg_declaration(user_id, guild_id, title, declaration, hours=72,
         return False, 'Only a guild owner can issue a declaration of war.', None
     if g['members'] < GUILD_MIN_MEMBERS:
         return False, 'Your guild needs 50+ members to declare war.', None
-    if _guild_active_war(guild_id):
-        return False, 'Your guild already has a war in flight.', None
+    block = _guild_war_block(guild_id)
+    if block:
+        return False, block, None
     ok, err, wid = create_warzone(user_id, title, declaration, hours, False,
                                   topic_type, anime_slug, episode_ref, gif_url)
     if not ok:
@@ -696,9 +729,10 @@ def claim_gvg(claimant_user, claimant_guild_id, war_id):
     if war['guild_a'] == claimant_guild_id:
         conn.close()
         return False, 'You cannot claim your own declaration.'
-    if _guild_active_war(claimant_guild_id):
+    block = _guild_war_block(claimant_guild_id)
+    if block:
         conn.close()
-        return False, 'Your guild already has a war in flight.'
+        return False, block
     cur.execute(
         "SELECT id FROM gvg_claims WHERE war_id=? AND guild_id=?", (war_id, claimant_guild_id)
     )
@@ -803,10 +837,67 @@ def get_guild_xp(gid):
     return row["xp"] if row else 0
 
 
+def _add_war_reward(user_id, amount):
+    """Give a user a one-time war-reward XP pool. We credit BOTH the live
+    `xp` (so the boost is visible on the profile right away) and a separate
+    `war_reward_xp` record (so it survives a later vote-driven recalc - the
+    preserving wrapper below re-adds the pool every time XP is recomputed).
+    A war can therefore only ever raise XP/rank, never decay it."""
+    if not user_id or not amount:
+        return
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT 1 FROM user_xp WHERE user_id=?", (user_id,))
+    if cur.fetchone():
+        cur.execute(
+            "UPDATE user_xp SET xp = xp + ?, war_reward_xp = war_reward_xp + ? WHERE user_id=?",
+            (amount, amount, user_id),
+        )
+    else:
+        cur.execute(
+            "INSERT INTO user_xp (user_id, xp, war_reward_xp) VALUES (?, ?, ?)",
+            (user_id, amount, amount),
+        )
+    conn.commit()
+    conn.close()
+
+
+def recalculate_user_xp_preserving_rewards(user_id):
+    """Recalculate a user's vote-derived XP but keep their permanent
+    war-reward pool intact (recalculate_user_xp would otherwise drop it).
+    The pool lives once in war_reward_xp; we just pin it back onto the live
+    xp column after each recompute."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT war_reward_xp FROM user_xp WHERE user_id=?", (user_id,))
+    row = cur.fetchone()
+    pool = (row["war_reward_xp"] or 0) if row else 0
+    conn.close()
+    recalculate_user_xp(user_id)
+    if pool:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("UPDATE user_xp SET xp = xp + ? WHERE user_id=?", (pool, user_id))
+        conn.commit()
+        conn.close()
+
+
+def get_guild_member_ids(gid):
+    """Every member user id of a guild (thr_communities)."""
+    if not gid:
+        return []
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT user_id FROM thr_community_members WHERE community_id=?", (gid,))
+    ids = [r["user_id"] for r in cur.fetchall()]
+    conn.close()
+    return ids
+
+
 def _award_guild_xp(view, war_row):
-    """Once per settled guild/GvG war: award Guild XP. GvG winner guild gets
-    a big chunk, loser a small one; single-guild wars give their guild a
-    participation bump. Guarded by the warzones.guild_awarded flag."""
+    """Once per settled guild/GvG war: award Guild XP and the personal
+    war-reward XP pool. Guarded by the warzones.guild_awarded flag so it
+    pays out exactly once."""
     mode = war_row['mode']
     if war_row.get('guild_awarded') or not view.get('winner'):
         return
@@ -815,8 +906,20 @@ def _award_guild_xp(view, war_row):
         lose_gid = war_row['guild_b'] if win_gid == war_row['guild_a'] else war_row['guild_a']
         _change_guild_xp(win_gid, GUILD_XP_WIN)
         _change_guild_xp(lose_gid, GUILD_XP_LOSE)
+        # Personal rewards: every winner-guild member, its owner, and the
+        # top-3 battlers (by like-ratio) all bank a permanent war-reward pool.
+        owner = _guild_info(win_gid)
+        owner_uid = owner['owner_id'] if owner else None
+        for uid in get_guild_member_ids(win_gid):
+            _add_war_reward(uid, GUILD_REWARD_MEMBER)
+        if owner_uid:
+            _add_war_reward(owner_uid, GUILD_REWARD_OWNER)
+        for e in view.get('podium') or []:
+            _add_war_reward(e.get('user_id'), GUILD_REWARD_TOP3)
     elif mode == 'guild' and war_row.get('guild_a'):
         _change_guild_xp(war_row['guild_a'], GUILD_XP_LOSE)
+        for e in view.get('podium') or []:
+            _add_war_reward(e.get('user_id'), GUILD_REWARD_TOP3)
     conn = get_connection()
     cur = conn.cursor()
     cur.execute("UPDATE warzones SET guild_awarded=1 WHERE id=? AND guild_awarded=0", (war_row['id'],))
@@ -1039,9 +1142,13 @@ def create_tables():
         CREATE TABLE IF NOT EXISTS user_xp(
             user_id INTEGER PRIMARY KEY,
             xp INTEGER DEFAULT 0,
+            war_reward_xp INTEGER DEFAULT 0,
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
     """)
+    ux_cols = [row[1] for row in cursor.execute("PRAGMA table_info(user_xp)").fetchall()]
+    if "war_reward_xp" not in ux_cols:
+        cursor.execute("ALTER TABLE user_xp ADD COLUMN war_reward_xp INTEGER DEFAULT 0")
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS review_likes(

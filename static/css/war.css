@@ -413,3 +413,30 @@
     .war-row { flex-direction: column; align-items: flex-start; gap: 10px; }
     .war-row-side { align-items: flex-start; min-width: 0; }
 }
+
+/* Topic pickers (anime / episode / GIF) on create-a-war */
+.wz-topic-fields .wz-pick { margin-top: 6px; }
+.wz-topic-fields .wz-pick input[type="text"],
+.wz-topic-fields .wz-pick input:not([type="hidden"]) {
+    width: 100%; padding: 9px 11px; border-radius: 10px; margin-bottom: 6px;
+    border: 1px solid var(--wz-line, rgba(255,255,255,0.14));
+    background: rgba(255,255,255,0.05); color: #fff; outline: none; box-sizing: border-box;
+}
+.wz-pick-results { max-height: 220px; overflow: auto; display: grid; gap: 6px; margin: 0 0 6px; }
+.wz-picker-empty { color: rgba(255,255,255,0.55); font-size: 0.85rem; padding: 4px 2px; }
+.wz-picker-item {
+    display: flex; align-items: center; gap: 10px; padding: 7px; border-radius: 10px;
+    background: rgba(255,255,255,0.06); cursor: pointer; transition: background 0.15s ease;
+}
+.wz-picker-item:hover { background: rgba(255,255,255,0.14); }
+.wz-picker-item img { width: 46px; height: 60px; object-fit: cover; border-radius: 6px; flex: none; }
+.wz-picker-title { font-weight: 700; font-size: 0.88rem; }
+.wz-picker-meta { font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-top: 2px; }
+.wz-pick-picked .wz-picker-tag {
+    display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 10px;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); font-size: 0.84rem;
+}
+.wz-pick-picked .wz-picker-tag img { width: 34px; height: 44px; object-fit: cover; border-radius: 5px; flex: none; }
+.wz-pick-gif .wz-pick-results { grid-template-columns: repeat(3, 1fr); }
+.wz-pick-gif .wz-pick-results img { width: 100%; height: auto; border-radius: 8px; cursor: pointer; }
+

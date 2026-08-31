@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260901b">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260901c">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260903">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -53,9 +53,26 @@
                     <option value="gif">GIF</option>
                 </select>
                 <div class="wz-topic-fields">
-                    <input class="wz-anime-slug" placeholder="Anime slug (e.g. bleach-tybw)">
-                    <input class="wz-episode-ref" placeholder="Episode ref (e.g. S1 E12)">
-                    <input class="wz-gif" placeholder="GIF URL (optional)">
+                    <input type="hidden" class="wz-anime-slug">
+                    <input type="hidden" class="wz-episode-ref">
+                    <input type="hidden" class="wz-gif">
+
+                    <div class="wz-pick wz-pick-anime hidden">
+                        <input class="wz-pick-anime-search" placeholder="Search anime…" autocomplete="off">
+                        <div class="wz-pick-results"></div>
+                        <div class="wz-pick-picked"></div>
+                    </div>
+                    <div class="wz-pick wz-pick-episode hidden">
+                        <input class="wz-pick-sel-anime" placeholder="1) Pick the anime first…" autocomplete="off">
+                        <input class="wz-pick-ep-search" placeholder="2) Search that anime's episodes…" autocomplete="off" disabled>
+                        <div class="wz-pick-results"></div>
+                        <div class="wz-pick-picked"></div>
+                    </div>
+                    <div class="wz-pick wz-pick-gif hidden">
+                        <input class="wz-pick-gif-search" placeholder="Search GIFs…" autocomplete="off">
+                        <div class="wz-pick-results"></div>
+                        <div class="wz-pick-picked"></div>
+                    </div>
                 </div>
                 <label>How long</label>
                 <select class="wz-hours">
@@ -184,6 +201,6 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/war.js') }}?v=20260901b"></script>
-    <script src="{{ url_for('static', filename='js/war_zone.js') }}?v=20260901a"></script>
+    <script src="{{ url_for('static', filename='js/war_zone.js') }}?v=20260903"></script>
 </body>
 </html>
