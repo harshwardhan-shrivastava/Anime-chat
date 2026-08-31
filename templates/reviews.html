@@ -93,33 +93,40 @@
             </div>
         </div>
 
-        <!-- ===== VOTE POINTS BY RANK (full detailed legend box) ===== -->
-        <div style="background:linear-gradient(135deg,#0d1521,#101a29);border:1px solid var(--rv-border);border-radius:18px;padding:22px 24px;margin-bottom:22px;">
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
-                <i class="fas fa-bolt" style="color:var(--rv-gold);font-size:1.1rem;"></i>
-                <h3 style="margin:0;font-size:1.1rem;font-weight:800;">Review XP — Plain & Simple</h3>
-            </div>
-            <p style="margin:0 0 4px;color:var(--rv-muted);font-size:0.85rem;line-height:1.55;max-width:760px;">
-                No rank-weight math. Every <b style="color:#4ade80;">👍 like is worth +10 XP</b> and every <b style="color:#f87171;">👎 dislike −5 XP</b> — that's it.
-                A review's XP is just the raw points it racked up. <b style="color:#f87171;">Dislikes and war replies require C rank (500 XP)</b>, so D-rank accounts can only like — a fresh-account mob has no dislike weapon at all.
-            </p>
-            {% if False %}
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px;">
-                <div style="background:#101720;border:1px solid var(--rv-border);border-radius:14px;padding:14px 16px;">
-                    <div style="font-size:0.78rem;color:var(--rv-muted-2);font-weight:700;margin-bottom:8px;">REVIEW RANK LADDER</div>
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                        <span style="font-size:0.78rem;color:#e7ecf3;background:#0c131f;border:1px solid var(--rv-border);border-radius:999px;padding:3px 10px;">500 = D</span>
-                        <span style="font-size:0.78rem;color:#e7ecf3;background:#0c131f;border:1px solid var(--rv-border);border-radius:999px;padding:3px 10px;">1,000 = C</span>
-                        <span style="font-size:0.78rem;color:#e7ecf3;background:#0c131f;border:1px solid var(--rv-border);border-radius:999px;padding:3px 10px;">1,500 = B</span>
-                        <span style="font-size:0.78rem;color:#e7ecf3;background:#0c131f;border:1px solid var(--rv-border);border-radius:999px;padding:3px 10px;">2,000 = A</span>
-                        <span style="font-size:0.78rem;color:#e7ecf3;background:#0c131f;border:1px solid var(--rv-border);border-radius:999px;padding:3px 10px;">3,000 = S</span>
-                        <span style="font-size:0.78rem;color:#fde047;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.4);border-radius:999px;padding:3px 10px;">5,000 = S+</span>
-                    </div>
+        <!-- ===== VOTE POWER BY RANK (per-rank liquid explainer) ===== -->
+        <div style="background:radial-gradient(120% 160% at 0% 0%,rgba(34,197,94,0.08),transparent 45%),linear-gradient(160deg,#0c1518,#0d1521 60%,#101a29);border:1px solid rgba(52,211,153,0.22);border-radius:20px;padding:22px 24px;margin-bottom:22px;box-shadow:0 10px 40px -18px rgba(34,197,94,0.35);">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px;">
+                <span style="width:38px;height:42px;flex:0 0 auto;position:relative;border:1px solid rgba(52,211,153,0.6);border-radius:9px 9px 7px 7px;background:linear-gradient(180deg,#0a101c,#08111f);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04),0 0 18px rgba(52,211,153,0.35);">
+                    <span style="position:absolute;left:0;right:0;bottom:0;height:70%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#a7f3d0,#34d399 60%,#059669);box-shadow:0 0 14px rgba(52,211,153,0.9);"></span>
+                </span>
+                <div>
+                    <h3 style="margin:0;font-size:1.15rem;font-weight:800;color:#ecfdf5;">Vote Power <span style="color:var(--rv-gold);">· Pour XP, Priced by Rank</span></h3>
+                    <p style="margin:4px 0 0;color:var(--rv-muted);font-size:0.86rem;line-height:1.55;max-width:780px;">
+                        Every <b style="color:#4ade80;">👍 like</b> pours XP into the review's liquid bottle and every <b style="color:#f87171;">👎 dislike</b> drains it.
+                        Higher-ranked voices pour <b style="color:#4ade80;">more</b> per vote — an <b>S+</b> like adds <b style="color:#4ade80;">+15</b> vs <b>+3</b> from a fresh <b>D</b>. <b style="color:#f87171;">Dislikes need C rank (500 XP)</b>, so D-accounts can only like — a fresh-account mob has no way to bomb a review.
+                    </p>
                 </div>
             </div>
-            {% endif %}
-            <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);font-size:0.78rem;color:var(--rv-muted-2);line-height:1.6;">
-                <b style="color:#4ade80;">👍 +10</b> and <b style="color:#f87171;">👎 −5</b>, no multipliers — a review's XP is its raw like/dislike points.
+            <div class="rv-vp-grid" style="margin-top:16px;">
+                {% for v in vote_schedule %}
+                <div class="rv-vp-card rk-{{ v.rank }}" style="
+                    {% if v.rank == 'S+' %}border-color:rgba(255,215,0,0.55);box-shadow:0 0 20px rgba(255,215,0,0.12);{% endif %}
+                ">
+                    <div class="rv-vp-rank" style="{% if v.rank == 'S+' %}color:#ffd700;{% endif %}">{{ v.rank }}</div>
+                    <span class="rv-vp-thr">{{ { 'D':'0–499 XP','C':'500 XP','B':'1,000 XP','A':'2,000 XP','S':'5,000 XP','S+':'15,000 XP' }.get(v.rank, '') }}</span>
+                    <div class="rv-vp-row like"><span>👍 Like</span><b>+{{ v.like }}</b></div>
+                    {% if v.dislike %}
+                    <div class="rv-vp-row dislike"><span>👎 Dislike</span><b>{{ v.dislike }}</b></div>
+                    {% else %}
+                    <div class="rv-vp-row locked"><span>👎 Dislike</span><b style="color:#64748b;">🔒 C+</b></div>
+                    {% endif %}
+                    {% if v.rank != 'D' %}
+                    <div class="rv-vp-ratio">= {{ v.rank }} like is <b>{{ v.like }} liquid</b>{% if v.like_x_d %} · {{ v.like_x_d }}× a D like{% endif %}</div>
+                    {% else %}
+                    <div class="rv-vp-ratio">the base drop — everyone starts here</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
             </div>
         </div>
 
@@ -283,11 +290,13 @@
                             {% endif %}
                         </div>
                         {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
-                        <span class="rv-xp-pill" title="This review's Review XP rank — separate from {{ r.username }}'s profile XP.">
-                            {% if r.review_level %}<span class="rv-level rk-{{ r.review_level }}">{{ r.review_level }}</span>
-                            {% else %}<span class="rv-level rk-none">—</span>{% endif %}
-                            <span class="rv-xp-num">{{ r.review_xp }} <i class="fas fa-bolt"></i></span>
-                            <span class="rv-xp-label">Review XP</span>
+                        <span class="rv-xp-bottle" title="Review's own liquid XP — poured by the likes it drew, drained by dislikes. Separate from {{ r.username }}'s profile XP.">
+                            <span class="rv-bottle-glass">
+                                <span class="rv-bottle-liquid" style="height:{{ [r.review_xp|int, 100]|min }}%;opacity:{{ (0.35 + ([r.review_xp|int, 40]|min / 40) * 0.6) | round(2) }}"></span>
+                                <span class="rv-bottle-level">{% if r.review_level %}{{ r.review_level }}{% else %}—{% endif %}</span>
+                                <span class="rv-bottle-num">{{ r.review_xp }} <i class="fas fa-bolt"></i></span>
+                            </span>
+                            <span class="rv-bottle-label">Review XP</span>
                         </span>
                         <div class="rv-foot-spacer"></div>
                         <a class="rv-link-btn" href="/user/{{ r.username | urlencode }}"><i class="fas fa-user"></i> History</a>
@@ -358,11 +367,13 @@
                             {% endif %}
                         </div>
                         {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
-                        <span class="rv-xp-pill" title="This review's Review XP rank — separate from {{ r.username }}'s profile XP.">
-                            {% if r.review_level %}<span class="rv-level rk-{{ r.review_level }}">{{ r.review_level }}</span>
-                            {% else %}<span class="rv-level rk-none">—</span>{% endif %}
-                            <span class="rv-xp-num">{{ r.review_xp }} <i class="fas fa-bolt"></i></span>
-                            <span class="rv-xp-label">Review XP</span>
+                        <span class="rv-xp-bottle" title="Review's own liquid XP — poured by the likes it drew, drained by dislikes. Separate from {{ r.username }}'s profile XP.">
+                            <span class="rv-bottle-glass">
+                                <span class="rv-bottle-liquid" style="height:{{ [r.review_xp|int, 100]|min }}%;opacity:{{ (0.35 + ([r.review_xp|int, 40]|min / 40) * 0.6) | round(2) }}"></span>
+                                <span class="rv-bottle-level">{% if r.review_level %}{{ r.review_level }}{% else %}—{% endif %}</span>
+                                <span class="rv-bottle-num">{{ r.review_xp }} <i class="fas fa-bolt"></i></span>
+                            </span>
+                            <span class="rv-bottle-label">Review XP</span>
                         </span>
                         <div class="rv-foot-spacer"></div>
                         <a class="rv-link-btn" href="/user/{{ r.username | urlencode }}"><i class="fas fa-user"></i> History</a>

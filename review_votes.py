@@ -332,17 +332,22 @@ def anime_grade_engine(reviews, rank_map):
 # ---- Per-review XP (a review's own reputation, NOT the author's profile XP) ----
 #
 # A review earns XP from the votes it attracts, and every vote's point value
-# scales with the VOTER's rank: a like is +10 x rank-weight, a dislike is
-# -5 x rank-weight. So an S+ like is worth 15x a D like -- high ranks decide,
-# low-rank spam can't move anything. Displayed as a D->S+ level on the card
-# (the review's own clout, separate from the reviewer's profile XP).
+# scales with the VOTER's rank. An S+ like pours in +15 liquid points while
+# a fresh D like adds just +3 -- high ranks steer a review, a low-rank mob
+# can only nudge it. Displayed as a D->S+ level on the card (the review's own
+# clout, separate from the reviewer's profile XP).
 
-# FLAT point values — no rank-weight middle-man. Every like is worth the
-# same +10 and every dislike -5, so a review's XP is simply the raw points
-# it attracted ("liquid" values). Dislikes stay C rank and above only, so a
-# fresh-account mob still has no dislike weapon.
-VOTE_LIKE_POINTS = 10
-VOTE_DISLIKE_POINTS = -5
+# "Liquid" exilar point scale, priced by the VOTER's rank tier. Dislikes
+# stay C rank and above only, so a fresh-account mob has no dislike weapon
+# at all (D prices a dislike at 0).
+VOTE_SCALE = {
+    "D": (+3, 0),
+    "C": (+5, -2),
+    "B": (+7, -3),
+    "A": (+9, -4),
+    "S": (+11, -5),
+    "S+": (+15, -7),
+}
 
 CAN_DISLIKE_RANKS = ("C", "B", "A", "S", "S+")
 
@@ -353,14 +358,16 @@ def can_dislike(rank):
 
 
 def vote_points_for_rank(rank, is_like):
-    """Point value of a like/dislike — flat, same for every rank.
-    (+10 like, -5 dislike; D can't dislike.)"""
-    return VOTE_LIKE_POINTS if is_like else VOTE_DISLIKE_POINTS
+    """Point value of a like/dislike for a voter of the given rank."""
+    like, dislike = VOTE_SCALE.get(rank, VOTE_SCALE["D"])
+    return like if is_like else dislike
 
 
 def review_vote_xp(likes, dislikes):
-    """Net review XP = likes*10 - dislikes*5 (floor at 0 for display)."""
-    return max(0, (likes or 0) * 10 - (dislikes or 0) * 5)
+    """Net review XP priced at C tier (a mid-water fallback when per-voter
+    points aren't computed)."""
+    c_like, c_dislike = VOTE_SCALE["C"]
+    return max(0, (likes or 0) * c_like + (dislikes or 0) * c_dislike)
 
 
 def review_level_for_xp(review_xp):
@@ -581,10 +588,25 @@ def get_review_reasons(review_type, review_ids, user_id):
 
 # Point value of one vote, computed from the VOTER's current rank tier at
 # read time (no reliance on a stored points column, so every vote path --
-# including the legacy toggle -- prices votes correctly). D like +5 / -3 is
-# the nerfed low-rank schedule.
+# including the legacy toggle -- prices votes correctly). Mirrors the
+# VOTE_SCALE above: D like +3, C +5/-2, B +7/-3, A +9/-4, S +11/-5, S+ +15/-7.
+# Dislikes below C price at 0 (D accounts can't dislike).
 _VOTE_PTS_SQL = """
-CASE WHEN rl.is_like=1 THEN 10 ELSE -5 END
+CASE WHEN rl.is_like=1 THEN
+  CASE WHEN ux.xp >= 15000 THEN 15
+       WHEN ux.xp >= 5000  THEN 11
+       WHEN ux.xp >= 2000  THEN 9
+       WHEN ux.xp >= 1000  THEN 7
+       WHEN ux.xp >= 500   THEN 5
+       ELSE 3 END
+ELSE
+  CASE WHEN ux.xp >= 15000 THEN -7
+       WHEN ux.xp >= 5000  THEN -5
+       WHEN ux.xp >= 2000  THEN -4
+       WHEN ux.xp >= 1000  THEN -3
+       WHEN ux.xp >= 500   THEN -2
+       ELSE 0 END
+END
 """
 
 
@@ -632,11 +654,10 @@ def get_dislike_gating(review_type, review_ids):
 def get_bulk_review_points(review_type, review_ids):
     """Return {review_id: {like_points, dislike_points, contested}} for reviews.
 
-    Points are priced dynamically from each voter's current rank tier
-    (like: D +5 .. S+ +150, dislike: D -3 .. S+ -75). Dislike points are
-    gated by the anti-bombing reason rule: a dislike only subtracts when its
-    reason has a positive community ratio (legacy reason-less votes count;
-    bad-reason votes become 'contested' with no effect).
+    Points are priced from each voter's current rank tier (D +3 like, C +5/-2,
+    S+ +15/-7). D accounts can't dislike, so their dislike prices at 0. Dislikes
+    are plain C+ votes -- no reason gate needed, C-rank entry alone stops
+    fresh-account mobs.
     """
     if not review_ids:
         return {}
