@@ -145,12 +145,15 @@
 
     <section class="hero">
 
+        <div class="hero-backdrop" style="background-image:url('{{ anime.banner | anime_img_large }}');"></div>
+
         <img src="{{ anime.banner | anime_img_large }}"
-            class="hero-image"
+            class="hero-image{% if not anime.banner %} hero-image-poster{% endif %}"
             alt=""
             fetchpriority="high"
             decoding="async"
-            onerror="this.onerror=null;var u=this.src.replace('/cover/large/','/cover/medium/');if(u!==this.src){this.src=u;}else{this.src='{{ anime.image | anime_img_large }}';}">
+            onload="if(this.naturalWidth){var r=this.naturalWidth/this.naturalHeight;if(r>0&&r<1.6){this.style.objectFit='cover';}if(this.naturalWidth<1100){this.className='hero-image hero-image-poster';this.src='{{ anime.image | anime_img_large }}';}}"
+            onerror="this.onerror=null;var u=this.src.replace('/cover/large/','/cover/medium/');if(u!==this.src){this.src=u;}else{this.className='hero-image hero-image-poster';this.src='{{ anime.image | anime_img_large }}';}">
 
         <div class="hero-overlay"></div>
 
@@ -377,7 +380,9 @@
 
                 {% set raw_name = (season.name or '').strip() %}
 
-                {% set season_label = 'Episodes' if raw_name.startswith('Season ') and raw_name.split(' ')[-1].isdigit() else (raw_name | default('Episodes')) %}
+                {% set is_numbered = raw_name.startswith('Season ') and raw_name.split(' ')[-1].isdigit() %}
+
+                {% set season_label = 'Episodes' if (is_numbered and anime.seasons|length == 1) else ((t('Season') ~ ' ' ~ raw_name.split(' ')[-1]) if is_numbered else (raw_name | default('Episodes'))) %}
 
                 <div class="season-top">
 
