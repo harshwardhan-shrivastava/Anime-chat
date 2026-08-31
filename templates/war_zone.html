@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ war.title }} · War Zone | Otakul</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260901b">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260901c">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260830a">
+</head>
+<body>
+    {% include "_navbar.html" %}
+
+    <div class="war-page detail war-zone-page">
+        <a class="war-back" href="{{ url_for('war_index') }}"><i class="fas fa-arrow-left"></i> War Zone</a>
+
+        <div class="war-detail-head">
+            <span class="war-hero-badge"><i class="fas fa-swords"></i> Standalone War{% if war.is_private %} · Private{% endif %}</span>
+            {% if war.status == 'open' %}
+            <h1>{{ war.title }}</h1>
+            <p class="war-timer-line">Voting closes in <b class="war-countdown" data-ends="{{ war.ends_ts }}" data-big="1">…</b> — best like-ratio takes the crown.</p>
+            {% else %}
+            <h1>{{ war.title }} — <span class="grad">Settled</span></h1>
+            <p class="war-timer-line"><i class="fas fa-flag-checkered"></i> The battle is over. The verdict is final.</p>
+            {% endif %}
+        </div>
+
+        <!-- ===== Chance the declaration + topic ===== -->
+        <div class="wz-declaration">
+            <div class="wz-decl-body">
+                <div class="wz-decl-user">
+                    {% if war.creator_name %}<span class="wz-decl-avatar">{{ war.creator_name[:1]|upper }}</span>{% endif %}
+                    <div class="wz-decl-meta">
+                        <span class="wz-decl-label">Declaration by</span>
+                        <span class="war-author">{{ war.creator_name or 'someone' }}</span>
+                    </div>
+                    <div class="wz-decl-stats">
+                        <span class="war-battlers"><i class="fas fa-users"></i> {{ war.battlers }} battler{{ 's' if war.battlers != 1 }}</span>
+                        {% if war.mode == 'friendly' %}<span class="wz-mode">⚔️ Free war</span>{% endif %}
+                        {% if war.episode_ref %}<span class="wz-ep">@ {{ war.episode_ref }}</span>{% endif %}
+                    </div>
+                </div>
+                <div class="wz-anime-line">
+                    {% if war.anime_slug %}<span class="wz-anime">Anime · <b>{{ topic.title if topic.title else war.anime_slug }}</b></span>{% endif %}
+                    {% if war.gif_url %}<span class="wz-anime">GIF reference included</span>{% endif %}
+                </div>
+                <div class="wz-decl-text">“{{ war.declaration }}”</div>
+            </div>
+            {% if topic.image %}
+            <div class="wz-thumb">
+                <img src="{{ topic.image }}" alt="" loading="lazy" onerror="this.closest('.wz-thumb').style.display='none'">
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ===== Verdict / status flag ===== -->
+        {% if war.status == 'settled' %}
+            {% if war.winner %}
+            <div class="wz-flag win">
+                <span class="wz-flag-emoji">🏆</span>
+                <div>
+                    <b>Winner crowned — {{ war.winner.username }}</b>
+                    <em>“{{ war.winner.content }}”</em>
+                </div>
+            </div>
+            {% else %}
+            <div class="wz-flag broken">
+                <span class="wz-flag-emoji">⚔️</span>
+                <div>
+                    <b>No contest</b>
+                    <em>Nobody reached 3+ votes, so no one takes the banner.</em>
+                </div>
+            </div>
+            {% endif %}
+        {% elif war.status == 'open' %}
+        <div class="wz-flag live">
+            <span class="wz-flag-emoji">⚡</span>
+            <div><b>Battle is live</b><em>Enter your battler or vote below — the crowd decides.</em></div>
+        </div>
+        {% endif %}
+
+        <!-- ===== Podium (settled) ===== -->
+        {% if war.status == 'settled' and war.podium %}
+        <div class="war-podium">
+            {% set places = {'1': '🥇', '2': '🥈', '3': '🥉'} %}
+            {% for p in war.podium %}
+            <div class="war-podium-slot place-{{ p.place }}">
+                <span class="war-medal">{{ places.get(p.place|string, '') }}</span>
+                <span class="war-podium-name">{{ p.username }}</span>
+                <span class="rank-badge rank-{{ p.rank }}" style="font-size:0.62rem;padding:1px 7px;">{{ p.rank }}</span>
+                <span class="war-podium-ratio">{{ p.ratio_pct }}% · {{ p.likes }}👍 / {{ p.dislikes }}👎</span>
+                <span class="war-podium-take">“{{ p.content }}”</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- ===== Live leader banner ===== -->
+        {% if war.status == 'open' %}
+        <div class="war-leader-banner" id="warLeaderBanner">
+            {% if war.leader %}
+            <span class="war-crown">👑</span> <b>{{ war.leader.username }}</b> <span class="rank-badge rank-{{ war.leader.rank }}" style="font-size:0.62rem;padding:1px 7px;">{{ war.leader.rank }}</span> leads with <b>{{ war.leader.ratio_pct }}%</b> ({{ war.leader.likes }}👍 / {{ war.leader.dislikes }}👎): <span class="war-leader-take">“{{ war.leader.content }}”</span>
+            {% else %}
+            <span class="war-crown">👑</span> No leader yet — <b>3+ votes</b> crown the best like-ratio battler.
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- ===== Battlers ===== -->
+        <div class="war-entries">
+            {% for e in war.entries %}
+            <div class="war-entry {{ 'leader' if (war.status == 'open' and war.leader and e.id == war.leader.id) else '' }} {{ 'winner' if e.winner else '' }}" data-entry-id="{{ e.id }}">
+                {% if e.avatar %}<img class="war-entry-avatar" src="/static/images/avatars/{{ e.avatar }}" alt="">
+                {% else %}<span class="war-entry-avatar" style="background:{{ e.avatar_color or '#374151' }};">{{ e.username[:1]|upper }}</span>{% endif %}
+                <div class="war-entry-body">
+                    <div class="war-entry-head">
+                        <b class="war-entry-name">{{ e.username }}</b>
+                        <span class="rank-badge rank-{{ e.rank }}" style="font-size:0.62rem;padding:1px 7px;">{{ e.rank }}</span>
+                        {% if is_developer(e.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
+                        {% if current_user and e.user_id == current_user.id %}<span class="war-entry-mine"><i class="fas fa-user-check"></i> your battler</span>{% endif %}
+                        {% if e.winner %}<span class="wz-flag-inline win"><i class="fas fa-flag"></i> WINNER</span>{% endif %}
+                        {% if war.status == 'settled' and not e.winner %}<span class="wz-flag-inline lost"><i class="fas fa-flag"></i> lost</span>{% endif %}
+                        {% if war.status == 'open' and war.leader and e.id == war.leader.id %}<span class="war-crown">👑</span>{% endif %}
+                        <span class="war-entry-time">{{ e.created_at }}</span>
+                    </div>
+                    <div class="war-entry-text">{{ e.content }}</div>
+                    <div class="war-entry-foot">
+                        <span class="war-entry-ratio">Ratio <b>{{ e.ratio_pct }}%</b> ({{ e.likes }}👍 / {{ e.dislikes }}👎)</span>
+                        {% if current_user and war.status == 'open' %}
+                        <span class="war-vote" data-entry-id="{{ e.id }}" data-warzone="1">
+                            <button type="button" class="war-vbtn {{ 'voted' if e.my_vote == 1 else '' }}" data-kind="like">👍 <span class="war-vl">{{ e.likes }}</span></button>
+                            <button type="button" class="war-vbtn {{ 'voted' if e.my_vote == 0 else '' }}" data-kind="dislike">👎 <span class="war-vd">{{ e.dislikes }}</span></button>
+                        </span>
+                        {% elif not current_user and war.status == 'open' %}
+                        <span class="war-login-hint"><a href="/auth">Log in</a> to vote</span>
+                        {% elif war.status == 'settled' %}
+                        <span class="war-closed-tag"><i class="fas fa-lock"></i> votes closed</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="war-empty"><i class="fas fa-swords"></i><h3>Empty battlefield</h3><p>No battlers yet — the first take to enter this war plants its flag.</p></div>
+            {% endfor %}
+        </div>
+
+        <!-- ===== Enter the war ===== -->
+        {% if war.status == 'open' %}
+        <div class="war-composer">
+            {% if not current_user %}
+            <p class="war-composer-lock"><i class="fas fa-lock"></i> <a href="/auth">Log in</a> to enter this war — battlers require <b>C rank (500 XP)</b>.</p>
+            {% elif my_entry %}
+            <p class="war-composer-in"><i class="fas fa-check-circle"></i> You're in — your battler is above. Sit tight, the crowd decides.</p>
+            {% elif user_rank in ('C', 'B', 'A', 'S', 'S+') %}
+            <p class="war-composer-title"><i class="fas fa-swords"></i> Plant your flag — make your case. The best like-ratio takes the crown.</p>
+            <textarea class="war-composer-input" maxlength="500" placeholder="Your battler…"></textarea>
+            <div class="war-composer-actions">
+                <span class="war-composer-err"></span>
+                <button type="button" class="war-composer-submit"><i class="fas fa-swords"></i> Enter the War</button>
+            </div>
+            {% else %}
+            <p class="war-composer-lock"><i class="fas fa-lock"></i> War entries require <b>C rank (500 XP)</b> — keep getting likes to unlock.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="{{ url_for('static', filename='js/war_zone.js') }}?v=20260901a"></script>
+</body>
+</html>

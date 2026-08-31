@@ -64,6 +64,10 @@ from database import (
     add_war_entry,
     get_war_entries,
     get_all_wars,
+    create_warzone,
+    get_warzones,
+    get_warzone,
+    add_warzone_entry,
     migrate_replies_to_war,
     reward_war_leaders,
     settle_war_outcomes,
@@ -173,6 +177,12 @@ app.register_blueprint(auth)
 app.register_blueprint(chat_bp)
 app.register_blueprint(profile_bp)
 
+# Standalone War Zone (Free / Friendly wars) - registered here so the blueprint
+# is mounted alongside the rest of the app.
+from war_zone_routes import wz_bp
+
+app.register_blueprint(wz_bp)
+
 
 
 init_threads(app)
@@ -215,6 +225,7 @@ def _inject_user():
         "ja": ja,
         "current_lang": get_language(),
         "is_developer": is_developer,
+        "get_warzones": get_warzones,
     }
 
 

@@ -246,6 +246,272 @@ class CompatConnection:
 _turso_conn = None
 _turso_conn_lock = threading.Lock()
 
+# =====================================================================
+# STANDALONE WAR ZONE (Phase 1 - Free / Friendly wars)
+#
+# A war is its own battlefield: the creator posts a declaration (the one
+# position everyone is fighting over), any C+ user enters one battler, the
+# crowd votes by like-ratio (review_type='warzone' votes reuse review_likes,
+# so the C+ dislike gate still applies), and the best take is crowned when
+# the timer ends. Guild / GvG duels (claims, owner pick, guild XP, winner /
+# broken guild flags) layer on later on top of this shared engine.
+# =====================================================================
+WARZONE_HOURS = (24, 48, 72)
+WARZONE_MIN_VOTES = 3  # an entry needs this many votes to be crowned
+
+
+def _ensure_warzone_tables():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS warzones(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            mode TEXT NOT NULL DEFAULT 'friendly',
+            title TEXT NOT NULL,
+            declaration TEXT NOT NULL,
+            topic_type TEXT NOT NULL DEFAULT 'blank',
+            anime_slug TEXT,
+            episode_ref TEXT,
+            gif_url TEXT,
+            created_by INTEGER NOT NULL,
+            guild_a INTEGER,
+            guild_b INTEGER,
+            entry_scope TEXT NOT NULL DEFAULT 'open',
+            is_private INTEGER NOT NULL DEFAULT 0,
+            status TEXT NOT NULL DEFAULT 'open',
+            hours INTEGER NOT NULL DEFAULT 24,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            ends_at TEXT NOT NULL,
+            settled INTEGER NOT NULL DEFAULT 0,
+            winner_entry_id INTEGER
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS war_entries(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            warzone_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(warzone_id, user_id)
+        )"""
+    )
+    conn.commit()
+    conn.close()
+
+
+def create_warzone(user_id, title, declaration, hours=24, is_private=False,
+                   topic_type='blank', anime_slug=None, episode_ref=None, gif_url=None):
+    """Create a standalone war. Returns (ok, err, war_id)."""
+    _ensure_warzone_tables()
+    title = (title or '').strip()[:120]
+    declaration = (declaration or '').strip()
+    if len(title) < 3:
+        return False, 'Give your war a short title.', None
+    if len(declaration) < 2:
+        return False, 'Write a declaration - the position everyone is fighting over.', None
+    if len(declaration) > 1000:
+        return False, 'Keep your declaration under 1000 characters.', None
+    hours = hours if hours in WARZONE_HOURS else 24
+    ends_s = datetime.fromtimestamp(int(time.time()) + hours * 3600, timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """INSERT INTO warzones
+        (mode, title, declaration, topic_type, anime_slug, episode_ref, gif_url,
+         created_by, entry_scope, is_private, hours, ends_at)
+        VALUES ('friendly', ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)""",
+        (title, declaration, topic_type, anime_slug, episode_ref, gif_url,
+         user_id, 1 if is_private else 0, hours, ends_s),
+    )
+    wid = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return True, None, wid
+
+
+def _wz_entry_dict(row, my_votes=None):
+    likes = row['likes'] or 0
+    dislikes = row['dislikes'] or 0
+    total = likes + dislikes
+    return {
+        'id': row['id'],
+        'user_id': row['user_id'],
+        'username': row['username'] or 'user',
+        'avatar': row['avatar'],
+        'avatar_color': row['avatar_color'] or '#374151',
+        'rank': 'S+' if is_dev_username(row['username']) else get_xp_tier(row['xp'] or 0),
+        'content': row['content'],
+        'created_at': row['created_at'],
+        'likes': likes,
+        'dislikes': dislikes,
+        'total': total,
+        'ratio': round(likes / total, 4) if total else 0.0,
+        'ratio_pct': round(likes / total * 100) if total else 0,
+        'my_vote': (my_votes or {}).get(row['id']),
+        'winner': False,
+        'flag': 'open',
+    }
+
+
+def _wz_entries(wid, user_id=None):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """SELECT e.id, e.user_id, e.content, e.created_at,
+        u.username, u.avatar, u.avatar_color, ux.xp,
+        SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) as likes,
+        SUM(CASE WHEN rl.is_like=0 THEN 1 ELSE 0 END) as dislikes
+        FROM war_entries e
+        LEFT JOIN users u ON u.id = e.user_id
+        LEFT JOIN user_xp ux ON ux.user_id = e.user_id
+        LEFT JOIN review_likes rl ON rl.review_type='warzone' AND rl.review_id = e.id
+        WHERE e.warzone_id=?
+        GROUP BY e.id ORDER BY e.id ASC""",
+        (wid,),
+    )
+    rows = cur.fetchall()
+    ids = [r['id'] for r in rows]
+    my_votes = {}
+    if user_id and ids:
+        p = ','.join('?' * len(ids))
+        cur.execute(
+            f"SELECT review_id, is_like FROM review_likes WHERE review_type='warzone' AND user_id=? AND review_id IN ({p})",
+            [user_id] + ids,
+        )
+        my_votes = {r['review_id']: r['is_like'] for r in cur.fetchall()}
+    conn.close()
+    return [_wz_entry_dict(r, my_votes) for r in rows]
+
+
+def _warzone_view(war, entries):
+    ends_ts = _iso_to_ts(war['ends_at'])
+    now = int(time.time())
+    status = 'settled' if war['settled'] else ('open' if now < ends_ts else 'settled')
+    eligible = sorted(
+        [e for e in entries if e['total'] >= WARZONE_MIN_VOTES],
+        key=lambda e: (e['ratio'], e['likes']), reverse=True,
+    )
+    winner = None
+    podium = []
+    if status == 'settled':
+        podium = [{'place': i + 1, **e} for i, e in enumerate(eligible[:3])]
+        winner = eligible[0] if eligible else None
+        for e in entries:
+            win_flag = bool(winner and e['id'] == winner['id'])
+            e['winner'] = win_flag
+            e['flag'] = 'win' if win_flag else 'lost'
+    view = dict(war)
+    view['id'] = war['id']
+    view['ends_ts'] = ends_ts
+    view['status'] = status
+    view['entries'] = entries
+    view['battlers'] = len(entries)
+    view['leader'] = eligible[0] if eligible else None
+    view['winner'] = winner
+    view['podium'] = podium
+    view['flag'] = 'win' if (status == 'settled' and winner) else ('no_contest' if status == 'settled' else 'open')
+    return view
+
+
+def _mark_warzone_settled(wid, winner_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE warzones SET settled=1, winner_entry_id=?, status='settled' WHERE id=? AND settled=0",
+        (winner_id if winner_id is not None else 0, wid),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_warzone(wid, user_id=None):
+    """Return a single war as a dict (with entries, leader/winner/podium,
+    flags), lazily settling it if the timer has ended."""
+    _ensure_warzone_tables()
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """SELECT w.*, (SELECT username FROM users u WHERE u.id=w.created_by) as creator_name
+        FROM warzones w WHERE id=?""",
+        (wid,),
+    )
+    war = cur.fetchone()
+    conn.close()
+    if not war:
+        return None
+    war = dict(war)
+    entries = _wz_entries(wid, user_id)
+    view = _warzone_view(war, entries)
+    if view['status'] == 'settled' and not war['settled']:
+        _mark_warzone_settled(wid, view['winner']['id'] if view['winner'] else None)
+    return view
+
+
+def get_warzones(user_id=None):
+    """Every standalone war, hottest first: nearest-deadline open wars on top,
+    then settled ones (newest first). Private wars are hidden unless the
+    viewer created them."""
+    _ensure_warzone_tables()
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """SELECT w.id, w.mode, w.title, w.declaration, w.topic_type, w.anime_slug,
+        w.episode_ref, w.gif_url, w.created_by, w.guild_a, w.guild_b, w.entry_scope,
+        w.is_private, w.status, w.hours, w.ends_at, w.settled, w.winner_entry_id,
+        w.created_at,
+        (SELECT username FROM users u WHERE u.id=w.created_by) as creator_name
+        FROM warzones w
+        WHERE w.is_private=0 OR w.created_by=? ORDER BY w.id DESC LIMIT 80""",
+        (user_id or 0,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    wars = []
+    now = int(time.time())
+    for r in rows:
+        entries = _wz_entries(r['id'])
+        view = _warzone_view(r, entries)
+        if view['status'] == 'settled' and not r['settled']:
+            _mark_warzone_settled(r['id'], view['winner']['id'] if view['winner'] else None)
+        wars.append(view)
+    wars.sort(key=lambda w: (0 if w['status'] == 'open' else 1, w['ends_ts'] if w['status'] == 'open' else -now))
+    return wars
+
+
+def add_warzone_entry(user_id, wid, content):
+    """Enter one battler into an open war. Returns (ok, err, entry)."""
+    _ensure_warzone_tables()
+    content = (content or '').strip()
+    if len(content) < 2:
+        return False, 'Your battler is too short.', None
+    if len(content) > 500:
+        return False, 'War battlers must be 500 characters or fewer.', None
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT ends_at, settled, status FROM warzones WHERE id=?", (wid,))
+    war = cur.fetchone()
+    if not war:
+        conn.close()
+        return False, 'No such war.', None
+    if war['settled'] or war['status'] != 'open' or int(time.time()) >= _iso_to_ts(war['ends_at']):
+        conn.close()
+        return False, 'This war is over.', None
+    cur.execute("SELECT id FROM war_entries WHERE warzone_id=? AND user_id=?", (wid, user_id))
+    if cur.fetchone():
+        conn.close()
+        return False, 'You already entered this war.', None
+    cur.execute(
+        "INSERT INTO war_entries (warzone_id, user_id, content) VALUES (?, ?, ?)",
+        (wid, user_id, content),
+    )
+    eid = cur.lastrowid
+    conn.commit()
+    conn.close()
+    entry = next((e for e in _wz_entries(wid, user_id) if e['id'] == eid), None)
+    return True, None, entry
+
+
 def get_connection():
     global _turso_conn
     if TURSO_ENABLED and not TURSO_BROKEN:

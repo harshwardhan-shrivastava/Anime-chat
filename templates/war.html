@@ -22,8 +22,81 @@
         <div class="war-hero">
             <span class="war-hero-badge"><i class="fas fa-swords"></i> The Reply War Arena</span>
             <h1>War <span class="grad">Zone</span></h1>
-            <p>Every review someone disagreed with becomes a battlefield. Dislike a review with a reason and your take enters its war — the community votes for 24 hours, and the <b>best like-ratio</b> wins. The #1 take is the only reply shown under that review.</p>
+            <p>Two ways to fight. <b>1) Reply War</b> — dislike a review and your take enters its 24-hour battle. <b>2) Standalone War</b> — plant your own flag, write a declaration, and anyone C+ can throw a battler down. Same rule in both: <b>best like-ratio wins</b>.</p>
         </div>
+
+        <!-- ===== Create a War ===== -->
+        <div class="wz-create" id="wzCreatePanel">
+            <button type="button" class="wz-create-toggle" id="wzCreateToggle"><i class="fas fa-plus"></i> Create a War</button>
+            <div class="wz-create-box" id="wzCreateBox">
+                <h3>⚔️ Create a War</h3>
+                <p class="wz-create-hint">Write a declaration — the position people fight over. Anyone C+ enters one battler; the crowd votes; the best like-ratio takes the crown.</p>
+                <label>Title</label>
+                <input class="wz-title" maxlength="120" placeholder="e.g. Final arc debate">
+                <label>Declaration</label>
+                <textarea class="wz-decl-input" maxlength="1000" rows="3" placeholder="e.g. BLEACH TYBW is the best animated arc ever — anyone who says otherwise, step up."></textarea>
+                <label>Topic</label>
+                <select class="wz-topic">
+                    <option value="blank">No topic (just the declaration)</option>
+                    <option value="anime">Anime</option>
+                    <option value="episode">Episode</option>
+                    <option value="gif">GIF</option>
+                </select>
+                <div class="wz-topic-fields">
+                    <input class="wz-anime-slug" placeholder="Anime slug (e.g. bleach-tybw)">
+                    <input class="wz-episode-ref" placeholder="Episode ref (e.g. S1 E12)">
+                    <input class="wz-gif" placeholder="GIF URL (optional)">
+                </div>
+                <label>How long</label>
+                <select class="wz-hours">
+                    <option value="24">24 hours</option>
+                    <option value="48">48 hours</option>
+                    <option value="72">72 hours</option>
+                </select>
+                <label class="wz-priv-label"><input type="checkbox" class="wz-private"> Private (hidden from the public feed)</label>
+                <div class="wz-create-actions">
+                    <span class="wz-create-err"></span>
+                    <button type="button" class="wz-create-submit">Launch the War</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Standalone War Zone feed ===== -->
+        {% set zones = get_warzones() %}
+        {% if zones %}
+        <div class="war-section">
+            <h2 class="war-section-title"><i class="fas fa-flag"></i> Standalone Wars <span class="war-sub">({{ zones|selectattr('status', 'equalto', 'open')|list|length }} live)</span></h2>
+            <div class="war-list">
+                {% for z in zones %}
+                <a class="war-row" href="/war/zone/{{ z.id }}">
+                    <div class="war-row-main">
+                        <div class="war-row-top">
+                            <span class="war-author">⚔️ {{ z.title }}</span>
+                            {% if z.mode == 'friendly' %}<span class="wz-mode">Free war</span>{% endif %}
+                            {% if z.is_private %}<span class="wz-mode private">Private</span>{% endif %}
+                            {% if z.episode_ref %}<span class="war-ep">@ {{ z.episode_ref }}</span>{% endif %}
+                        </div>
+                        <div class="war-anime-title">Declaration by {{ z.creator_name or 'someone' }}</div>
+                        <div class="war-comment">“{{ z.declaration }}”</div>
+                    </div>
+                    <div class="war-row-side">
+                        {% if z.status == 'open' %}
+                        <span class="war-status live"><i class="fas fa-bolt"></i> LIVE</span>
+                        <span class="war-battlers"><i class="fas fa-users"></i> {{ z.battlers }}</span>
+                        {% if z.leader %}<span class="war-leader-mini">👑 {{ z.leader.username }} ({{ z.leader.ratio_pct }}%)</span>
+                        {% else %}<span class="war-leader-mini none">no leader yet</span>{% endif %}
+                        <span class="war-countdown" data-ends="{{ z.ends_ts }}">…</span>
+                        {% else %}
+                        <span class="war-status ended"><i class="fas fa-flag-checkered"></i> OVER</span>
+                        {% if z.winner %}<span class="war-leader-mini">🏆 {{ z.winner.username }} ({{ z.winner.ratio_pct }}%)</span>
+                        {% else %}<span class="war-leader-mini none">no contest</span>{% endif %}
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
 
         {% set live = wars|selectattr('status', 'equalto', 'live')|list %}
         {% set ended = wars|selectattr('status', 'equalto', 'ended')|list %}
@@ -101,5 +174,6 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/war.js') }}?v=20260901b"></script>
+    <script src="{{ url_for('static', filename='js/war_zone.js') }}?v=20260901a"></script>
 </body>
 </html>
