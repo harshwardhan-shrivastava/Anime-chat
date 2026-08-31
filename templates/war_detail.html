@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260831a">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260831b">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260901a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -39,33 +39,45 @@
 
         <!-- ===== The original review ===== -->
         <div class="war-original" data-review-id="{{ r.id }}">
-            <div class="war-orig-user">
-                {% if r.avatar %}<img class="war-orig-avatar" src="/static/images/avatars/{{ r.avatar }}" alt="">
-                {% else %}<span class="war-orig-avatar" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[:1]|upper }}</span>{% endif %}
-                <div class="war-orig-meta">
-                    <span class="war-author">{{ r.username }}</span>
-                    <span class="rank-badge rank-{{ r.rank }}" style="font-size:0.78rem;padding:2px 10px;">{{ r.rank }}</span>
-                    {% if is_developer(r.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
-                    <span class="war-orig-xp">{{ r.user_xp }} XP</span>
+            <div class="war-orig-body">
+                <div class="war-orig-user">
+                    {% if r.avatar %}<img class="war-orig-avatar" src="/static/images/avatars/{{ r.avatar }}" alt="">
+                    {% else %}<span class="war-orig-avatar" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[:1]|upper }}</span>{% endif %}
+                    <div class="war-orig-meta">
+                        <span class="war-author">{{ r.username }}</span>
+                        <span class="rank-badge rank-{{ r.rank }}" style="font-size:0.78rem;padding:2px 10px;">{{ r.rank }}</span>
+                        {% if is_developer(r.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
+                        <span class="war-orig-xp">{{ r.user_xp }} XP</span>
+                    </div>
                 </div>
-            </div>
-            <div class="war-orig-title">
-                {% if r.episode_thumb %}<img class="war-orig-thumb{% if r.episode_thumb_is_poster %} poster{% endif %}" src="{{ r.episode_thumb }}" alt="" onerror="this.remove()">{% endif %}
-                <div>
+                <div class="war-orig-title">
                     <div class="war-anime-title">{{ r.anime_title }}{% if r.episode_title %} <span class="war-ep">· {{ r.season_name_display }} · Ep {{ r.episode_number }} — {{ r.episode_title }}</span>{% elif r.season_name_display %} <span class="war-ep">· {{ r.season_name_display }} · Ep {{ r.episode_number }}</span>{% endif %}</div>
                     <div class="war-orig-stars"><span class="war-score">{{ r.rating }}/10</span> {{ '★' * (r.rating or 0) }} <span class="war-orig-time">{{ r.created_at }}</span></div>
                 </div>
+                <div class="war-orig-comment">“{{ r.comment }}”</div>
+                <div class="war-orig-stats">
+                    <span class="war-orig-stat"><i class="fas fa-thumbs-up"></i> {{ r.likes }}</span>
+                    <span class="war-orig-stat"><i class="fas fa-thumbs-down"></i> {{ r.dislikes }}</span>
+                    <span class="rv-xp-pill" title="XP this review earned from likes and dislikes — separate from {{ r.username }}'s profile XP.">
+                        <span class="rv-level rk-{{ r.review_level }}">{{ r.review_level }}</span>
+                        <span class="rv-xp-num">{{ r.review_xp }} <i class="fas fa-bolt"></i></span>
+                        <span class="rv-xp-label">Review XP</span>
+                    </span>
+                    <span class="war-orig-actions">
+                        <a class="rv-link-btn" href="/user/{{ r.username | urlencode }}"><i class="fas fa-user"></i> History</a>
+                        <button type="button" class="rv-link-btn primary" data-share="/anime/{{ r.anime_slug }}{% if r.episode_thumb %}/episode/{{ r.season_idx }}/{{ r.episode_number }}{% endif %}"><i class="fas fa-share-nodes"></i> Share</button>
+                    </span>
+                </div>
             </div>
-            <div class="war-orig-comment">“{{ r.comment }}”</div>
-            <div class="war-orig-stats">
-                <span class="war-orig-stat"><i class="fas fa-thumbs-up"></i> {{ r.likes }}</span>
-                <span class="war-orig-stat"><i class="fas fa-thumbs-down"></i> {{ r.dislikes }}</span>
-                <span class="rv-xp-pill" title="XP this review earned from likes and dislikes — separate from {{ r.username }}'s profile XP.">
-                    <span class="rv-level rk-{{ r.review_level }}">{{ r.review_level }}</span>
-                    <span class="rv-xp-num">{{ r.review_xp }} <i class="fas fa-bolt"></i></span>
-                    <span class="rv-xp-label">Review XP</span>
-                </span>
-            </div>
+            {% if r.episode_thumb %}
+            <a class="war-orig-art ep{% if r.episode_thumb_is_poster %} poster{% endif %}" href="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}" aria-label="{{ r.anime_title }}">
+                <img src="{{ r.episode_thumb }}" alt="{{ r.anime_title }}" loading="lazy" onerror="this.closest('.war-orig-art').style.display='none'">
+            </a>
+            {% elif r.anime_image %}
+            <a class="war-orig-art anime" href="/anime/{{ r.anime_slug }}" aria-label="{{ r.anime_title }}">
+                <img src="{{ r.anime_image }}" alt="{{ r.anime_title }}" loading="lazy" onerror="this.closest('.war-orig-art').style.display='none'">
+            </a>
+            {% endif %}
         </div>
 
         {% if war %}
