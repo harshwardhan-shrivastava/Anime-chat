@@ -3,6 +3,7 @@ import sqlite3
 import random
 import threading
 import time
+from dev_accounts import is_dev_username
 
 DATABASE = "animechat.db"
 AVATAR_COLORS = ["#00c16a", "#3b82f6", "#f59e0b", "#ec4899", "#9333ea", "#06b6d4", "#ef4444"]
@@ -1634,7 +1635,7 @@ def get_war_entries(review_type, review_ids, user_id=None):
             "username": row["username"] or "user",
             "avatar": row["avatar"],
             "avatar_color": row["avatar_color"] or "#374151",
-            "rank": get_xp_tier(row["xp"] or 0),
+            "rank": "S+" if is_dev_username(row["username"]) else get_xp_tier(row["xp"] or 0),
             "content": row["content"],
             "created_at": row["created_at"],
             "likes": likes,

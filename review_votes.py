@@ -5,6 +5,7 @@ S+ is intentionally almost impossible (50,000 XP). A reviewer whose
 received votes are overwhelmingly dislikes drops to F regardless of XP.
 """
 from database import get_connection, recalculate_user_xp, get_user_xp
+from dev_accounts import is_dev_username
 
 
 def _voter_rank(user_id):
@@ -63,6 +64,13 @@ def get_bulk_reviewer_ranks(user_ids):
         user_ids,
     )
     xp_map = {row["user_id"]: row["xp"] for row in cursor.fetchall()}
+    # Developer accounts are always S+ (15000 XP) so the team can test every
+    # gate on any environment.
+    p_dev = ",".join("?" * len(user_ids))
+    cursor.execute(f"SELECT id, username FROM users WHERE id IN ({p_dev})", list(user_ids))
+    for row in cursor.fetchall():
+        if is_dev_username(row["username"]):
+            xp_map[row["id"]] = 15000
     ranks = {uid: {"rank": review_rank_for_xp(xp_map.get(uid, 0)), "xp": xp_map.get(uid, 0)} for uid in user_ids}
     cursor.execute(
         f"""SELECT r.user_id,

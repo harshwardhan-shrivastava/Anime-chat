@@ -21,6 +21,8 @@ from review_vote_gate import apply_review_vote_gate
 apply_review_vote_gate()
 from review_history_patch import apply_review_history_fix
 apply_review_history_fix()
+from dev_boost import apply_dev_boost
+apply_dev_boost()
 from characters_data import search_characters, index_stats, reload_characters
 from database import (
     create_tables,
@@ -157,13 +159,10 @@ def _inject_user():
     }
 
 
-# Accounts that run Otakul — their badge gets a Developer tag next to it.
-DEVELOPER_USERNAMES = {"kakkarot69", "kageyama"}
-
-
 def is_developer(username):
-    """True if this username is an Otakul developer (badge tag)."""
-    return bool(username) and str(username).strip().lower() in DEVELOPER_USERNAMES
+    """True if this username is an Otakul developer (badge tag + S+ boost)."""
+    from dev_accounts import is_dev_username
+    return is_dev_username(username)
 
 
 def _hd_anilist_url(image):
