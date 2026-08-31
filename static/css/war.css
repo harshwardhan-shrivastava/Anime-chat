@@ -415,28 +415,94 @@
 }
 
 /* Topic pickers (anime / episode / GIF) on create-a-war */
+.hidden { display: none !important; }
+
+.wz-topic-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 6px 0 10px; }
+.wz-topic-card {
+    display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 6px;
+    border-radius: 12px; border: 1px solid rgba(255,255,255,0.12); cursor: pointer;
+    background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.75);
+    transition: all 0.18s ease; font-family: inherit;
+}
+.wz-topic-card i { font-size: 1.15rem; }
+.wz-topic-card span { font-weight: 700; font-size: 0.82rem; }
+.wz-topic-card small { font-size: 0.66rem; color: rgba(255,255,255,0.45); }
+.wz-topic-card:hover { border-color: rgba(255,255,255,0.3); transform: translateY(-1px); }
+.wz-topic-card.active {
+    background: linear-gradient(145deg, rgba(255,160,64,0.22), rgba(255,120,40,0.10));
+    border-color: #ffa040; box-shadow: 0 0 0 1px rgba(255,160,64,0.4), 0 4px 18px rgba(255,140,50,0.18);
+    color: #ffd9a8;
+}
+.wz-topic-card.active small { color: rgba(255,200,140,0.7); }
+
 .wz-topic-fields .wz-pick { margin-top: 6px; }
 .wz-topic-fields .wz-pick input[type="text"],
 .wz-topic-fields .wz-pick input:not([type="hidden"]) {
-    width: 100%; padding: 9px 11px; border-radius: 10px; margin-bottom: 6px;
-    border: 1px solid var(--wz-line, rgba(255,255,255,0.14));
+    width: 100%; padding: 10px 12px; border-radius: 10px; margin-bottom: 6px;
+    border: 1px solid rgba(255,255,255,0.14);
     background: rgba(255,255,255,0.05); color: #fff; outline: none; box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.wz-pick-results { max-height: 220px; overflow: auto; display: grid; gap: 6px; margin: 0 0 6px; }
-.wz-picker-empty { color: rgba(255,255,255,0.55); font-size: 0.85rem; padding: 4px 2px; }
+.wz-topic-fields .wz-pick input:focus { border-color: #ffa040; box-shadow: 0 0 0 3px rgba(255,160,64,0.15); }
+.wz-topic-fields .wz-pick input:disabled { opacity: 0.4; }
+.wz-pick-results { max-height: 230px; overflow: auto; display: grid; gap: 6px; margin: 0 0 6px; }
+.wz-picker-empty { color: rgba(255,255,255,0.55); font-size: 0.85rem; padding: 6px 2px; }
 .wz-picker-item {
-    display: flex; align-items: center; gap: 10px; padding: 7px; border-radius: 10px;
-    background: rgba(255,255,255,0.06); cursor: pointer; transition: background 0.15s ease;
+    display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 10px;
+    background: rgba(255,255,255,0.06); cursor: pointer; transition: background 0.15s ease, transform 0.12s ease;
 }
-.wz-picker-item:hover { background: rgba(255,255,255,0.14); }
+.wz-picker-item:hover { background: rgba(255,255,255,0.14); transform: translateX(2px); }
 .wz-picker-item img { width: 46px; height: 60px; object-fit: cover; border-radius: 6px; flex: none; }
+.wz-picker-noimg { width: 46px; height: 60px; display: grid; place-items: center; background: rgba(255,255,255,0.08); border-radius: 6px; flex: none; }
 .wz-picker-title { font-weight: 700; font-size: 0.88rem; }
 .wz-picker-meta { font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-top: 2px; }
+.wz-pick-use {
+    margin-left: auto; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.03em;
+    padding: 4px 9px; border-radius: 99px; color: #0d1117; background: #ffa040;
+    opacity: 0; transform: translateX(4px); transition: all 0.15s ease; flex: none;
+}
+.wz-picker-item:hover .wz-pick-use { opacity: 1; transform: translateX(0); }
+
 .wz-pick-picked .wz-picker-tag {
     display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 10px;
-    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); font-size: 0.84rem;
+    background: rgba(255,160,64,0.10); border: 1px solid rgba(255,160,64,0.45); font-size: 0.84rem;
+    animation: wzPop 0.22s ease;
 }
-.wz-pick-picked .wz-picker-tag img { width: 34px; height: 44px; object-fit: cover; border-radius: 5px; flex: none; }
-.wz-pick-gif .wz-pick-results { grid-template-columns: repeat(3, 1fr); }
-.wz-pick-gif .wz-pick-results img { width: 100%; height: auto; border-radius: 8px; cursor: pointer; }
+.wz-pick-picked .wz-picker-tag img { width: 36px; height: 46px; object-fit: cover; border-radius: 5px; flex: none; }
+.wz-pick-title-main { line-height: 1.3; }
+.wz-pick-check {
+    width: 18px; height: 18px; border-radius: 99px; background: #2ea043; color: #fff;
+    display: grid; place-items: center; font-size: 0.7rem; flex: none;
+}
+.wz-pick-clear {
+    margin-left: auto; border: none; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8);
+    width: 22px; height: 22px; border-radius: 99px; cursor: pointer; font-size: 0.72rem; flex: none;
+}
+.wz-pick-clear:hover { background: rgba(255,255,255,0.25); }
+@keyframes wzPop { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+
+/* Episode thumb grid */
+.wz-ep-grid { grid-template-columns: repeat(3, 1fr); }
+.wz-ep-card {
+    position: relative; border-radius: 10px; overflow: hidden; cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04);
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.wz-ep-card:hover { transform: translateY(-2px); border-color: #ffa040; }
+.wz-ep-card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
+.wz-ep-meta { padding: 6px 8px; display: flex; flex-direction: column; gap: 1px; }
+.wz-ep-meta b { font-size: 0.75rem; color: #ffd9a8; }
+.wz-ep-meta span { font-size: 0.68rem; color: rgba(255,255,255,0.6); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* GIF grid */
+.wz-gif-grid { grid-template-columns: repeat(3, 1fr); }
+.wz-gif-cell { position: relative; border-radius: 8px; overflow: hidden; cursor: pointer; }
+.wz-gif-cell img { width: 100%; height: auto; display: block; transition: transform 0.2s ease; }
+.wz-gif-cell:hover img { transform: scale(1.06); }
+.wz-gif-ov {
+    position: absolute; inset: auto 0 0 0; padding: 14px 6px 5px; text-align: center;
+    font-size: 0.7rem; font-weight: 700; color: #fff;
+    background: linear-gradient(transparent, rgba(0,0,0,0.75)); opacity: 0; transition: opacity 0.15s ease;
+}
+.wz-gif-cell:hover .wz-gif-ov { opacity: 1; }
 

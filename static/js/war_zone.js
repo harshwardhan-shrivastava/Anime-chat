@@ -205,43 +205,48 @@
             var episodeRef = pbox.querySelector(".wz-episode-ref");
             var gifUrl = pbox.querySelector(".wz-gif");
             var panes = { anime: pbox.querySelector(".wz-pick-anime"), episode: pbox.querySelector(".wz-pick-episode"), gif: pbox.querySelector(".wz-pick-gif") };
+            var cards = Array.prototype.slice.call(pbox.querySelectorAll(".wz-topic-card"));
             var selAnime = null; // {slug, title} for the episode picker
             var deb = {};
 
             function showPane() {
                 var t = topicSel.value;
                 Object.keys(panes).forEach(function (k) { if (panes[k]) panes[k].classList.toggle("hidden", k !== t); });
+                cards.forEach(function (c) { c.classList.toggle("active", c.getAttribute("data-topic") === t); });
             }
+            cards.forEach(function (c) {
+                c.addEventListener("click", function () {
+                    topicSel.value = c.getAttribute("data-topic");
+                    topicSel.dispatchEvent(new Event("change"));
+                });
+            });
             topicSel.addEventListener("change", showPane);
             showPane();
 
             function clearPick(kind) {
-                if (kind === "anime") { animeSlug.value = ""; episodeRef.value = ""; }
-                if (kind === "episode") { animeSlug.value = ""; episodeRef.value = ""; }
+                if (kind === "anime" || kind === "episode") { animeSlug.value = ""; episodeRef.value = ""; }
                 if (kind === "gif") { gifUrl.value = ""; }
             }
             function picked(host, html) {
                 var p = host.querySelector(".wz-pick-picked");
                 p.innerHTML = html || "";
             }
-            function renderAnime(host, items, cb) {
-                var box = host.querySelector(".wz-pick-results");
-                box.innerHTML = "";
-                if (!items.length) { box.innerHTML = "<div class='wz-picker-empty'>No results</div>"; return; }
-                items.forEach(function (it) {
-                    var d = document.createElement("div");
-                    d.className = "wz-picker-item";
-                    d.innerHTML = (it.image ? "<img src='" + escHtml(it.image) + "' onerror='this.style.display=\"none\"'>" : "") +
-                        "<div class='wz-picker-main'><div class='wz-picker-title'>" + escHtml(it.title) + "</div>" +
-                        "<div class='wz-picker-meta'>" + escHtml(it.season != null ? it.season : "") + (it.number ? " E" + it.number : "") + (it.meta ? " " + escHtml(it.meta) : "") + "</div></div>";
-                    d.addEventListener("click", function () { cb(it, d); });
-                    box.appendChild(d);
-                });
+            function pickTag(host, inner) {
+                picked(host, "<div class='wz-picker-tag'><span class='wz-pick-check'>✓</span>" + inner + "<button type='button' class='wz-pick-clear' title='Change'>✕</button></div>");
+                var clear = host.querySelector(".wz-pick-clear");
+                if (clear) {
+                    clear.addEventListener("click", function () {
+                        clearPick(host.getAttribute("data-kind") || "");
+                        picked(host, "");
+                        var s = host.querySelector(".wz-pick-search");
+                        if (s) { s.value = ""; s.focus(); }
+                    });
+                }
             }
             function debounce(k, fn, ms) {
                 clearTimeout(deb[k]); deb[k] = setTimeout(fn, ms || 300);
             }
-            function searchAnime(host, q, cb) {
+            function searchAnime(q, cb) {
                 fetch("/api/search?q=" + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (d) {
                     var list = (d.success && d.results) ? d.results.map(function (r) {
                         return { slug: r.slug, title: r.title, image: r.image, meta: (r.year || "") + (r.rating ? " · " + r.rating : "") };
@@ -249,17 +254,34 @@
                     cb(list);
                 }).catch(function () { cb([]); });
             }
+            function renderAnimeList(box, items, cb) {
+                box.innerHTML = "";
+                if (!items.length) { box.innerHTML = "<div class='wz-picker-empty'>No results — try another search.</div>"; return; }
+                items.forEach(function (it) {
+                    var d = document.createElement("div");
+                    d.className = "wz-picker-item";
+                    d.innerHTML = (it.image ? "<img src='" + escHtml(it.image) + "' onerror='this.style.display=\"none\"'>" : "<div class='wz-picker-noimg'>🎬</div>") +
+                        "<div class='wz-picker-main'><div class='wz-picker-title'>" + escHtml(it.title) + "</div>" +
+                        "<div class='wz-picker-meta'>" + (it.season != null ? escHtml(it.season) : "") + (it.number ? " E" + it.number : "") + (it.meta ? " " + escHtml(it.meta) : "") + "</div></div>" +
+                        "<span class='wz-pick-use'>Pick</span>";
+                    d.addEventListener("click", function () { cb(it); });
+                    box.appendChild(d);
+                });
+            }
 
             // --- Anime pane ---
+            panes.anime.setAttribute("data-kind", "anime");
             var aniIn = panes.anime.querySelector(".wz-pick-anime-search");
+            aniIn.classList.add("wz-pick-search");
             aniIn.addEventListener("input", function () {
-                var q = aniIn.value.trim(); if (!q) { panes.anime.querySelector(".wz-pick-results").innerHTML = ""; return; }
+                var q = aniIn.value.trim();
+                if (!q) { panes.anime.querySelector(".wz-pick-results").innerHTML = ""; return; }
                 debounce("anime", function () {
-                    searchAnime(panes.anime, q, function (list) {
-                        renderAnime(panes.anime, list, function (it) {
+                    searchAnime(q, function (list) {
+                        renderAnimeList(panes.anime.querySelector(".wz-pick-results"), list, function (it) {
                             clearPick("anime");
                             animeSlug.value = it.slug;
-                            picked(panes.anime, "<div class='wz-picker-tag'>" + (it.image ? "<img src='" + escHtml(it.image) + "' onerror='this.style.display=\"none\"'>" : "") + "<span>" + escHtml(it.title) + "</span></div>");
+                            pickTag(panes.anime, "<img src='" + escHtml(it.image || "") + "' onerror='this.style.display=\"none\"'><span class='wz-pick-title-main'>" + escHtml(it.title) + "</span>");
                             panes.anime.querySelector(".wz-pick-results").innerHTML = "";
                         });
                     });
@@ -267,54 +289,75 @@
             });
 
             // --- Episode pane ---
+            panes.episode.setAttribute("data-kind", "episode");
             var selA = panes.episode.querySelector(".wz-pick-sel-anime");
             var epIn = panes.episode.querySelector(".wz-pick-ep-search");
+            var epBox = panes.episode.querySelector(".wz-pick-results");
             var epCache = { slug: null, episodes: [] };
+            selA.classList.add("wz-pick-search");
             selA.addEventListener("input", function () {
-                var q = selA.value.trim(); if (!q) { panes.episode.querySelector(".wz-pick-results").innerHTML = ""; return; }
+                var q = selA.value.trim();
+                if (!q) { epBox.innerHTML = ""; return; }
                 debounce("selanime", function () {
-                    searchAnime(panes.episode, q, function (list) {
-                        renderAnime(panes.episode, list, function (it) {
+                    searchAnime(q, function (list) {
+                        renderAnimeList(epBox, list, function (it) {
                             selA.value = it.title;
                             selAnime = { slug: it.slug, title: it.title, image: it.image };
                             epIn.disabled = false;
+                            epIn.placeholder = "2) Search S1E1 / title…";
                             epCache = { slug: it.slug, episodes: [] };
-                            panes.episode.querySelector(".wz-pick-results").innerHTML = "";
-                            picked(panes.episode, "<div class='wz-picker-tag'>" + (it.image ? "<img src='" + escHtml(it.image) + "' onerror='this.style.display=\"none\"'>" : "") + "<span>Pick an episode from <b>" + escHtml(it.title) + "</b></span></div>");
+                            epBox.innerHTML = "";
+                            pickTag(panes.episode, "<img src='" + escHtml(it.image || "") + "' onerror='this.style.display=\"none\"'><span class='wz-pick-title-main'>" + escHtml(it.title) + "</span>");
+                            epIn.focus();
                         });
                     });
                 });
             });
             epIn.addEventListener("input", function () {
                 var q = epIn.value.trim();
-                if (!selAnime) { panes.episode.querySelector(".wz-pick-results").innerHTML = "<div class='wz-picker-empty'>Pick the anime first.</div>"; return; }
+                if (!selAnime) { epBox.innerHTML = "<div class='wz-picker-empty'>Pick the anime first.</div>"; return; }
                 debounce("ep", function () {
                     function show() {
                         var all = epCache.episodes;
                         var list = q ? all.filter(function (e) {
                             return ("S" + e.season_index + "E" + e.number).indexOf(q.toUpperCase()) !== -1 || (e.title || "").toLowerCase().indexOf(q.toLowerCase()) !== -1 || String(e.global).indexOf(q) !== -1;
                         }) : all;
-                        renderAnime(panes.episode, list, function (it) {
-                            clearPick("episode");
-                            animeSlug.value = selAnime.slug;
-                            episodeRef.value = "S" + it.season_index + "E" + it.number + " " + (it.title || "");
-                            picked(panes.episode, "<div class='wz-picker-tag'>" + (it.image ? "<img src='" + escHtml(it.image) + "' onerror='this.style.display=\"none\"'>" : "") + "<span><b>" + escHtml(selAnime.title) + "</b> · S" + it.season_index + "E" + it.number + (it.title ? " — " + escHtml(it.title) : "") + "</span></div>");
-                            panes.episode.querySelector(".wz-pick-results").innerHTML = "";
+                        epBox.className = "wz-pick-results wz-ep-grid";
+                        epBox.innerHTML = "";
+                        if (!list.length) { epBox.innerHTML = "<div class='wz-picker-empty'>No episodes match.</div>"; return; }
+                        list.forEach(function (it) {
+                            var d = document.createElement("div");
+                            d.className = "wz-ep-card";
+                            d.innerHTML = (it.image ? "<img src='" + escHtml(it.image) + "' loading='lazy' onerror='this.style.display=\"none\"'>" : "") +
+                                "<div class='wz-ep-meta'><b>S" + it.season_index + "E" + it.number + "</b><span>" + (it.title ? escHtml(it.title) : "") + "</span></div>";
+                            d.addEventListener("click", function () {
+                                clearPick("episode");
+                                animeSlug.value = selAnime.slug;
+                                episodeRef.value = "S" + it.season_index + "E" + it.number + " " + (it.title || "");
+                                pickTag(panes.episode, "<img src='" + escHtml(it.image || "") + "' onerror='this.style.display=\"none\"'><span class='wz-pick-title-main'><b>" + escHtml(selAnime.title) + "</b> · S" + it.season_index + "E" + it.number + (it.title ? " — " + escHtml(it.title) : "") + "</span>");
+                                epBox.innerHTML = "";
+                            });
+                            epBox.appendChild(d);
                         });
                     }
                     if (epCache.episodes.length) { show(); return; }
+                    epBox.className = "wz-pick-results";
+                    epBox.innerHTML = "<div class='wz-picker-empty'>Loading episodes…</div>";
                     fetch("/api/warzone/episodes?slug=" + encodeURIComponent(selAnime.slug)).then(function (r) { return r.json(); }).then(function (d) {
                         epCache.episodes = (d.success && d.episodes) ? d.episodes : [];
                         show();
-                    }).catch(function () { panes.episode.querySelector(".wz-pick-results").innerHTML = "<div class='wz-picker-empty'>Couldn't load episodes.</div>"; });
+                    }).catch(function () { epBox.innerHTML = "<div class='wz-picker-empty'>Couldn't load episodes.</div>"; });
                 });
             });
 
             // --- GIF pane ---
+            panes.gif.setAttribute("data-kind", "gif");
             var gifIn = panes.gif.querySelector(".wz-pick-gif-search");
+            gifIn.classList.add("wz-pick-search");
             function loadGifs(q) {
                 fetch("/api/gif-search" + (q ? "?q=" + encodeURIComponent(q) : "")).then(function (r) { return r.json(); }).then(function (d) {
                     var box = panes.gif.querySelector(".wz-pick-results");
+                    box.className = "wz-pick-results wz-gif-grid";
                     var list = (d.success && d.gifs) ? d.gifs : (d.results || []);
                     box.innerHTML = "";
                     if (!list.length) { box.innerHTML = "<div class='wz-picker-empty'>No GIFs found.</div>"; return; }
@@ -322,16 +365,21 @@
                         var url = gif.url || (gif.images && gif.images.fixed_height && gif.images.fixed_height.url);
                         var prev = gif.preview || (gif.images && gif.images.fixed_width_small && gif.images.fixed_width_small.url) || url;
                         if (!url) return;
+                        var cell = document.createElement("div");
+                        cell.className = "wz-gif-cell";
                         var img = document.createElement("img");
                         img.src = prev; img.alt = gif.title || "gif"; img.loading = "lazy";
-                        img.title = "Click to use";
-                        img.addEventListener("click", function () {
+                        cell.appendChild(img);
+                        var ov = document.createElement("span");
+                        ov.className = "wz-gif-ov"; ov.textContent = "+ Pick";
+                        cell.appendChild(ov);
+                        cell.addEventListener("click", function () {
                             clearPick("gif");
                             gifUrl.value = url;
-                            picked(panes.gif, "<div class='wz-picker-tag'><img src='" + escHtml(prev) + "'><span>GIF selected ✓</span></div>");
+                            pickTag(panes.gif, "<img src='" + escHtml(prev) + "'><span class='wz-pick-title-main'>GIF selected</span>");
                             gifIn.value = ""; panes.gif.querySelector(".wz-pick-results").innerHTML = "";
                         });
-                        box.appendChild(img);
+                        box.appendChild(cell);
                     });
                 }).catch(function () { panes.gif.querySelector(".wz-pick-results").innerHTML = "<div class='wz-picker-empty'>Couldn't reach GIF search.</div>"; });
             }

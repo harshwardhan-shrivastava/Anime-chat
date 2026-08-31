@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260901b">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260903">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260904">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -20,9 +20,9 @@
 
     <div class="war-page">
         <div class="war-hero">
-            <span class="war-hero-badge"><i class="fas fa-swords"></i> The Reply War Arena</span>
+            <span class="war-hero-badge"><i class="fas fa-swords"></i> The War Arena</span>
             <h1>War <span class="grad">Zone</span></h1>
-            <p>Two ways to fight. <b>1) Reply War</b> — dislike a review and your take enters its 24-hour battle. <b>2) Standalone War</b> — plant your own flag, write a declaration, and anyone C+ can throw a battler down. Same rule in both: <b>best like-ratio wins</b>.</p>
+            <p>Plant a flag and fight. <b>Free wars</b> — anyone C+ can join. <b>Guild wars</b> — your guild's members duke it out. <b>Guild-vs-Guild</b> — declare war, rivals claim it, you pick who you face. Same rule everywhere: <b>best like-ratio wins</b>, and the crowd decides.</p>
         </div>
 
         <!-- ===== Create a War ===== -->
@@ -45,13 +45,19 @@
                 <select class="wz-guild-select">
                     <option value="">Loading your guilds…</option>
                 </select>
-                <label>Topic</label>
-                <select class="wz-topic">
-                    <option value="blank">No topic (just the declaration)</option>
+                <label>What are you fighting over?</label>
+                <select class="wz-topic" hidden>
+                    <option value="blank">No topic</option>
                     <option value="anime">Anime</option>
                     <option value="episode">Episode</option>
                     <option value="gif">GIF</option>
                 </select>
+                <div class="wz-topic-cards">
+                    <button type="button" class="wz-topic-card active" data-topic="blank"><i class="fas fa-flag"></i><span>Just words</span><small>pure declaration</small></button>
+                    <button type="button" class="wz-topic-card" data-topic="anime"><i class="fas fa-tv"></i><span>Anime</span><small>cover art</small></button>
+                    <button type="button" class="wz-topic-card" data-topic="episode"><i class="fas fa-film"></i><span>Episode</span><small>one specific ep</small></button>
+                    <button type="button" class="wz-topic-card" data-topic="gif"><i class="fas fa-icons"></i><span>GIF</span><small>a reaction</small></button>
+                </div>
                 <div class="wz-topic-fields">
                     <input type="hidden" class="wz-anime-slug">
                     <input type="hidden" class="wz-episode-ref">
@@ -201,6 +207,6 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/war.js') }}?v=20260901b"></script>
-    <script src="{{ url_for('static', filename='js/war_zone.js') }}?v=20260903"></script>
+    <script src="{{ url_for('static', filename='js/war_zone.js') }}?v=20260904"></script>
 </body>
 </html>
