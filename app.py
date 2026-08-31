@@ -67,8 +67,13 @@ from review_votes import (
     get_user_anime_review_votes,
     get_bulk_reviewer_ranks,
     anime_grade_engine,
+    review_vote_xp,
+    review_level_for_xp,
+    get_bulk_review_points,
+    vote_points_for_rank,
     RANK_COLORS,
     RANK_WEIGHTS,
+    TRUSTED_RANKS,
     GRADE_ORDER,
 )
 from chat import chat_bp
@@ -1198,6 +1203,7 @@ def reviews_page():
     like_counts = get_bulk_review_likes("anime", review_ids)
     user_votes = get_user_anime_review_votes(review_ids, user["id"]) if user else {}
     rank_map = get_bulk_reviewer_ranks([r["user_id"] for r in raw])
+    point_map = get_bulk_review_points("anime", review_ids)
     reviews = []
     for r in raw:
         entry = anime_database.get(r["anime_slug"])
@@ -1206,15 +1212,19 @@ def reviews_page():
         counts = like_counts.get(r["id"], {"likes": 0, "dislikes": 0})
         r["likes"] = counts["likes"]
         r["dislikes"] = counts["dislikes"]
+        pts = point_map.get(r["id"])
+        if pts:
+            r["review_xp"] = max(0, (pts.get("like_points") or 0) + (pts.get("dislike_points") or 0))
+        else:
+            r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"])
+        r["review_level"] = review_level_for_xp(r["review_xp"])
         r["user_vote"] = user_votes.get(r["id"])
         rinfo = rank_map.get(r["user_id"], {"rank": "D", "xp": 0})
         r["rank"] = rinfo["rank"] if isinstance(rinfo, dict) else rinfo
         r["user_xp"] = rinfo["xp"] if isinstance(rinfo, dict) else 0
         r["xp_pct"] = xp_progress(r["user_xp"])[1]
         r["rank_color"] = RANK_COLORS.get(r["rank"], "#9ca3af")
-        # Only trusted (B+) reviewers earn the grade chip -- a D-rank user's
-        # 5-star rating must not read as "this anime is S-rank".
-        r["is_trusted"] = r["rank"] in RANK_WEIGHTS and r["rank"] in ("B", "A", "S", "S+")
+        r["is_trusted"] = r["rank"] in TRUSTED_RANKS
         reviews.append(r)
 
     # ---- Episode reviews (second tab) ----
@@ -1279,13 +1289,23 @@ def reviews_page():
         counts = ep_like_counts.get(r["id"], {"likes": 0, "dislikes": 0})
         r["likes"] = counts["likes"]
         r["dislikes"] = counts["dislikes"]
+        try:
+            ep_points = get_bulk_review_points("episode", ep_ids)
+            epts = ep_points.get(r["id"])
+            if epts:
+                r["review_xp"] = max(0, (epts.get("like_points") or 0) + (epts.get("dislike_points") or 0))
+            else:
+                r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"])
+        except Exception:
+            r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"])
+        r["review_level"] = review_level_for_xp(r["review_xp"])
         r["user_vote"] = ep_user_votes.get(r["id"])
         rinfo = ep_rank_map.get(r["user_id"], {"rank": "D", "xp": 0})
         r["rank"] = rinfo["rank"] if isinstance(rinfo, dict) else rinfo
         r["user_xp"] = rinfo["xp"] if isinstance(rinfo, dict) else 0
         r["xp_pct"] = xp_progress(r["user_xp"])[1]
         r["rank_color"] = RANK_COLORS.get(r["rank"], "#9ca3af")
-        r["is_trusted"] = r["rank"] in RANK_WEIGHTS and r["rank"] in ("B", "A", "S", "S+")
+        r["is_trusted"] = r["rank"] in TRUSTED_RANKS
         episode_reviews.append(r)
 
     # Higher-ranked reviewers first, then more XP, then newest.
@@ -1343,16 +1363,31 @@ def reviews_page():
             "title": ginfo["title"],
             "grade": eng["grade"],
             "elite": eng["elite"],
+            "xp_tier": eng.get("xp_tier"),
+            "hidden_gem": eng.get("hidden_gem", False),
             "trusted_label": eng["trusted_label"],
             "audience_label": eng["audience_label"],
             "trusted_count": eng["trusted_count"],
             "audience_count": eng["audience_count"],
+            "trusted_xp": eng["trusted_xp"],
+            "trusted_xp_label": eng["trusted_xp_label"],
             "img": anime_database.get(slug).get("image") if anime_database.get(slug) else None,
         })
-    # Rank by headline grade tier, then trusted score desc.
+    # Rank by headline grade tier, then by trusted XP (more XP backing a
+    # grade = bigger impact, so it wins same-grade ties -- the Vs tiebreaker).
     GRADE_TIER = {"S+": 0, "S": 1, "A": 2, "B": 3, "C": 4, "D": 5}
-    top_graded.sort(key=lambda x: (GRADE_TIER.get(x["grade"], 9), -x["trusted_count"]))
+    top_graded.sort(key=lambda x: (GRADE_TIER.get(x["grade"], 9), -x["trusted_xp"]))
     top_graded = top_graded[:8]
+
+    # Vote point schedule (D -> S+) shown in the legend box on the page.
+    vote_schedule = [
+        {
+            "rank": rk,
+            "like": vote_points_for_rank(rk, True),
+            "dislike": vote_points_for_rank(rk, False),
+        }
+        for rk in ("D", "C", "B", "A", "S", "S+")
+    ]
 
     return render_template(
         "reviews.html",
@@ -1360,6 +1395,7 @@ def reviews_page():
         episode_reviews=episode_reviews,
         top_reviewers=top_reviewers,
         top_graded=top_graded,
+        vote_schedule=vote_schedule,
         GRADE_ORDER=GRADE_ORDER,
         anime_review_count=len(reviews),
         episode_review_count=len(episode_reviews),
@@ -1521,8 +1557,8 @@ def rate_anime():
         rating = int(rating)
     except (TypeError, ValueError):
         return jsonify({"success": False, "error": "Rating must be a number"}), 400
-    if rating < 1 or rating > 5:
-        return jsonify({"success": False, "error": "Rating must be between 1 and 5"}), 400
+    if rating < 1 or rating > 10:
+        return jsonify({"success": False, "error": "Rating must be between 1 and 10"}), 400
 
     add_review(anime_slug, username, rating, comment, user_id=user_id)
     stats = get_anime_stats(anime_slug)
@@ -1552,8 +1588,8 @@ def api_episode_rate():
         rating = int(rating)
     except (TypeError, ValueError):
         return jsonify({"success": False, "error": "Invalid rating."}), 400
-    if rating < 2 or rating > 10:
-        return jsonify({"success": False, "error": "Rating must be 2-10."}), 400
+    if rating < 1 or rating > 10:
+        return jsonify({"success": False, "error": "Rating must be between 1 and 10."}), 400
     add_episode_review(
         anime_slug, season_name, int(episode_number),
         user["id"], user["username"], user["avatar_color"],

@@ -462,6 +462,27 @@ def create_tables():
         )
     """)
 
+    # Rank-weighted vote points: each like/dislike row stores the point value
+    # it was worth at vote time (like = 10 x voter-rank weight, dislike = -5 x
+    # weight). Existing votes are backfilled with the flat legacy values.
+    rl_cols = [row[1] for row in cursor.execute("PRAGMA table_info(review_likes)").fetchall()]
+    if "points" not in rl_cols:
+        cursor.execute("ALTER TABLE review_likes ADD COLUMN points INTEGER DEFAULT 0")
+        cursor.execute(
+            "UPDATE review_likes SET points = CASE WHEN is_like=1 THEN 10 ELSE -5 END WHERE points = 0"
+        )
+
+    # Ratings moved from 5-star to 10-star. Legacy rows are 1-5; migrate them
+    # to /10 exactly once (only when no rating above 5 exists yet, so a fresh
+    # 10-star database is never touched twice). Episode reviews are already
+    # stored /10 (2-10), so the guard also keeps them safe.
+    row = cursor.execute("SELECT MAX(rating) as m FROM reviews").fetchone()
+    if row and row["m"] is not None and row["m"] <= 5:
+        cursor.execute("UPDATE reviews SET rating = rating * 2")
+    row = cursor.execute("SELECT MAX(rating) as m FROM episode_reviews").fetchone()
+    if row and row["m"] is not None and row["m"] <= 5:
+        cursor.execute("UPDATE episode_reviews SET rating = rating * 2")
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS claims(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1230,7 +1251,7 @@ def get_anime_stats(anime_slug):
         "SELECT rating, COUNT(*) as count FROM reviews WHERE anime_slug=? GROUP BY rating",
         (anime_slug,)
     )
-    breakdown = {str(n): 0 for n in range(1, 6)}
+    breakdown = {str(n): 0 for n in range(1, 11)}
     for row in cursor.fetchall():
         breakdown[str(row["rating"])] = row["count"]
 

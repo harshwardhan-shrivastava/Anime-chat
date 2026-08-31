@@ -189,7 +189,7 @@
 
                     <div class="stars" id="heroStars">
 
-                        ★★★★★
+                        ☆☆☆☆☆☆☆☆☆☆
 
                     </div>
 
@@ -638,9 +638,24 @@
                         {% endif %}
                         <span style="font-size:0.95rem;color:#d7deea;font-weight:700;">Trusted score
                             <span style="color:#4ade80;">{{ grade_card.trusted_label }}</span><span style="color:#5c6777;">/10</span>
-                            <span style="color:#5c6777;font-weight:500;">({{ grade_card.trusted_count }} trusted · B+ rated reviewers)</span>
+                            <span style="color:#5c6777;font-weight:500;">({{ grade_card.trusted_count }} trusted · C+ rated reviewers)</span>
                         </span>
+                        <span title="Combined XP of every reviewer shaping this grade — more XP behind the same grade means a bigger impact (the Vs-battle tiebreaker)."
+                              style="display:inline-flex;align-items:center;gap:6px;background:rgba(250,204,21,0.1);border:1px solid rgba(250,204,21,0.3);color:#fde047;border-radius:999px;padding:4px 12px;font-size:0.8rem;font-weight:800;">
+                            <i class="fas fa-bolt"></i> {{ grade_card.trusted_xp_label }} Trusted XP
+                        </span>
+                        {% if grade_card.xp_tier %}
+                        <span title="The anime's own XP rank from combined trusted XP (500 D → 1000 C → 1500 B → 2000 A → 3000 S → 5000 S+)."
+                              style="display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#4ade80;border-radius:999px;padding:4px 12px;font-size:0.8rem;font-weight:800;">
+                            <i class="fas fa-shield-halved"></i> {{ grade_card.xp_tier }}-tier anime
+                        </span>
+                        {% endif %}
                     </div>
+                    {% if grade_card.hidden_gem %}
+                    <div style="display:flex;align-items:center;gap:8px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;border-radius:10px;padding:8px 14px;margin-bottom:14px;font-size:0.82rem;font-weight:700;">
+                        <i class="fas fa-gem"></i> Hidden Gem — the crowd rates it {{ grade_card.audience_label }}/10, but no C+ reviewer has graded it yet. Get trusted reviews in to earn its official badge.
+                    </div>
+                    {% endif %}
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
                         <span style="font-size:0.82rem;color:#8b98ab;font-weight:600;">Everyone</span>
                         <div style="flex:1;max-width:220px;height:8px;border-radius:99px;background:#182234;overflow:hidden;">
@@ -688,8 +703,13 @@
                         <i class="far fa-star" data-value="3"></i>
                         <i class="far fa-star" data-value="4"></i>
                         <i class="far fa-star" data-value="5"></i>
+                        <i class="far fa-star" data-value="6"></i>
+                        <i class="far fa-star" data-value="7"></i>
+                        <i class="far fa-star" data-value="8"></i>
+                        <i class="far fa-star" data-value="9"></i>
+                        <i class="far fa-star" data-value="10"></i>
                     </div>
-                    <p class="selected-rating-label" id="selectedRatingLabel">{{ t('Tap a star to choose your rating') }}</p>
+                    <p class="selected-rating-label" id="selectedRatingLabel">{{ t('Tap a star to rate out of 10') }}</p>
                 </div>
                 <textarea
                     id="reviewComment"

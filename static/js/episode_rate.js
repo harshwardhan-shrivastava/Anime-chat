@@ -1,6 +1,5 @@
 // ===============================
-// EPISODE RATE PAGE (5-star UI, stored as 1-10)
-// User clicks 1-5 stars → stored as 2-10 (×2)
+// EPISODE RATE PAGE (10-star UI, stored as 1-10)
 // AJAX submission — no page reload
 // ===============================
 
@@ -10,9 +9,9 @@ const ratingInput = document.getElementById("ratingInput");
 const wireSubmit = document.getElementById("wireSubmit");
 const wireError = document.getElementById("wireError");
 
-// Convert stored value (1-10) back to star display (1-5)
+// Stored value is already /10, which is the star value.
 let storedRating = ratingInput ? parseInt(ratingInput.value, 10) || 0 : 0;
-let selectedStars = Math.round(storedRating / 2);
+let selectedStars = storedRating;
 
 function paintStars(stars) {
     wireStars.forEach(star => {
@@ -28,10 +27,9 @@ function paintStars(stars) {
 }
 
 function getStarLabel(stars) {
-    if (stars === 0) return "Tap a star to rate out of 5";
-    const val = stars * 2;
-    const labels = ["", "Terrible", "Bad", "Okay", "Good", "Masterpiece"];
-    return `Your rating: ${stars}/5 (${val}/10) — ${labels[stars]}`;
+    if (stars === 0) return "Tap a star to rate out of 10";
+    const labels = ["", "Terrible", "Bad", "Weak", "Okay", "Decent", "Good", "Great", "Excellent", "Outstanding", "Masterpiece"];
+    return `Your rating: ${stars}/10 — ${labels[stars]}`;
 }
 
 // Initial paint from a previously submitted review (if any).
@@ -49,7 +47,7 @@ wireStars.forEach(star => {
 
     star.addEventListener("click", () => {
         selectedStars = parseInt(star.dataset.value, 10);
-        storedRating = selectedStars * 2; // 5 stars → store as 10
+        storedRating = selectedStars; // 10 stars → stored /10 directly
         ratingInput.value = storedRating;
         paintStars(selectedStars);
         wireLabel.textContent = getStarLabel(selectedStars);
@@ -70,8 +68,8 @@ if (wireSubmit) {
     wireSubmit.addEventListener("click", function (e) {
         e.preventDefault();
         const value = parseInt(ratingInput.value, 10) || 0;
-        if (value < 2 || value > 10) {
-            wireError.textContent = "Please tap a star between 1 and 5 before submitting.";
+        if (value < 1 || value > 10) {
+            wireError.textContent = "Please tap a star between 1 and 10 before submitting.";
             return;
         }
 
@@ -134,7 +132,7 @@ if (wireSubmit) {
                     card.className = "review-card";
                     card.style.borderColor = "#22c55e";
                     var starsText = "";
-                    for (var i = 1; i <= 5; i++) { starsText += i <= selectedStars ? "\u2605" : "\u2606"; }
+                    for (var i = 1; i <= 10; i++) { starsText += i <= selectedStars ? "\u2605" : "\u2606"; }
                     card.innerHTML = '<div class="review-header"><div class="review-avatar-initial" style="background:#00c16a">Y</div><div><h3>Your Review</h3><span>' + starsText + ' <span class="review-score">' + value + '/10</span></span></div></div>' +
                         '<p>' + (comment && comment.value.trim() ? comment.value.trim() : '(No written review, just a rating.)') + '</p>' +
                         '<div class="own-review-note"><i class="fas fa-user-check"></i> Your review</div>';

@@ -231,7 +231,7 @@ function hideReviewFormFor(myReview) {
 function starsForValue(value) {
     const rounded = Math.round(value * 2) / 2;
     let out = "";
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 10; i++) {
         if (rounded >= i) {
             out += "\u2605";
         } else if (rounded + 0.5 === i) {
@@ -241,6 +241,10 @@ function starsForValue(value) {
         }
     }
     return out;
+}
+
+function emptyStars() {
+    return "\u2606\u2606\u2606\u2606\u2606\u2606\u2606\u2606\u2606\u2606";
 }
 
 function initialsAvatar(username, avatar, avatarColor) {
@@ -288,17 +292,17 @@ function renderStats(data) {
     const votes = data.votes || 0;
 
     if (bigRating) bigRating.textContent = votes > 0 ? average.toFixed(2) : "N/A";
-    if (ratingStarsDisplay) ratingStarsDisplay.textContent = votes > 0 ? starsForValue(average) : "\u2606\u2606\u2606\u2606\u2606";
+    if (ratingStarsDisplay) ratingStarsDisplay.textContent = votes > 0 ? starsForValue(average) : emptyStars();
     if (reviewCountLabel) reviewCountLabel.textContent = `${votes} Community Review${votes === 1 ? "" : "s"}`;
     if (statReviewCount) statReviewCount.textContent = votes;
 
     heroScore.textContent = votes > 0 ? average.toFixed(1) : "N/A";
-    heroStars.textContent = votes > 0 ? starsForValue(average) : "\u2606\u2606\u2606\u2606\u2606";
+    heroStars.textContent = votes > 0 ? starsForValue(average) : emptyStars();
     heroVotesLabel.textContent = votes > 0 ? `${votes} vote${votes === 1 ? "" : "s"}` : "No ratings yet";
 
     if (ratingBreakdown) {
         ratingBreakdown.innerHTML = "";
-        for (let star = 5; star >= 1; star--) {
+        for (let star = 10; star >= 1; star--) {
             const count = (data.breakdown && data.breakdown[String(star)]) || 0;
             const pct = votes > 0 ? Math.round((count / votes) * 100) : 0;
 
@@ -346,7 +350,7 @@ function renderStats(data) {
                 nameEl.appendChild(rankBadge);
             }
             const ratingEl = document.createElement("span");
-            ratingEl.textContent = `\u2605 ${review.rating}/5 \u00b7 ${timeAgo(review.created_at)}`;
+            ratingEl.textContent = `${starsForValue(review.rating)} ${review.rating}/10 \u00b7 ${timeAgo(review.created_at)}`;
             infoWrap.appendChild(nameEl);
             infoWrap.appendChild(ratingEl);
             header.appendChild(infoWrap);
@@ -467,7 +471,7 @@ function postReview() {
 
             selectedRating = 0;
             paintUserStars(0);
-            selectedRatingLabel.textContent = "Tap a star to choose your rating";
+            selectedRatingLabel.textContent = "Tap a star to rate out of 10";
             reviewComment.value = "";
         })
         .catch(() => {

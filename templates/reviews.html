@@ -230,6 +230,24 @@
         .rv-link-btn.primary { color: #4ade80; }
         .rv-link-btn.primary:hover { background: rgba(34,197,94,0.1); border-color: #22c55e; }
         .rv-foot-spacer { flex: 1; }
+        /* Review XP box: bigger + gold-accented so it can never be confused
+           with the reviewer's profile XP bar (the blue bar by their name).
+           This is the REVIEW's own reputation, not the user's. */
+        .rv-xp-pill {
+            display: inline-flex; align-items: center; gap: 9px;
+            border: 1px solid rgba(250,204,21,0.35); background: linear-gradient(135deg, #1a1507, #14100a);
+            border-radius: 12px; padding: 8px 14px; color: #fde047;
+            font-size: 0.9rem; font-weight: 800; white-space: nowrap;
+            box-shadow: 0 4px 16px rgba(250,204,21,0.12), inset 0 0 0 1px rgba(250,204,21,0.05);
+        }
+        .rv-xp-pill .rv-level {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px; border-radius: 9px; color: #fff; font-weight: 800;
+            font-size: 0.95rem; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+        }
+        .rv-xp-pill .rv-xp-num { color: #fde047; font-variant-numeric: tabular-nums; font-size: 1rem; }
+        .rv-xp-pill .rv-xp-num i { font-size: 0.72rem; color: #fde047; margin-left: 2px; }
+        .rv-xp-pill .rv-xp-label { color: #facc15; font-weight: 800; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.75; }
 
         /* compact review cards — fixed proportions, nothing stretches */
         .rv-card.art .rv-art {
@@ -329,6 +347,36 @@
             </div>
         </div>
 
+        <!-- ===== VOTE POINTS BY RANK (legend box) ===== -->
+        <div style="background:linear-gradient(135deg,#0d1521,#101a29);border:1px solid var(--rv-border);border-radius:18px;padding:20px 22px;margin-bottom:22px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                <i class="fas fa-scale-balanced" style="color:var(--rv-gold);"></i>
+                <h3 style="margin:0;font-size:1.05rem;font-weight:800;">Vote Points by Rank</h3>
+            </div>
+            <p style="margin:0 0 14px;color:var(--rv-muted);font-size:0.83rem;line-height:1.5;">
+                Every like and dislike on a review is worth <b style="color:#e7ecf3;">points that scale with the voter's rank</b>.
+                A high-rank like is worth far more than a low-rank one — so respected members decide, and spam from fresh accounts can't move anything.
+            </p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
+                {% for v in vote_schedule %}
+                <div style="display:flex;flex-direction:column;gap:6px;background:#101720;border:1px solid var(--rv-border);border-radius:12px;padding:12px 14px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="rv-chip-s rk-{{ v.rank|replace('+', 'plus') }}">{{ v.rank }}</span>
+                        <span style="font-size:0.78rem;color:var(--rv-muted-2);font-weight:600;">{{ v.rank }} voter</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:0.8rem;color:var(--rv-muted);"><i class="fas fa-thumbs-up"></i> Like</span>
+                        <span style="font-size:0.95rem;font-weight:800;color:#4ade80;">+{{ v.like }}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:0.8rem;color:var(--rv-muted);"><i class="fas fa-thumbs-down"></i> Dislike</span>
+                        <span style="font-size:0.95rem;font-weight:800;color:#f87171;">{{ v.dislike }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
         {% if top_graded %}
         <!-- ===== TOP GRADED ANIME (trusted-score badge leaderboard) ===== -->
         <div style="background:#0d1521;border:1px solid var(--rv-border);border-radius:18px;padding:20px 22px;margin-bottom:22px;">
@@ -347,7 +395,15 @@
                     </div>
                     <div style="min-width:0;">
                         <div style="font-weight:700;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.title }}</div>
+                        {% if a.hidden_gem %}
+                        <div style="font-size:0.72rem;color:#38bdf8;font-weight:700;margin-top:2px;"><i class="fas fa-gem"></i> Hidden Gem — needs trusted reviews</div>
+                        {% endif %}
                         <div style="font-size:0.72rem;color:var(--rv-muted-2);">{{ a.trusted_count }} trusted · {{ a.audience_count }} reviews</div>
+                        {% if a.xp_tier %}
+                        <div style="font-size:0.72rem;color:#fde047;font-weight:700;margin-top:2px;"><i class="fas fa-bolt"></i> {{ a.xp_tier }} tier · {{ a.trusted_xp_label }} XP</div>
+                        {% else %}
+                        <div style="font-size:0.72rem;color:var(--rv-muted-2);margin-top:2px;"><i class="fas fa-bolt"></i> {{ a.trusted_xp_label }} XP</div>
+                        {% endif %}
                     </div>
                 </a>
                 {% endfor %}
@@ -366,11 +422,29 @@
                 <div class="rv-guide-grid">
                     <div class="rv-gcol">
                         <h4><i class="fas fa-star"></i> Ratings &amp; Grades</h4>
-                        <p>Rate anime on <strong>5 stars</strong>. Each rating maps to a grade — <strong>5★ = S, 4★ = A, 3★ = B, 2★ = C, 1★ = D</strong>. An anime's <strong>headline badge</strong> (S+/S/A/B/C/D) is earned only from <strong>B+ reviewers</strong>, weighted by rank. A separate <strong>audience score</strong> shows everyone's average — so a downvote mob can't hijack the badge.</p>
+                        <p>Rate anime and episodes on <strong>10 stars</strong>. An anime's <strong>headline badge</strong> (S+/S/A/B/C/D) is earned by <strong>C-rank and above reviewers</strong>, weighted by rank <strong>and by their XP</strong> — a high-XP S+ voice outweighs a fresh B. A separate <strong>audience score</strong> shows everyone's average, so a downvote mob can't hijack the badge.</p>
+                    </div>
+                    <div class="rv-gcol">
+                        <h4><i class="fas fa-gem"></i> Hidden Gems</h4>
+                        <p>An anime the crowd loves (<strong>8+/10 average</strong>) that no trusted reviewer has graded yet shows as a <strong>Hidden Gem</strong> — not falsely crowned, not buried. One more reason for C+ reviewers to weigh in.</p>
+                    </div>
+                    <div class="rv-gcol">
+                        <h4><i class="fas fa-bolt"></i> Trusted XP (the tiebreaker)</h4>
+                        <p>Every anime's badge shows its <strong>Trusted XP</strong> — the combined XP of the reviewers shaping its grade. Two anime with the same <strong>10/10</strong> aren't equal: the one backed by <strong>more Trusted XP</strong> wins Vs-battle ties. Trusted XP also ranks the anime itself:</p>
+                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-Splus">S+</span> <span>5,000+ XP</span></div>
+                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-S">S</span> <span>3,000 XP</span></div>
+                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-A">A</span> <span>2,000 XP</span></div>
+                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-B">B</span> <span>1,500 XP</span></div>
+                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-C">C</span> <span>1,000 XP</span></div>
+                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-D">D</span> <span>500 XP</span></div>
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-rocket"></i> Rank Up &amp; Earn XP</h4>
                         <p><strong>New users get an XP boost on their first reviews to climb faster.</strong> Every <strong>like</strong> earns XP; every <strong>dislike</strong> costs it. Higher rank = your reviews weigh more toward an anime's badge. Spam to attack and you lose the very reputation that gives you weight.</p>
+                    </div>
+                    <div class="rv-gcol">
+                        <h4><i class="fas fa-bolt"></i> Review XP vs Your XP</h4>
+                        <p>Each review earns its own <strong>Review XP</strong>, shown as a <strong>D–S+</strong> badge on the card. Every vote is worth <strong>points that scale with the voter's rank</strong> — a D like is +10, an S+ like is +150 (see the Vote Points box above). That's the <strong>review's</strong> clout — separate from <strong>your profile XP</strong> (the bar by your name, which tracks your rank and reviewing power).</p>
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-trophy"></i> Ranks</h4>
@@ -433,12 +507,8 @@
 
                     <div class="rv-anime-line">
                         <a class="rv-anime" href="/anime/{{ r.anime_slug }}">{{ r.anime_title }}</a>
-                        {% if r.is_trusted %}
-                        {% set rg = {5:'S',4:'A',3:'B',2:'C',1:'D'}.get(r.rating, 'D') %}
-                        <span class="rv-chip-s rk-{{ rg }}" title="Trusted reviewer ({{ r.rank }}-rank) rated this a {{ rg }} grade">{{ rg }}</span>
-                        {% endif %}
-                        <span class="rv-stars">{% for i in range(1,6) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
-                        <span class="rv-score">{{ r.rating }}/5</span>
+                        <span class="rv-stars">{% for i in range(1,11) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
+                        <span class="rv-score">{{ r.rating }}/10</span>
                         <span class="dot-sep">·</span>
                         <span class="rv-time">{{ r.created_at }}</span>
                     </div>
@@ -452,6 +522,11 @@
                             <button type="button" class="rv-vote-btn gvote {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike"><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span></button>
                         </div>
                         {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
+                        <span class="rv-xp-pill" title="The XP this review earned from likes and dislikes — points scale by the voter's rank (a D like +10 … an S+ like +150). Separate from {{ r.username }}'s profile XP.">
+                            <span class="rv-level rk-{{ r.review_level }}">{{ r.review_level }}</span>
+                            <span class="rv-xp-num">{{ r.review_xp }} <i class="fas fa-bolt"></i></span>
+                            <span class="rv-xp-label">Review XP</span>
+                        </span>
                         <div class="rv-foot-spacer"></div>
                         <a class="rv-link-btn" href="/user/{{ r.username | urlencode }}"><i class="fas fa-user"></i> History</a>
                         <button type="button" class="rv-link-btn primary" data-share="/anime/{{ r.anime_slug }}"><i class="fas fa-share-nodes"></i> Share</button>
@@ -494,7 +569,7 @@
                         <span class="rv-ep-tag"><i class="fas fa-tv"></i> Episode Review</span>
                         <span class="rv-ep-no">EP {{ r.episode_number }}</span>
                         {% if r.season_name_display %}<span class="rv-ep-season">{{ r.season_name_display }}</span>{% endif %}
-                        <span class="rv-stars">{% for i in range(1,6) %}{% if i <= (r.rating // 2) %}★{% else %}☆{% endif %}{% endfor %}</span>
+                        <span class="rv-stars">{% for i in range(1,11) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
                         <span class="rv-score">{{ r.rating }}/10</span>
                         <span class="dot-sep">·</span>
                         <span class="rv-time">{{ r.created_at }}</span>
@@ -513,6 +588,11 @@
                             <button type="button" class="rv-vote-btn gvote {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike"><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span></button>
                         </div>
                         {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
+                        <span class="rv-xp-pill" title="The XP this review earned from likes and dislikes — points scale by the voter's rank (a D like +10 … an S+ like +150). Separate from {{ r.username }}'s profile XP.">
+                            <span class="rv-level rk-{{ r.review_level }}">{{ r.review_level }}</span>
+                            <span class="rv-xp-num">{{ r.review_xp }} <i class="fas fa-bolt"></i></span>
+                            <span class="rv-xp-label">Review XP</span>
+                        </span>
                         <div class="rv-foot-spacer"></div>
                         <a class="rv-link-btn" href="/user/{{ r.username | urlencode }}"><i class="fas fa-user"></i> History</a>
                         <button type="button" class="rv-link-btn primary" data-share="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}"><i class="fas fa-share-nodes"></i> Share</button>

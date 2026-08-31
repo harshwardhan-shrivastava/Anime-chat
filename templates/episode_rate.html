@@ -251,14 +251,14 @@
 
             <div class="wire-stars" id="wireStars">
 
-                {% for star in range(1, 6) %}
+                {% for star in range(1, 11) %}
                 <i class="far fa-star wire-star" data-value="{{ star }}"></i>
                 {% endfor %}
 
             </div>
 
             <p class="selected-rating-label" id="wireLabel">
-                Tap a star to rate out of 5
+                Tap a star to rate out of 10
             </p>
 
             <button type="button" class="rating-cta" id="scrollToEpisodeReviewBtn">
@@ -347,7 +347,7 @@
 
                         <h3>{{ my_ep_review.username }}</h3>
 
-                        <span>{% for i in range(1,6) %}{% if i <= (my_ep_review.rating // 2) %}★{% else %}☆{% endif %}{% endfor %}<span class="review-score"> {{ my_ep_review.rating }}/10</span></span>
+                        <span>{% for i in range(1,11) %}{% if i <= my_ep_review.rating %}★{% else %}☆{% endif %}{% endfor %}<span class="review-score"> {{ my_ep_review.rating }}/10</span></span>
 
                     </div>
 
