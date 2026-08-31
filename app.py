@@ -17,6 +17,8 @@ load_dotenv()
 from flask import make_response, Flask, render_template, request, jsonify, g, url_for, flash, redirect
 
 from anime_data import anime_database, preload_catalog
+from review_vote_gate import apply_review_vote_gate
+apply_review_vote_gate()
 from characters_data import search_characters, index_stats, reload_characters
 from database import (
     create_tables,
@@ -74,6 +76,7 @@ from review_votes import (
     get_bulk_review_points,
     vote_points_for_rank,
     submit_review_dislike,
+    can_dislike,
     toggle_reason_vote,
     get_review_reasons,
     RANK_COLORS,
@@ -1201,9 +1204,13 @@ def community(anime_slug):
 
 
 def _build_vote_schedule():
-    """Vote point schedule D->S+ with D-equivalence ratios for the legend box."""
+    """Vote point schedule D->S+ with D-equivalence ratios for the legend box.
+
+    D-rank accounts can only like (dislikes and replies require C rank), so
+    the D row has no dislike value and no dislike ratio.
+    """
     d_like = vote_points_for_rank("D", True)          # 5
-    d_dislike = abs(vote_points_for_rank("D", False))  # 3
+    d_dislike = abs(vote_points_for_rank("D", False))  # 0 (D can't dislike)
     schedule = []
     for rk in ("D", "C", "B", "A", "S", "S+"):
         like = vote_points_for_rank(rk, True)
@@ -1211,9 +1218,9 @@ def _build_vote_schedule():
         schedule.append({
             "rank": rk,
             "like": like,
-            "dislike": dislike,
+            "dislike": dislike if dislike else None,
             "like_x_d": round(like / d_like, 1),
-            "dislike_x_d": round(abs(dislike) / d_dislike, 1),
+            "dislike_x_d": round(abs(dislike) / d_dislike, 1) if d_dislike else None,
         })
     return schedule
 
@@ -1519,6 +1526,9 @@ def review_dislike_reason(review_id):
     user = g.get("user")
     if not user:
         return jsonify({"success": False, "error": "Please log in to vote."}), 401
+    # Dislikes (like replies) require C rank — D-rank accounts can only like.
+    if not can_dislike(get_user_rank(user["id"])):
+        return jsonify({"success": False, "error": "Dislikes require C rank (500 XP) — D-rank accounts can only like."}), 403
     if _vote_rate_hit("u:" + str(user["id"]), 40, 300) or _vote_rate_hit(
         "ip:" + (request.remote_addr or "?"), 120, 300
     ):

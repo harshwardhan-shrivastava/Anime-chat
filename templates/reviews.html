@@ -66,8 +66,8 @@
             </div>
             <p style="margin:0 0 14px;color:var(--rv-muted);font-size:0.85rem;line-height:1.55;max-width:720px;">
                 Every like and dislike on a review is worth <b style="color:#e7ecf3;">points that scale with the voter's rank</b>.
-                High ranks decide; spam from fresh accounts can't move anything. One <b style="color:#fde047;">S+ like = 30 D likes</b>,
-                and <b style="color:#f87171;">100 D dislikes ≈ 4 S+ dislikes</b>.
+                High ranks decide; spam from fresh accounts can't move anything. One <b style="color:#fde047;">S+ like = 30 D likes</b>.
+                <b style="color:#f87171;">D-rank accounts can only like — dislikes and replies require C rank (500 XP)</b>.
             </p>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">
                 {% for v in vote_schedule %}
@@ -86,15 +86,16 @@
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.18);border-radius:10px;padding:7px 11px;">
                         <span style="font-size:0.82rem;color:var(--rv-muted);font-weight:600;"><i class="fas fa-thumbs-down" style="color:#f87171;"></i> Dislike</span>
-                        <span style="font-size:1.1rem;font-weight:800;color:#f87171;">{{ v.dislike }}</span>
+                        {% if v.dislike %}<span style="font-size:1.1rem;font-weight:800;color:#f87171;">{{ v.dislike }}</span>
+                        {% else %}<span style="font-size:0.95rem;font-weight:800;color:var(--rv-muted-2);">🔒 C+ only</span>{% endif %}
                     </div>
                 </div>
                 {% endfor %}
             </div>
             <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);font-size:0.78rem;color:var(--rv-muted-2);line-height:1.6;">
                 A single <b style="color:#4ade80;">S+ like (+150)</b> outweighs <b style="color:#c6d1e0;">30 D likes (+5 each)</b>.
-                To tank something with D-rank dislikes you'd need ~<b style="color:#f87171;">100 accounts for every 4 S+ reviewers</b> — that's the anti-brigade wall.
-                And now a <b style="color:#f87171;">dislike without a community-backed reason doesn't count at all</b> — see the guide below.
+                D-rank accounts have <b style="color:#f87171;">no dislike and no reply</b> — a fresh-account mob literally has no weapons.
+                And even for C+ reviewers, a <b style="color:#f87171;">dislike without a community-backed reason doesn't count at all</b> — see the guide below.
             </div>
         </div>
 
@@ -161,7 +162,7 @@
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-rocket"></i> Rank Up &amp; Earn XP</h4>
-                        <p><strong>New users get an XP boost on their first reviews to climb faster.</strong> Every <strong>like</strong> earns XP; every <strong>dislike</strong> costs it. Higher rank = your reviews weigh more toward an anime's badge. <strong>Replying to reviews requires C rank (500 XP)</strong> — so brand-new D-rank accounts can't jump into a comment section to kill the vibe. Spam to attack and you lose the very reputation that gives you weight.</p>
+                        <p><strong>New users get an XP boost on their first reviews to climb faster.</strong> Every <strong>like</strong> earns XP. Higher rank = your reviews weigh more toward an anime's badge. <strong>Disliking and replying to reviews require C rank (500 XP)</strong> — D-rank accounts can only <strong>like</strong>, so brand-new accounts can't jump into a comment section to kill the vibe. Spam to attack and you lose the very reputation that gives you weight.</p>
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-bolt"></i> Review XP vs Your XP</h4>
@@ -169,7 +170,7 @@
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-scale-balanced"></i> Dislikes Need a Reason</h4>
-                        <p>To stop vote-bombing, a <strong>dislike requires a reason</strong> — one per person, per review. That reason is <strong>public and 👍/👎-rateable by everyone</strong>. Your dislike only counts if the community <strong>agrees with your reason</strong> (more 👍 than 👎). Give a bad or brigading reason and it <strong>backfires</strong>: your dislike does nothing and shows as <strong>Contested</strong>. Review-bombing is nearly impossible when every bomber has to post <em>and defend</em> a reason.</p>
+                        <p><strong>Dislikes require C rank (500 XP)</strong> — same as replies, so D-rank accounts can only like. And even for C+ reviewers, a <strong>dislike requires a reason</strong> — one per person, per review. That reason is <strong>public and 👍/👎-rateable by everyone</strong>. Your dislike only counts if the community <strong>agrees with your reason</strong> (more 👍 than 👎). Give a bad or brigading reason and it <strong>backfires</strong>: your dislike does nothing and shows as <strong>Contested</strong>. Review-bombing is nearly impossible when every bomber has to post <em>and defend</em> a reason.</p>
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-trophy"></i> Ranks</h4>
@@ -244,7 +245,11 @@
                         {% if current_user and not mine %}
                         <div class="rv-vote" data-review-id="{{ r.id }}" data-review-type="anime">
                             <button type="button" class="rv-vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like"><span class="vote-emoji">👍</span><span class="rv-vote-count">{{ r.likes or 0 }}</span></button>
+                            {% if user_rank in ('C', 'B', 'A', 'S', 'S+') %}
                             <button type="button" class="rv-vote-btn gdislike {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike" title="Dislike requires a community-gated reason"><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span></button>
+                            {% else %}
+                            <button type="button" class="rv-vote-btn rv-dislike-locked" data-kind="dislike" title="Dislikes require C rank (500 XP) — D-rank accounts can only like."><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span><span class="rv-lock-tag"><i class="fas fa-lock"></i> C+</span></button>
+                            {% endif %}
                             {% if r.contested %}<span class="rv-contested-chip" title="{{ r.contested }} dislike{{ 's' if r.contested != 1 else '' }} rejected because the reason{{ 's' if r.contested != 1 else '' }} didn't hold up to community votes."><i class="fas fa-scale-balanced"></i> {{ r.contested }} contested</span>{% endif %}
                         </div>
                         {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
@@ -259,6 +264,7 @@
                     </div>
 
                     {% if current_user and not mine %}
+                    {% if user_rank in ('C', 'B', 'A', 'S', 'S+') %}
                     <div class="rv-reason-box" data-reason-box="{{ r.id }}" style="display:none">
                         <div class="rv-reason-head"><i class="fas fa-scale-balanced"></i> Why do you disagree? <span class="rv-reason-hint">Your dislike only counts if the community agrees with your reason.</span></div>
                         <div class="rv-reason-chips">
@@ -275,6 +281,7 @@
                         </div>
                         <p class="rv-reason-err"></p>
                     </div>
+                    {% endif %}
 
                     <div class="rv-reasons">
                         {% for re in reasons.get(r.id, []) %}
@@ -371,7 +378,11 @@
                         {% if current_user and not mine %}
                         <div class="rv-vote" data-review-id="{{ r.id }}" data-review-type="episode">
                             <button type="button" class="rv-vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like"><span class="vote-emoji">👍</span><span class="rv-vote-count">{{ r.likes or 0 }}</span></button>
+                            {% if user_rank in ('C', 'B', 'A', 'S', 'S+') %}
                             <button type="button" class="rv-vote-btn gdislike {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike" title="Dislike requires a community-gated reason"><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span></button>
+                            {% else %}
+                            <button type="button" class="rv-vote-btn rv-dislike-locked" data-kind="dislike" title="Dislikes require C rank (500 XP) — D-rank accounts can only like."><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span><span class="rv-lock-tag"><i class="fas fa-lock"></i> C+</span></button>
+                            {% endif %}
                             {% if r.contested %}<span class="rv-contested-chip" title="{{ r.contested }} dislike{{ 's' if r.contested != 1 else '' }} rejected because the reason{{ 's' if r.contested != 1 else '' }} didn't hold up to community votes."><i class="fas fa-scale-balanced"></i> {{ r.contested }} contested</span>{% endif %}
                         </div>
                         {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
@@ -386,6 +397,7 @@
                     </div>
 
                     {% if current_user and not mine %}
+                    {% if user_rank in ('C', 'B', 'A', 'S', 'S+') %}
                     <div class="rv-reason-box" data-reason-box="{{ r.id }}" style="display:none">
                         <div class="rv-reason-head"><i class="fas fa-scale-balanced"></i> Why do you disagree? <span class="rv-reason-hint">Your dislike only counts if the community agrees with your reason.</span></div>
                         <div class="rv-reason-chips">
@@ -402,6 +414,7 @@
                         </div>
                         <p class="rv-reason-err"></p>
                     </div>
+                    {% endif %}
 
                     <div class="rv-reasons">
                         {% for re in reasons.get(r.id, []) %}

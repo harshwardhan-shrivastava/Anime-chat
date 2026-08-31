@@ -333,8 +333,17 @@ def anime_grade_engine(reviews, rank_map):
 # (-300): low-rank spam can't out-shout high ranks by volume.
 VOTE_LIKE_POINTS = {r: 10 * w for r, w in RANK_WEIGHTS.items()}
 VOTE_LIKE_POINTS["D"] = 5
+# Dislikes require C rank (500 XP) — D-rank accounts can only like. Any
+# stray/legacy D dislike prices at 0 so a fresh-account mob does nothing.
 VOTE_DISLIKE_POINTS = {r: -5 * w for r, w in RANK_WEIGHTS.items()}
-VOTE_DISLIKE_POINTS["D"] = -3
+VOTE_DISLIKE_POINTS["D"] = 0
+
+CAN_DISLIKE_RANKS = ("C", "B", "A", "S", "S+")
+
+
+def can_dislike(rank):
+    """Dislikes (like replies) are C rank and above only."""
+    return rank in CAN_DISLIKE_RANKS
 
 
 def vote_points_for_rank(rank, is_like):
@@ -376,8 +385,12 @@ def review_level_for_xp(review_xp):
 def submit_review_dislike(user_id, review_type, review_id, reason):
     """Create a dislike WITH a mandatory reason (one per user per review).
 
+    C rank (500 XP) and above only — D-rank accounts can only like, same
+    as the reply rule, so a fresh-account mob has no dislike weapon at all.
     Returns (ok, error, counts) where counts = {likes, dislikes} after.
     """
+    if not can_dislike(_voter_rank(user_id)):
+        return False, "Dislikes require C rank (500 XP) — D-rank accounts can only like.", None
     reason = (reason or "").strip()[:500]
     if len(reason) < 2:
         return False, "Please give a short reason for your dislike.", None
@@ -529,7 +542,7 @@ CASE
          WHEN ux.xp >= 2000 THEN -40
          WHEN ux.xp >= 1000 THEN -25
          WHEN ux.xp >= 500 THEN -10
-         ELSE -3 END
+         ELSE 0 END
 END
 """
 

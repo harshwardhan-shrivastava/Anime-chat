@@ -392,6 +392,20 @@ body { background: var(--rv-bg); color: var(--rv-text); font-family: 'Inter', -a
 .rv-reply-lock b { color: #fbbf24; }
 .rv-reply-err { color: #f87171; font-size: 0.75rem; margin-top: 6px; }
 
+/* ---- D-rank locked dislike (C+ required) ---- */
+.rv-dislike-locked {
+    cursor: not-allowed !important;
+    opacity: 0.55;
+    border-style: dashed !important;
+}
+.rv-lock-tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 0.6rem; font-weight: 800; letter-spacing: 0.03em;
+    color: #fbbf24; background: rgba(251,191,36,0.12);
+    border: 1px solid rgba(251,191,36,0.35); border-radius: 999px;
+    padding: 1px 6px; margin-left: 4px; vertical-align: middle;
+}
+
 @media (max-width: 720px) {
     .rv-board { flex: 1 1 100%; }
     .rv-hero { padding: 28px 22px; }

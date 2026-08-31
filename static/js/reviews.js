@@ -77,6 +77,11 @@
                     busy = false;
                     return;
                 }
+                // D-rank locked dislike: never send the request.
+                if (!isLike && btn.classList.contains("rv-dislike-locked")) {
+                    busy = false;
+                    return;
+                }
                 var likeBtn = bar.querySelector('[data-kind="like"]');
                 var disBtn = bar.querySelector('[data-kind="dislike"]');
                 var prevLike = likeBtn.classList.contains("voted-like");

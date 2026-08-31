@@ -692,8 +692,8 @@
             </div>
             <p style="margin:0 0 14px;color:#8b98ab;font-size:0.85rem;line-height:1.55;max-width:720px;">
                 Every like and dislike on a review is worth <b style="color:#e7ecf3;">points that scale with the voter's rank</b>.
-                High ranks decide; spam from fresh accounts can't move anything. One <b style="color:#fde047;">S+ like = 30 D likes</b>,
-                and <b style="color:#f87171;">100 D dislikes ≈ 4 S+ dislikes</b>.
+                High ranks decide; spam from fresh accounts can't move anything. One <b style="color:#fde047;">S+ like = 30 D likes</b>.
+                <b style="color:#f87171;">D-rank accounts can only like — dislikes and replies require C rank (500 XP)</b>.
             </p>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">
                 {% for v in vote_schedule %}
@@ -711,7 +711,8 @@
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.18);border-radius:10px;padding:7px 11px;">
                         <span style="font-size:0.82rem;color:#8b98ab;font-weight:600;"><i class="fas fa-thumbs-down" style="color:#f87171;"></i> Dislike</span>
-                        <span style="font-size:1.1rem;font-weight:800;color:#f87171;">{{ v.dislike }}</span>
+                        {% if v.dislike %}<span style="font-size:1.1rem;font-weight:800;color:#f87171;">{{ v.dislike }}</span>
+                        {% else %}<span style="font-size:0.95rem;font-weight:800;color:#5c6777;">🔒 C+ only</span>{% endif %}
                     </div>
                 </div>
                 {% endfor %}
