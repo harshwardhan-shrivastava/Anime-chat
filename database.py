@@ -296,6 +296,8 @@ def create_tables():
     _rv_cols = [row[1] for row in cursor.execute("PRAGMA table_info(reviews)").fetchall()]
     if "war_penalty" not in _rv_cols:
         cursor.execute("ALTER TABLE reviews ADD COLUMN war_penalty INTEGER NOT NULL DEFAULT 0")
+    if "war_bonus" not in _rv_cols:
+        cursor.execute("ALTER TABLE reviews ADD COLUMN war_bonus INTEGER NOT NULL DEFAULT 0")
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS episode_ratings(
@@ -327,6 +329,8 @@ def create_tables():
     _erv_cols = [row[1] for row in cursor.execute("PRAGMA table_info(episode_reviews)").fetchall()]
     if "war_penalty" not in _erv_cols:
         cursor.execute("ALTER TABLE episode_reviews ADD COLUMN war_penalty INTEGER NOT NULL DEFAULT 0")
+    if "war_bonus" not in _erv_cols:
+        cursor.execute("ALTER TABLE episode_reviews ADD COLUMN war_bonus INTEGER NOT NULL DEFAULT 0")
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users(
@@ -1583,9 +1587,13 @@ def get_review_replies(review_type, review_ids):
 
 WAR_DURATION_SECONDS = 24 * 60 * 60  # a war runs for 24h from the first entry
 WAR_MIN_VOTES = 3  # an entry needs 3+ votes to be crowned / placed
-# When the #1 winner of an ended war took the NEGATIVE stance, the review it
-# beat loses this much Review XP once (priced like one C-rank dislike: -10).
-WAR_NEGATIVE_PENALTY_XP = 10  # abs(VOTE_DISLIKE_POINTS["C"]) = -5 * weight(2)
+# A war's outcome only moves the review's XP when it was DECISIVE — the
+# winner needs at least this share of likes (a blowout, not a split room).
+WAR_DECISIVE_RATIO = 0.75
+# The review it bet on gains/loses this much Review XP once (a settled, blowout
+# win is worth a bit more than a single like so it can actually matter).
+WAR_OUTCOME_XP = 15
+WAR_NEGATIVE_PENALTY_XP = WAR_OUTCOME_XP  # legacy alias for the retired settler
 
 
 def _iso_to_ts(s):
@@ -1813,6 +1821,77 @@ def get_war_entry_review(entry_id):
     if not row:
         return None
     return row["review_type"], row["review_id"]
+
+
+def settle_war_outcomes():
+    """Settle every ended war's effect on the review it was fought over, once.
+
+    Only a DECISIVE winner (>= WAR_DECISIVE_RATIO share of likes) moves the
+    review's XP: a Negative blowout makes it lose WAR_OUTCOME_XP, a Positive
+    blowout makes it gain WAR_OUTCOME_XP. Runs after reward_war_leaders;
+    penalty_applied guards against double settles. (Supersedes the earlier
+    apply_war_penalties; callers should use this.)"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """SELECT w.id, w.review_id, w.review_type, w.stance,
+            SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) as likes,
+            SUM(CASE WHEN rl.is_like=0 THEN 1 ELSE 0 END) as dislikes
+            FROM reply_war w
+            LEFT JOIN review_likes rl ON rl.review_type='war' AND rl.review_id = w.id
+            WHERE w.rewarded=1 AND w.penalty_applied=0
+            GROUP BY w.id"""
+        )
+        rows = cursor.fetchall()
+        for row in rows:
+            likes = row["likes"] or 0
+            dislikes = row["dislikes"] or 0
+            total = likes + dislikes
+            ratio = likes / total if total else 0
+            tbl = "reviews" if row["review_type"] == "anime" else "episode_reviews"
+            # Decisive blowout only — a split room (closer than 75% likes)
+            # leaves the review alone.
+            if total >= WAR_MIN_VOTES and ratio >= WAR_DECISIVE_RATIO:
+                if row["stance"] == "negative":
+                    cursor.execute(
+                        f"UPDATE {tbl} SET war_penalty = war_penalty + ? WHERE id = ?",
+                        (WAR_OUTCOME_XP, row["review_id"]),
+                    )
+                elif row["stance"] == "positive":
+                    cursor.execute(
+                        f"UPDATE {tbl} SET war_bonus = war_bonus + ? WHERE id = ?",
+                        (WAR_OUTCOME_XP, row["review_id"]),
+                    )
+            cursor.execute("UPDATE reply_war SET penalty_applied=1 WHERE id=?", (row["id"],))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+    conn.close()
+
+
+def get_war_effects(review_type, review_ids):
+    """Return {review_id: {"penalty": n, "bonus": n}} — the Review XP a
+    review gained/lost to settled Reply War outcomes (0 when untouched)."""
+    if not review_ids:
+        return {}
+    conn = get_connection()
+    cursor = conn.cursor()
+    placeholders = ",".join("?" * len(review_ids))
+    tbl = "reviews" if review_type == "anime" else "episode_reviews"
+    try:
+        cursor.execute(
+            f"SELECT id, war_penalty, war_bonus FROM {tbl} WHERE id IN ({placeholders})",
+            list(review_ids),
+        )
+        rows = cursor.fetchall()
+    except Exception:
+        rows = []
+    conn.close()
+    return {
+        row["id"]: {"penalty": (row["war_penalty"] or 0), "bonus": (row["war_bonus"] or 0)}
+        for row in rows
+    }
 
 
 def get_war_penalties(review_type, review_ids):

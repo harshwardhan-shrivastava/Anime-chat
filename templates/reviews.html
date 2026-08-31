@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260901b">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260902a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -39,7 +39,7 @@
         <div class="rv-war-strip ended">
             <span class="rv-war-title"><i class="fas fa-trophy"></i> War over</span>
             {% if w.podium %}
-            <span class="rv-war-winner">🏆 <b>{{ w.podium[0].username }}</b> <span class="rank-badge rank-{{ w.podium[0].rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ w.podium[0].rank }}</span>{% if is_developer(w.podium[0].username) %} <span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %} <span class="rv-stance {{ w.podium[0].stance }}">{{ '👍 Positive' if w.podium[0].stance == 'positive' else '👎 Negative' }}</span> won with {{ w.podium[0].ratio_pct }}% — <span class="rv-war-leader-txt">{{ w.podium[0].content }}</span>{% if w.podium[0].stance == 'negative' %}<span class="rv-war-hit"><i class="fas fa-bolt"></i> the review took an XP hit</span>{% endif %}</span>
+            <span class="rv-war-winner">🏆 <b>{{ w.podium[0].username }}</b> <span class="rank-badge rank-{{ w.podium[0].rank }}" style="font-size:0.6rem;padding:1px 6px;">{{ w.podium[0].rank }}</span>{% if is_developer(w.podium[0].username) %} <span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %} <span class="rv-stance {{ w.podium[0].stance }}">{{ '👍 Positive' if w.podium[0].stance == 'positive' else '👎 Negative' }}</span> won with {{ w.podium[0].ratio_pct }}% — <span class="rv-war-leader-txt">{{ w.podium[0].content }}</span>{% if r.war_bonus %}<span class="rv-war-hit good"><i class="fas fa-bolt"></i> +{{ r.war_bonus }} XP — the crowd backed this review</span>{% elif r.war_penalty %}<span class="rv-war-hit"><i class="fas fa-bolt"></i> −{{ r.war_penalty }} XP — the crowd shut it down</span>{% endif %}</span>
             <span class="rv-war-podium">🥇 {{ w.podium[0].username }} · 🥈 {{ w.podium[1].username if w.podium|length > 1 else '—' }} · 🥉 {{ w.podium[2].username if w.podium|length > 2 else '—' }}</span>
             {% else %}
             <span class="rv-war-leader-inline none"><i class="fas fa-hourglass-half"></i> War over — not enough votes for a winner.</span>
@@ -94,41 +94,28 @@
         <!-- ===== VOTE POINTS BY RANK (full detailed legend box) ===== -->
         <div style="background:linear-gradient(135deg,#0d1521,#101a29);border:1px solid var(--rv-border);border-radius:18px;padding:22px 24px;margin-bottom:22px;">
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
-                <i class="fas fa-scale-balanced" style="color:var(--rv-gold);font-size:1.1rem;"></i>
-                <h3 style="margin:0;font-size:1.1rem;font-weight:800;">Vote Points by Rank — Full Breakdown</h3>
+                <i class="fas fa-bolt" style="color:var(--rv-gold);font-size:1.1rem;"></i>
+                <h3 style="margin:0;font-size:1.1rem;font-weight:800;">Review XP — Plain & Simple</h3>
             </div>
-            <p style="margin:0 0 14px;color:var(--rv-muted);font-size:0.85rem;line-height:1.55;max-width:720px;">
-                Every like and dislike on a review is worth <b style="color:#e7ecf3;">points that scale with the voter's rank</b>.
-                High ranks decide; spam from fresh accounts can't move anything. One <b style="color:#fde047;">S+ like = 30 D likes</b>.
-                <b style="color:#f87171;">D-rank accounts can only like — dislikes and replies require C rank (500 XP)</b>.
+            <p style="margin:0 0 4px;color:var(--rv-muted);font-size:0.85rem;line-height:1.55;max-width:760px;">
+                No rank-weight math. Every <b style="color:#4ade80;">👍 like is worth +10 XP</b> and every <b style="color:#f87171;">👎 dislike −5 XP</b> — that's it.
+                A review's XP is just the raw points it racked up. <b style="color:#f87171;">Dislikes and war replies require C rank (500 XP)</b>, so D-rank accounts can only like — a fresh-account mob has no dislike weapon at all.
             </p>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">
-                {% for v in vote_schedule %}
-                {% set rk = v.rank|replace('+', 'plus') %}
-                <div style="display:flex;flex-direction:column;gap:8px;background:#101720;border:1px solid var(--rv-border);border-radius:14px;padding:14px 16px;">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span class="rv-chip-s rk-{{ rk }}" style="width:36px;height:36px;font-size:1rem;border-radius:10px;">{{ v.rank }}</span>
-                        <div>
-                            <div style="font-size:0.9rem;font-weight:800;color:#e7ecf3;">{{ v.rank }}-rank voter</div>
-                            <div style="font-size:0.72rem;color:var(--rv-muted-2);font-weight:600;">1 vote = <b style="color:#c6d1e0;">{{ v.like_x_d|round|int if v.like_x_d % 1 == 0 else v.like_x_d }}×</b> a D vote</div>
-                        </div>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.18);border-radius:10px;padding:7px 11px;">
-                        <span style="font-size:0.82rem;color:var(--rv-muted);font-weight:600;"><i class="fas fa-thumbs-up" style="color:#4ade80;"></i> Like</span>
-                        <span style="font-size:1.1rem;font-weight:800;color:#4ade80;">+{{ v.like }}</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.18);border-radius:10px;padding:7px 11px;">
-                        <span style="font-size:0.82rem;color:var(--rv-muted);font-weight:600;"><i class="fas fa-thumbs-down" style="color:#f87171;"></i> Dislike</span>
-                        {% if v.dislike %}<span style="font-size:1.1rem;font-weight:800;color:#f87171;">{{ v.dislike }}</span>
-                        {% else %}<span style="font-size:0.95rem;font-weight:800;color:var(--rv-muted-2);">🔒 C+ only</span>{% endif %}
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px;">
+                <div style="background:#101720;border:1px solid var(--rv-border);border-radius:14px;padding:14px 16px;">
+                    <div style="font-size:0.78rem;color:var(--rv-muted-2);font-weight:700;margin-bottom:8px;">REVIEW RANK LADDER</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span style="font-size:0.78rem;color:#e7ecf3;background:#0c131f;border:1px solid var(--rv-border);border-radius:999px;padding:3px 10px;">500 = D</span>
+                        <span style="font-size:0.78rem;color:#e7ecf3;background:#0c131f;border:1px solid var(--rv-border);border-radius:999px;padding:3px 10px;">1,000 = C</span>
+                        <span style="font-size:0.78rem;color:#e7ecf3;background:#0c131f;border:1px solid var(--rv-border);border-radius:999px;padding:3px 10px;">1,500 = B</span>
+                        <span style="font-size:0.78rem;color:#e7ecf3;background:#0c131f;border:1px solid var(--rv-border);border-radius:999px;padding:3px 10px;">2,000 = A</span>
+                        <span style="font-size:0.78rem;color:#e7ecf3;background:#0c131f;border:1px solid var(--rv-border);border-radius:999px;padding:3px 10px;">3,000 = S</span>
+                        <span style="font-size:0.78rem;color:#fde047;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.4);border-radius:999px;padding:3px 10px;">5,000 = S+</span>
                     </div>
                 </div>
-                {% endfor %}
             </div>
             <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);font-size:0.78rem;color:var(--rv-muted-2);line-height:1.6;">
-                A single <b style="color:#4ade80;">S+ like (+150)</b> outweighs <b style="color:#c6d1e0;">30 D likes (+5 each)</b>.
-                <b style="color:#f87171;">Dislikes and war replies require C rank (500 XP)</b> — D-rank accounts can only like, so a fresh-account mob literally has no weapons.
-                Dislikes are <b style="color:#c6d1e0;">one click, no reason needed</b> — the C+ gate alone stops review-bombing.
+                <b style="color:#4ade80;">👍 +10</b> and <b style="color:#f87171;">👎 −5</b>, no multipliers. A settled <b style="color:#fbbf24;">Reply War</b> can add or knock off more: a <b style="color:#f87171;">decisive Negative win</b> (75%+ likes) deducts <b style="color:#f87171;">−15</b>, a <b style="color:#4ade80;">decisive Positive win</b> adds <b style="color:#4ade80;">+15</b>.
             </div>
         </div>
 
@@ -200,7 +187,7 @@
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-bolt"></i> Review XP vs Your XP</h4>
-                        <p>Each review earns its own <strong>Review XP</strong>, shown as a <strong>D–S+</strong> badge on the card. Every vote is worth <strong>points that scale with the voter's rank</strong> — a D like is +10, an S+ like is +150 (see the Vote Points box above). That's the <strong>review's</strong> clout — separate from <strong>your profile XP</strong> (the bar by your name, which tracks your rank and reviewing power).</p>
+                        <p>Each review earns its own <strong>Review XP</strong>, shown as a <strong>D–S+</strong> badge on the card. Every <strong>like is +10</strong> and every <strong>dislike is −5</strong> — flat, no rank multipliers. That's the <strong>review's</strong> clout, earned purely from the points it attracted — separate from <strong>your profile XP</strong> (the bar by your name, which tracks your rank and reviewing power, since by the time you're C+ your likes and dislikes actually count).</p>
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-thumbs-down"></i> Dislikes &amp; Replies</h4>
@@ -387,6 +374,6 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/reviews.js') }}?v=20260901b"></script>
+    <script src="{{ url_for('static', filename='js/reviews.js') }}?v=20260902a"></script>
 </body>
 </html>

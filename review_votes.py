@@ -337,15 +337,12 @@ def anime_grade_engine(reviews, rank_map):
 # low-rank spam can't move anything. Displayed as a D->S+ level on the card
 # (the review's own clout, separate from the reviewer's profile XP).
 
-# like = +10 * RANK_WEIGHTS, dislike = -5 * RANK_WEIGHTS, EXCEPT D which is
-# nerfed hard so even 100 D dislikes (~ -300) are covered by ~4 S+ dislikes
-# (-300): low-rank spam can't out-shout high ranks by volume.
-VOTE_LIKE_POINTS = {r: 10 * w for r, w in RANK_WEIGHTS.items()}
-VOTE_LIKE_POINTS["D"] = 5
-# Dislikes require C rank (500 XP) — D-rank accounts can only like. Any
-# stray/legacy D dislike prices at 0 so a fresh-account mob does nothing.
-VOTE_DISLIKE_POINTS = {r: -5 * w for r, w in RANK_WEIGHTS.items()}
-VOTE_DISLIKE_POINTS["D"] = 0
+# FLAT point values — no rank-weight middle-man. Every like is worth the
+# same +10 and every dislike -5, so a review's XP is simply the raw points
+# it attracted ("liquid" values). Dislikes stay C rank and above only, so a
+# fresh-account mob still has no dislike weapon.
+VOTE_LIKE_POINTS = 10
+VOTE_DISLIKE_POINTS = -5
 
 CAN_DISLIKE_RANKS = ("C", "B", "A", "S", "S+")
 
@@ -356,15 +353,13 @@ def can_dislike(rank):
 
 
 def vote_points_for_rank(rank, is_like):
-    """Point value of a like/dislike cast by a reviewer of the given rank."""
-    if is_like:
-        return VOTE_LIKE_POINTS.get(rank, 10)
-    return VOTE_DISLIKE_POINTS.get(rank, -5)
+    """Point value of a like/dislike — flat, same for every rank.
+    (+10 like, -5 dislike; D can't dislike.)"""
+    return VOTE_LIKE_POINTS if is_like else VOTE_DISLIKE_POINTS
 
 
 def review_vote_xp(likes, dislikes):
-    """Net review XP = likes*10 - dislikes*5 (floor at 0 for display).
-    Legacy flat fallback; live reviews use rank-weighted vote points."""
+    """Net review XP = likes*10 - dislikes*5 (floor at 0 for display)."""
     return max(0, (likes or 0) * 10 - (dislikes or 0) * 5)
 
 
@@ -589,22 +584,7 @@ def get_review_reasons(review_type, review_ids, user_id):
 # including the legacy toggle -- prices votes correctly). D like +5 / -3 is
 # the nerfed low-rank schedule.
 _VOTE_PTS_SQL = """
-CASE
-  WHEN rl.is_like=1 THEN
-    CASE WHEN ux.xp >= 15000 THEN 150
-         WHEN ux.xp >= 5000 THEN 100
-         WHEN ux.xp >= 2000 THEN 80
-         WHEN ux.xp >= 1000 THEN 50
-         WHEN ux.xp >= 500 THEN 20
-         ELSE 5 END
-  ELSE
-    CASE WHEN ux.xp >= 15000 THEN -75
-         WHEN ux.xp >= 5000 THEN -50
-         WHEN ux.xp >= 2000 THEN -40
-         WHEN ux.xp >= 1000 THEN -25
-         WHEN ux.xp >= 500 THEN -10
-         ELSE 0 END
-END
+CASE WHEN rl.is_like=1 THEN 10 ELSE -5 END
 """
 
 

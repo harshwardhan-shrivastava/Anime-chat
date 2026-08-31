@@ -66,8 +66,8 @@ from database import (
     get_all_wars,
     migrate_replies_to_war,
     reward_war_leaders,
-    apply_war_penalties,
-    get_war_penalties,
+    settle_war_outcomes,
+    get_war_effects,
     get_bulk_review_likes,
     get_user_review_history,
     get_user_review,
@@ -1310,7 +1310,7 @@ def reviews_page():
     user_votes = get_user_anime_review_votes(review_ids, user["id"]) if user else {}
     rank_map = get_bulk_reviewer_ranks([r["user_id"] for r in raw])
     point_map = get_bulk_review_points("anime", review_ids)
-    war_penalties = get_war_penalties("anime", review_ids)
+    war_effects = get_war_effects("anime", review_ids)
     reviews = []
     for r in raw:
         entry = anime_database.get(r["anime_slug"])
@@ -1326,9 +1326,12 @@ def reviews_page():
         else:
             r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"])
             r["contested"] = 0
-        # A negative Reply War winner hits the review it beat once.
-        r["review_xp"] = max(0, r["review_xp"] - war_penalties.get(r["id"], 0))
-        r["war_penalty"] = war_penalties.get(r["id"], 0)
+        # A settled Reply War shifts the review it was fought over once:
+        # a decisive Negative winner deducts, a decisive Positive adds.
+        _we = war_effects.get(r["id"], {"penalty": 0, "bonus": 0})
+        r["war_penalty"] = _we.get("penalty", 0)
+        r["war_bonus"] = _we.get("bonus", 0)
+        r["review_xp"] = max(0, r["review_xp"] - r["war_penalty"] + r["war_bonus"])
         r["review_level"] = review_level_for_xp(r["review_xp"])
         r["user_vote"] = user_votes.get(r["id"])
         rinfo = rank_map.get(r["user_id"], {"rank": "D", "xp": 0})
@@ -1355,7 +1358,7 @@ def reviews_page():
         except Exception:
             ep_user_votes = {}
     ep_rank_map = get_bulk_reviewer_ranks([r["user_id"] for r in raw_ep])
-    ep_war_penalties = get_war_penalties("episode", ep_ids)
+    ep_war_effects = get_war_effects("episode", ep_ids)
     episode_reviews = []
     for r in raw_ep:
         entry = anime_database.get(r["anime_slug"])
@@ -1414,9 +1417,12 @@ def reviews_page():
         except Exception:
             r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"])
             r["contested"] = 0
-        # A negative Reply War winner hits the review it beat once.
-        r["review_xp"] = max(0, r["review_xp"] - ep_war_penalties.get(r["id"], 0))
-        r["war_penalty"] = ep_war_penalties.get(r["id"], 0)
+        # A settled Reply War shifts the review it was fought over once:
+        # a decisive Negative winner deducts, a decisive Positive adds.
+        _ew = ep_war_effects.get(r["id"], {"penalty": 0, "bonus": 0})
+        r["war_penalty"] = _ew.get("penalty", 0)
+        r["war_bonus"] = _ew.get("bonus", 0)
+        r["review_xp"] = max(0, r["review_xp"] - r["war_penalty"] + r["war_bonus"])
         r["review_level"] = review_level_for_xp(r["review_xp"])
         r["user_vote"] = ep_user_votes.get(r["id"])
         rinfo = ep_rank_map.get(r["user_id"], {"rank": "D", "xp": 0})
@@ -1510,7 +1516,7 @@ def reviews_page():
     war_map.update((("anime", rid), w) for rid, w in get_war_entries("anime", review_ids, _uid).items())
     war_map.update((("episode", rid), w) for rid, w in get_war_entries("episode", ep_ids, _uid).items())
     reward_war_leaders()
-    apply_war_penalties()
+    settle_war_outcomes()
     user_rank = get_user_rank(_uid) if _uid else None
 
     return render_template(

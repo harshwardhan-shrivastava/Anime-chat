@@ -684,38 +684,18 @@
         </div>
         {% endif %}
 
-        <!-- ===== VOTE POINTS BY RANK (full detailed legend box) ===== -->
+        <!-- ===== REVIEW XP (flat points legend) ===== -->
         <div style="background:linear-gradient(135deg,#0d1521,#101a29);border:1px solid #1f2b3a;border-radius:18px;padding:22px 24px;margin-bottom:22px;">
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
-                <i class="fas fa-scale-balanced" style="color:#facc15;font-size:1.1rem;"></i>
-                <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#e7ecf3;">Vote Points by Rank — Full Breakdown</h3>
+                <i class="fas fa-bolt" style="color:#facc15;font-size:1.1rem;"></i>
+                <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#e7ecf3;">Review XP — Plain &amp; Simple</h3>
             </div>
-            <p style="margin:0 0 14px;color:#8b98ab;font-size:0.85rem;line-height:1.55;max-width:720px;">
-                Every like and dislike on a review is worth <b style="color:#e7ecf3;">points that scale with the voter's rank</b>.
-                High ranks decide; spam from fresh accounts can't move anything. One <b style="color:#fde047;">S+ like = 30 D likes</b>.
-                <b style="color:#f87171;">D-rank accounts can only like — dislikes and replies require C rank (500 XP)</b>.
+            <p style="margin:0 0 4px;color:#8b98ab;font-size:0.85rem;line-height:1.55;max-width:760px;">
+                No rank-weight math. Every <b style="color:#4ade80;">👍 like is worth +10 XP</b> and every <b style="color:#f87171;">👎 dislike −5 XP</b>.
+                A review's XP is just the raw points it racked up. <b style="color:#f87171;">Dislikes and war replies require C rank (500 XP)</b>, so D-rank accounts can only like.
             </p>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">
-                {% for v in vote_schedule %}
-                <div style="display:flex;flex-direction:column;gap:8px;background:#101720;border:1px solid #1f2b3a;border-radius:14px;padding:14px 16px;">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="width:36px;height:36px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:1rem;flex-shrink:0;background:{{ {'S+': 'linear-gradient(135deg,#f59e0b,#ef4444)', 'S': 'linear-gradient(135deg,#eab308,#f97316)', 'A': 'linear-gradient(135deg,#22c55e,#0ea5e9)', 'B': 'linear-gradient(135deg,#0ea5e9,#6366f1)', 'C': 'linear-gradient(135deg,#6366f1,#a855f7)', 'D': 'linear-gradient(135deg,#64748b,#475569)'}[v.rank] }};">{{ v.rank }}</span>
-                        <div>
-                            <div style="font-size:0.9rem;font-weight:800;color:#e7ecf3;">{{ v.rank }}-rank voter</div>
-                            <div style="font-size:0.72rem;color:#5c6777;font-weight:600;">1 vote = <b style="color:#c6d1e0;">{{ v.like_x_d|round|int if v.like_x_d % 1 == 0 else v.like_x_d }}×</b> a D vote</div>
-                        </div>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.18);border-radius:10px;padding:7px 11px;">
-                        <span style="font-size:0.82rem;color:#8b98ab;font-weight:600;"><i class="fas fa-thumbs-up" style="color:#4ade80;"></i> Like</span>
-                        <span style="font-size:1.1rem;font-weight:800;color:#4ade80;">+{{ v.like }}</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.18);border-radius:10px;padding:7px 11px;">
-                        <span style="font-size:0.82rem;color:#8b98ab;font-weight:600;"><i class="fas fa-thumbs-down" style="color:#f87171;"></i> Dislike</span>
-                        {% if v.dislike %}<span style="font-size:1.1rem;font-weight:800;color:#f87171;">{{ v.dislike }}</span>
-                        {% else %}<span style="font-size:0.95rem;font-weight:800;color:#5c6777;">🔒 C+ only</span>{% endif %}
-                    </div>
-                </div>
-                {% endfor %}
+            <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);font-size:0.78rem;color:#7d8ba0;line-height:1.6;">
+                Review rank ladder: <b style="color:#e7ecf3;">500 = D</b> · <b style="color:#e7ecf3;">1,000 = C</b> · <b style="color:#e7ecf3;">1,500 = B</b> · <b style="color:#e7ecf3;">2,000 = A</b> · <b style="color:#e7ecf3;">3,000 = S</b> · <b style="color:#fde047;">5,000 = S+</b>. A decisive <b style="color:#fbbf24;">Reply War</b> outcome (75%+ likes) adds <b style="color:#4ade80;">+15</b> or knocks off <b style="color:#f87171;">−15</b>.
             </div>
         </div>
 
