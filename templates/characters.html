@@ -288,45 +288,6 @@
 
 </section>
 
-<!-- ================= FOOTER ================= -->
-
-<footer>
-
-    <div class="footer-left">
-
-        <h2>Otakul</h2>
-
-        <p>The place where every anime has its own community.</p>
-
-    </div>
-
-    <div class="footer-links">
-
-        <a href="{{ url_for('home') }}">Home</a>
-
-        <a href="{{ url_for('browse', sort='popular') }}">Popular</a>
-
-        <a href="{{ url_for('browse', sort='trending') }}">Trending</a>
-
-
-        <a href="{{ url_for('characters') }}">Characters</a>
-
-    </div>
-
-    <div class="footer-social">
-
-        <a href="#"><i class="fab fa-discord"></i></a>
-
-        <a href="#"><i class="fab fa-github"></i></a>
-
-        <a href="#"><i class="fab fa-reddit"></i></a>
-
-        <a href="#"><i class="fab fa-instagram"></i></a>
-
-    </div>
-
-</footer>
-
 <script id="characters-data" type="application/json">{{ characters_data_json | safe }}</script>
 
 <script src="{{ url_for('static', filename='js/characters.js') }}"></script>
