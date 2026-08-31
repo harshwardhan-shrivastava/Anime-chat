@@ -16,6 +16,9 @@
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     </noscript>
     <script src="https://kit.fontawesome.com/6c5c3d9d54.js" crossorigin="anonymous" defer></script>
+    {% if turnstile_site_key %}
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    {% endif %}
 </head>
 <body class="auth-body">
 
@@ -69,6 +72,12 @@
                 </div>
             </div>
 
+            {% if turnstile_site_key %}
+            <div style="margin: 6px 0 14px; display: flex; justify-content: center;">
+                <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="dark"></div>
+            </div>
+            {% endif %}
+
             <button type="submit" class="auth-submit">{{ t('Login') }}</button>
 
         </form>
@@ -98,6 +107,8 @@
     });
 })();
 </script>
+
+{% include "_footer.html" %}
 
 </body>
 </html>

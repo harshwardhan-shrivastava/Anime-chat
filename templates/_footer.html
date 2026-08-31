@@ -1,0 +1,105 @@
+<!-- Site footer: shared partial included by every page -->
+<style>
+    .site-footer {
+        margin-top: 60px;
+        padding: 48px 24px 22px;
+        background: linear-gradient(180deg, rgba(13, 18, 29, 0) 0%, #0b1018 35%);
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        font-family: 'Montserrat', system-ui, sans-serif;
+    }
+    .site-footer .footer-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        gap: 36px;
+    }
+    .site-footer .footer-logo {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: 0.5px;
+    }
+    .site-footer .footer-logo span {
+        color: #22c55e;
+    }
+    .site-footer p {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        line-height: 1.6;
+        margin: 12px 0 0;
+        max-width: 320px;
+    }
+    .site-footer h4 {
+        color: #e2e8f0;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        margin: 0 0 14px;
+    }
+    .site-footer .footer-links {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .site-footer .footer-links a {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        text-decoration: none;
+        transition: color 0.2s;
+        width: fit-content;
+    }
+    .site-footer .footer-links a:hover {
+        color: #22c55e;
+    }
+    .site-footer .footer-bottom {
+        max-width: 1200px;
+        margin: 34px auto 0;
+        padding-top: 18px;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        color: #64748b;
+        font-size: 0.78rem;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    @media (max-width: 720px) {
+        .site-footer .footer-inner {
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+        }
+        .site-footer .footer-brand {
+            grid-column: 1 / -1;
+        }
+    }
+</style>
+
+<footer class="site-footer">
+    <div class="footer-inner">
+        <div class="footer-brand">
+            <span class="footer-logo">Ota<span>kul</span></span>
+            <p>Anime community for reviews, threads, episodes, guild wars and everything in between. Built by fans, for fans.</p>
+        </div>
+        <div class="footer-links">
+            <h4>Explore</h4>
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('browse') }}">Browse Anime</a>
+            <a href="{{ url_for('reviews_page') }}">Reviews</a>
+        </div>
+        <div class="footer-links">
+            <h4>Contact</h4>
+            <a href="mailto:otakul82888@gmail.com">otakul82888@gmail.com</a>
+            <a href="https://github.com/harshwardhan-shrivastava/Anime-chat" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </div>
+        <div class="footer-links">
+            <h4>Legal</h4>
+            <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <span>© 2026 OtaKul. All rights reserved.</span>
+        <span>Made with ❤️ for anime fans.</span>
+    </div>
+</footer>

@@ -844,6 +844,8 @@ data-user='{{ current_user | tojson if current_user else "null" }}'
 
 <script src="{{ url_for('static', filename='js/community.js') }}?v=20260826f"></script>
 
+{% include "_footer.html" %}
+
 </body>
 
 </html>

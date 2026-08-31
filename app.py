@@ -970,6 +970,13 @@ def _browse_page(entries, page):
     return page_entries, page, start + BROWSE_PAGE_SIZE < total, loaded, total
 
 
+@app.route("/privacy")
+def privacy_policy():
+    """Privacy policy page — explains data collection, third parties,
+    cookies, rights, and contact info."""
+    return render_template("privacy.html")
+
+
 @app.route("/browse")
 def browse():
     sort = request.args.get("sort", "popular")

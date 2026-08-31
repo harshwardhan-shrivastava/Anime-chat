@@ -35,6 +35,42 @@ def _rate_clear(kind, key):
         _ACTION_LOG.pop((kind, key), None)
 
 
+def _verify_turnstile():
+    """Verify a Cloudflare Turnstile token (free bot protection).
+
+    Returns True when no secret key is configured so the site keeps
+    working until the owner adds TURNSTILE_SECRET_KEY. When configured,
+    the token submitted with the form is checked against Cloudflare's
+    siteverify API."""
+    secret = os.environ.get("TURNSTILE_SECRET_KEY", "").strip()
+    if not secret:
+        return True
+    token = (request.form.get("cf-turnstile-response") or "").strip()
+    if not token:
+        return False
+    try:
+        import requests
+        resp = requests.post(
+            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+            data={
+                "secret": secret,
+                "response": token,
+                "remoteip": request.remote_addr or "",
+            },
+            timeout=10,
+        )
+        return bool(resp.json().get("success"))
+    except Exception:
+        return False
+
+
+@auth.app_context_processor
+def _inject_turnstile_key():
+    """Expose the Turnstile site key to auth templates so the widget only
+    renders once the owner has configured their keys."""
+    return {"turnstile_site_key": os.environ.get("TURNSTILE_SITE_KEY", "").strip()}
+
+
 def _is_bot_request():
     """Honeypot: bots fill hidden fields; real users never see them."""
     honey = (request.form.get("company_website") or "").strip()
@@ -106,6 +142,9 @@ def signup():
     if _is_bot_request():
         # Pretend success so bots think they got through, but do nothing.
         return redirect(url_for("home"))
+    if not _verify_turnstile():
+        flash("Bot check failed. Please try again.", "error")
+        return render_template("signup.html")
     if _rate_hit("signup", ip, 30, 900):
         flash("Too many sign-up attempts. Please wait a few minutes.", "error")
         return render_template("signup.html")
@@ -323,6 +362,9 @@ def login():
         # Honeypot filled: pretend it worked so bots stop hammering.
         session.permanent = True
         return redirect(url_for("home"))
+    if not _verify_turnstile():
+        flash("Bot check failed. Please try again.", "error")
+        return render_template("login.html", identifier=identifier, next=next_url)
     if _rate_hit("login", ip, 60, 900):
         flash("Too many login attempts. Please wait a few minutes.", "error")
         return render_template("login.html", identifier=identifier, next=next_url)
