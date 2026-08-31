@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reply War | Otakul</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260831a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260831b">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260830a">
+</head>
+<body>
+    {% include "_navbar.html" %}
+
+    <div class="war-page detail">
+        <a class="war-back" href="{{ url_for('war_index') }}"><i class="fas fa-arrow-left"></i> All wars</a>
+
+        <div class="war-detail-head">
+            <span class="war-hero-badge"><i class="fas fa-swords"></i> Reply War</span>
+            {% if war %}
+                {% if war.status == 'live' %}
+                <h1>This war is <span class="grad">LIVE</span></h1>
+                <p class="war-timer-line">Votes close in <b class="war-countdown" data-ends="{{ war.ends_ts }}" data-big="1">…</b> — best like-ratio takes the crown.</p>
+                {% else %}
+                <h1>War <span class="grad">over</span></h1>
+                <p class="war-timer-line"><i class="fas fa-flag-checkered"></i> The 24-hour battle has ended — the podium is final.</p>
+                {% endif %}
+            {% else %}
+                <h1>No war <span class="grad">yet</span></h1>
+                <p class="war-timer-line">Be the first to dislike this review with a reason — your take starts a 24-hour battle.</p>
+            {% endif %}
+        </div>
+
+        <!-- ===== The original review ===== -->
+        <div class="war-original" data-review-id="{{ r.id }}">
+            <div class="war-orig-user">
+                {% if r.avatar %}<img class="war-orig-avatar" src="/static/images/avatars/{{ r.avatar }}" alt="">
+                {% else %}<span class="war-orig-avatar" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[:1]|upper }}</span>{% endif %}
+                <div class="war-orig-meta">
+                    <span class="war-author">{{ r.username }}</span>
+                    <span class="rank-badge rank-{{ r.rank }}" style="font-size:0.78rem;padding:2px 10px;">{{ r.rank }}</span>
+                    {% if is_developer(r.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
+                    <span class="war-orig-xp">{{ r.user_xp }} XP</span>
+                </div>
+            </div>
+            <div class="war-orig-title">
+                {% if r.episode_thumb %}<img class="war-orig-thumb{% if r.episode_thumb_is_poster %} poster{% endif %}" src="{{ r.episode_thumb }}" alt="" onerror="this.remove()">{% endif %}
+                <div>
+                    <div class="war-anime-title">{{ r.anime_title }}{% if r.episode_title %} <span class="war-ep">· {{ r.season_name_display }} · Ep {{ r.episode_number }} — {{ r.episode_title }}</span>{% elif r.season_name_display %} <span class="war-ep">· {{ r.season_name_display }} · Ep {{ r.episode_number }}</span>{% endif %}</div>
+                    <div class="war-orig-stars"><span class="war-score">{{ r.rating }}/10</span> {{ '★' * (r.rating or 0) }} <span class="war-orig-time">{{ r.created_at }}</span></div>
+                </div>
+            </div>
+            <div class="war-orig-comment">“{{ r.comment }}”</div>
+            <div class="war-orig-stats">
+                <span class="war-orig-stat"><i class="fas fa-thumbs-up"></i> {{ r.likes }}</span>
+                <span class="war-orig-stat"><i class="fas fa-thumbs-down"></i> {{ r.dislikes }}</span>
+                <span class="rv-xp-pill" title="XP this review earned from likes and dislikes — separate from {{ r.username }}'s profile XP.">
+                    <span class="rv-level rk-{{ r.review_level }}">{{ r.review_level }}</span>
+                    <span class="rv-xp-num">{{ r.review_xp }} <i class="fas fa-bolt"></i></span>
+                    <span class="rv-xp-label">Review XP</span>
+                </span>
+            </div>
+        </div>
+
+        {% if war %}
+        <!-- ===== Podium (ended) ===== -->
+        {% if war.status == 'ended' %}
+        <div class="war-podium">
+            {% set places = {'1': '🥇', '2': '🥈', '3': '🥉'} %}
+            {% if war.podium %}
+            {% for p in war.podium %}
+            <div class="war-podium-slot place-{{ p.place }}">
+                <span class="war-medal">{{ places.get(p.place|string, '') }}</span>
+                <span class="war-podium-name">{{ p.username }}</span>
+                <span class="rank-badge rank-{{ p.rank }}" style="font-size:0.62rem;padding:1px 7px;">{{ p.rank }}</span>
+                <span class="war-podium-ratio">{{ p.ratio_pct }}% · {{ p.likes }}👍 / {{ p.dislikes }}👎</span>
+                <span class="war-podium-take">“{{ p.content }}”</span>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="war-podium-none"><i class="fas fa-hourglass-half"></i> War over — nobody reached 3+ votes, so there's no winner.</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- ===== Live leader banner ===== -->
+        {% if war.status == 'live' %}
+        <div class="war-leader-banner" id="warLeaderBanner">
+            {% if war.leader %}
+            <span class="war-crown">👑</span> <b>{{ war.leader.username }}</b> <span class="rank-badge rank-{{ war.leader.rank }}" style="font-size:0.62rem;padding:1px 7px;">{{ war.leader.rank }}</span>{% if is_developer(war.leader.username) %} <span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %} leads with <b>{{ war.leader.ratio_pct }}%</b> ({{ war.leader.likes }}👍 / {{ war.leader.dislikes }}👎): <span class="war-leader-take">“{{ war.leader.content }}”</span>
+            {% else %}
+            <span class="war-crown">👑</span> No leader yet — <b>3+ votes</b> crown the best like-ratio take.
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- ===== Entries ===== -->
+        <div class="war-entries">
+            {% set ended = war.status == 'ended' %}
+            {% set medal_emojis = {'1': '🥇', '2': '🥈', '3': '🥉'} %}
+            {% for we in war.entries %}
+            {% set my_place = (war.podium|selectattr('id', 'equalto', we.id)|list)[0] if ended and war.podium else None %}
+            <div class="war-entry {{ 'leader' if (not ended and war.leader and we.id == war.leader.id) else '' }} {{ 'podium' if my_place else '' }}" data-entry-id="{{ we.id }}">
+                {% if we.avatar %}<img class="war-entry-avatar" src="/static/images/avatars/{{ we.avatar }}" alt="">
+                {% else %}<span class="war-entry-avatar" style="background:{{ we.avatar_color or '#374151' }};">{{ we.username[:1]|upper }}</span>{% endif %}
+                <div class="war-entry-body">
+                    <div class="war-entry-head">
+                        <b class="war-entry-name">{{ we.username }}</b>
+                        <span class="rank-badge rank-{{ we.rank }}" style="font-size:0.62rem;padding:1px 7px;">{{ we.rank }}</span>
+                        {% if is_developer(we.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
+                        {% if current_user and we.user_id == current_user.id %}<span class="war-entry-mine"><i class="fas fa-user-check"></i> your take</span>{% endif %}
+                        {% if my_place %}<span class="war-medal-inline">{{ medal_emojis.get(my_place.place|string, '') }} #{{ my_place.place }}</span>{% endif %}
+                        {% if not ended and war.leader and we.id == war.leader.id %}<span class="war-crown">👑</span>{% endif %}
+                        <span class="war-entry-time">{{ we.created_at }}</span>
+                    </div>
+                    <div class="war-entry-text">{{ we.content }}</div>
+                    <div class="war-entry-foot">
+                        <span class="war-entry-ratio">Ratio <b>{{ we.ratio_pct }}%</b> ({{ we.likes }}👍 / {{ we.dislikes }}👎)</span>
+                        {% if current_user and not ended %}
+                        <span class="war-vote" data-entry-id="{{ we.id }}">
+                            <button type="button" class="war-vbtn {{ 'voted' if we.my_vote == 1 else '' }}" data-kind="like">👍 <span class="war-vl">{{ we.likes }}</span></button>
+                            <button type="button" class="war-vbtn {{ 'voted' if we.my_vote == 0 else '' }}" data-kind="dislike">👎 <span class="war-vd">{{ we.dislikes }}</span></button>
+                        </span>
+                        {% elif not current_user and not ended %}
+                        <span class="war-login-hint"><a href="/auth">Log in</a> to vote</span>
+                        {% elif ended %}
+                        <span class="war-closed-tag"><i class="fas fa-lock"></i> votes closed</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- ===== Join the war ===== -->
+        {% if war.status == 'live' %}
+        <div class="war-composer">
+            {% if not current_user %}
+            <p class="war-composer-lock"><i class="fas fa-lock"></i> <a href="/auth">Log in</a> to enter this war — dislikes require <b>C rank (500 XP)</b>.</p>
+            {% elif my_entry %}
+            <p class="war-composer-in"><i class="fas fa-check-circle"></i> You're in this war — your take is above. Sit tight, the crowd decides.</p>
+            {% elif user_rank in ('C', 'B', 'A', 'S', 'S+') %}
+            <p class="war-composer-title"><i class="fas fa-swords"></i> Your take — posting it also records a <b>dislike</b> on this review. Win the war and your take becomes the only reply shown.</p>
+            <textarea class="war-composer-input" maxlength="500" placeholder="Why is this review wrong? Make it count…"></textarea>
+            <div class="war-composer-actions">
+                <span class="war-composer-err"></span>
+                <button type="button" class="war-composer-submit"><i class="fas fa-swords"></i> Enter the War</button>
+            </div>
+            {% else %}
+            <p class="war-composer-lock"><i class="fas fa-lock"></i> War entries require <b>C rank (500 XP)</b> — keep getting likes on your reviews to unlock.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <!-- No war yet: the review exists but nobody has disliked it with a reason -->
+        <div class="war-composer">
+            {% if not current_user %}
+            <p class="war-composer-lock"><i class="fas fa-lock"></i> <a href="/auth">Log in</a> to start this war — dislikes require <b>C rank (500 XP)</b>.</p>
+            {% elif user_rank in ('C', 'B', 'A', 'S', 'S+') %}
+            <p class="war-composer-title"><i class="fas fa-swords"></i> Start the war — your take (with a dislike) is the first battler. 24 hours on the clock.</p>
+            <textarea class="war-composer-input" maxlength="500" placeholder="Why is this review wrong? Make it count…"></textarea>
+            <div class="war-composer-actions">
+                <span class="war-composer-err"></span>
+                <button type="button" class="war-composer-submit"><i class="fas fa-swords"></i> Start the War</button>
+            </div>
+            {% else %}
+            <p class="war-composer-lock"><i class="fas fa-lock"></i> Starting a war requires <b>C rank (500 XP)</b> — keep getting likes on your reviews to unlock.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="{{ url_for('static', filename='js/war.js') }}?v=20260831b"></script>
+</body>
+</html>

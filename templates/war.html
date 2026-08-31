@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>War Zone | Otakul</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260831a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260831b">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260830a">
+</head>
+<body>
+    {% include "_navbar.html" %}
+
+    <div class="war-page">
+        <div class="war-hero">
+            <span class="war-hero-badge"><i class="fas fa-swords"></i> The Reply War Arena</span>
+            <h1>War <span class="grad">Zone</span></h1>
+            <p>Every review someone disagreed with becomes a battlefield. Dislike a review with a reason and your take enters its war — the community votes for 24 hours, and the <b>best like-ratio</b> wins. The #1 take is the only reply shown under that review.</p>
+        </div>
+
+        {% set live = wars|selectattr('status', 'equalto', 'live')|list %}
+        {% set ended = wars|selectattr('status', 'equalto', 'ended')|list %}
+
+        {% if wars %}
+        {% if live %}
+        <div class="war-section">
+            <h2 class="war-section-title"><i class="fas fa-fire"></i> Hottest Wars Right Now</h2>
+            <div class="war-grid">
+                {% for w in live[:6] %}
+                <a class="war-card hot" href="{{ url_for('war_detail', review_type=w.review_type, review_id=w.review_id) }}">
+                    <div class="war-card-top">
+                        <span class="war-status live"><i class="fas fa-bolt"></i> LIVE</span>
+                        <span class="war-battlers"><i class="fas fa-users"></i> {{ w.battlers }} battler{{ 's' if w.battlers != 1 }}</span>
+                    </div>
+                    <div class="war-review-head">
+                        <span class="war-author">{{ w.username }}</span>
+                        <span class="rank-badge rank-{{ w.author_rank }}" style="font-size:0.62rem;padding:1px 7px;">{{ w.author_rank }}</span>
+                        {% if is_developer(w.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
+                    </div>
+                    <div class="war-anime-title">{{ w.anime_title }}{% if w.episode_label %} <span class="war-ep">· {{ w.episode_label }}</span>{% endif %}</div>
+                    <div class="war-rating"><span class="war-score">{{ w.rating }}/10</span> {{ '★' * (w.rating or 0) }}</div>
+                    <div class="war-comment">“{{ w.comment }}”</div>
+                    {% if w.leader %}
+                    <div class="war-leader-line"><span class="war-crown">👑</span> {{ w.leader.username }} leads ({{ w.leader.ratio_pct }}%)</div>
+                    {% else %}
+                    <div class="war-leader-line none"><i class="fas fa-hourglass-half"></i> No leader yet — 3+ votes crown the best take</div>
+                    {% endif %}
+                    <div class="war-card-foot"><span class="war-countdown" data-ends="{{ w.ends_ts }}">…</span><span class="war-enter">Enter war <i class="fas fa-arrow-right"></i></span></div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="war-section">
+            <h2 class="war-section-title"><i class="fas fa-trophy"></i> All Wars{% if live %} <span class="war-sub">({{ live|length }} live · {{ ended|length }} settled)</span>{% endif %}</h2>
+            <div class="war-list">
+                {% for w in wars %}
+                <a class="war-row" href="{{ url_for('war_detail', review_type=w.review_type, review_id=w.review_id) }}">
+                    <div class="war-row-main">
+                        <div class="war-row-top">
+                            <span class="war-author">{{ w.username }}</span>
+                            <span class="rank-badge rank-{{ w.author_rank }}" style="font-size:0.6rem;padding:1px 7px;">{{ w.author_rank }}</span>
+                            {% if is_developer(w.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
+                            <span class="war-rating-mini">★ {{ w.rating }}/10</span>
+                        </div>
+                        <div class="war-anime-title">{{ w.anime_title }}{% if w.episode_label %} <span class="war-ep">· {{ w.episode_label }}</span>{% endif %}</div>
+                        <div class="war-comment">“{{ w.comment }}”</div>
+                    </div>
+                    <div class="war-row-side">
+                        {% if w.status == 'live' %}
+                        <span class="war-status live"><i class="fas fa-bolt"></i> LIVE</span>
+                        <span class="war-battlers"><i class="fas fa-users"></i> {{ w.battlers }}</span>
+                        {% if w.leader %}<span class="war-leader-mini">👑 {{ w.leader.username }} ({{ w.leader.ratio_pct }}%)</span>
+                        {% else %}<span class="war-leader-mini none">no leader yet</span>{% endif %}
+                        <span class="war-countdown" data-ends="{{ w.ends_ts }}">…</span>
+                        {% else %}
+                        <span class="war-status ended"><i class="fas fa-flag-checkered"></i> WAR OVER</span>
+                        <span class="war-battlers"><i class="fas fa-users"></i> {{ w.battlers }}</span>
+                        {% if w.podium %}<span class="war-leader-mini">🏆 {{ w.podium[0].username }} ({{ w.podium[0].ratio_pct }}%)</span>{% else %}<span class="war-leader-mini none">no winner</span>{% endif %}
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="war-empty">
+            <i class="fas fa-swords"></i>
+            <h3>No wars yet</h3>
+            <p>Dislike a review with a reason over on <a href="{{ url_for('reviews_page') }}">Reviews</a> — that's how a war starts. The first take begins a 24-hour battle.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="{{ url_for('static', filename='js/war.js') }}?v=20260831b"></script>
+</body>
+</html>

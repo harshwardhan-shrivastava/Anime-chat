@@ -4,7 +4,7 @@ Uses the shared review_likes table. Rank tiers: everyone starts at D;
 S+ is intentionally almost impossible (50,000 XP). A reviewer whose
 received votes are overwhelmingly dislikes drops to F regardless of XP.
 """
-from database import get_connection, recalculate_user_xp, get_user_xp
+from database import get_connection, recalculate_user_xp, get_user_xp, war_is_live
 from dev_accounts import is_dev_username
 
 
@@ -487,10 +487,22 @@ def toggle_war_vote(user_id, entry_id, is_like):
     """Vote on a reply-war entry (any logged-in user).
 
     Returns (user_vote, likes, dislikes). Votes live in review_likes with
-    review_type='war' and price rank-weighted like every other vote.
+    review_type='war' and price rank-weighted like every other vote. A
+    war's votes close when it ends (24h) — the podium is final then.
     """
     conn = get_connection()
     cursor = conn.cursor()
+    cursor.execute(
+        "SELECT review_type, review_id FROM reply_war WHERE id=?",
+        (entry_id,),
+    )
+    entry = cursor.fetchone()
+    if not entry:
+        conn.close()
+        raise ValueError("Entry not found")
+    if not war_is_live(entry["review_type"], entry["review_id"]):
+        conn.close()
+        raise PermissionError("This war is over — votes are closed.")
     cursor.execute(
         "SELECT id, is_like FROM review_likes WHERE user_id=? AND review_type='war' AND review_id=?",
         (user_id, entry_id),

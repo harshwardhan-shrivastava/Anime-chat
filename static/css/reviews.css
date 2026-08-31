@@ -492,3 +492,34 @@ body { background: var(--rv-bg); color: var(--rv-text); font-family: 'Inter', -a
     .rv-board { flex: 1 1 100%; }
     .rv-hero { padding: 28px 22px; }
 }
+
+/* ---- Reply War status strip on review cards (lives on the war page) ---- */
+.rv-war { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--rv-border); }
+.rv-war-strip {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: #0c131f; border: 1px solid var(--rv-border); border-radius: 10px;
+    padding: 9px 12px; font-size: 0.8rem; color: var(--rv-muted);
+}
+.rv-war-strip.live { border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.05); }
+.rv-war-strip.ended { border-color: rgba(251,191,36,0.4); background: rgba(251,191,36,0.06); }
+.rv-war-title {
+    font-size: 0.82rem; font-weight: 800; color: #e7ecf3;
+    display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+}
+.rv-war-title i { color: #fbbf24; }
+.rv-war-count {
+    background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.35);
+    border-radius: 999px; padding: 1px 7px; font-size: 0.68rem; font-weight: 800; margin-left: 2px;
+}
+.rv-war-none { font-size: 0.78rem; }
+.rv-war-none b { color: #fbbf24; }
+.rv-war-leader-inline { display: inline-flex; align-items: center; gap: 6px; color: #fde68a; flex-wrap: wrap; }
+.rv-war-leader-inline.none { color: var(--rv-muted); }
+.rv-war-leader-txt { color: #fde68a; font-style: italic; }
+.rv-war-winner { display: inline-flex; align-items: center; gap: 6px; color: #fde68a; flex-wrap: wrap; }
+.rv-war-podium { width: 100%; font-size: 0.74rem; color: #8b98ad; }
+.rv-war-link {
+    margin-left: auto; white-space: nowrap; font-size: 0.78rem; font-weight: 800; color: #fbbf24;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 5px;
+}
+.rv-war-link:hover { text-decoration: underline; }

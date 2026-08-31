@@ -14,7 +14,7 @@ import requests
 from dotenv import load_dotenv
 load_dotenv()
 
-from flask import make_response, Flask, render_template, request, jsonify, g, url_for, flash, redirect
+from flask import make_response, Flask, render_template, request, jsonify, g, url_for, flash, redirect, abort
 
 from anime_data import anime_database, preload_catalog
 from review_vote_gate import apply_review_vote_gate
@@ -63,6 +63,7 @@ from database import (
     get_review_replies,
     add_war_entry,
     get_war_entries,
+    get_all_wars,
     migrate_replies_to_war,
     reward_war_leaders,
     get_bulk_review_likes,
@@ -1441,8 +1442,9 @@ def reviews_page():
     replies_map = get_review_replies("anime", review_ids)
     replies_map.update(get_review_replies("episode", ep_ids))
     migrate_replies_to_war()
-    war_map = get_war_entries("anime", review_ids, _uid)
-    war_map.update(get_war_entries("episode", ep_ids, _uid))
+    war_map = {}
+    war_map.update((("anime", rid), w) for rid, w in get_war_entries("anime", review_ids, _uid).items())
+    war_map.update((("episode", rid), w) for rid, w in get_war_entries("episode", ep_ids, _uid).items())
     reward_war_leaders()
     user_rank = get_user_rank(_uid) if _uid else None
 
@@ -1562,13 +1564,148 @@ def review_dislike_reason(review_id):
     if not ok:
         return jsonify({"success": False, "error": err or "Could not submit."}), 400
     reason_row = get_review_reasons(review_type, [review_id], user["id"]).get(review_id, [])[-1]
+    # The reason IS your war entry: disliking with a take joins (or starts)
+    # the review's Reply War. Users who already entered keep their entry.
+    reason_text = (data.get("reason") or "").strip()
+    if reason_text:
+        try:
+            add_war_entry(user["id"], review_type, review_id, reason_text)
+        except Exception:
+            pass
     return jsonify({
         "success": True,
         "likes": counts["likes"],
         "dislikes": counts["dislikes"],
         "user_vote": 0,
         "reason": reason_row,
+        "war_url": "/war/{}/{}".format(review_type, review_id),
     })
+
+
+@app.route("/war")
+def war_index():
+    """War Zone — every Reply War across all reviews, hottest first."""
+    user = g.get("user")
+    wars = get_all_wars()
+    anime_ids = [w["review_id"] for w in wars if w["review_type"] == "anime"]
+    ep_ids = [w["review_id"] for w in wars if w["review_type"] == "episode"]
+    meta = {}
+    for r in get_all_reviews(limit=200):
+        if r["id"] in anime_ids:
+            meta[("anime", r["id"])] = r
+    for r in get_all_episode_reviews(limit=200):
+        if r["id"] in ep_ids:
+            meta[("episode", r["id"])] = r
+    author_ids = [meta[k]["user_id"] for k in meta if meta[k].get("user_id")]
+    rank_map = get_bulk_reviewer_ranks(list({uid for uid in author_ids if uid}))
+    cards = []
+    for w in wars:
+        r = meta.get((w["review_type"], w["review_id"]))
+        if not r:
+            continue
+        entry = anime_database.get(r["anime_slug"])
+        title = entry.get("title", r["anime_slug"]) if entry else r["anime_slug"]
+        rinfo = rank_map.get(r["user_id"], {"rank": "D", "xp": 0})
+        w["username"] = r["username"]
+        w["author_rank"] = rinfo["rank"] if isinstance(rinfo, dict) else rinfo
+        w["anime_title"] = title
+        w["anime_image"] = entry.get("image") if entry else None
+        w["rating"] = r["rating"]
+        w["comment"] = (r["comment"] or "")[:240]
+        if w["review_type"] == "episode":
+            w["episode_label"] = "Ep {}".format(r["episode_number"])
+        cards.append(w)
+    return render_template(
+        "war.html",
+        wars=cards,
+        current_user=user,
+    )
+
+
+@app.route("/war/<review_type>/<int:review_id>")
+def war_detail(review_type, review_id):
+    """A single Reply War: the original review on top, every battler below,
+    the live leader (or final podium once the 24h timer ends)."""
+    if review_type not in ("anime", "episode"):
+        abort(404)
+    user = g.get("user")
+    raw = get_all_episode_reviews(limit=200) if review_type == "episode" else get_all_reviews(limit=200)
+    r = next((x for x in raw if x["id"] == review_id), None)
+    if not r:
+        abort(404)
+    _enrich_war_review(review_type, r)
+    war = get_war_entries(review_type, [review_id], user["id"] if user else None).get(review_id)
+    my_entry = None
+    if war and user:
+        my_entry = next((e for e in war["entries"] if e["user_id"] == user["id"]), None)
+    user_rank = get_user_rank(user["id"]) if user else None
+    return render_template(
+        "war_detail.html",
+        r=r,
+        war=war,
+        my_entry=my_entry,
+        user_rank=user_rank,
+        current_user=user,
+    )
+
+
+def _enrich_war_review(review_type, r):
+    """Enrich a single review row into the card shape the war page renders
+    (title, image, votes, review XP, author rank) — mirror of the /reviews
+    feed enrichment for one review."""
+    entry = anime_database.get(r["anime_slug"])
+    r["anime_title"] = entry.get("title", r["anime_slug"]) if entry else r["anime_slug"]
+    r["anime_image"] = entry.get("image") if entry else None
+    counts = get_bulk_review_likes(review_type, [r["id"]]).get(r["id"], {"likes": 0, "dislikes": 0})
+    r["likes"] = counts["likes"]
+    r["dislikes"] = counts["dislikes"]
+    pts = get_bulk_review_points(review_type, [r["id"]]).get(r["id"])
+    if pts:
+        r["review_xp"] = max(0, (pts.get("like_points") or 0) + (pts.get("dislike_points") or 0))
+        r["contested"] = pts.get("contested", 0)
+    else:
+        r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"])
+        r["contested"] = 0
+    r["review_level"] = review_level_for_xp(r["review_xp"])
+    rinfo = get_bulk_reviewer_ranks([r["user_id"]]).get(r["user_id"], {"rank": "D", "xp": 0})
+    r["rank"] = rinfo["rank"] if isinstance(rinfo, dict) else rinfo
+    r["user_xp"] = rinfo["xp"] if isinstance(rinfo, dict) else 0
+    r["xp_pct"] = xp_progress(r["user_xp"])[1]
+    r["rank_color"] = RANK_COLORS.get(r["rank"], "#9ca3af")
+    r["is_trusted"] = r["rank"] in TRUSTED_RANKS
+    if review_type == "episode":
+        r["episode_thumb"] = None
+        r["episode_title"] = None
+        r["season_name_display"] = None
+        r["season_idx"] = 1
+        if entry and entry.get("seasons"):
+            matched_season = None
+            for si, s in enumerate(entry["seasons"]):
+                if s.get("name") == r["season_name"]:
+                    r["season_idx"] = si + 1
+                    matched_season = s
+                    break
+            if matched_season is None:
+                try:
+                    idx = int(r["season_name"])
+                    if 1 <= idx <= len(entry["seasons"]):
+                        r["season_idx"] = idx
+                        matched_season = entry["seasons"][idx - 1]
+                except (TypeError, ValueError):
+                    pass
+            if matched_season:
+                r["season_name_display"] = matched_season.get("name") or f"Season {r['season_idx']}"
+                for ep in matched_season.get("episodes", []):
+                    if ep.get("number") == r["episode_number"]:
+                        r["episode_thumb"] = ep.get("thumb") or ep.get("image")
+                        r["episode_title"] = ep.get("title")
+                        break
+        if not r.get("season_name_display"):
+            r["season_name_display"] = r["season_name"]
+        r["episode_thumb_is_poster"] = False
+        if not r["episode_thumb"]:
+            r["episode_thumb_is_poster"] = True
+            r["episode_thumb"] = r["anime_image"]
 
 
 @app.route("/api/review/<int:review_id>/remove-reason", methods=["POST"])

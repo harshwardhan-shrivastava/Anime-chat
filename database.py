@@ -3,6 +3,7 @@ import sqlite3
 import random
 import threading
 import time
+from datetime import datetime, timezone
 from dev_accounts import is_dev_username
 
 DATABASE = "animechat.db"
@@ -1559,6 +1560,68 @@ def get_review_replies(review_type, review_ids):
     return out
 
 
+WAR_DURATION_SECONDS = 24 * 60 * 60  # a war runs for 24h from the first entry
+WAR_MIN_VOTES = 3  # an entry needs 3+ votes to be crowned / placed
+
+
+def _iso_to_ts(s):
+    """SQLite CURRENT_TIMESTAMP strings are UTC "YYYY-MM-DD HH:MM:SS" -> epoch."""
+    try:
+        dt = datetime.strptime(s, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+        return int(dt.timestamp())
+    except Exception:
+        return 0
+
+
+def war_state(entries):
+    """Given war-entry dicts, return (started_ts, ends_ts, status, leader,
+    podium). status is 'live' or 'ended'; leader is the live leader (or
+    None); podium is the final top-3 [{place, entry}] for ended wars.
+    Winner = best like-ratio among entries with 3+ votes (tie -> most
+    likes), exactly: 100 likes/50 dislikes loses to 75 likes/0 dislikes."""
+    if not entries:
+        return 0, 0, "ended", None, []
+    started = min(e["created_at"] for e in entries)
+    start_ts = _iso_to_ts(started)
+    ends_ts = start_ts + WAR_DURATION_SECONDS
+    status = "live" if time.time() < ends_ts else "ended"
+    eligible = sorted(
+        [e for e in entries if e["total"] >= WAR_MIN_VOTES],
+        key=lambda e: (e["ratio"], e["likes"]),
+        reverse=True,
+    )
+    if status == "live":
+        return start_ts, ends_ts, status, (eligible[0] if eligible else None), []
+    podium = [
+        {"place": i + 1, **e}
+        for i, e in enumerate(eligible[:3])
+    ]
+    return start_ts, ends_ts, status, None, podium
+
+
+def _war_entry_dict(row, my_votes=None):
+    likes = row["likes"] or 0
+    dislikes = row["dislikes"] or 0
+    total = likes + dislikes
+    return {
+        "id": row["id"],
+        "user_id": row["user_id"],
+        "username": row["username"] or "user",
+        "avatar": row["avatar"],
+        "avatar_color": row["avatar_color"] or "#374151",
+        "rank": "S+" if is_dev_username(row["username"]) else get_xp_tier(row["xp"] or 0),
+        "content": row["content"],
+        "created_at": row["created_at"],
+        "likes": likes,
+        "dislikes": dislikes,
+        "total": total,
+        "ratio": round(likes / total, 4) if total else 0.0,
+        "ratio_pct": round(likes / total * 100) if total else 0,
+        "my_vote": my_votes.get(row["id"]) if my_votes else None,
+        "rewarded": bool(row["rewarded"]),
+    }
+
+
 def add_war_entry(user_id, review_type, review_id, content):
     """Post a reply-war entry on a review (one per user per review).
 
@@ -1587,13 +1650,17 @@ def add_war_entry(user_id, review_type, review_id, content):
     eid = cursor.lastrowid
     conn.close()
     rows = get_war_entries(review_type, [review_id], user_id)
-    entry = next((e for e in rows.get(review_id, []) if e["id"] == eid), None)
+    entry = next((e for e in rows.get(review_id, {}).get("entries", []) if e["id"] == eid), None)
     return True, None, entry
 
 
 def get_war_entries(review_type, review_ids, user_id=None):
-    """Return {review_id: [war entry dicts]} with like/dislike counts, my
-    vote and the live leader (best like-ratio among entries with 3+ votes)."""
+    """Return {review_id: war dict} with entries, like/dislike counts, my
+    vote and the live leader / ended podium.
+
+    war dict = {"entries": [...], "started_at", "ends_at", "ends_ts",
+    "status": 'live'|'ended', "leader": {...}|None, "podium": [...]}
+    """
     if not review_ids:
         return {}
     conn = get_connection()
@@ -1623,37 +1690,101 @@ def get_war_entries(review_type, review_ids, user_id=None):
         )
         my_votes = {row["review_id"]: row["is_like"] for row in cursor.fetchall()}
     conn.close()
-    out = {}
+    grouped = {}
     for row in rows:
-        likes = row["likes"] or 0
-        dislikes = row["dislikes"] or 0
-        total = likes + dislikes
-        ratio = (likes / total) if total else 0.0
-        out.setdefault(row["review_id"], []).append({
-            "id": row["id"],
-            "user_id": row["user_id"],
-            "username": row["username"] or "user",
-            "avatar": row["avatar"],
-            "avatar_color": row["avatar_color"] or "#374151",
-            "rank": "S+" if is_dev_username(row["username"]) else get_xp_tier(row["xp"] or 0),
-            "content": row["content"],
-            "created_at": row["created_at"],
-            "likes": likes,
-            "dislikes": dislikes,
-            "total": total,
-            "ratio": ratio,
-            "my_vote": my_votes.get(row["id"]),
-            "rewarded": bool(row["rewarded"]),
-        })
-    # Live leader: best like-ratio among entries with 3+ votes; tie -> most likes.
-    for rid, entries in out.items():
-        eligible = [e for e in entries if e["total"] >= 3]
-        if not eligible:
-            continue
-        best = max(eligible, key=lambda e: (e["ratio"], e["likes"]))
-        for e in entries:
-            e["is_leader"] = e["id"] == best["id"]
+        grouped.setdefault(row["review_id"], []).append(_war_entry_dict(row, my_votes))
+    out = {}
+    for rid, entries in grouped.items():
+        start_ts, ends_ts, status, leader, podium = war_state(entries)
+        out[rid] = {
+            "review_type": review_type,
+            "entries": entries,
+            "battlers": len(entries),
+            "started_at": entries[0]["created_at"],
+            "started_ts": start_ts,
+            "ends_ts": ends_ts,
+            "status": status,
+            "leader": leader,
+            "podium": podium,
+        }
     return out
+
+
+def get_all_wars():
+    """Every war across all reviews (one per review that has entries),
+    hottest first: live wars on top, then by battler count.
+
+    Returns [{review_type, review_id, battlers, status, started_at,
+    started_ts, ends_ts, leader, podium}].
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT w.id, w.review_id, w.review_type, w.user_id, w.content, w.rewarded, w.created_at,
+        u.username, u.avatar, u.avatar_color, ux.xp,
+        SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) as likes,
+        SUM(CASE WHEN rl.is_like=0 THEN 1 ELSE 0 END) as dislikes
+        FROM reply_war w
+        LEFT JOIN users u ON u.id = w.user_id
+        LEFT JOIN user_xp ux ON ux.user_id = w.user_id
+        LEFT JOIN review_likes rl ON rl.review_type='war' AND rl.review_id = w.id
+        GROUP BY w.id ORDER BY w.id ASC""",
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    grouped = {}
+    for row in rows:
+        grouped.setdefault((row["review_type"], row["review_id"]), []).append(
+            _war_entry_dict(row)
+        )
+    wars = []
+    for (rtype, rid), entries in grouped.items():
+        start_ts, ends_ts, status, leader, podium = war_state(entries)
+        wars.append({
+            "review_type": rtype,
+            "review_id": rid,
+            "battlers": len(entries),
+            "started_at": entries[0]["created_at"],
+            "started_ts": start_ts,
+            "ends_ts": ends_ts,
+            "status": status,
+            "leader": leader,
+            "podium": podium,
+        })
+    # Hottest first: live wars above ended ones, then most battlers.
+    wars.sort(key=lambda w: (0 if w["status"] == "live" else 1, -w["battlers"]))
+    return wars
+
+
+def war_is_live(review_type, review_id):
+    """True while a review's war is still accepting votes (24h from the
+    first entry). Wars with no entries are not live."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT MIN(created_at) as c FROM reply_war WHERE review_type=? AND review_id=?",
+        (review_type, review_id),
+    )
+    row = cur.fetchone()
+    conn.close()
+    if not row or not row["c"]:
+        return False
+    return time.time() < _iso_to_ts(row["c"]) + WAR_DURATION_SECONDS
+
+
+def get_war_entry_review(entry_id):
+    """Return (review_type, review_id) for a war entry, or None."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT review_type, review_id FROM reply_war WHERE id=?",
+        (entry_id,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return row["review_type"], row["review_id"]
 
 
 def migrate_replies_to_war():
@@ -1679,35 +1810,45 @@ def migrate_replies_to_war():
 
 
 def reward_war_leaders():
-    """Give a one-time +25 XP crown bonus to any war entry that is currently
-    the leader (3+ votes, best ratio). Flag guards against double rewards."""
+    """Give a one-time +25 XP crown bonus to the WINNER of every war that
+    has ended (24h up, 3+ votes, best like-ratio). The rewarded flag guards
+    against double pays; a war pays its winner exactly once, at the end."""
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        # All entries with 3+ votes, ranked per review by (ratio, likes).
         cursor.execute(
-            """SELECT w.id, w.user_id, w.review_id, w.review_type,
+            """SELECT w.id, w.user_id, w.review_id, w.review_type, w.created_at,
             SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) as likes,
             SUM(CASE WHEN rl.is_like=0 THEN 1 ELSE 0 END) as dislikes
             FROM reply_war w
             LEFT JOIN review_likes rl ON rl.review_type='war' AND rl.review_id = w.id
             WHERE w.rewarded=0
-            GROUP BY w.id HAVING (likes + dislikes) >= 3"""
+            GROUP BY w.id"""
         )
         rows = cursor.fetchall()
-        leaders = {}
+        by_war = {}
         for row in rows:
-            total = (row["likes"] or 0) + (row["dislikes"] or 0)
-            ratio = (row["likes"] or 0) / total if total else 0.0
-            key = (row["review_id"], row["review_type"])
-            cur = leaders.get(key)
-            if cur is None or (ratio, row["likes"] or 0) > (cur[0], cur[1]):
-                leaders[key] = (ratio, row["likes"] or 0, row["id"], row["user_id"])
-        for (_, _, eid, _) in leaders.values():
+            likes = row["likes"] or 0
+            dislikes = row["dislikes"] or 0
+            total = likes + dislikes
+            if total < WAR_MIN_VOTES:
+                continue
+            ratio = likes / total
+            key = (row["review_type"], row["review_id"])
+            cur = by_war.get(key)
+            if cur is None or (ratio, likes) > (cur[0], cur[1]):
+                by_war[key] = (ratio, likes, row["id"], row["user_id"], row["created_at"])
+        winners = []
+        for (_, _, eid, uid, created) in by_war.values():
+            # Only reward when the war has actually ended (24h from first entry).
+            start_ts = _iso_to_ts(created)
+            if time.time() >= start_ts + WAR_DURATION_SECONDS:
+                winners.append((eid, uid))
+        for eid, _ in winners:
             cursor.execute("UPDATE reply_war SET rewarded=1 WHERE id=?", (eid,))
         conn.commit()
         # Pay XP after the commit so add_xp's own connection doesn't lock.
-        for (_, _, _, uid) in leaders.values():
+        for _, uid in winners:
             add_xp(uid, 25)
     except Exception:
         conn.rollback()
