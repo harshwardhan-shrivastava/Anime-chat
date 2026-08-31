@@ -152,7 +152,7 @@
             alt=""
             fetchpriority="high"
             decoding="async"
-            onload="if(this.naturalWidth){var r=this.naturalWidth/this.naturalHeight;if(r>0&&r<1.6){this.style.objectFit='cover';}if(this.naturalWidth<1100){this.className='hero-image hero-image-poster';this.src='{{ anime.image | anime_img_large }}';}}"
+            onload="if(this.naturalWidth&&this.naturalWidth<1100){this.className='hero-image hero-image-poster';this.src='{{ anime.image | anime_img_large }}';}"
             onerror="this.onerror=null;var u=this.src.replace('/cover/large/','/cover/medium/');if(u!==this.src){this.src=u;}else{this.className='hero-image hero-image-poster';this.src='{{ anime.image | anime_img_large }}';}">
 
         <div class="hero-overlay"></div>
