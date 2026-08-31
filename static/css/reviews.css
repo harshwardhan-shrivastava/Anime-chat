@@ -275,6 +275,20 @@ body { background: var(--rv-bg); color: var(--rv-text); font-family: 'Inter', -a
     .rv-card.ep .rv-art { width: 100%; height: auto; border-radius: 0; }
 }
 
+/* Review XP pill — ungraded state (below 500 XP) */
+.rv-xp-pill .rv-level.rk-none {
+    background: linear-gradient(135deg, #374151, #1f2937); color: #9aa7bd;
+    box-shadow: none;
+}
+
+/* War-strip stance chip + negative-winner XP-hit note */
+.rv-war-hit {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.7rem; font-weight: 800; color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.35);
+    padding: 2px 9px; border-radius: 999px; white-space: nowrap;
+}
+
 /* Deep-link flash: a card jumped to from a war page gets a golden pulse */
 .rv-card.war-jump { animation: war-jump-flash 1.2s ease-in-out 3; }
 @keyframes war-jump-flash {

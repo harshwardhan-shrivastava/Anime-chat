@@ -7,8 +7,8 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260901a">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260901b">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260901b">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260901c">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -48,7 +48,7 @@
                     <div class="war-rating"><span class="war-score">{{ w.rating }}/10</span> {{ '★' * (w.rating or 0) }}</div>
                     <div class="war-comment">“{{ w.comment }}”</div>
                     {% if w.leader %}
-                    <div class="war-leader-line"><span class="war-crown">👑</span> {{ w.leader.username }} leads ({{ w.leader.ratio_pct }}%)</div>
+                    <div class="war-leader-line"><span class="war-crown">👑</span> {{ w.leader.username }} <span class="war-stance {{ w.leader.stance }}">{{ '👍 Positive' if w.leader.stance == 'positive' else '👎 Negative' }}</span> leads ({{ w.leader.ratio_pct }}%)</div>
                     {% else %}
                     <div class="war-leader-line none"><i class="fas fa-hourglass-half"></i> No leader yet — 3+ votes crown the best take</div>
                     {% endif %}
@@ -78,13 +78,13 @@
                         {% if w.status == 'live' %}
                         <span class="war-status live"><i class="fas fa-bolt"></i> LIVE</span>
                         <span class="war-battlers"><i class="fas fa-users"></i> {{ w.battlers }}</span>
-                        {% if w.leader %}<span class="war-leader-mini">👑 {{ w.leader.username }} ({{ w.leader.ratio_pct }}%)</span>
+                        {% if w.leader %}<span class="war-leader-mini">👑 {{ w.leader.username }} <span class="war-stance {{ w.leader.stance }}">{{ '👍' if w.leader.stance == 'positive' else '👎' }}</span> ({{ w.leader.ratio_pct }}%)</span>
                         {% else %}<span class="war-leader-mini none">no leader yet</span>{% endif %}
                         <span class="war-countdown" data-ends="{{ w.ends_ts }}">…</span>
                         {% else %}
                         <span class="war-status ended"><i class="fas fa-flag-checkered"></i> WAR OVER</span>
                         <span class="war-battlers"><i class="fas fa-users"></i> {{ w.battlers }}</span>
-                        {% if w.podium %}<span class="war-leader-mini">🏆 {{ w.podium[0].username }} ({{ w.podium[0].ratio_pct }}%)</span>{% else %}<span class="war-leader-mini none">no winner</span>{% endif %}
+                        {% if w.podium %}<span class="war-leader-mini">🏆 {{ w.podium[0].username }} <span class="war-stance {{ w.podium[0].stance }}">{{ '👍' if w.podium[0].stance == 'positive' else '👎' }}</span> ({{ w.podium[0].ratio_pct }}%)</span>{% else %}<span class="war-leader-mini none">no winner</span>{% endif %}
                         {% endif %}
                     </div>
                 </a>
@@ -100,6 +100,6 @@
         {% endif %}
     </div>
 
-    <script src="{{ url_for('static', filename='js/war.js') }}?v=20260901a"></script>
+    <script src="{{ url_for('static', filename='js/war.js') }}?v=20260901b"></script>
 </body>
 </html>

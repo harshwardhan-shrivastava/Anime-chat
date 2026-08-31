@@ -1,5 +1,5 @@
-// Community Reviews page — extracted from the inline <script> of reviews.html,
-// plus the dislike-with-reason (anti-bombing) flow.
+// Community Reviews page — extracted from the inline <script> of reviews.html.
+// Dislikes are plain C+ votes; the Reply War handles replies.
 (function () {
     "use strict";
     function $(s){ return document.querySelector(s); }
@@ -72,12 +72,7 @@
             btn.addEventListener("click", function () {
                 if (busy) return; busy = true;
                 var isLike = btn.dataset.kind === "like";
-                // Dislike on a gated card is handled by the reason flow below.
-                if (!isLike && bar.closest(".rv-card").querySelector(".rv-reason-box")) {
-                    busy = false;
-                    return;
-                }
-                // D-rank locked dislike: never send the request.
+                // D-rank locked dislike: never send the request (dislikes are C+).
                 if (!isLike && btn.classList.contains("rv-dislike-locked")) {
                     busy = false;
                     return;
@@ -124,7 +119,6 @@
         });
     });
 
-    // ---- Dislike with reason (anti-bombing) ----
     function escHtml(s) {
         return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
             return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -145,169 +139,6 @@
         card.classList.add("war-jump");
         setTimeout(function () { card.classList.remove("war-jump"); }, 3600);
     })();
-    function buildReasonRow(re) {
-        var mine = re.my_reason ? ' data-mine="1"' : "";
-        var good = !!re.ratio_ok;
-        var tag = good
-            ? '<span class="rv-reason-tag good"><i class="fas fa-circle-check"></i> Valid — counts</span>'
-            : '<span class="rv-reason-tag bad"><i class="fas fa-circle-xmark"></i> Contested — doesn\'t count</span>';
-        var remove = re.my_reason ? '<button type="button" class="rv-reason-remove" data-remove-reason title="Remove your dislike">✕ Remove</button>' : "";
-        return '<div class="rv-reason-row ' + (good ? "valid" : "contested") + '" data-reason-row="' + re.id + '"' + mine + '>'
-            + '<div class="rv-reason-text"><b>' + escHtml(re.username) + '</b> disliked: <span>' + escHtml(re.reason) + '</span></div>'
-            + '<div class="rv-reason-meta"><div class="rv-reason-vote" data-reason-id="' + re.id + '">'
-            + '<button type="button" class="rv-reason-vbtn" data-kind="like">👍 <span class="rv-rl">' + (re.likes || 0) + '</span></button>'
-            + '<button type="button" class="rv-reason-vbtn" data-kind="dislike">👎 <span class="rv-rd">' + (re.dislikes || 0) + '</span></button>'
-            + '</div>' + tag + remove + '</div></div>';
-    }
-    function removeReason(card, bar, reviewId, reviewType) {
-        fetch("/api/review/" + reviewId + "/remove-reason", {
-            method: "POST", headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ review_type: reviewType })
-        }).then(function (r) { return r.json(); }).then(function (data) {
-            if (!data.success) return;
-            var likeBtn = bar.querySelector('[data-kind="like"]');
-            var disBtn = bar.querySelector('[data-kind="dislike"]');
-            likeBtn.querySelector(".rv-vote-count").textContent = data.likes;
-            disBtn.querySelector(".rv-vote-count").textContent = data.dislikes;
-            likeBtn.classList.remove("voted-like");
-            disBtn.classList.remove("voted-dislike");
-            var row = card.querySelector('.rv-reason-row[data-mine="1"]');
-            if (row) row.remove();
-            var chip = card.querySelector(".rv-contested-chip");
-            if (chip) chip.remove();
-        });
-    }
-    function submitReason(box, card, bar, reviewId, reviewType) {
-        var input = box.querySelector(".rv-reason-input");
-        var errEl = box.querySelector(".rv-reason-err");
-        var submitBtn = box.querySelector(".rv-reason-submit");
-        var reason = (input.value || "").trim();
-        if (reason.length < 2) {
-            errEl.textContent = "Please give a short reason for your dislike.";
-            return;
-        }
-        submitBtn.disabled = true;
-        fetch("/api/review/" + reviewId + "/dislike-reason", {
-            method: "POST", headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ review_type: reviewType, reason: reason })
-        }).then(function (r) { return r.json(); }).then(function (data) {
-            submitBtn.disabled = false;
-            if (!data.success) { errEl.textContent = data.error || "Could not submit."; return; }
-            var likeBtn = bar.querySelector('[data-kind="like"]');
-            var disBtn = bar.querySelector('[data-kind="dislike"]');
-            likeBtn.querySelector(".rv-vote-count").textContent = data.likes;
-            disBtn.querySelector(".rv-vote-count").textContent = data.dislikes;
-            likeBtn.classList.remove("voted-like");
-            disBtn.classList.add("voted-dislike");
-            var reasons = card.querySelector(".rv-reasons");
-            if (reasons && data.reason) {
-                var re = Object.assign({}, data.reason, { my_reason: true });
-                reasons.insertAdjacentHTML("afterbegin", buildReasonRow(re));
-            }
-            box.style.display = "none";
-            input.value = "";
-            errEl.textContent = "";
-            box.querySelectorAll(".rv-reason-chip").forEach(function (c) { c.classList.remove("active"); });
-            // Your take just entered the review's Reply War — take you there.
-            if (data.war_url) { window.location.href = data.war_url; return; }
-        }).catch(function () {
-            submitBtn.disabled = false;
-            errEl.textContent = "Network error — try again.";
-        });
-    }
-
-    document.addEventListener("click", function (e) {
-        // Dislike button on a gated card -> open the reason box (or remove mine).
-        var dbtn = e.target.closest('.rv-vote [data-kind="dislike"]');
-        if (dbtn) {
-            var bar = dbtn.closest(".rv-vote");
-            var card = bar.closest(".rv-card");
-            var box = card.querySelector(".rv-reason-box");
-            if (box) {
-                e.preventDefault();
-                var reviewId = bar.dataset.reviewId;
-                var reviewType = bar.dataset.reviewType || "anime";
-                var myRow = card.querySelector('.rv-reason-row[data-mine="1"]');
-                if (myRow) { removeReason(card, bar, reviewId, reviewType); return; }
-                var open = box.style.display !== "none";
-                $$(".rv-reason-box").forEach(function (b) { if (b !== box) b.style.display = "none"; });
-                if (open) { box.style.display = "none"; return; }
-                box.style.display = "block";
-                var inp = box.querySelector(".rv-reason-input");
-                if (inp) inp.focus();
-            }
-            return;
-        }
-        // Reason chips: fill the textarea.
-        var chip = e.target.closest(".rv-reason-chip");
-        if (chip) {
-            var boxC = chip.closest(".rv-reason-box");
-            var inputC = boxC.querySelector(".rv-reason-input");
-            boxC.querySelectorAll(".rv-reason-chip").forEach(function (c) { c.classList.remove("active"); });
-            chip.classList.add("active");
-            inputC.value = chip.textContent.trim();
-            inputC.focus();
-            return;
-        }
-        // Cancel: close the box.
-        var cancel = e.target.closest(".rv-reason-cancel");
-        if (cancel) {
-            var boxX = cancel.closest(".rv-reason-box");
-            boxX.style.display = "none";
-            boxX.querySelector(".rv-reason-input").value = "";
-            boxX.querySelector(".rv-reason-err").textContent = "";
-            boxX.querySelectorAll(".rv-reason-chip").forEach(function (c) { c.classList.remove("active"); });
-            return;
-        }
-        // Submit the dislike reason.
-        var submit = e.target.closest(".rv-reason-submit");
-        if (submit) {
-            var boxS = submit.closest(".rv-reason-box");
-            var cardS = boxS.closest(".rv-card");
-            var barS = cardS.querySelector(".rv-vote");
-            submitReason(boxS, cardS, barS, barS.dataset.reviewId, barS.dataset.reviewType || "anime");
-            return;
-        }
-        // Remove my own reason.
-        var removeBtn = e.target.closest("[data-remove-reason]");
-        if (removeBtn) {
-            var cardR = removeBtn.closest(".rv-card");
-            var barR = cardR.querySelector(".rv-vote");
-            removeReason(cardR, barR, barR.dataset.reviewId, barR.dataset.reviewType || "anime");
-            return;
-        }
-        // Vote on a reason (decides if that dislike counts).
-        var rvBtn = e.target.closest(".rv-reason-vbtn");
-        if (rvBtn) {
-            var voteBar = rvBtn.closest(".rv-reason-vote");
-            var rid = voteBar.dataset.reasonId;
-            var isLike = rvBtn.dataset.kind === "like";
-            fetch("/api/reason/" + rid + "/vote", {
-                method: "POST", headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ is_like: isLike })
-            }).then(function (r) { return r.json(); }).then(function (data) {
-                if (!data.success) return;
-                voteBar.querySelectorAll(".rv-reason-vbtn").forEach(function (b) {
-                    var k = b.dataset.kind;
-                    b.classList.toggle("voted", data.user_vote === (k === "like" ? 1 : 0));
-                    b.querySelector(k === "like" ? ".rv-rl" : ".rv-rd").textContent = k === "like" ? data.likes : data.dislikes;
-                });
-                var row = voteBar.closest(".rv-reason-row");
-                var good = data.likes > data.dislikes;
-                row.classList.toggle("valid", good);
-                row.classList.toggle("contested", !good);
-                var tag = row.querySelector(".rv-reason-tag");
-                if (tag) {
-                    tag.className = "rv-reason-tag " + (good ? "good" : "bad");
-                    tag.innerHTML = good
-                        ? '<i class="fas fa-circle-check"></i> Valid — counts'
-                        : '<i class="fas fa-circle-xmark"></i> Contested — doesn\'t count';
-                }
-            });
-            return;
-        }
-    });
-
     // ---- Share (copy link) ----
     document.addEventListener("click", function (e) {
         var btn = e.target.closest("[data-share]");

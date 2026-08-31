@@ -291,6 +291,12 @@ def create_tables():
         )
     """)
 
+    # A negative Reply War winner lands a one-time XP hit on the review it
+    # beat (the crowd's take trumps the review). Zero by default.
+    _rv_cols = [row[1] for row in cursor.execute("PRAGMA table_info(reviews)").fetchall()]
+    if "war_penalty" not in _rv_cols:
+        cursor.execute("ALTER TABLE reviews ADD COLUMN war_penalty INTEGER NOT NULL DEFAULT 0")
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS episode_ratings(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -317,6 +323,10 @@ def create_tables():
             UNIQUE (user_id, anime_slug, season_name, episode_number)
         )
     """)
+
+    _erv_cols = [row[1] for row in cursor.execute("PRAGMA table_info(episode_reviews)").fetchall()]
+    if "war_penalty" not in _erv_cols:
+        cursor.execute("ALTER TABLE episode_reviews ADD COLUMN war_penalty INTEGER NOT NULL DEFAULT 0")
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users(
@@ -517,12 +527,23 @@ def create_tables():
             review_type TEXT NOT NULL DEFAULT 'anime',
             user_id INTEGER NOT NULL,
             content TEXT NOT NULL,
+            stance TEXT NOT NULL DEFAULT 'negative',
             rewarded INTEGER DEFAULT 0,
+            penalty_applied INTEGER DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(user_id, review_type, review_id),
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
     """)
+
+    # War entries now carry a stance: the replier picks Positive or Negative
+    # (legacy dislike-takes default to negative). A negative winner hits the
+    # review once — penalty_applied guards that.
+    _rw_cols = [row[1] for row in cursor.execute("PRAGMA table_info(reply_war)").fetchall()]
+    if "stance" not in _rw_cols:
+        cursor.execute("ALTER TABLE reply_war ADD COLUMN stance TEXT NOT NULL DEFAULT 'negative'")
+    if "penalty_applied" not in _rw_cols:
+        cursor.execute("ALTER TABLE reply_war ADD COLUMN penalty_applied INTEGER DEFAULT 0")
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS claims(
@@ -1562,6 +1583,9 @@ def get_review_replies(review_type, review_ids):
 
 WAR_DURATION_SECONDS = 24 * 60 * 60  # a war runs for 24h from the first entry
 WAR_MIN_VOTES = 3  # an entry needs 3+ votes to be crowned / placed
+# When the #1 winner of an ended war took the NEGATIVE stance, the review it
+# beat loses this much Review XP once (priced like one C-rank dislike: -10).
+WAR_NEGATIVE_PENALTY_XP = 10  # abs(VOTE_DISLIKE_POINTS["C"]) = -5 * weight(2)
 
 
 def _iso_to_ts(s):
@@ -1611,6 +1635,7 @@ def _war_entry_dict(row, my_votes=None):
         "avatar_color": row["avatar_color"] or "#374151",
         "rank": "S+" if is_dev_username(row["username"]) else get_xp_tier(row["xp"] or 0),
         "content": row["content"],
+        "stance": (row["stance"] or "negative") if "stance" in row.keys() else "negative",
         "created_at": row["created_at"],
         "likes": likes,
         "dislikes": dislikes,
@@ -1622,17 +1647,19 @@ def _war_entry_dict(row, my_votes=None):
     }
 
 
-def add_war_entry(user_id, review_type, review_id, content):
+def add_war_entry(user_id, review_type, review_id, content, stance="negative"):
     """Post a reply-war entry on a review (one per user per review).
 
-    Returns (ok, err, entry). Rank gating (C+ only) is enforced by the
-    endpoint before calling this.
+    stance: 'positive' (the reply defends the review) or 'negative' (it
+    attacks it). Returns (ok, err, entry). Rank gating (C+ only) is
+    enforced by the endpoint before calling this.
     """
     content = (content or "").strip()
     if len(content) < 2:
         return False, "Your war entry is too short.", None
     if len(content) > 500:
         return False, "War entries must be 500 characters or fewer.", None
+    stance = stance if stance in ("positive", "negative") else "negative"
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -1643,8 +1670,8 @@ def add_war_entry(user_id, review_type, review_id, content):
         conn.close()
         return False, "You already posted an entry in this war.", None
     cursor.execute(
-        "INSERT INTO reply_war (review_id, review_type, user_id, content) VALUES (?, ?, ?, ?)",
-        (review_id, review_type, user_id, content),
+        "INSERT INTO reply_war (review_id, review_type, user_id, content, stance) VALUES (?, ?, ?, ?, ?)",
+        (review_id, review_type, user_id, content, stance),
     )
     conn.commit()
     eid = cursor.lastrowid
@@ -1667,7 +1694,7 @@ def get_war_entries(review_type, review_ids, user_id=None):
     cursor = conn.cursor()
     placeholders = ",".join("?" * len(review_ids))
     cursor.execute(
-        f"""SELECT w.id, w.review_id, w.user_id, w.content, w.rewarded, w.created_at,
+        f"""SELECT w.id, w.review_id, w.user_id, w.content, w.stance, w.rewarded, w.created_at,
         u.username, u.avatar, u.avatar_color, ux.xp,
         SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) as likes,
         SUM(CASE WHEN rl.is_like=0 THEN 1 ELSE 0 END) as dislikes
@@ -1720,7 +1747,7 @@ def get_all_wars():
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        """SELECT w.id, w.review_id, w.review_type, w.user_id, w.content, w.rewarded, w.created_at,
+        """SELECT w.id, w.review_id, w.review_type, w.user_id, w.content, w.stance, w.rewarded, w.created_at,
         u.username, u.avatar, u.avatar_color, ux.xp,
         SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) as likes,
         SUM(CASE WHEN rl.is_like=0 THEN 1 ELSE 0 END) as dislikes
@@ -1773,6 +1800,7 @@ def war_is_live(review_type, review_id):
 
 
 def get_war_entry_review(entry_id):
+    """War votes close once the 24h clock runs out (vote gating)."""
     """Return (review_type, review_id) for a war entry, or None."""
     conn = get_connection()
     cur = conn.cursor()
@@ -1787,7 +1815,58 @@ def get_war_entry_review(entry_id):
     return row["review_type"], row["review_id"]
 
 
+def get_war_penalties(review_type, review_ids):
+    """Return {review_id: war_penalty} for the given reviews (XP a review
+    lost to a negative Reply War winner; 0 when untouched)."""
+    if not review_ids:
+        return {}
+    conn = get_connection()
+    cursor = conn.cursor()
+    placeholders = ",".join("?" * len(review_ids))
+    tbl = "reviews" if review_type == "anime" else "episode_reviews"
+    try:
+        cursor.execute(
+            f"SELECT id, war_penalty FROM {tbl} WHERE id IN ({placeholders})",
+            list(review_ids),
+        )
+        rows = cursor.fetchall()
+    except Exception:
+        rows = []
+    conn.close()
+    return {row["id"]: (row["war_penalty"] or 0) for row in rows}
+
+
+def apply_war_penalties():
+    """One-time: when an ENDED war's rewarded winner took the NEGATIVE
+    stance, the review it beat loses WAR_NEGATIVE_PENALTY_XP Review XP.
+    Runs right after reward_war_leaders (which marks the winner rewarded=1);
+    penalty_applied guards against double hits."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """SELECT w.id, w.review_id, w.review_type, w.stance
+            FROM reply_war w
+            WHERE w.rewarded=1 AND w.penalty_applied=0 AND w.stance='negative'"""
+        )
+        rows = cursor.fetchall()
+        for row in rows:
+            tbl = "reviews" if row["review_type"] == "anime" else "episode_reviews"
+            cursor.execute(
+                f"UPDATE {tbl} SET war_penalty = war_penalty + ? WHERE id = ?",
+                (WAR_NEGATIVE_PENALTY_XP, row["review_id"]),
+            )
+            cursor.execute(
+                "UPDATE reply_war SET penalty_applied=1 WHERE id=?", (row["id"],)
+            )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+    conn.close()
+
+
 def migrate_replies_to_war():
+    # War replies are stance-tagged (legacy dislike-takes are 'negative').
     """One-time migration: existing review replies become war entries so
     nothing already posted is lost when the War replaces the reply stream."""
     conn = get_connection()
@@ -1812,7 +1891,10 @@ def migrate_replies_to_war():
 def reward_war_leaders():
     """Give a one-time +25 XP crown bonus to the WINNER of every war that
     has ended (24h up, 3+ votes, best like-ratio). The rewarded flag guards
-    against double pays; a war pays its winner exactly once, at the end."""
+    against double pays; a war pays its winner exactly once, at the end.
+
+    A NEGATIVE-stance winner also lands a one-time Review XP penalty on the
+    review it beat (the crowd's take trumps the review)."""
     conn = get_connection()
     cursor = conn.cursor()
     try:

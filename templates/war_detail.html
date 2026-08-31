@@ -7,8 +7,8 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260901a">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260901b">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260901b">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260901c">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -92,6 +92,7 @@
                 <span class="war-medal">{{ places.get(p.place|string, '') }}</span>
                 <span class="war-podium-name">{{ p.username }}</span>
                 <span class="rank-badge rank-{{ p.rank }}" style="font-size:0.62rem;padding:1px 7px;">{{ p.rank }}</span>
+                <span class="war-stance {{ p.stance }}">{{ '👍 Positive' if p.stance == 'positive' else '👎 Negative' }}</span>
                 <span class="war-podium-ratio">{{ p.ratio_pct }}% · {{ p.likes }}👍 / {{ p.dislikes }}👎</span>
                 <span class="war-podium-take">“{{ p.content }}”</span>
             </div>
@@ -106,7 +107,7 @@
         {% if war.status == 'live' %}
         <div class="war-leader-banner" id="warLeaderBanner">
             {% if war.leader %}
-            <span class="war-crown">👑</span> <b>{{ war.leader.username }}</b> <span class="rank-badge rank-{{ war.leader.rank }}" style="font-size:0.62rem;padding:1px 7px;">{{ war.leader.rank }}</span>{% if is_developer(war.leader.username) %} <span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %} leads with <b>{{ war.leader.ratio_pct }}%</b> ({{ war.leader.likes }}👍 / {{ war.leader.dislikes }}👎): <span class="war-leader-take">“{{ war.leader.content }}”</span>
+            <span class="war-crown">👑</span> <b>{{ war.leader.username }}</b> <span class="rank-badge rank-{{ war.leader.rank }}" style="font-size:0.62rem;padding:1px 7px;">{{ war.leader.rank }}</span>{% if is_developer(war.leader.username) %} <span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %} <span class="war-stance {{ war.leader.stance }}">{{ '👍 Positive' if war.leader.stance == 'positive' else '👎 Negative' }}</span> leads with <b>{{ war.leader.ratio_pct }}%</b> ({{ war.leader.likes }}👍 / {{ war.leader.dislikes }}👎): <span class="war-leader-take">“{{ war.leader.content }}”</span>
             {% else %}
             <span class="war-crown">👑</span> No leader yet — <b>3+ votes</b> crown the best like-ratio take.
             {% endif %}
@@ -128,6 +129,7 @@
                         <span class="rank-badge rank-{{ we.rank }}" style="font-size:0.62rem;padding:1px 7px;">{{ we.rank }}</span>
                         {% if is_developer(we.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
                         {% if current_user and we.user_id == current_user.id %}<span class="war-entry-mine"><i class="fas fa-user-check"></i> your take</span>{% endif %}
+                        <span class="war-stance {{ we.stance }}">{{ '👍 Positive' if we.stance == 'positive' else '👎 Negative' }}</span>
                         {% if my_place %}<span class="war-medal-inline">{{ medal_emojis.get(my_place.place|string, '') }} #{{ my_place.place }}</span>{% endif %}
                         {% if not ended and war.leader and we.id == war.leader.id %}<span class="war-crown">👑</span>{% endif %}
                         <span class="war-entry-time">{{ we.created_at }}</span>
@@ -159,8 +161,12 @@
             {% elif my_entry %}
             <p class="war-composer-in"><i class="fas fa-check-circle"></i> You're in this war — your take is above. Sit tight, the crowd decides.</p>
             {% elif user_rank in ('C', 'B', 'A', 'S', 'S+') %}
-            <p class="war-composer-title"><i class="fas fa-swords"></i> Your take — posting it also records a <b>dislike</b> on this review. Win the war and your take becomes the only reply shown.</p>
-            <textarea class="war-composer-input" maxlength="500" placeholder="Why is this review wrong? Make it count…"></textarea>
+            <p class="war-composer-title"><i class="fas fa-swords"></i> Your reply — pick your stance. Win the war and your reply becomes the only one shown under the review.</p>
+            <div class="war-stance-pick">
+                <button type="button" class="war-stance-btn pos active" data-stance="positive">👍 Positive — this review is right</button>
+                <button type="button" class="war-stance-btn neg" data-stance="negative">👎 Negative — this review is wrong</button>
+            </div>
+            <textarea class="war-composer-input" maxlength="500" placeholder="Make your case…"></textarea>
             <div class="war-composer-actions">
                 <span class="war-composer-err"></span>
                 <button type="button" class="war-composer-submit"><i class="fas fa-swords"></i> Enter the War</button>
@@ -176,8 +182,12 @@
             {% if not current_user %}
             <p class="war-composer-lock"><i class="fas fa-lock"></i> <a href="/auth">Log in</a> to start this war — dislikes require <b>C rank (500 XP)</b>.</p>
             {% elif user_rank in ('C', 'B', 'A', 'S', 'S+') %}
-            <p class="war-composer-title"><i class="fas fa-swords"></i> Start the war — your take (with a dislike) is the first battler. 24 hours on the clock.</p>
-            <textarea class="war-composer-input" maxlength="500" placeholder="Why is this review wrong? Make it count…"></textarea>
+            <p class="war-composer-title"><i class="fas fa-swords"></i> Start the war — your reply (Positive or Negative) is the first battler. 24 hours on the clock.</p>
+            <div class="war-stance-pick">
+                <button type="button" class="war-stance-btn pos active" data-stance="positive">👍 Positive — this review is right</button>
+                <button type="button" class="war-stance-btn neg" data-stance="negative">👎 Negative — this review is wrong</button>
+            </div>
+            <textarea class="war-composer-input" maxlength="500" placeholder="Make your case…"></textarea>
             <div class="war-composer-actions">
                 <span class="war-composer-err"></span>
                 <button type="button" class="war-composer-submit"><i class="fas fa-swords"></i> Start the War</button>
@@ -189,6 +199,6 @@
         {% endif %}
     </div>
 
-    <script src="{{ url_for('static', filename='js/war.js') }}?v=20260901a"></script>
+    <script src="{{ url_for('static', filename='js/war.js') }}?v=20260901b"></script>
 </body>
 </html>

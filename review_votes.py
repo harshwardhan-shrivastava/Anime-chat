@@ -198,14 +198,15 @@ def grade_for_stars(stars):
     return grade_for_score(stars) or "D"
 
 
-# Anime / episode XP tiers (from combined trusted-XP behind the grade):
-# 500 = C, 1000 = B, 1500 = A, 2000 = S, 5000 = S+ (below 500 = ungraded).
+# Anime / episode XP ranks — the REAL ladder (same one shown on reviews):
+# 500 = D, 1000 = C, 1500 = B, 2000 = A, 3000 = S, 5000 = S+ (below 500 = ungraded).
 ANIME_XP_TIERS = [
     (5000, "S+"),
-    (2000, "S"),
-    (1500, "A"),
-    (1000, "B"),
-    (500, "C"),
+    (3000, "S"),
+    (2000, "A"),
+    (1500, "B"),
+    (1000, "C"),
+    (500, "D"),
 ]
 
 
@@ -368,20 +369,22 @@ def review_vote_xp(likes, dislikes):
 
 
 def review_level_for_xp(review_xp):
-    """Map a review's earned XP to a D->S+ level badge."""
-    if review_xp >= 80:
+    """Map a review's earned Review XP to its REAL rank badge, using the
+    same ladder as anime ranks: 500 = D, 1000 = C, 1500 = B, 2000 = A,
+    3000 = S, 5000 = S+. Below 500 the review is ungraded (None)."""
+    if review_xp >= 5000:
         return "S+"
-    if review_xp >= 50:
+    if review_xp >= 3000:
         return "S"
-    if review_xp >= 30:
+    if review_xp >= 2000:
         return "A"
-    if review_xp >= 15:
+    if review_xp >= 1500:
         return "B"
-    if review_xp >= 5:
+    if review_xp >= 1000:
         return "C"
-    if review_xp >= 0:
+    if review_xp >= 500:
         return "D"
-    return "F"
+    return None
 
 
 # =====================================================================
@@ -676,12 +679,9 @@ def get_bulk_review_points(review_type, review_ids):
         row["review_id"]: {"like_points": row["like_points"] or 0, "dislike_points": row["dislike_points"] or 0, "contested": 0}
         for row in rows
     }
-    # Apply the anti-bombing gate to the dislike side.
-    gating = get_dislike_gating(review_type, review_ids)
-    for rid, pts in result.items():
-        g = gating.get(rid, {})
-        pts["dislike_points"] = g.get("effective_dislike_points", pts["dislike_points"])
-        pts["contested"] = g.get("contested", 0)
+    # Dislikes are now plain C+ votes (no reason gate) — every dislike
+    # counts at its full rank-weighted value. The old anti-bombing reason
+    # gate is retired; C-rank entry alone stops fresh-account mobs.
     return result
 
 

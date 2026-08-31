@@ -66,6 +66,8 @@ from database import (
     get_all_wars,
     migrate_replies_to_war,
     reward_war_leaders,
+    apply_war_penalties,
+    get_war_penalties,
     get_bulk_review_likes,
     get_user_review_history,
     get_user_review,
@@ -84,11 +86,10 @@ from review_votes import (
     review_level_for_xp,
     get_bulk_review_points,
     vote_points_for_rank,
-    submit_review_dislike,
     can_dislike,
     toggle_reason_vote,
-    toggle_war_vote,
     get_review_reasons,
+    toggle_war_vote,
     RANK_COLORS,
     RANK_WEIGHTS,
     TRUSTED_RANKS,
@@ -98,6 +99,63 @@ from chat import chat_bp
 from profile_routes import bp as profile_bp
 
 from threads import init_threads
+
+# ---- Dislike C+ gate + local-SQLite lock fix, on the plain vote route ----
+# vote_review calls the module-global `toggle_review_like` at call time, so
+# rebinding it here (same pattern as review_history_patch) keeps a hand-crafted
+# D-rank dislike request blocked everywhere, not just in the UI. The reimplement
+# also commits the vote BEFORE recalculating the author's XP — the original
+# leaves the INSERT uncommitted while recalc opens a second connection, which
+# deadlocks on local SQLite (it only works on Turso because that backend is
+# autocommit).
+def _gated_toggle_review_like(user_id, review_type, review_id, is_like):
+    if not is_like and not can_dislike(get_user_rank(user_id)):
+        raise PermissionError("Dislikes require C rank (500 XP) — D-rank accounts can only like.")
+    import database as _db
+    conn = _db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, is_like FROM review_likes WHERE user_id=? AND review_type=? AND review_id=?",
+        (user_id, review_type, review_id),
+    )
+    existing = cursor.fetchone()
+    review_author_id = None
+    if review_type == "episode":
+        cursor.execute("SELECT user_id FROM episode_reviews WHERE id=?", (review_id,))
+        rr = cursor.fetchone()
+        if rr:
+            review_author_id = rr["user_id"]
+    elif review_type == "anime":
+        cursor.execute("SELECT user_id FROM reviews WHERE id=?", (review_id,))
+        rr = cursor.fetchone()
+        if rr:
+            review_author_id = rr["user_id"]
+    removed = False
+    new_is_like = is_like
+    if existing:
+        if existing["is_like"] == is_like:
+            cursor.execute("DELETE FROM review_likes WHERE id=?", (existing["id"],))
+            removed = True
+        else:
+            cursor.execute(
+                "UPDATE review_likes SET is_like=? WHERE id=?", (is_like, existing["id"])
+            )
+    else:
+        cursor.execute(
+            "INSERT INTO review_likes (user_id, review_type, review_id, is_like) VALUES (?, ?, ?, ?)",
+            (user_id, review_type, review_id, is_like),
+        )
+    conn.commit()  # release the write lock BEFORE the recalc connection writes
+    if review_author_id:
+        try:
+            _db.recalculate_user_xp(review_author_id)
+        except Exception:
+            pass  # the vote is already saved — XP recalc can retry next vote
+    conn.close()
+    return new_is_like, removed
+
+
+toggle_review_like = _gated_toggle_review_like
 
 
 app = Flask(__name__)
@@ -1252,6 +1310,7 @@ def reviews_page():
     user_votes = get_user_anime_review_votes(review_ids, user["id"]) if user else {}
     rank_map = get_bulk_reviewer_ranks([r["user_id"] for r in raw])
     point_map = get_bulk_review_points("anime", review_ids)
+    war_penalties = get_war_penalties("anime", review_ids)
     reviews = []
     for r in raw:
         entry = anime_database.get(r["anime_slug"])
@@ -1267,6 +1326,9 @@ def reviews_page():
         else:
             r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"])
             r["contested"] = 0
+        # A negative Reply War winner hits the review it beat once.
+        r["review_xp"] = max(0, r["review_xp"] - war_penalties.get(r["id"], 0))
+        r["war_penalty"] = war_penalties.get(r["id"], 0)
         r["review_level"] = review_level_for_xp(r["review_xp"])
         r["user_vote"] = user_votes.get(r["id"])
         rinfo = rank_map.get(r["user_id"], {"rank": "D", "xp": 0})
@@ -1293,6 +1355,7 @@ def reviews_page():
         except Exception:
             ep_user_votes = {}
     ep_rank_map = get_bulk_reviewer_ranks([r["user_id"] for r in raw_ep])
+    ep_war_penalties = get_war_penalties("episode", ep_ids)
     episode_reviews = []
     for r in raw_ep:
         entry = anime_database.get(r["anime_slug"])
@@ -1351,6 +1414,9 @@ def reviews_page():
         except Exception:
             r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"])
             r["contested"] = 0
+        # A negative Reply War winner hits the review it beat once.
+        r["review_xp"] = max(0, r["review_xp"] - ep_war_penalties.get(r["id"], 0))
+        r["war_penalty"] = ep_war_penalties.get(r["id"], 0)
         r["review_level"] = review_level_for_xp(r["review_xp"])
         r["user_vote"] = ep_user_votes.get(r["id"])
         rinfo = ep_rank_map.get(r["user_id"], {"rank": "D", "xp": 0})
@@ -1437,8 +1503,6 @@ def reviews_page():
     vote_schedule = _build_vote_schedule()
 
     _uid = user["id"] if user else None
-    reasons_map = get_review_reasons("anime", review_ids, _uid)
-    reasons_map.update(get_review_reasons("episode", ep_ids, _uid))
     replies_map = get_review_replies("anime", review_ids)
     replies_map.update(get_review_replies("episode", ep_ids))
     migrate_replies_to_war()
@@ -1446,6 +1510,7 @@ def reviews_page():
     war_map.update((("anime", rid), w) for rid, w in get_war_entries("anime", review_ids, _uid).items())
     war_map.update((("episode", rid), w) for rid, w in get_war_entries("episode", ep_ids, _uid).items())
     reward_war_leaders()
+    apply_war_penalties()
     user_rank = get_user_rank(_uid) if _uid else None
 
     return render_template(
@@ -1455,7 +1520,6 @@ def reviews_page():
         top_reviewers=top_reviewers,
         top_graded=top_graded,
         vote_schedule=vote_schedule,
-        reasons=reasons_map,
         replies=replies_map,
         war=war_map,
         user_rank=user_rank,
@@ -1543,45 +1607,6 @@ def _vote_rate_hit(key, limit=40, window_seconds=300):
         return False
 
 
-@app.route("/api/review/<int:review_id>/dislike-reason", methods=["POST"])
-def review_dislike_reason(review_id):
-    """Dislike WITH a mandatory, community-gated reason (anti-bombing)."""
-    user = g.get("user")
-    if not user:
-        return jsonify({"success": False, "error": "Please log in to vote."}), 401
-    # Dislikes (like replies) require C rank — D-rank accounts can only like.
-    if not can_dislike(get_user_rank(user["id"])):
-        return jsonify({"success": False, "error": "Dislikes require C rank (500 XP) — D-rank accounts can only like."}), 403
-    if _vote_rate_hit("u:" + str(user["id"]), 40, 300) or _vote_rate_hit(
-        "ip:" + (request.remote_addr or "?"), 120, 300
-    ):
-        return jsonify({"success": False, "error": "You're voting too fast. Take a break."}), 429
-    data = request.get_json(silent=True) or {}
-    review_type = data.get("review_type") or "anime"
-    if review_type not in ("anime", "episode"):
-        return jsonify({"success": False, "error": "Bad review type."}), 400
-    ok, err, counts = submit_review_dislike(user["id"], review_type, review_id, data.get("reason"))
-    if not ok:
-        return jsonify({"success": False, "error": err or "Could not submit."}), 400
-    reason_row = get_review_reasons(review_type, [review_id], user["id"]).get(review_id, [])[-1]
-    # The reason IS your war entry: disliking with a take joins (or starts)
-    # the review's Reply War. Users who already entered keep their entry.
-    reason_text = (data.get("reason") or "").strip()
-    if reason_text:
-        try:
-            add_war_entry(user["id"], review_type, review_id, reason_text)
-        except Exception:
-            pass
-    return jsonify({
-        "success": True,
-        "likes": counts["likes"],
-        "dislikes": counts["dislikes"],
-        "user_vote": 0,
-        "reason": reason_row,
-        "war_url": "/war/{}/{}".format(review_type, review_id),
-    })
-
-
 @app.route("/war")
 def war_index():
     """War Zone — every Reply War across all reviews, hottest first."""
@@ -1620,6 +1645,35 @@ def war_index():
         wars=cards,
         current_user=user,
     )
+
+
+@app.route("/api/war/<review_type>/<int:review_id>/enter", methods=["POST"])
+def war_enter(review_type, review_id):
+    """Enter the Reply War with a stance — C rank (500 XP) and above, one
+    entry per user per review. The replier picks Positive or Negative; the
+    crowd votes; the best like-ratio wins."""
+    if review_type not in ("anime", "episode"):
+        return jsonify({"success": False, "error": "Bad review type."}), 400
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in to enter the war."}), 401
+    rank = get_user_rank(user["id"])
+    if rank not in ("C", "B", "A", "S", "S+"):
+        return jsonify({
+            "success": False,
+            "error": "War entries require C rank (500 XP) — keep getting likes on your reviews to unlock.",
+        }), 403
+    if _vote_rate_hit("u:" + str(user["id"]), 40, 300) or _vote_rate_hit(
+        "ip:" + (request.remote_addr or "?"), 120, 300
+    ):
+        return jsonify({"success": False, "error": "You're posting too fast. Take a break."}), 429
+    data = request.get_json(silent=True) or {}
+    ok, err, entry = add_war_entry(
+        user["id"], review_type, review_id, data.get("content"), data.get("stance") or "negative"
+    )
+    if not ok:
+        return jsonify({"success": False, "error": err or "Could not enter the war."}), 400
+    return jsonify({"success": True, "entry": entry})
 
 
 @app.route("/war/<review_type>/<int:review_id>")

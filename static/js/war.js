@@ -112,7 +112,9 @@
             var dev = "";
             var devEl = best.querySelector(".dev-tag");
             if (devEl) dev = '<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>';
-            banner.innerHTML = '<span class="war-crown">👑</span> <b>' + escHtml(name) + "</b> " + rank + dev + " leads with <b>" + Math.round(bestRatio * 100) + "%</b> (" + bestLikes + "👍): <span class=\"war-leader-take\">“" + escHtml(txt) + "”</span>";
+            var stEl = best.querySelector(".war-stance");
+            var stance = stEl ? ' <span class="war-stance ' + stEl.className.replace("war-stance", "").trim() + '">' + stEl.textContent.trim() + "</span>" : "";
+            banner.innerHTML = '<span class="war-crown">👑</span> <b>' + escHtml(name) + "</b> " + rank + dev + stance + " leads with <b>" + Math.round(bestRatio * 100) + "%</b> (" + bestLikes + "👍): <span class=\"war-leader-take\">“" + escHtml(txt) + "”</span>";
         } else {
             banner.innerHTML = '<span class="war-crown">👑</span> No leader yet — <b>3+ votes</b> crown the best like-ratio take.';
         }
@@ -135,20 +137,30 @@
         });
     }
 
-    // ---- Join the war: your take = a dislike with reason ----
+    // ---- Join the war: your reply (Positive or Negative stance) ----
     var submitBtn = document.querySelector(".war-composer-submit");
     if (submitBtn) {
+        // Stance toggle: pick Positive or Negative before posting.
+        var stanceBtns = document.querySelectorAll(".war-stance-btn");
+        var chosenStance = "positive";
+        stanceBtns.forEach(function (b) {
+            b.addEventListener("click", function () {
+                stanceBtns.forEach(function (x) { x.classList.remove("active"); });
+                b.classList.add("active");
+                chosenStance = b.getAttribute("data-stance") || "positive";
+            });
+        });
         submitBtn.addEventListener("click", function () {
             var comp = submitBtn.closest(".war-composer");
             var input = comp.querySelector(".war-composer-input");
             var errEl = comp.querySelector(".war-composer-err");
             var reason = (input.value || "").trim();
-            if (reason.length < 2) { errEl.textContent = "Give a short reason — it's your war take."; return; }
+            if (reason.length < 2) { errEl.textContent = "Give a short reply — it's your war take."; return; }
             submitBtn.disabled = true;
-            fetch("/api/review/" + reviewId + "/dislike-reason", {
+            fetch("/api/war/" + reviewType + "/" + reviewId + "/enter", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ review_type: reviewType, reason: reason })
+                body: JSON.stringify({ content: reason, stance: chosenStance })
             }).then(function (r) { return r.json(); }).then(function (data) {
                 submitBtn.disabled = false;
                 if (!data.success) { errEl.textContent = data.error || "Could not enter the war."; return; }
