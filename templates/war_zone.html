@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260901b">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260904">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260905">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -179,6 +179,7 @@
                         <b class="war-entry-name">{{ e.username }}</b>
                         <span class="rank-badge rank-{{ e.rank }}" style="font-size:0.62rem;padding:1px 7px;">{{ e.rank }}</span>
                         {% if is_developer(e.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
+                        <span class="war-xp-pill">⚡ {{ e.xp }} XP</span>
                         {% if current_user and e.user_id == current_user.id %}<span class="war-entry-mine"><i class="fas fa-user-check"></i> your battler</span>{% endif %}
                         {% if e.winner %}<span class="wz-flag-inline win"><i class="fas fa-flag"></i> WINNER</span>{% endif %}
                         {% if war.status == 'settled' and not e.winner %}<span class="wz-flag-inline lost"><i class="fas fa-flag"></i> lost</span>{% endif %}
@@ -227,6 +228,6 @@
         {% endif %}
     </div>
 
-    <script src="{{ url_for('static', filename='js/war_zone.js') }}?v=20260904"></script>
+    <script src="{{ url_for('static', filename='js/war_zone.js') }}?v=20260905"></script>
 </body>
 </html>

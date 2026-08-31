@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260901b">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260904">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/war.css') }}?v=20260905">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -109,7 +109,13 @@
                             {% if z.is_private %}<span class="wz-mode private">Private</span>{% endif %}
                             {% if z.episode_ref %}<span class="war-ep">@ {{ z.episode_ref }}</span>{% endif %}
                         </div>
-                        <div class="war-anime-title">Declaration by {{ z.creator_name or 'someone' }}</div>
+                        <div class="war-anime-title">
+                            {% if z.creator_avatar %}<img class="war-ava" src="/static/images/avatars/{{ z.creator_avatar }}" alt="" onerror="this.style.display='none'">{% endif %}
+                            Declaration by <span class="war-creator-name">{{ z.creator_name or 'someone' }}</span>
+                            <span class="rank-badge rank-{{ z.creator_rank }}" style="font-size:0.6rem;padding:1px 7px;">{{ z.creator_rank }}</span>
+                            {% if z.creator_name and is_developer(z.creator_name) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
+                            <span class="war-xp-pill">⚡ {{ z.creator_xp }} XP</span>
+                        </div>
                         <div class="war-comment">“{{ z.declaration }}”</div>
                     </div>
                     <div class="war-row-side">
@@ -207,6 +213,6 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/war.js') }}?v=20260901b"></script>
-    <script src="{{ url_for('static', filename='js/war_zone.js') }}?v=20260904"></script>
+    <script src="{{ url_for('static', filename='js/war_zone.js') }}?v=20260905"></script>
 </body>
 </html>

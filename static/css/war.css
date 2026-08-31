@@ -414,6 +414,19 @@
     .war-row-side { align-items: flex-start; min-width: 0; }
 }
 
+/* Creator avatar + XP on war rows and battler entries */
+.war-ava {
+    width: 22px; height: 22px; border-radius: 99px; object-fit: cover;
+    vertical-align: -5px; margin-right: 5px; border: 1px solid rgba(255,255,255,0.2);
+}
+.war-creator-name { font-weight: 700; color: #f3f6fb; }
+.war-xp-pill {
+    font-size: 0.62rem; font-weight: 700; padding: 1px 7px; border-radius: 999px;
+    color: #ffd9a8; background: rgba(255,160,64,0.12); border: 1px solid rgba(255,160,64,0.35);
+    margin-left: 4px; white-space: nowrap;
+}
+.war-entry-head .war-xp-pill { vertical-align: middle; }
+
 /* Topic pickers (anime / episode / GIF) on create-a-war */
 .hidden { display: none !important; }
 

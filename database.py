@@ -517,7 +517,9 @@ def get_warzones(user_id=None):
         w.episode_ref, w.gif_url, w.created_by, w.guild_a, w.guild_b, w.entry_scope,
         w.is_private, w.status, w.hours, w.ends_at, w.settled, w.winner_entry_id,
         w.guild_awarded, w.created_at,
-        (SELECT username FROM users u WHERE u.id=w.created_by) as creator_name
+        (SELECT username FROM users u WHERE u.id=w.created_by) as creator_name,
+        (SELECT avatar FROM users u WHERE u.id=w.created_by) as creator_avatar,
+        (SELECT ux.xp FROM user_xp ux WHERE ux.user_id=w.created_by) as creator_xp
         FROM warzones w
         WHERE w.is_private=0 OR w.created_by=? ORDER BY w.id DESC LIMIT 80""",
         (user_id or 0,),
@@ -528,6 +530,8 @@ def get_warzones(user_id=None):
     now = int(time.time())
     for r in rows:
         war = dict(r)
+        war['creator_rank'] = 'S+' if is_dev_username(war.get('creator_name')) else get_xp_tier(war.get('creator_xp') or 0)
+        war['creator_xp'] = war.get('creator_xp') or 0
         _attach_guild_meta(war)
         entries = _wz_entries(war['id'])
         view = _warzone_view(war, entries)
