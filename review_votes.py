@@ -367,54 +367,251 @@ def review_level_for_xp(review_xp):
     return "F"
 
 
-def get_bulk_review_points(review_type, review_ids):
-    """Return {review_id: {like_points, dislike_points}} for multiple reviews.
+# =====================================================================
+# Dislike reasons (anti-bombing): a dislike only counts against a review
+# if the disliker posted a reason AND that reason has a positive community
+# like/dislike ratio. Reason-less legacy dislikes are grandfathered in.
+# =====================================================================
 
-    Points are the rank-weighted values stored on each vote at vote time
-    (like = +10 x voter-rank weight, dislike = -5 x weight). Falls back to
-    flat +10/-5 if the points column is missing on an old database.
+def submit_review_dislike(user_id, review_type, review_id, reason):
+    """Create a dislike WITH a mandatory reason (one per user per review).
+
+    Returns (ok, error, counts) where counts = {likes, dislikes} after.
+    """
+    reason = (reason or "").strip()[:500]
+    if len(reason) < 2:
+        return False, "Please give a short reason for your dislike.", None
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "SELECT id FROM review_reasons WHERE user_id=? AND review_type=? AND review_id=?",
+            (user_id, review_type, review_id),
+        )
+        if cursor.fetchone():
+            conn.close()
+            return False, "You already posted a reason for this review.", None
+        cursor.execute(
+            "INSERT INTO review_reasons (review_id, review_type, user_id, reason) VALUES (?, ?, ?, ?)",
+            (review_id, review_type, user_id, reason),
+        )
+        # Place (or switch to) the dislike vote with rank-weighted points.
+        cursor.execute(
+            "SELECT id FROM review_likes WHERE user_id=? AND review_type=? AND review_id=?",
+            (user_id, review_type, review_id),
+        )
+        existing = cursor.fetchone()
+        points = vote_points_for_rank(_voter_rank(user_id), False)
+        if existing:
+            cursor.execute(
+                "UPDATE review_likes SET is_like=0, points=? WHERE id=?",
+                (points, existing["id"]),
+            )
+        else:
+            cursor.execute(
+                "INSERT INTO review_likes (user_id, review_type, review_id, is_like, points) VALUES (?, ?, ?, 0, ?)",
+                (user_id, review_type, review_id, points),
+            )
+        conn.commit()
+    except Exception as exc:
+        conn.rollback()
+        conn.close()
+        return False, str(exc), None
+    cursor.execute(
+        "SELECT SUM(CASE WHEN is_like=1 THEN 1 ELSE 0 END) as likes, "
+        "SUM(CASE WHEN is_like=0 THEN 1 ELSE 0 END) as dislikes "
+        "FROM review_likes WHERE review_type=? AND review_id=?",
+        (review_type, review_id),
+    )
+    counts = cursor.fetchone()
+    conn.close()
+    return True, None, {"likes": counts["likes"] or 0, "dislikes": counts["dislikes"] or 0}
+
+
+def toggle_reason_vote(user_id, reason_id, is_like):
+    """Vote on a dislike-reason. Returns (user_vote, likes, dislikes)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, is_like FROM review_likes WHERE user_id=? AND review_type='reason' AND review_id=?",
+        (user_id, reason_id),
+    )
+    existing = cursor.fetchone()
+    user_vote = None
+    if existing:
+        if existing["is_like"] == (1 if is_like else 0):
+            cursor.execute("DELETE FROM review_likes WHERE id=?", (existing["id"],))
+        else:
+            cursor.execute("UPDATE review_likes SET is_like=? WHERE id=?", (1 if is_like else 0, existing["id"]))
+            user_vote = 1 if is_like else 0
+    else:
+        cursor.execute(
+            "INSERT INTO review_likes (user_id, review_type, review_id, is_like, points) VALUES (?, 'reason', ?, ?, 0)",
+            (user_id, reason_id, 1 if is_like else 0),
+        )
+        user_vote = 1 if is_like else 0
+    conn.commit()
+    cursor.execute(
+        "SELECT SUM(CASE WHEN is_like=1 THEN 1 ELSE 0 END) as likes, "
+        "SUM(CASE WHEN is_like=0 THEN 1 ELSE 0 END) as dislikes "
+        "FROM review_likes WHERE review_type='reason' AND review_id=?",
+        (reason_id,),
+    )
+    counts = cursor.fetchone()
+    conn.close()
+    return user_vote, counts["likes"] or 0, counts["dislikes"] or 0
+
+
+def get_review_reasons(review_type, review_ids, user_id):
+    """Return {review_id: [reason dicts]} with vote counts + my vote."""
+    if not review_ids:
+        return {}
+    conn = get_connection()
+    cursor = conn.cursor()
+    placeholders = ",".join("?" * len(review_ids))
+    cursor.execute(
+        f"""SELECT r.id, r.review_id, r.user_id, r.reason, r.created_at,
+        u.username, u.avatar, u.avatar_color,
+        SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) as likes,
+        SUM(CASE WHEN rl.is_like=0 THEN 1 ELSE 0 END) as dislikes
+        FROM review_reasons r
+        LEFT JOIN users u ON u.id = r.user_id
+        LEFT JOIN review_likes rl ON rl.review_type='reason' AND rl.review_id = r.id
+        WHERE r.review_type=? AND r.review_id IN ({placeholders})
+        GROUP BY r.id ORDER BY r.id""",
+        [review_type] + list(review_ids),
+    )
+    rows = cursor.fetchall()
+    ids = [row["id"] for row in rows]
+    my_votes = {}
+    if user_id and ids:
+        p2 = ",".join("?" * len(ids))
+        cursor.execute(
+            f"SELECT review_id, is_like FROM review_likes WHERE review_type='reason' AND user_id=? AND review_id IN ({p2})",
+            [user_id] + ids,
+        )
+        my_votes = {row["review_id"]: row["is_like"] for row in cursor.fetchall()}
+    conn.close()
+    out = {}
+    for row in rows:
+        out.setdefault(row["review_id"], []).append({
+            "id": row["id"],
+            "user_id": row["user_id"],
+            "username": row["username"] or "user",
+            "avatar": row["avatar"],
+            "avatar_color": row["avatar_color"] or "#374151",
+            "reason": row["reason"],
+            "created_at": row["created_at"],
+            "likes": row["likes"] or 0,
+            "dislikes": row["dislikes"] or 0,
+            "my_vote": my_votes.get(row["id"]),
+            "ratio_ok": (row["likes"] or 0) > (row["dislikes"] or 0),
+        })
+    return out
+
+
+# Point value of one vote, computed from the VOTER's current rank tier at
+# read time (no reliance on a stored points column, so every vote path --
+# including the legacy toggle -- prices votes correctly). D like +5 / -3 is
+# the nerfed low-rank schedule.
+_VOTE_PTS_SQL = """
+CASE
+  WHEN rl.is_like=1 THEN
+    CASE WHEN ux.xp >= 15000 THEN 150
+         WHEN ux.xp >= 5000 THEN 100
+         WHEN ux.xp >= 2000 THEN 80
+         WHEN ux.xp >= 1000 THEN 50
+         WHEN ux.xp >= 500 THEN 20
+         ELSE 5 END
+  ELSE
+    CASE WHEN ux.xp >= 15000 THEN -75
+         WHEN ux.xp >= 5000 THEN -50
+         WHEN ux.xp >= 2000 THEN -40
+         WHEN ux.xp >= 1000 THEN -25
+         WHEN ux.xp >= 500 THEN -10
+         ELSE -3 END
+END
+"""
+
+
+def get_dislike_gating(review_type, review_ids):
+    """Return {review_id: {effective_dislike_points, contested}}.
+
+    A dislike's points count only when it has no reason row (legacy) or its
+    reason's community ratio is positive. Reasons with a bad ratio make the
+    dislike 'contested' (no effect on the review). Points are priced from the
+    voter's current rank tier.
     """
     if not review_ids:
         return {}
     conn = get_connection()
     cursor = conn.cursor()
     placeholders = ",".join("?" * len(review_ids))
-    try:
-        cursor.execute(
-            f"""SELECT review_id,
-            SUM(CASE WHEN is_like=1 THEN points ELSE 0 END) as like_points,
-            SUM(CASE WHEN is_like=0 THEN points ELSE 0 END) as dislike_points
-            FROM review_likes WHERE review_type=? AND review_id IN ({placeholders})
-            GROUP BY review_id""",
-            [review_type] + list(review_ids),
-        )
-        rows = cursor.fetchall()
-    except Exception:
-        # Old schema without the points column: fall back to flat values.
-        cursor.execute(
-            f"""SELECT review_id,
-            SUM(CASE WHEN is_like=1 THEN 1 ELSE 0 END) as like_points,
-            SUM(CASE WHEN is_like=0 THEN 1 ELSE 0 END) as dislike_points
-            FROM review_likes WHERE review_type=? AND review_id IN ({placeholders})
-            GROUP BY review_id""",
-            [review_type] + list(review_ids),
-        )
-        rows = cursor.fetchall()
-        flat = [
-            {
-                "review_id": row["review_id"],
-                "like_points": (row["like_points"] or 0) * 10,
-                "dislike_points": (row["dislike_points"] or 0) * -5,
-            }
-            for row in rows
-        ]
-        conn.close()
-        return {r["review_id"]: {"like_points": r["like_points"], "dislike_points": r["dislike_points"]} for r in flat}
+    cursor.execute(
+        f"""SELECT rl.review_id,
+        SUM(CASE
+            WHEN rr.id IS NULL THEN {_VOTE_PTS_SQL}
+            WHEN (rv.likes - rv.dislikes) > 0 THEN {_VOTE_PTS_SQL}
+            ELSE 0 END) as effective,
+        SUM(CASE WHEN rr.id IS NOT NULL AND (rv.likes - rv.dislikes) <= 0 THEN 1 ELSE 0 END) as contested
+        FROM review_likes rl
+        LEFT JOIN user_xp ux ON ux.user_id = rl.user_id
+        LEFT JOIN review_reasons rr
+            ON rr.user_id = rl.user_id AND rr.review_type = rl.review_type AND rr.review_id = rl.review_id
+        LEFT JOIN (
+            SELECT review_id as rid, SUM(CASE WHEN is_like=1 THEN 1 ELSE 0 END) as likes,
+                   SUM(CASE WHEN is_like=0 THEN 1 ELSE 0 END) as dislikes
+            FROM review_likes WHERE review_type='reason' GROUP BY review_id
+        ) rv ON rv.rid = rr.id
+        WHERE rl.review_type=? AND rl.is_like=0 AND rl.review_id IN ({placeholders})
+        GROUP BY rl.review_id""",
+        [review_type] + list(review_ids),
+    )
+    rows = cursor.fetchall()
     conn.close()
     return {
-        row["review_id"]: {"like_points": row["like_points"] or 0, "dislike_points": row["dislike_points"] or 0}
+        row["review_id"]: {"effective_dislike_points": row["effective"] or 0, "contested": row["contested"] or 0}
         for row in rows
     }
+
+
+def get_bulk_review_points(review_type, review_ids):
+    """Return {review_id: {like_points, dislike_points, contested}} for reviews.
+
+    Points are priced dynamically from each voter's current rank tier
+    (like: D +5 .. S+ +150, dislike: D -3 .. S+ -75). Dislike points are
+    gated by the anti-bombing reason rule: a dislike only subtracts when its
+    reason has a positive community ratio (legacy reason-less votes count;
+    bad-reason votes become 'contested' with no effect).
+    """
+    if not review_ids:
+        return {}
+    conn = get_connection()
+    cursor = conn.cursor()
+    placeholders = ",".join("?" * len(review_ids))
+    cursor.execute(
+        f"""SELECT rl.review_id,
+        SUM(CASE WHEN rl.is_like=1 THEN {_VOTE_PTS_SQL} ELSE 0 END) as like_points,
+        SUM(CASE WHEN rl.is_like=0 THEN {_VOTE_PTS_SQL} ELSE 0 END) as dislike_points
+        FROM review_likes rl
+        LEFT JOIN user_xp ux ON ux.user_id = rl.user_id
+        WHERE rl.review_type=? AND rl.review_id IN ({placeholders})
+        GROUP BY rl.review_id""",
+        [review_type] + list(review_ids),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    result = {
+        row["review_id"]: {"like_points": row["like_points"] or 0, "dislike_points": row["dislike_points"] or 0, "contested": 0}
+        for row in rows
+    }
+    # Apply the anti-bombing gate to the dislike side.
+    gating = get_dislike_gating(review_type, review_ids)
+    for rid, pts in result.items():
+        g = gating.get(rid, {})
+        pts["dislike_points"] = g.get("effective_dislike_points", pts["dislike_points"])
+        pts["contested"] = g.get("contested", 0)
+    return result
 
 
 def get_user_review_votes(review_type, review_ids, user_id):

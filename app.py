@@ -53,6 +53,8 @@ from database import (
     xp_progress,
     toggle_review_like,
     get_review_likes,
+    add_review_reply,
+    get_review_replies,
     get_bulk_review_likes,
     get_user_review_history,
     get_user_review,
@@ -71,6 +73,9 @@ from review_votes import (
     review_level_for_xp,
     get_bulk_review_points,
     vote_points_for_rank,
+    submit_review_dislike,
+    toggle_reason_vote,
+    get_review_reasons,
     RANK_COLORS,
     RANK_WEIGHTS,
     TRUSTED_RANKS,
@@ -1234,8 +1239,10 @@ def reviews_page():
         pts = point_map.get(r["id"])
         if pts:
             r["review_xp"] = max(0, (pts.get("like_points") or 0) + (pts.get("dislike_points") or 0))
+            r["contested"] = pts.get("contested", 0)
         else:
             r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"])
+            r["contested"] = 0
         r["review_level"] = review_level_for_xp(r["review_xp"])
         r["user_vote"] = user_votes.get(r["id"])
         rinfo = rank_map.get(r["user_id"], {"rank": "D", "xp": 0})
@@ -1313,10 +1320,13 @@ def reviews_page():
             epts = ep_points.get(r["id"])
             if epts:
                 r["review_xp"] = max(0, (epts.get("like_points") or 0) + (epts.get("dislike_points") or 0))
+                r["contested"] = epts.get("contested", 0)
             else:
                 r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"])
+                r["contested"] = 0
         except Exception:
             r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"])
+            r["contested"] = 0
         r["review_level"] = review_level_for_xp(r["review_xp"])
         r["user_vote"] = ep_user_votes.get(r["id"])
         rinfo = ep_rank_map.get(r["user_id"], {"rank": "D", "xp": 0})
@@ -1402,6 +1412,13 @@ def reviews_page():
     # with the D-equivalence ratio (one vote of this rank = N D-rank votes).
     vote_schedule = _build_vote_schedule()
 
+    _uid = user["id"] if user else None
+    reasons_map = get_review_reasons("anime", review_ids, _uid)
+    reasons_map.update(get_review_reasons("episode", ep_ids, _uid))
+    replies_map = get_review_replies("anime", review_ids)
+    replies_map.update(get_review_replies("episode", ep_ids))
+    user_rank = get_user_rank(_uid) if _uid else None
+
     return render_template(
         "reviews.html",
         reviews=reviews,
@@ -1409,6 +1426,9 @@ def reviews_page():
         top_reviewers=top_reviewers,
         top_graded=top_graded,
         vote_schedule=vote_schedule,
+        reasons=reasons_map,
+        replies=replies_map,
+        user_rank=user_rank,
         GRADE_ORDER=GRADE_ORDER,
         anime_review_count=len(reviews),
         episode_review_count=len(episode_reviews),
@@ -1491,6 +1511,105 @@ def _vote_rate_hit(key, limit=40, window_seconds=300):
             return True
         lst.append(now)
         return False
+
+
+@app.route("/api/review/<int:review_id>/dislike-reason", methods=["POST"])
+def review_dislike_reason(review_id):
+    """Dislike WITH a mandatory, community-gated reason (anti-bombing)."""
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in to vote."}), 401
+    if _vote_rate_hit("u:" + str(user["id"]), 40, 300) or _vote_rate_hit(
+        "ip:" + (request.remote_addr or "?"), 120, 300
+    ):
+        return jsonify({"success": False, "error": "You're voting too fast. Take a break."}), 429
+    data = request.get_json(silent=True) or {}
+    review_type = data.get("review_type") or "anime"
+    if review_type not in ("anime", "episode"):
+        return jsonify({"success": False, "error": "Bad review type."}), 400
+    ok, err, counts = submit_review_dislike(user["id"], review_type, review_id, data.get("reason"))
+    if not ok:
+        return jsonify({"success": False, "error": err or "Could not submit."}), 400
+    reason_row = get_review_reasons(review_type, [review_id], user["id"]).get(review_id, [])[-1]
+    return jsonify({
+        "success": True,
+        "likes": counts["likes"],
+        "dislikes": counts["dislikes"],
+        "user_vote": 0,
+        "reason": reason_row,
+    })
+
+
+@app.route("/api/review/<int:review_id>/remove-reason", methods=["POST"])
+def review_remove_reason(review_id):
+    """Remove the current user's dislike reason + their dislike vote."""
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in."}), 401
+    data = request.get_json(silent=True) or {}
+    review_type = data.get("review_type") or "anime"
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "DELETE FROM review_reasons WHERE user_id=? AND review_type=? AND review_id=?",
+        (user["id"], review_type, review_id),
+    )
+    cur.execute(
+        "DELETE FROM review_likes WHERE user_id=? AND review_type=? AND review_id=? AND is_like=0",
+        (user["id"], review_type, review_id),
+    )
+    conn.commit()
+    counts = get_review_likes(review_type, review_id)
+    conn.close()
+    return jsonify({"success": True, "likes": counts["likes"], "dislikes": counts["dislikes"], "user_vote": None})
+
+
+@app.route("/api/review/<int:review_id>/reply", methods=["POST"])
+def review_reply(review_id):
+    """Reply to a review — C rank (500 XP) and above only, so fresh D-rank
+    accounts can't use replies to brigade a review section."""
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in to reply."}), 401
+    rank = get_user_rank(user["id"])
+    if rank not in ("C", "B", "A", "S", "S+"):
+        return jsonify({
+            "success": False,
+            "error": "Replies require C rank (500 XP). Keep reviewing — your next likes will get you there!",
+        }), 403
+    if _vote_rate_hit("u:" + str(user["id"]), 40, 300) or _vote_rate_hit(
+        "ip:" + (request.remote_addr or "?"), 120, 300
+    ):
+        return jsonify({"success": False, "error": "You're replying too fast. Take a break."}), 429
+    data = request.get_json(silent=True) or {}
+    review_type = data.get("review_type") or "anime"
+    if review_type not in ("anime", "episode"):
+        return jsonify({"success": False, "error": "Bad review type."}), 400
+    ok, err, reply = add_review_reply(user["id"], review_type, review_id, data.get("content"))
+    if not ok:
+        return jsonify({"success": False, "error": err or "Could not reply."}), 400
+    return jsonify({"success": True, "reply": reply})
+
+
+@app.route("/api/reason/<int:reason_id>/vote", methods=["POST"])
+def reason_vote(reason_id):
+    """Vote on a dislike-reason (decides if the dislike counts)."""
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in to vote."}), 401
+    if _vote_rate_hit("u:" + str(user["id"]), 40, 300) or _vote_rate_hit(
+        "ip:" + (request.remote_addr or "?"), 120, 300
+    ):
+        return jsonify({"success": False, "error": "You're voting too fast. Take a break."}), 429
+    data = request.get_json(silent=True) or {}
+    is_like = data.get("is_like")
+    if is_like is None:
+        return jsonify({"success": False, "error": "Missing vote type."}), 400
+    try:
+        user_vote, likes, dislikes = toggle_reason_vote(user["id"], reason_id, bool(is_like))
+    except Exception:
+        return jsonify({"success": False, "error": "Reason not found."}), 404
+    return jsonify({"success": True, "likes": likes, "dislikes": dislikes, "user_vote": user_vote})
 
 
 @app.route("/api/review/<int:review_id>/vote", methods=["POST"])

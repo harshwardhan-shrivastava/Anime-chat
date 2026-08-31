@@ -484,6 +484,31 @@ def create_tables():
         cursor.execute("UPDATE episode_reviews SET rating = rating * 2")
 
     cursor.execute("""
+        CREATE TABLE IF NOT EXISTS review_reasons(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            review_id INTEGER NOT NULL,
+            review_type TEXT NOT NULL DEFAULT 'anime',
+            user_id INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, review_type, review_id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS review_replies(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            review_id INTEGER NOT NULL,
+            review_type TEXT NOT NULL DEFAULT 'anime',
+            user_id INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS claims(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -1461,6 +1486,63 @@ def delete_user_review(review_id, user_id):
         global _all_reviews_cache
         _all_reviews_cache = None
     return deleted
+
+def add_review_reply(user_id, review_type, review_id, content):
+    """Insert a reply on a review. Returns (ok, err, reply_dict)."""
+    content = (content or "").strip()
+    if len(content) < 2:
+        return False, "Reply is too short.", None
+    if len(content) > 500:
+        return False, "Reply must be 500 characters or fewer.", None
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO review_replies (review_id, review_type, user_id, content) VALUES (?, ?, ?, ?)",
+        (review_id, review_type, user_id, content),
+    )
+    conn.commit()
+    rid = cursor.lastrowid
+    conn.close()
+    rows = get_review_replies(review_type, [review_id])
+    reply = rows.get(review_id, [])
+    reply = next((rp for rp in reply if rp["id"] == rid), None)
+    return True, None, reply
+
+
+def get_review_replies(review_type, review_ids):
+    """Return {review_id: [reply dicts]} ordered oldest-first, with the
+    replier's username, avatar and current rank tier."""
+    if not review_ids:
+        return {}
+    conn = get_connection()
+    cursor = conn.cursor()
+    placeholders = ",".join("?" * len(review_ids))
+    cursor.execute(
+        f"""SELECT r.id, r.review_id, r.user_id, r.content, r.created_at,
+        u.username, u.avatar, u.avatar_color, ux.xp
+        FROM review_replies r
+        LEFT JOIN users u ON u.id = r.user_id
+        LEFT JOIN user_xp ux ON ux.user_id = r.user_id
+        WHERE r.review_type=? AND r.review_id IN ({placeholders})
+        ORDER BY r.id ASC""",
+        [review_type] + list(review_ids),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    out = {}
+    for row in rows:
+        out.setdefault(row["review_id"], []).append({
+            "id": row["id"],
+            "user_id": row["user_id"],
+            "username": row["username"] or "user",
+            "avatar": row["avatar"],
+            "avatar_color": row["avatar_color"] or "#374151",
+            "content": row["content"],
+            "created_at": row["created_at"],
+            "rank": get_xp_tier(row["xp"] or 0),
+        })
+    return out
+
 
 def add_episode_review(anime_slug, season_name, episode_number, user_id,
                        username, avatar_color, rating, comment):
