@@ -138,8 +138,27 @@
     }
     var createBtn = document.querySelector(".wz-create-submit");
     if (createBtn) {
+        var box = document.getElementById("wzCreateBox");
+        var modeSel = box.querySelector(".wz-mode-select");
+        var guildSel = box.querySelector(".wz-guild-select");
+
+        function showGuildPicker() {
+            guildSel.closest("label").style.display = (modeSel.value === "guild" || modeSel.value === "gvg") ? "block" : "none";
+        }
+        modeSel.addEventListener("change", showGuildPicker);
+        // Load the caller's guilds for the guild/GvG modes.
+        fetch("/api/warzone/my-guilds").then(function (r) { return r.json(); }).then(function (d) {
+            if (!d.success) return;
+            var opts = ["<option value=''>Choose a guild…</option>"];
+            (d.guilds || []).forEach(function (gl) {
+                opts.push("<option value='" + gl.id + "'" + (gl.members >= 50 ? "" : " data-small='1'") + ">" + escHtml(gl.name) + " (" + gl.members + " mem)" + (gl.owner ? " · owner" : "") + "</option>");
+            });
+            guildSel.innerHTML = opts.join("");
+            var hint = box.querySelector(".wz-guild-hint");
+            if (hint) hint.textContent = "(50+ members to declare GvG)";
+        });
+
         createBtn.addEventListener("click", function () {
-            var box = document.getElementById("wzCreateBox");
             var title = (box.querySelector(".wz-title").value || "").trim();
             var decl = (box.querySelector(".wz-decl-input").value || "").trim();
             var errEl = box.querySelector(".wz-create-err");
@@ -149,13 +168,19 @@
             var animeSlug = (box.querySelector(".wz-anime-slug").value || "").trim();
             var episodeRef = (box.querySelector(".wz-episode-ref").value || "").trim();
             var gifUrl = (box.querySelector(".wz-gif").value || "").trim();
+            var mode = modeSel.value;
+            var guildId = guildSel.value;
             if (title.length < 3) { errEl.textContent = "Give your war a short title."; return; }
             if (decl.length < 2) { errEl.textContent = "Write a declaration - the position everyone fights over."; return; }
+            if ((mode === "guild" || mode === "gvg") && !guildId) { errEl.textContent = "Choose your guild."; return; }
+            var endpoint = mode === "guild" ? "/api/warzone/guild" : (mode === "gvg" ? "/api/warzone/gvg" : "/api/warzone/create");
+            var payload = { title: title, declaration: decl, hours: hours, is_private: isPrivate, topic_type: topicType, anime_slug: animeSlug, episode_ref: episodeRef, gif_url: gifUrl };
+            if (mode !== "friendly") payload.guild_id = guildId ? parseInt(guildId, 10) : null;
             createBtn.disabled = true;
-            fetch("/api/warzone/create", {
+            fetch(endpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title: title, declaration: decl, hours: hours, is_private: isPrivate, topic_type: topicType, anime_slug: animeSlug, episode_ref: episodeRef, gif_url: gifUrl })
+                body: JSON.stringify(payload)
             }).then(function (r) { return r.json(); }).then(function (data) {
                 createBtn.disabled = false;
                 if (!data.success) { errEl.textContent = data.error || "Could not create the war."; return; }
@@ -165,7 +190,7 @@
                 errEl.textContent = "Network error - try again.";
             });
         });
-        // Open the create panel if ?create=1 (e.g. from a Thread -> War button)
+        // Default the mode picker to the query hint and open if ?create=1
         if (window.location.search.indexOf("create=1") !== -1) {
             var panel = document.getElementById("wzCreatePanel");
             if (panel) {
@@ -177,8 +202,59 @@
         var q = new URLSearchParams(window.location.search);
         var slug = q.get("anime");
         if (slug) {
-            var a = document.querySelector(".wz-anime-slug");
+            var a = box.querySelector(".wz-anime-slug");
             if (a) a.value = slug;
         }
+        showGuildPicker();
     }
+
+    // ---- GvG declared: load your guilds into the claim picker ----
+    document.querySelectorAll(".wz-claim-guild").forEach(function (sel) {
+        fetch("/api/warzone/my-guilds").then(function (r) { return r.json(); }).then(function (d) {
+            if (!d.success) return;
+            var opts = ["<option value=''>Your guilds…</option>"];
+            (d.guilds || []).forEach(function (gl) {
+                opts.push("<option value='" + gl.id + "'" + (gl.owner ? "" : " disabled") + ">" + escHtml(gl.name) + " (" + gl.members + ")" + (gl.owner ? " · owner" : "") + "</option>");
+            });
+            sel.innerHTML = opts.join("");
+        });
+        var claimWrap = sel.closest(".wz-claim-ctrl");
+        var claimBtn = claimWrap ? claimWrap.querySelector(".wz-claim-btn") : null;
+        if (claimBtn) {
+            sel.addEventListener("change", function () {
+                claimBtn.setAttribute("data-guild", sel.value);
+            });
+        }
+    });
+
+    // ---- GvG: claim a declaration + owner picks a rival ----
+    document.addEventListener("click", function (e) {
+        var claimBtn = e.target.closest(".wz-claim-btn");
+        if (claimBtn) {
+            var warId = claimBtn.getAttribute("data-war");
+            var guildId = claimBtn.getAttribute("data-guild");
+            if (!guildId) { alert("Pick your guild first."); return; }
+            fetch("/api/warzone/" + warId + "/claim", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ guild_id: parseInt(guildId, 10) })
+            }).then(function (r) { return r.json(); }).then(function (d) {
+                if (!d.success) { alert(d.error || "Could not claim."); return; }
+                window.location.reload();
+            });
+            return;
+        }
+        var pickBtn = e.target.closest(".wz-pick-btn");
+        if (pickBtn) {
+            var warId2 = pickBtn.getAttribute("data-war");
+            var guildId2 = pickBtn.getAttribute("data-guild");
+            fetch("/api/warzone/" + warId2 + "/pick", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ guild_id: parseInt(guildId2, 10) })
+            }).then(function (r) { return r.json(); }).then(function (d) {
+                if (!d.success) { alert(d.error || "Could not pick."); return; }
+                window.location.href = d.url;
+            });
+            return;
+        }
+    });
 })();

@@ -19,6 +19,14 @@ from database import (
     add_warzone_entry,
     get_review_likes,
     get_user_rank,
+    get_connection,
+    get_warzone_mode,
+    create_guild_war,
+    create_gvg_declaration,
+    claim_gvg,
+    pick_gvg_rival,
+    add_guild_war_entry,
+    get_guild_xp,
 )
 
 wz_bp = Blueprint("wz", __name__)
@@ -41,6 +49,23 @@ def _require_rank(user):
     if rank not in ("C", "B", "A", "S", "S+"):
         return None
     return rank
+
+
+def _topic_args(data):
+    try:
+        hours = int(data.get("hours") or 24)
+    except (TypeError, ValueError):
+        hours = 24
+    topic_type = data.get("topic_type") or "blank"
+    if topic_type not in ("blank", "anime", "episode", "gif"):
+        topic_type = "blank"
+    return (
+        hours,
+        topic_type,
+        (data.get("anime_slug") or "").strip()[:120] or None,
+        (data.get("episode_ref") or "").strip()[:120] or None,
+        (data.get("gif_url") or "").strip()[:500] or None,
+    )
 
 
 @wz_bp.route("/api/warzone/create", methods=["POST"])
@@ -123,7 +148,11 @@ def warzone_enter(wid):
     if _hit("u:" + str(user["id"])) or _hit("ip:" + (request.remote_addr or "?"), 120, 300):
         return jsonify({"success": False, "error": "You're posting too fast. Take a break."}), 429
     data = request.get_json(silent=True) or {}
-    ok, err, entry = add_warzone_entry(user["id"], wid, data.get("content"))
+    mode = get_warzone_mode(wid)
+    if mode in ("guild", "gvg"):
+        ok, err, entry = add_guild_war_entry(user["id"], wid, data.get("content"))
+    else:
+        ok, err, entry = add_warzone_entry(user["id"], wid, data.get("content"))
     if not ok:
         return jsonify({"success": False, "error": err or "Could not enter the war."}), 400
     return jsonify({"success": True, "entry": entry})
@@ -159,3 +188,106 @@ def warzone_vote(eid):
         "dislikes": counts["dislikes"],
         "user_vote": None if removed else (1 if new_is_like else 0),
     })
+
+
+@wz_bp.route("/api/warzone/my-guilds")
+def wz_my_guilds():
+    """The caller's guilds (member + owned), for picking a guild to declare
+    war with or host an in-guild battle."""
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in."}), 401
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """SELECT c.id, c.name, c.owner_id, m.role,
+        (SELECT COUNT(*) FROM thr_community_members x WHERE x.community_id=c.id) as members
+        FROM thr_community_members m JOIN thr_communities c ON c.id=m.community_id
+        WHERE m.user_id=? ORDER BY c.id ASC""",
+        (user["id"],),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    guilds = [{
+        "id": r["id"], "name": r["name"], "owner": r["owner_id"] == user["id"],
+        "role": r["role"], "members": r["members"],
+    } for r in rows]
+    return jsonify({"success": True, "guilds": guilds})
+
+
+@wz_bp.route("/api/warzone/guild", methods=["POST"])
+def wz_create_guild_war():
+    """Create an in-guild battle (members vs members for top-3)."""
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in."}), 401
+    if _require_rank(user) is None:
+        return jsonify({"success": False, "error": "Creating a war requires C rank (500 XP)."}), 403
+    data = request.get_json(silent=True) or {}
+    guild_id = data.get("guild_id")
+    if guild_id is None:
+        return jsonify({"success": False, "error": "Choose a guild."}), 400
+    hours, topic_type, slug, ep, gif = _topic_args(data)
+    ok, err, wid = create_guild_war(
+        user["id"], guild_id, data.get("title"), data.get("declaration"), hours,
+        bool(data.get("is_private")), topic_type, slug, ep, gif,
+    )
+    if not ok:
+        return jsonify({"success": False, "error": err or "Could not create the war."}), 400
+    return jsonify({"success": True, "war_id": wid, "url": "/war/zone/{}".format(wid)})
+
+
+@wz_bp.route("/api/warzone/gvg", methods=["POST"])
+def wz_declare_gvg():
+    """A guild owner posts a public Declaration of War. Rival owners claim it;
+    the declaring owner picks a rival to book the duel."""
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in."}), 401
+    if _require_rank(user) is None:
+        return jsonify({"success": False, "error": "Declaring war requires C rank (500 XP)."}), 403
+    data = request.get_json(silent=True) or {}
+    guild_id = data.get("guild_id")
+    if guild_id is None:
+        return jsonify({"success": False, "error": "Choose your guild."}), 400
+    hours, topic_type, slug, ep, gif = _topic_args(data)
+    ok, err, wid = create_gvg_declaration(
+        user["id"], guild_id, data.get("title"), data.get("declaration"), hours,
+        topic_type, slug, ep, gif,
+    )
+    if not ok:
+        return jsonify({"success": False, "error": err or "Could not issue the declaration."}), 400
+    return jsonify({"success": True, "war_id": wid, "url": "/war/zone/{}".format(wid)})
+
+
+@wz_bp.route("/api/warzone/<int:war_id>/claim", methods=["POST"])
+def wz_claim(war_id):
+    """A rival guild owner claims a public declaration."""
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in."}), 401
+    data = request.get_json(silent=True) or {}
+    guild_id = data.get("guild_id")
+    if guild_id is None:
+        return jsonify({"success": False, "error": "Choose your guild."}), 400
+    ok, err = claim_gvg(user["id"], guild_id, war_id)
+    if not ok:
+        return jsonify({"success": False, "error": err or "Could not claim the declaration."}), 400
+    return jsonify({"success": True})
+
+
+@wz_bp.route("/api/warzone/<int:war_id>/pick", methods=["POST"])
+def wz_pick(war_id):
+    """The declaring guild owner picks a rival from the claims, booking the
+    duel and opening it to both guilds."""
+    user = g.get("user")
+    if not user:
+        return jsonify({"success": False, "error": "Please log in."}), 401
+    data = request.get_json(silent=True) or {}
+    rival_guild_id = data.get("guild_id")
+    if rival_guild_id is None:
+        return jsonify({"success": False, "error": "Pick a rival guild."}), 400
+    ok, err, ends = pick_gvg_rival(user["id"], war_id, rival_guild_id)
+    if not ok:
+        return jsonify({"success": False, "error": err or "Could not pick a rival."}), 400
+    return jsonify({"success": True, "ends_at": ends, "url": "/war/zone/{}".format(war_id)})

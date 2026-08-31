@@ -59,6 +59,61 @@
             {% endif %}
         </div>
 
+        {% if war.mode == 'guild' and war.guild_a_info %}
+        <div class="wz-guild-tag">🏠 In-guild war — <b>{{ war.guild_a_info.name }}</b> ({{ war.guild_a_info.members }} members) fights it out · ⚔️ {{ war.guild_a_info.xp }} guild XP</div>
+        {% endif %}
+
+        <!-- ===== GvG VS duel band ===== -->
+        {% if war.mode == 'gvg' and war.status != 'declared' %}
+        <div class="wz-vs">
+            <div class="wz-vs-side {{ 'win' if war.status == 'settled' and war.win_guild_id == war.guild_a_info.id else ('lose' if war.status == 'settled' else '') }}">
+                <div class="wz-vs-name">{{ war.guild_a_info.name }}</div>
+                <div class="wz-vs-meta">{{ war.guild_a_info.members }} members · ⚔️ {{ war.guild_a_info.xp }} guild XP</div>
+                {% if war.status == 'settled' and war.win_guild_id == war.guild_a_info.id %}<div class="wz-vs-badge win"><i class="fas fa-flag"></i> WINNER</div>
+                {% elif war.status == 'settled' %}<div class="wz-vs-badge lose"><i class="fas fa-flag fa-rotate-90"></i> broke flag</div>{% endif %}
+            </div>
+            <div class="wz-vs-mid">
+                {% if war.status == 'open' %}<span class="wz-vs-word">VS</span><span class="war-countdown" data-ends="{{ war.ends_ts }}">…</span>
+                {% else %}<span class="wz-vs-word">SETTLED</span>{% endif %}
+            </div>
+            <div class="wz-vs-side {{ 'win' if war.status == 'settled' and war.win_guild_id == war.guild_b_info.id else ('lose' if war.status == 'settled' else '') }}">
+                <div class="wz-vs-name">{{ war.guild_b_info.name }}</div>
+                <div class="wz-vs-meta">{{ war.guild_b_info.members }} members · ⚔️ {{ war.guild_b_info.xp }} guild XP</div>
+                {% if war.status == 'settled' and war.win_guild_id == war.guild_b_info.id %}<div class="wz-vs-badge win"><i class="fas fa-flag"></i> WINNER</div>
+                {% elif war.status == 'settled' %}<div class="wz-vs-badge lose"><i class="fas fa-flag fa-rotate-90"></i> broke flag</div>{% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ===== GvG declaration: rivals claim, owner picks ===== -->
+        {% if war.mode == 'gvg' and war.status == 'declared' %}
+        <div class="wz-claims">
+            <h3>🪧 {{ war.guild_a_info.name }} is calling out the site</h3>
+            <p class="wz-claims-sub">Rival guild owners claim this declaration; the declaring owner picks one rival to book the war. Claim with a guild you own (50+ members).</p>
+            {% if war.claims %}
+            <div class="wz-claims-list">
+                {% for c in war.claims %}
+                <div class="wz-claim-row">
+                    <b>{{ c.name }}</b>
+                    <span class="wz-claim-meta">{{ c.members }} members · ⚔️ {{ c.xp }} XP</span>
+                    {% if current_user and war.guild_a_info.owner_id == current_user.id %}
+                    <button type="button" class="wz-pick-btn" data-war="{{ war.id }}" data-guild="{{ c.id }}">Pick this rival</button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="wz-claim-empty">No rivals claimed yet — the bat-signal is in the air.</div>
+            {% endif %}
+            {% if current_user and not (war.guild_a_info.owner_id == current_user.id) %}
+            <div class="wz-claim-ctrl">
+                <select class="wz-claim-guild"><option value="">Your guilds…</option></select>
+                <button type="button" class="wz-claim-btn" data-war="{{ war.id }}">Claim 🏴</button>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
         <!-- ===== Verdict / status flag ===== -->
         {% if war.status == 'settled' %}
             {% if war.winner %}

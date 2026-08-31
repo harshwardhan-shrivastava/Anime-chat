@@ -296,6 +296,25 @@ def _ensure_warzone_tables():
             UNIQUE(warzone_id, user_id)
         )"""
     )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS gvg_claims(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            war_id INTEGER NOT NULL,
+            guild_id INTEGER NOT NULL,
+            claimant_owner_id INTEGER NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(war_id, guild_id)
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS guild_war_xp(
+            guild_id INTEGER PRIMARY KEY,
+            xp INTEGER NOT NULL DEFAULT 0
+        )"""
+    )
+    _gz_cols = [r[1] for r in cur.execute("PRAGMA table_info(warzones)").fetchall()]
+    if "guild_awarded" not in _gz_cols:
+        cur.execute("ALTER TABLE warzones ADD COLUMN guild_awarded INTEGER NOT NULL DEFAULT 0")
     conn.commit()
     conn.close()
 
@@ -387,7 +406,13 @@ def _wz_entries(wid, user_id=None):
 def _warzone_view(war, entries):
     ends_ts = _iso_to_ts(war['ends_at'])
     now = int(time.time())
-    status = 'settled' if war['settled'] else ('open' if now < ends_ts else 'settled')
+    # A declared GvG is still gathering rival claims; it hasn't started yet,
+    # so its stored status wins and ends_at is just a placeholder until the
+    # declaring owner picks a rival.
+    if war['status'] == 'declared':
+        status = 'declared'
+    else:
+        status = 'settled' if war['settled'] else ('open' if now < ends_ts else 'settled')
     eligible = sorted(
         [e for e in entries if e['total'] >= WARZONE_MIN_VOTES],
         key=lambda e: (e['ratio'], e['likes']), reverse=True,
@@ -410,7 +435,7 @@ def _warzone_view(war, entries):
     view['leader'] = eligible[0] if eligible else None
     view['winner'] = winner
     view['podium'] = podium
-    view['flag'] = 'win' if (status == 'settled' and winner) else ('no_contest' if status == 'settled' else 'open')
+    view['flag'] = 'win' if (status == 'settled' and winner) else ('no_contest' if status == 'settled' else ('declared' if status == 'declared' else 'open'))
     return view
 
 
@@ -423,6 +448,30 @@ def _mark_warzone_settled(wid, winner_id):
     )
     conn.commit()
     conn.close()
+
+
+def _attach_guild_meta(war):
+    """Attach guild A/B info + Guild XP and, for declared GvG, the list of
+    rival guilds that claimed the declaration."""
+    for field, out in (('guild_a', 'guild_a_info'), ('guild_b', 'guild_b_info')):
+        gid = war.get(field)
+        if gid:
+            info = _guild_info(gid)
+            if info:
+                info['xp'] = get_guild_xp(gid)
+                war[out] = info
+    if war.get('mode') == 'gvg' and war.get('status') == 'declared':
+        claims = []
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT guild_id FROM gvg_claims WHERE war_id=?", (war['id'],))
+        for row in cur.fetchall():
+            info = _guild_info(row['guild_id'])
+            if info:
+                info['xp'] = get_guild_xp(row['guild_id'])
+                claims.append(info)
+        conn.close()
+        war['claims'] = claims
 
 
 def get_warzone(wid, user_id=None):
@@ -441,10 +490,17 @@ def get_warzone(wid, user_id=None):
     if not war:
         return None
     war = dict(war)
+    _attach_guild_meta(war)
     entries = _wz_entries(wid, user_id)
     view = _warzone_view(war, entries)
     if view['status'] == 'settled' and not war['settled']:
         _mark_warzone_settled(wid, view['winner']['id'] if view['winner'] else None)
+        _award_guild_xp(view, war)
+    if war.get('mode') == 'gvg' and view.get('winner') and view.get('guild_a') and view.get('guild_b'):
+        ga, gb = view.get('guild_a'), view.get('guild_b')
+        win_gid = ga if _is_guild_member(ga, view['winner']['user_id']) else gb
+        view['win_guild_id'] = win_gid
+        view['lose_guild_id'] = gb if win_gid == ga else ga
     return view
 
 
@@ -459,7 +515,7 @@ def get_warzones(user_id=None):
         """SELECT w.id, w.mode, w.title, w.declaration, w.topic_type, w.anime_slug,
         w.episode_ref, w.gif_url, w.created_by, w.guild_a, w.guild_b, w.entry_scope,
         w.is_private, w.status, w.hours, w.ends_at, w.settled, w.winner_entry_id,
-        w.created_at,
+        w.guild_awarded, w.created_at,
         (SELECT username FROM users u WHERE u.id=w.created_by) as creator_name
         FROM warzones w
         WHERE w.is_private=0 OR w.created_by=? ORDER BY w.id DESC LIMIT 80""",
@@ -470,10 +526,13 @@ def get_warzones(user_id=None):
     wars = []
     now = int(time.time())
     for r in rows:
-        entries = _wz_entries(r['id'])
-        view = _warzone_view(r, entries)
-        if view['status'] == 'settled' and not r['settled']:
-            _mark_warzone_settled(r['id'], view['winner']['id'] if view['winner'] else None)
+        war = dict(r)
+        _attach_guild_meta(war)
+        entries = _wz_entries(war['id'])
+        view = _warzone_view(war, entries)
+        if view['status'] == 'settled' and not war['settled']:
+            _mark_warzone_settled(war['id'], view['winner']['id'] if view['winner'] else None)
+            _award_guild_xp(view, war)
         wars.append(view)
     wars.sort(key=lambda w: (0 if w['status'] == 'open' else 1, w['ends_ts'] if w['status'] == 'open' else -now))
     return wars
@@ -510,6 +569,259 @@ def add_warzone_entry(user_id, wid, content):
     conn.close()
     entry = next((e for e in _wz_entries(wid, user_id) if e['id'] == eid), None)
     return True, None, entry
+
+
+# =====================================================================
+# GUILD & GvG WARS (Phase 2 core)
+#
+# Guilds are thr_communities (same DB as database.py). A GvG starts as a
+# public DECLARATION of war by one guild's owner; rival guilds CLAIM it;
+# the declaring owner PICKS one rival -> that books the duel (both guilds'
+# members may enter battlers, the whole site votes). The war settles by
+# like-ratio; the winning guild takes the flag and Guild XP. A single-guild
+# war ('guild' mode) is members vs members for top-3, still guild-flagged.
+# =====================================================================
+GUILD_MIN_MEMBERS = 50
+GUILD_XP_WIN = 100
+GUILD_XP_LOSE = 20
+
+
+def _guild_info(gid):
+    if not gid:
+        return None
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """SELECT c.id, c.name, c.owner_id,
+        (SELECT COUNT(*) FROM thr_community_members m WHERE m.community_id=c.id) as members
+        FROM thr_communities c WHERE c.id=?""",
+        (gid,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return {"id": row["id"], "name": row["name"], "owner_id": row["owner_id"], "members": row["members"]}
+
+
+def _is_guild_member(gid, uid):
+    if not gid or not uid:
+        return False
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT 1 FROM thr_community_members WHERE community_id=? AND user_id=?", (gid, uid)
+    )
+    ok = cur.fetchone() is not None
+    conn.close()
+    return ok
+
+
+def _guild_active_war(gid):
+    """True if this guild is already host or rival in a declared/open war."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id FROM warzones WHERE (guild_a=? OR guild_b=?) AND status IN ('declared','open')",
+        (gid, gid),
+    )
+    row = cur.fetchone()
+    conn.close()
+    return row is not None
+
+
+def create_guild_war(user_id, guild_id, title, declaration, hours=48, is_private=False,
+                     topic_type='blank', anime_slug=None, episode_ref=None, gif_url=None):
+    """A single-guild battle: only that guild's members can enter battlers."""
+    g = _guild_info(guild_id)
+    if not g:
+        return False, 'Guild not found.', None
+    ok, err, wid = create_warzone(user_id, title, declaration, hours, is_private,
+                                  topic_type, anime_slug, episode_ref, gif_url)
+    if not ok:
+        return False, err, None
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("UPDATE warzones SET mode='guild', guild_a=?, entry_scope='guild' WHERE id=?", (guild_id, wid))
+    conn.commit()
+    conn.close()
+    return True, None, wid
+
+
+def create_gvg_declaration(user_id, guild_id, title, declaration, hours=72,
+                           topic_type='blank', anime_slug=None, episode_ref=None, gif_url=None):
+    """Guild A's owner posts a public declaration of war. Guild A must have
+    50+ members. Returns (ok, err, war_id)."""
+    g = _guild_info(guild_id)
+    if not g:
+        return False, 'Guild not found.', None
+    if g['owner_id'] != user_id:
+        return False, 'Only a guild owner can issue a declaration of war.', None
+    if g['members'] < GUILD_MIN_MEMBERS:
+        return False, 'Your guild needs 50+ members to declare war.', None
+    if _guild_active_war(guild_id):
+        return False, 'Your guild already has a war in flight.', None
+    ok, err, wid = create_warzone(user_id, title, declaration, hours, False,
+                                  topic_type, anime_slug, episode_ref, gif_url)
+    if not ok:
+        return False, err, None
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE warzones SET mode='gvg', guild_a=?, entry_scope='guilds', status='declared' WHERE id=?",
+        (guild_id, wid),
+    )
+    conn.commit()
+    conn.close()
+    return True, None, wid
+
+
+def claim_gvg(claimant_user, claimant_guild_id, war_id):
+    """A rival guild's owner claims a public declaration. Returns (ok, err)."""
+    _ensure_warzone_tables()
+    g = _guild_info(claimant_guild_id)
+    if not g:
+        return False, 'Guild not found.'
+    if g['owner_id'] != claimant_user:
+        return False, 'Only a guild owner can claim a declaration.'
+    if g['members'] < GUILD_MIN_MEMBERS:
+        return False, 'Your guild needs 50+ members to claim a war.'
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT id, mode, guild_a, status FROM warzones WHERE id=?", (war_id,))
+    war = cur.fetchone()
+    if not war or war['mode'] != 'gvg' or war['status'] != 'declared':
+        conn.close()
+        return False, 'This declaration is no longer open.'
+    if war['guild_a'] == claimant_guild_id:
+        conn.close()
+        return False, 'You cannot claim your own declaration.'
+    if _guild_active_war(claimant_guild_id):
+        conn.close()
+        return False, 'Your guild already has a war in flight.'
+    cur.execute(
+        "SELECT id FROM gvg_claims WHERE war_id=? AND guild_id=?", (war_id, claimant_guild_id)
+    )
+    if cur.fetchone():
+        conn.close()
+        return False, 'Your guild already claimed this declaration.'
+    cur.execute(
+        "INSERT INTO gvg_claims (war_id, guild_id, claimant_owner_id) VALUES (?, ?, ?)",
+        (war_id, claimant_guild_id, claimant_user),
+    )
+    conn.commit()
+    conn.close()
+    return True, None
+
+
+def pick_gvg_rival(declaring_owner, war_id, rival_guild_id):
+    """The declaring guild's owner picks a rival from the claims, booking the
+    duel (books a slot on the clock and opens it to both sides)."""
+    _ensure_warzone_tables()
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT mode, guild_a, status FROM warzones WHERE id=?", (war_id,))
+    war = cur.fetchone()
+    if not war or war['mode'] != 'gvg' or war['status'] != 'declared':
+        conn.close()
+        return False, 'This declaration is already booked.', None
+    info = _guild_info(war['guild_a'])
+    if not info or info['owner_id'] != declaring_owner:
+        conn.close()
+        return False, 'Only the declaring guild owner can pick a rival.', None
+    cur.execute(
+        "SELECT 1 FROM gvg_claims WHERE war_id=? AND guild_id=?", (war_id, rival_guild_id)
+    )
+    if not cur.fetchone():
+        conn.close()
+        return False, 'That guild never claimed this declaration.', None
+    hours = 72
+    ends_s = datetime.fromtimestamp(int(time.time()) + hours * 3600, timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+    cur.execute(
+        "UPDATE warzones SET guild_b=?, status='open', ends_at=?, hours=? WHERE id=?",
+        (rival_guild_id, ends_s, hours, war_id),
+    )
+    conn.commit()
+    conn.close()
+    return True, None, ends_s
+
+
+def add_guild_war_entry(user_id, war_id, content):
+    """Enter a battler into a guild or gvg war. Entries are guild-scoped:
+    single-guild wars allow only that guild's members; GvG allows members of
+    either fighting guild. Returns (ok, err, entry)."""
+    _ensure_warzone_tables()
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT mode, guild_a, guild_b, status, settled FROM warzones WHERE id=?", (war_id,))
+    war = cur.fetchone()
+    conn.close()
+    if not war or war['status'] != 'open' or war['settled']:
+        return False, 'This war is not open.', None
+    if war['mode'] == 'guild':
+        if not _is_guild_member(war['guild_a'], user_id):
+            return False, 'Only members of this guild can enter the war.', None
+    elif war['mode'] == 'gvg':
+        if not (_is_guild_member(war['guild_a'], user_id) or _is_guild_member(war['guild_b'], user_id)):
+            return False, 'Only members of the two fighting guilds can enter.', None
+    else:
+        return False, 'Not a guild war.', None
+    return add_warzone_entry(user_id, war_id, content)
+
+
+def get_warzone_mode(wid):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT mode FROM warzones WHERE id=?", (wid,))
+    row = cur.fetchone()
+    conn.close()
+    return row['mode'] if row else None
+
+
+def _change_guild_xp(gid, amount):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT xp FROM guild_war_xp WHERE guild_id=?", (gid,))
+    row = cur.fetchone()
+    new_xp = (row["xp"] if row else 0) + amount
+    if row:
+        cur.execute("UPDATE guild_war_xp SET xp=? WHERE guild_id=?", (new_xp, gid))
+    else:
+        cur.execute("INSERT INTO guild_war_xp (guild_id, xp) VALUES (?, ?)", (gid, new_xp))
+    conn.commit()
+    conn.close()
+
+
+def get_guild_xp(gid):
+    if not gid:
+        return 0
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT xp FROM guild_war_xp WHERE guild_id=?", (gid,))
+    row = cur.fetchone()
+    conn.close()
+    return row["xp"] if row else 0
+
+
+def _award_guild_xp(view, war_row):
+    """Once per settled guild/GvG war: award Guild XP. GvG winner guild gets
+    a big chunk, loser a small one; single-guild wars give their guild a
+    participation bump. Guarded by the warzones.guild_awarded flag."""
+    mode = war_row['mode']
+    if war_row.get('guild_awarded') or not view.get('winner'):
+        return
+    if mode == 'gvg' and war_row.get('guild_a') and war_row.get('guild_b'):
+        win_gid = war_row['guild_a'] if _is_guild_member(war_row['guild_a'], view['winner']['user_id']) else war_row['guild_b']
+        lose_gid = war_row['guild_b'] if win_gid == war_row['guild_a'] else war_row['guild_a']
+        _change_guild_xp(win_gid, GUILD_XP_WIN)
+        _change_guild_xp(lose_gid, GUILD_XP_LOSE)
+    elif mode == 'guild' and war_row.get('guild_a'):
+        _change_guild_xp(war_row['guild_a'], GUILD_XP_LOSE)
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("UPDATE warzones SET guild_awarded=1 WHERE id=? AND guild_awarded=0", (war_row['id'],))
+    conn.commit()
+    conn.close()
 
 
 def get_connection():
