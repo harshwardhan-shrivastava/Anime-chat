@@ -382,7 +382,7 @@
 
                 {% set is_numbered = raw_name.startswith('Season ') and raw_name.split(' ')[-1].isdigit() %}
 
-                {% set season_label = 'Episodes' if (is_numbered and anime.seasons|length == 1) else ((t('Season') ~ ' ' ~ raw_name.split(' ')[-1]) if is_numbered else (raw_name | default('Episodes'))) %}
+                {% set season_label = (t('Season') ~ ' ' ~ raw_name.split(' ')[-1]) if is_numbered else (raw_name | default('Episodes')) %}
 
                 <div class="season-top">
 
