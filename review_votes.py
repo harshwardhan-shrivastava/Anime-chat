@@ -716,3 +716,60 @@ def get_user_review_votes(review_type, review_ids, user_id):
     result = {row["review_id"]: row["is_like"] for row in cursor.fetchall()}
     conn.close()
     return result
+
+
+# =====================================================================
+# Overall "liquid XP" totals (an anime's / an episode's sum of review XP)
+# =====================================================================
+
+def get_target_review_ids(review_type, anime_slug, season_name=None, episode_number=None):
+    """Review ids under one target: an anime ('anime') or one episode
+    ('episode', which needs season_name + episode_number). Returns [] if
+    any required field is missing."""
+    if review_type not in ("anime", "episode"):
+        return []
+    conn = get_connection()
+    cursor = conn.cursor()
+    if review_type == "anime":
+        cursor.execute(
+            "SELECT id FROM reviews WHERE anime_slug=? ORDER BY id", (anime_slug or "",)
+        )
+    else:
+        if not season_name or episode_number is None:
+            conn.close()
+            return []
+        cursor.execute(
+            "SELECT id FROM episode_reviews WHERE anime_slug=? AND season_name=? AND episode_number=? ORDER BY id",
+            (anime_slug or "", season_name, episode_number),
+        )
+    ids = [r["id"] for r in cursor.fetchall()]
+    conn.close()
+    return ids
+
+
+def overall_review_xp(review_type, review_ids):
+    """Sum of Review XP across every review under a target (anime or one
+    episode). Each review's XP = like_points + dislike_points - war_penalty
+    + war_bonus, floored at 0; the total is what fills the wide liquid
+    gauge (max = S+ at 15000). Returns (total_xp, review_count)."""
+    if not review_ids:
+        return 0, 0
+    pts = get_bulk_review_points(review_type, list(review_ids))
+    war = get_war_effects(review_type, list(review_ids))
+    total = 0
+    for rid in review_ids:
+        p = pts.get(rid) or {}
+        xp = max(0, (p.get("like_points") or 0) + (p.get("dislike_points") or 0))
+        _we = war.get(rid, {})
+        xp = max(0, xp - _we.get("penalty", 0) + _we.get("bonus", 0))
+        total += xp
+    return total, len(review_ids)
+
+
+def format_xp_label(xp):
+    """'55.5k' for 55,500, else the plain number — the readout on the wide
+    liquid gauge next to the S+ lid (15,000 XP)."""
+    xp = max(0, int(xp or 0))
+    if xp >= 1000:
+        return f"{xp / 1000:.1f}k"
+    return str(xp)

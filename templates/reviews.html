@@ -259,7 +259,7 @@
                         {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
                         <span class="rv-xp-bottle" title="Review's own liquid XP — poured by the likes it drew, drained by dislikes. Separate from {{ r.username }}'s profile XP.">
                             <span class="rv-bottle-glass">
-                                <span class="rv-bottle-liquid" style="height:{{ [(((r.review_xp|int) / 50)), 100]|min }}%;opacity:{{ (0.3 + (([r.review_xp|int, 15000]|min / 15000)) * 0.7) | round(2) }}"></span>
+                                <span class="rv-bottle-liquid" style="width:{{ [((r.review_xp|int) / 150), 100]|min }}%;opacity:{{ (0.3 + (([r.review_xp|int, 15000]|min / 15000)) * 0.7) | round(2) }}"></span>
                                 <span class="rv-bottle-level">{% if r.review_level %}{{ r.review_level }}{% else %}—{% endif %}</span>
                                 <span class="rv-bottle-num">{{ r.review_xp }} <i class="fas fa-bolt"></i></span>
                             </span>
@@ -336,7 +336,7 @@
                         {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
                         <span class="rv-xp-bottle" title="Review's own liquid XP — poured by the likes it drew, drained by dislikes. Separate from {{ r.username }}'s profile XP.">
                             <span class="rv-bottle-glass">
-                                <span class="rv-bottle-liquid" style="height:{{ [(((r.review_xp|int) / 50)), 100]|min }}%;opacity:{{ (0.3 + (([r.review_xp|int, 15000]|min / 15000)) * 0.7) | round(2) }}"></span>
+                                <span class="rv-bottle-liquid" style="width:{{ [((r.review_xp|int) / 150), 100]|min }}%;opacity:{{ (0.3 + (([r.review_xp|int, 15000]|min / 15000)) * 0.7) | round(2) }}"></span>
                                 <span class="rv-bottle-level">{% if r.review_level %}{{ r.review_level }}{% else %}—{% endif %}</span>
                                 <span class="rv-bottle-num">{{ r.review_xp }} <i class="fas fa-bolt"></i></span>
                             </span>

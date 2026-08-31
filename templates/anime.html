@@ -631,20 +631,6 @@
                     <div style="margin-top:8px;font-size:0.72rem;color:#8b98ab;font-weight:600;">HEADLINE GRADE</div>
                 </div>
 
-                {% if grade_card.trusted_xp %}
-                <!-- ===== Anime overall vote as an exilar bottle ===== -->
-                <div style="flex:0 0 auto;text-align:center;">
-                    <div class="elix-bottle" title="The anime's overall community vote — poured by C+ reviewer likes, drained by dislikes. Full bottle = S+ tier (5,000 Trusted XP).">
-                        <div class="elix-glass">
-                            <div class="elix-liquid" style="height:{{ [grade_card.trusted_xp / 50, 100]|min }}%;"></div>
-                            <span class="elix-level">{{ grade_card.grade if grade_card.grade else (grade_card.xp_tier or '—') }}</span>
-                            <span class="elix-num">{{ grade_card.trusted_xp_label }} <i class="fas fa-bolt"></i></span>
-                        </div>
-                        <span class="elix-label">Overall Vote</span>
-                    </div>
-                </div>
-                {% endif %}
-
                 <div style="flex:1 1 300px;min-width:240px;">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
                         {% if grade_card.elite %}
@@ -693,6 +679,28 @@
                     <div style="margin-top:12px;font-size:0.78rem;color:#5c6777;line-height:1.5;">
                         Only <b style="color:#c6d1e0;">C-rank and above</b> reviewers shape the headline grade — weighted by rank and XP, so a mob of low-rank votes can never drag a genuinely loved anime down.
                     </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if overall_count %}
+        <!-- ===== Anime overall liquid XP tank (all reviews, wide) ===== -->
+        <div style="background:linear-gradient(135deg,#0d1521,#101a29);border:1px solid #1f2b3a;border-radius:18px;padding:18px 24px;margin-bottom:22px;">
+            <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:center;">
+                <div style="flex:0 0 auto;text-align:center;">
+                    <div class="elix-bottle" title="The anime's overall liquid XP — every review's likes pour the tank, dislikes drain it. Full tank = S+ lid (15,000 XP).">
+                        <div class="elix-glass">
+                            <div class="elix-liquid" style="width:{{ [overall_xp / 150, 100]|min }}%;"></div>
+                            <span class="elix-level">{{ overall_tier }}</span>
+                            <span class="elix-num">{{ overall_label }} <i class="fas fa-bolt"></i></span>
+                        </div>
+                        <span class="elix-label">Overall XP</span>
+                    </div>
+                </div>
+                <div style="flex:1 1 260px;min-width:220px;color:#8b98ab;font-size:0.85rem;line-height:1.55;">
+                    <div style="color:#e7ecf3;font-weight:800;font-size:1rem;margin-bottom:4px;"><i class="fas fa-flask" style="color:#34d399;"></i> The community's overall vote</div>
+                    <div>Sum of XP from all <b style="color:#d7deea;">{{ overall_count }}</b> review{{ 's' if overall_count != 1 else '' }} on this anime — every like pours the tank in, every dislike drains it. The S+ lid sits at <b style="color:#fde047;">15,000 XP</b>, so even a 10/10 crowd shows its real weight here.</div>
                 </div>
             </div>
         </div>

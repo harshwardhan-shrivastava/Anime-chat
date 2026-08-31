@@ -88,6 +88,7 @@ from review_votes import (
     anime_grade_engine,
     review_vote_xp,
     review_level_for_xp,
+    review_rank_for_xp,
     get_bulk_review_points,
     vote_points_for_rank,
     can_dislike,
@@ -98,6 +99,9 @@ from review_votes import (
     RANK_WEIGHTS,
     TRUSTED_RANKS,
     GRADE_ORDER,
+    get_target_review_ids,
+    overall_review_xp,
+    format_xp_label,
 )
 from chat import chat_bp
 from profile_routes import bp as profile_bp
@@ -1170,12 +1174,29 @@ def anime(anime_slug):
             grade_card = anime_grade_engine(revs, rank_map)
     except Exception:
         grade_card = None
+    # Overall 'liquid XP' total across every anime review (fills the wide
+    # gauge next to the headline grade). Always computed when there is any
+    # review data so the gauge reflects the community's full feel.
+    overall_xp = 0
+    overall_count = 0
+    try:
+        overall_xp, overall_count = overall_review_xp(
+            "anime", get_target_review_ids("anime", anime_slug)
+        )
+    except Exception:
+        overall_xp, overall_count = 0, 0
+    overall_label = format_xp_label(overall_xp)
+    overall_tier = review_rank_for_xp(overall_xp)
     return render_template(
         "anime.html",
         anime=anime_with_recs,
         next_episode_label=_episode_badge(anime),
         episode_stats=get_all_episode_stats(anime_slug),
         grade_card=grade_card,
+        overall_xp=overall_xp,
+        overall_count=overall_count,
+        overall_label=overall_label,
+        overall_tier=overall_tier,
         vote_schedule=_build_vote_schedule(),
         GRADE_ORDER=GRADE_ORDER,
     )
@@ -1246,6 +1267,21 @@ def episode_rate(anime_slug, season_idx, episode_number):
                                 episode_number=episode_number))
 
     stats = get_episode_stats(anime_slug, season_name, episode_number)
+    # Overall 'liquid XP' total across this episode's reviews (fills the
+    # wide gauge next to the episode's rating).
+    overall_xp = 0
+    overall_count = 0
+    try:
+        overall_xp, overall_count = overall_review_xp(
+            "episode",
+            get_target_review_ids(
+                "episode", anime_slug, season_name, episode_number
+            ),
+        )
+    except Exception:
+        overall_xp, overall_count = 0, 0
+    overall_label = format_xp_label(overall_xp)
+    overall_tier = review_rank_for_xp(overall_xp)
     user = g.get("user")
     my_review = get_user_episode_review(
         anime_slug, season_name, episode_number, user["id"] if user else None
@@ -1260,6 +1296,10 @@ def episode_rate(anime_slug, season_idx, episode_number):
         episode_number=episode_number,
         episode_title=episode_title,
         stats=stats,
+        overall_xp=overall_xp,
+        overall_count=overall_count,
+        overall_label=overall_label,
+        overall_tier=overall_tier,
         my_review=my_review,
     )
 
@@ -1344,6 +1384,7 @@ def reviews_page():
         r["war_bonus"] = _we.get("bonus", 0)
         r["review_xp"] = max(0, r["review_xp"] - r["war_penalty"] + r["war_bonus"])
         r["review_level"] = review_level_for_xp(r["review_xp"])
+        r["xp_lvl"] = review_rank_for_xp(r["review_xp"])
         r["user_vote"] = user_votes.get(r["id"])
         rinfo = rank_map.get(r["user_id"], {"rank": "D", "xp": 0})
         r["rank"] = rinfo["rank"] if isinstance(rinfo, dict) else rinfo
@@ -1435,6 +1476,7 @@ def reviews_page():
         r["war_bonus"] = _ew.get("bonus", 0)
         r["review_xp"] = max(0, r["review_xp"] - r["war_penalty"] + r["war_bonus"])
         r["review_level"] = review_level_for_xp(r["review_xp"])
+        r["xp_lvl"] = review_rank_for_xp(r["review_xp"])
         r["user_vote"] = ep_user_votes.get(r["id"])
         rinfo = ep_rank_map.get(r["user_id"], {"rank": "D", "xp": 0})
         r["rank"] = rinfo["rank"] if isinstance(rinfo, dict) else rinfo
