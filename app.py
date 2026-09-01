@@ -90,13 +90,17 @@ from review_votes import (
     review_level_for_xp,
     review_rank_for_xp,
     get_bulk_review_points,
-    vote_points_for_rank,
     can_dislike,
     toggle_reason_vote,
     get_review_reasons,
     toggle_war_vote,
     RANK_COLORS,
     RANK_WEIGHTS,
+    RATING_LABELS,
+    RATING_BANDS,
+    VOTE_RATE,
+    rating_band,
+    rating_label,
     TRUSTED_RANKS,
     GRADE_ORDER,
     get_target_review_ids,
@@ -108,17 +112,20 @@ from profile_routes import bp as profile_bp
 
 from threads import init_threads
 
-# ---- Dislike C+ gate + local-SQLite lock fix, on the plain vote route ----
+# ---- Rating Power C+ gate + local-SQLite lock fix, on the plain vote route ----
 # vote_review calls the module-global `toggle_review_like` at call time, so
 # rebinding it here (same pattern as review_history_patch) keeps a hand-crafted
-# D-rank dislike request blocked everywhere, not just in the UI. The reimplement
-# also commits the vote BEFORE recalculating the author's XP — the original
-# leaves the INSERT uncommitted while recalc opens a second connection, which
-# deadlocks on local SQLite (it only works on Turso because that backend is
-# autocommit).
+# D-rank like/dislike request blocked everywhere, not just in the UI. Under
+# Rating Power NO vote below C rank counts — a fresh-account mob has no vote
+# weapon anywhere. The reimplement also commits the vote BEFORE recalculating
+# the author's XP — the original leaves the INSERT uncommitted while recalc
+# opens a second connection, which deadlocks on local SQLite (it only works on
+# Turso because that backend is autocommit).
 def _gated_toggle_review_like(user_id, review_type, review_id, is_like):
-    if not is_like and not can_dislike(get_user_rank(user_id)):
-        raise PermissionError("Dislikes require C rank (500 XP) — D-rank accounts can only like.")
+    if not can_dislike(get_user_rank(user_id)):
+        raise PermissionError(
+            "Voting requires C rank (500 XP) — D-rank accounts can't vote yet. Keep reviewing to unlock it."
+        )
     import database as _db
     conn = _db.get_connection()
     cursor = conn.cursor()
@@ -1192,8 +1199,10 @@ def anime(anime_slug):
         )
     except Exception:
         overall_xp, overall_count = 0, 0
+    overall_negative = overall_xp < 0
     overall_label = format_xp_label(overall_xp)
-    overall_tier = review_rank_for_xp(overall_xp)
+    overall_tier = review_rank_for_xp(overall_xp) if not overall_negative else None
+    user_rank = get_user_rank(user["id"]) if user else None
     return render_template(
         "anime.html",
         anime=anime_with_recs,
@@ -1204,7 +1213,9 @@ def anime(anime_slug):
         overall_count=overall_count,
         overall_label=overall_label,
         overall_tier=overall_tier,
-        vote_schedule=_build_vote_schedule(),
+        overall_negative=overall_negative,
+        user_rank=user_rank,
+        vote_schedule=_build_rating_power(),
         GRADE_ORDER=GRADE_ORDER,
     )
 
@@ -1287,8 +1298,9 @@ def episode_rate(anime_slug, season_idx, episode_number):
         )
     except Exception:
         overall_xp, overall_count = 0, 0
+    overall_negative = overall_xp < 0
     overall_label = format_xp_label(overall_xp)
-    overall_tier = review_rank_for_xp(overall_xp)
+    overall_tier = review_rank_for_xp(overall_xp) if not overall_negative else None
     user = g.get("user")
     my_review = get_user_episode_review(
         anime_slug, season_name, episode_number, user["id"] if user else None
@@ -1307,6 +1319,7 @@ def episode_rate(anime_slug, season_idx, episode_number):
         overall_count=overall_count,
         overall_label=overall_label,
         overall_tier=overall_tier,
+        overall_negative=overall_negative,
         my_review=my_review,
     )
 
@@ -1336,26 +1349,32 @@ def community(anime_slug):
     )
 
 
-def _build_vote_schedule():
-    """Vote point schedule D->S+ with D-equivalence ratios for the legend box.
-
-    D-rank accounts can only like (dislikes and replies require C rank), so
-    the D row has no dislike value and no dislike ratio.
+def _build_rating_power():
+    """Rating Power legend data for the reviews page: the 10-star verdict
+    labels in their three bands (RED / GREY / GREEN), the flat +/-15 XP math
+    per band, and the C+ vote gate. Replaces the old rank-priced schedule —
+    votes are flat now, gated by rank instead of priced by it.
     """
-    d_like = vote_points_for_rank("D", True)          # 5
-    d_dislike = abs(vote_points_for_rank("D", False))  # 0 (D can't dislike)
-    schedule = []
-    for rk in ("D", "C", "B", "A", "S", "S+"):
-        like = vote_points_for_rank(rk, True)
-        dislike = vote_points_for_rank(rk, False)
-        schedule.append({
-            "rank": rk,
-            "like": like,
-            "dislike": dislike if dislike else None,
-            "like_x_d": round(like / d_like, 1),
-            "dislike_x_d": round(abs(dislike) / d_dislike, 1) if d_dislike else None,
-        })
-    return schedule
+    bands = []
+    for band_id, title, accent, note in [
+        ("negative", "Negative \u00b7 RED", "#f87171",
+         "Trash (1/10) is the mob mirror: a like TAKES 15 XP off the anime/episode (only when the mob won the ratio) and a dislike gives 15 back. Awful to Hopeless votes weigh the reviewer's credentials, never the tank."),
+        ("neutral", "Neutral \u00b7 GREY", "#9ca3af",
+         "Mid (5/10) never moves XP either way \u2014 it counts in the score, but the tank stays silent."),
+        ("positive", "Positive \u00b7 GREEN", "#4ade80",
+         "Every like pours +15 XP into the anime/episode, every dislike drains 15. All green bars \u2014 Good enough to Absolute Cinema \u2014 play by the same flat rule."),
+    ]:
+        ratings = [
+            {"n": n, "label": RATING_LABELS[n]}
+            for n in sorted(RATING_LABELS)
+            if RATING_BANDS[n] == band_id
+        ]
+        bands.append({"id": band_id, "title": title, "accent": accent, "ratings": ratings, "note": note})
+    return {
+        "bands": bands,
+        "rate": VOTE_RATE,
+        "gate": "C rank (500 XP) and above can vote \u2014 likes AND dislikes. D-rank accounts have no vote weapon anywhere.",
+    }
 
 
 @app.route("/reviews")
@@ -1377,12 +1396,13 @@ def reviews_page():
         counts = like_counts.get(r["id"], {"likes": 0, "dislikes": 0})
         r["likes"] = counts["likes"]
         r["dislikes"] = counts["dislikes"]
+        r["band"] = rating_band(r.get("rating"))
         pts = point_map.get(r["id"])
         if pts:
             r["review_xp"] = max(0, (pts.get("like_points") or 0) + (pts.get("dislike_points") or 0))
             r["contested"] = pts.get("contested", 0)
         else:
-            r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"])
+            r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"], r.get("rating"))
             r["contested"] = 0
         # A settled Reply War shifts the review it was fought over once:
         # a decisive Negative winner deducts, a decisive Positive adds.
@@ -1464,6 +1484,7 @@ def reviews_page():
         counts = ep_like_counts.get(r["id"], {"likes": 0, "dislikes": 0})
         r["likes"] = counts["likes"]
         r["dislikes"] = counts["dislikes"]
+        r["band"] = rating_band(r.get("rating"))
         try:
             ep_points = get_bulk_review_points("episode", ep_ids)
             epts = ep_points.get(r["id"])
@@ -1471,10 +1492,10 @@ def reviews_page():
                 r["review_xp"] = max(0, (epts.get("like_points") or 0) + (epts.get("dislike_points") or 0))
                 r["contested"] = epts.get("contested", 0)
             else:
-                r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"])
+                r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"], r.get("rating"))
                 r["contested"] = 0
         except Exception:
-            r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"])
+            r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"], r.get("rating"))
             r["contested"] = 0
         # A settled Reply War shifts the review it was fought over once:
         # a decisive Negative winner deducts, a decisive Positive adds.
@@ -1566,7 +1587,7 @@ def reviews_page():
 
     # Vote point schedule (D -> S+) shown in the legend box on the page,
     # with the D-equivalence ratio (one vote of this rank = N D-rank votes).
-    vote_schedule = _build_vote_schedule()
+    vote_schedule = _build_rating_power()
 
     _uid = user["id"] if user else None
     replies_map = get_review_replies("anime", review_ids)
@@ -1586,6 +1607,7 @@ def reviews_page():
         top_reviewers=top_reviewers,
         top_graded=top_graded,
         vote_schedule=vote_schedule,
+        RATING_LABELS=RATING_LABELS,
         replies=replies_map,
         war=war_map,
         user_rank=user_rank,
@@ -1643,9 +1665,12 @@ def vote_anime_review(review_id):
     is_like = data.get("is_like")
     if is_like is None:
         return jsonify({"success": False, "error": "Missing vote type."}), 400
-    user_vote, removed, likes, dislikes = toggle_anime_review_vote(
-        user["id"], review_id, bool(is_like)
-    )
+    try:
+        user_vote, removed, likes, dislikes = toggle_anime_review_vote(
+            user["id"], review_id, bool(is_like)
+        )
+    except PermissionError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 403
     if user_vote is None and not removed:
         return jsonify({"success": False, "error": "Review not found."}), 404
     return jsonify({
@@ -1784,7 +1809,7 @@ def _enrich_war_review(review_type, r):
         r["review_xp"] = max(0, (pts.get("like_points") or 0) + (pts.get("dislike_points") or 0))
         r["contested"] = pts.get("contested", 0)
     else:
-        r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"])
+        r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"], r.get("rating"))
         r["contested"] = 0
     r["review_level"] = review_level_for_xp(r["review_xp"])
     rinfo = get_bulk_reviewer_ranks([r["user_id"]]).get(r["user_id"], {"rank": "D", "xp": 0})
@@ -1988,6 +2013,8 @@ def vote_review(review_id):
         new_is_like, removed = toggle_review_like(
             user["id"], review_type, review_id, bool(is_like)
         )
+    except PermissionError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 403
     except Exception:
         return jsonify({"success": False, "error": "Review not found."}), 404
     counts = get_review_likes(review_type, review_id)

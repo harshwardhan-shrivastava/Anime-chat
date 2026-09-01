@@ -72,8 +72,9 @@
             btn.addEventListener("click", function () {
                 if (busy) return; busy = true;
                 var isLike = btn.dataset.kind === "like";
-                // D-rank locked dislike: never send the request (dislikes are C+).
-                if (!isLike && btn.classList.contains("rv-dislike-locked")) {
+                // Locked vote buttons (below C rank): never send the request —
+                // under Rating Power likes AND dislikes require C rank.
+                if (btn.classList.contains("rv-like-locked") || btn.classList.contains("rv-dislike-locked")) {
                     busy = false;
                     return;
                 }

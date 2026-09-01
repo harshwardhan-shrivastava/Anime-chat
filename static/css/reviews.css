@@ -571,7 +571,8 @@ body { background: var(--rv-bg); color: var(--rv-text); font-family: 'Inter', -a
 }
 .dev-tag i { color: #5eead4; font-size: 0.62rem; }
 
-/* ---- D-rank locked dislike (C+ required) ---- */
+/* ---- Locked vote buttons (votes are C+ under Rating Power) ---- */
+.rv-like-locked,
 .rv-dislike-locked {
     cursor: not-allowed !important;
     opacity: 0.55;
@@ -620,3 +621,51 @@ body { background: var(--rv-bg); color: var(--rv-text); font-family: 'Inter', -a
     text-decoration: none; display: inline-flex; align-items: center; gap: 5px;
 }
 .rv-war-link:hover { text-decoration: underline; }
+
+/* ---- Rating Power band colors on review cards ---- */
+.rv-stars.rv-band-negative { color: #f87171; }
+.rv-stars.rv-band-neutral { color: #9ca3af; }
+.rv-score.rv-band-negative { background: rgba(239,68,68,0.14); color: #f87171; }
+.rv-score.rv-band-neutral { background: rgba(148,163,184,0.14); color: #cbd5e1; }
+.rv-word {
+    font-size: 0.7rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+    border-radius: 999px; padding: 2px 9px; border: 1px solid transparent; white-space: nowrap;
+}
+.rv-word.rv-band-negative { color: #f87171; border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.08); }
+.rv-word.rv-band-neutral { color: #cbd5e1; border-color: rgba(148,163,184,0.3); background: rgba(148,163,184,0.08); }
+.rv-word.rv-band-positive { color: #4ade80; border-color: rgba(74,222,128,0.35); background: rgba(74,222,128,0.08); }
+
+/* ---- Rating Power legend grid (10-star verdict system) ---- */
+.rv-rp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+.rv-rp-card {
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 14px 16px;
+    background: linear-gradient(160deg, rgba(12,21,33,0.85), rgba(9,14,24,0.9));
+}
+.rv-rp-negative { border-color: rgba(239,68,68,0.42); box-shadow: 0 8px 30px -16px rgba(239,68,68,0.35); }
+.rv-rp-neutral { border-color: rgba(148,163,184,0.36); box-shadow: 0 8px 30px -16px rgba(148,163,184,0.25); }
+.rv-rp-positive { border-color: rgba(74,222,128,0.42); box-shadow: 0 8px 30px -16px rgba(74,222,128,0.35); }
+.rv-rp-band { font-size: 0.78rem; font-weight: 900; letter-spacing: 0.07em; text-transform: uppercase; }
+.rv-rp-negative .rv-rp-band { color: #f87171; }
+.rv-rp-neutral .rv-rp-band { color: #cbd5e1; }
+.rv-rp-positive .rv-rp-band { color: #4ade80; }
+.rv-rp-ratings { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
+.rv-rp-rating {
+    font-size: 0.7rem; color: #aeb9c9;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+}
+.rv-rp-rating b { color: #e7ecf3; margin-right: 4px; font-weight: 900; }
+.rv-rp-math { display: flex; flex-direction: column; gap: 4px; font-size: 0.78rem; color: #d7deea; margin-bottom: 9px; }
+.rv-rp-math b { color: #fff; font-weight: 900; }
+.rv-rp-zero { color: #9ca3af; }
+.rv-rp-note {
+    font-size: 0.74rem; color: #8b98ab; line-height: 1.5;
+    border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;
+}

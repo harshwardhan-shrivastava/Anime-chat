@@ -93,38 +93,40 @@
             </div>
         </div>
 
-        <!-- ===== VOTE POWER BY RANK (per-rank liquid explainer) ===== -->
-        <div style="background:radial-gradient(120% 160% at 0% 0%,rgba(34,197,94,0.08),transparent 45%),linear-gradient(160deg,#0c1518,#0d1521 60%,#101a29);border:1px solid rgba(52,211,153,0.22);border-radius:20px;padding:22px 24px;margin-bottom:22px;box-shadow:0 10px 40px -18px rgba(34,197,94,0.35);">
+        <!-- ===== RATING POWER (the 10-star verdict system) ===== -->
+        <div style="background:radial-gradient(120% 160% at 0% 0%,rgba(52,211,153,0.08),transparent 45%),linear-gradient(160deg,#0c1518,#0d1521 60%,#101a29);border:1px solid rgba(52,211,153,0.22);border-radius:20px;padding:22px 24px;margin-bottom:22px;box-shadow:0 10px 40px -18px rgba(34,197,94,0.35);">
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px;">
                 <span style="width:38px;height:42px;flex:0 0 auto;position:relative;border:1px solid rgba(52,211,153,0.6);border-radius:9px 9px 7px 7px;background:linear-gradient(180deg,#0a101c,#08111f);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04),0 0 18px rgba(52,211,153,0.35);">
                     <span style="position:absolute;left:0;right:0;bottom:0;height:70%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#a7f3d0,#34d399 60%,#059669);box-shadow:0 0 14px rgba(52,211,153,0.9);"></span>
                 </span>
                 <div>
-                    <h3 style="margin:0;font-size:1.15rem;font-weight:800;color:#ecfdf5;">Vote Power <span style="color:var(--rv-gold);">· Pour XP, Priced by Rank</span></h3>
-                    <p style="margin:4px 0 0;color:var(--rv-muted);font-size:0.86rem;line-height:1.55;max-width:780px;">
-                        Every <b style="color:#4ade80;">👍 like</b> pours XP into the review's liquid bottle and every <b style="color:#f87171;">👎 dislike</b> drains it.
-                        Higher-ranked voices pour <b style="color:#4ade80;">more</b> per vote — an <b>S+</b> like adds <b style="color:#4ade80;">+15</b> vs <b>+3</b> from a fresh <b>D</b>. <b style="color:#f87171;">Dislikes need C rank (500 XP)</b>, so D-accounts can only like — a fresh-account mob has no way to bomb a review.
+                    <h3 style="margin:0;font-size:1.15rem;font-weight:800;color:#ecfdf5;">Rating Power <span style="color:var(--rv-gold);">· The 10-Star Verdict</span></h3>
+                    <p style="margin:4px 0 0;color:var(--rv-muted);font-size:0.86rem;line-height:1.55;max-width:840px;">
+                        Every rating is a verdict: <b style="color:#f87171;">1–4 RED</b> (negative) · <b style="color:#9ca3af;">5 GREY</b> (neutral) · <b style="color:#4ade80;">6–10 GREEN</b> (positive).
+                        A <b style="color:#4ade80;">👍 like on a green review pours +{{ vote_schedule.rate }} XP</b> into the anime/episode tank; a <b style="color:#f87171;">👎 dislike drains {{ vote_schedule.rate }}</b>. Trash (1/10) is the mob mirror:
+                        <b style="color:#f87171;">a mob-won like takes {{ vote_schedule.rate }} XP</b> — a community-won dislike hands it back. <b style="color:#c6d1e0;">{{ vote_schedule.gate }}</b>
                     </p>
                 </div>
             </div>
-            <div class="rv-vp-grid" style="margin-top:16px;">
-                {% for v in vote_schedule %}
-                <div class="rv-vp-card rk-{{ v.rank }}" style="
-                    {% if v.rank == 'S+' %}border-color:rgba(255,215,0,0.55);box-shadow:0 0 20px rgba(255,215,0,0.12);{% endif %}
-                ">
-                    <div class="rv-vp-rank" style="{% if v.rank == 'S+' %}color:#ffd700;{% endif %}">{{ v.rank }}</div>
-                    <span class="rv-vp-thr">{{ { 'D':'0–499 XP','C':'500 XP','B':'1,000 XP','A':'2,000 XP','S':'5,000 XP','S+':'15,000 XP' }.get(v.rank, '') }}</span>
-                    <div class="rv-vp-row like"><span>👍 Like</span><b>+{{ v.like }}</b></div>
-                    {% if v.dislike %}
-                    <div class="rv-vp-row dislike"><span>👎 Dislike</span><b>{{ v.dislike }}</b></div>
-                    {% else %}
-                    <div class="rv-vp-row locked"><span>👎 Dislike</span><b style="color:#64748b;">🔒 C+</b></div>
-                    {% endif %}
-                    {% if v.rank != 'D' %}
-                    <div class="rv-vp-ratio">= {{ v.rank }} like is <b>{{ v.like }} liquid</b>{% if v.like_x_d %} · {{ v.like_x_d }}× a D like{% endif %}</div>
-                    {% else %}
-                    <div class="rv-vp-ratio">the base drop — everyone starts here</div>
-                    {% endif %}
+            <div class="rv-rp-grid">
+                {% for b in vote_schedule.bands %}
+                <div class="rv-rp-card rv-rp-{{ b.id }}">
+                    <div class="rv-rp-head"><span class="rv-rp-band">{{ b.title }}</span></div>
+                    <div class="rv-rp-ratings">
+                        {% for rt in b.ratings %}
+                        <span class="rv-rp-rating"><b>{{ rt.n }}</b>{{ rt.label }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="rv-rp-math">
+                        {% if b.id == 'positive' %}
+                        <span>👍 like <b>+{{ vote_schedule.rate }} XP</b></span><span>👎 dislike <b>−{{ vote_schedule.rate }} XP</b></span>
+                        {% elif b.id == 'neutral' %}
+                        <span class="rv-rp-zero">0 XP — the fence, never moves the tank</span>
+                        {% else %}
+                        <span>1/10 like <b>−{{ vote_schedule.rate }} XP</b> (mob won)</span><span>1/10 dislike <b>+{{ vote_schedule.rate }} XP</b> (community won)</span>
+                        {% endif %}
+                    </div>
+                    <div class="rv-rp-note">{{ b.note }}</div>
                 </div>
                 {% endfor %}
             </div>
@@ -161,15 +163,15 @@
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-rocket"></i> Rank Up &amp; Earn XP</h4>
-                        <p><strong>New users get an XP boost on their first reviews to climb faster.</strong> Every <strong>like</strong> earns XP. Higher rank = your reviews weigh more toward an anime's badge. <strong>Disliking and replying to reviews require C rank (500 XP)</strong> — D-rank accounts can only <strong>like</strong>, so brand-new accounts can't jump into a comment section to kill the vibe. Spam to attack and you lose the very reputation that gives you weight.</p>
+                        <p><strong>New users get an XP boost on their first reviews to climb faster.</strong> Every review you post earns XP — hit <strong>500 XP for C rank</strong> and your vote finally counts. <strong>Voting (👍 likes <i>and</i> 👎 dislikes) and replying require C rank</strong> — D-rank accounts can't vote at all, so a fresh-account mob has no weapon anywhere. Spam to attack and you lose the very reputation that gives you weight.</p>
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-bolt"></i> Review XP vs Your XP</h4>
-                        <p>Each review earns its own <strong>Review XP</strong>, shown as a <strong>D–S+</strong> badge on the card. Every <strong>like is +10</strong> and every <strong>dislike is −5</strong> — flat, no rank multipliers. That's the <strong>review's</strong> clout, earned purely from the points it attracted — separate from <strong>your profile XP</strong> (the bar by your name, which tracks your rank and reviewing power, since by the time you're C+ your likes and dislikes actually count).</p>
+                        <p>Each review earns its own <strong>Review XP</strong>, shown as a <strong>D–S+</strong> badge on the card — and the anime/episode tank is the <strong>sum</strong> of every review's XP. Under <strong>Rating Power</strong> every vote is a flat <strong>+15</strong> or <strong>−15</strong>, priced by the verdict: green 6–10 likes pour in, dislikes drain, <strong>1/10 Trash takes</strong> (only when the mob wins the ratio), and <strong>5/10 Mid</strong> stays neutral. Separate from <strong>your profile XP</strong> — the bar by your name that tracks your rank and reviewing power.</p>
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-thumbs-down"></i> Dislikes &amp; Replies</h4>
-                        <p><strong>Dislikes require C rank (500 XP)</strong> — one click, no reason needed, just like a like. <strong>D-rank accounts can only like</strong>, so brand-new accounts can't jump in and bomb a review — by the time someone is C rank they've earned real standing in the community. Review-bombing is dead on arrival.</p>
+                        <p><strong>Voting requires C rank (500 XP)</strong> — both 👍 likes and 👎 dislikes, one click, no reason needed. D-rank accounts can't vote at all, so a brand-new mob can't pump up a Trash review to drag an anime down or drown a masterpiece — by the time someone is C rank they've earned real standing in the community. Review-bombing is dead on arrival.</p>
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-swords"></i> Reply War</h4>
@@ -238,8 +240,9 @@
 
                     <div class="rv-anime-line">
                         <a class="rv-anime" href="/anime/{{ r.anime_slug }}">{{ r.anime_title }}</a>
-                        <span class="rv-stars">{% for i in range(1,11) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
-                        <span class="rv-score">{{ r.rating }}/10</span>
+                        <span class="rv-stars rv-band-{{ r.band }}">{% for i in range(1,11) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
+                        <span class="rv-score rv-band-{{ r.band }}">{{ r.rating }}/10</span>
+                        <span class="rv-word rv-band-{{ r.band }}">{{ RATING_LABELS.get(r.rating, '') }}</span>
                         <span class="dot-sep">·</span>
                         <span class="rv-time">{{ r.created_at }}</span>
                     </div>
@@ -249,15 +252,16 @@
                     <div class="rv-footer">
                         {% if current_user and not mine %}
                         <div class="rv-vote" data-review-id="{{ r.id }}" data-review-type="anime">
-                            <button type="button" class="rv-vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like"><span class="vote-emoji">👍</span><span class="rv-vote-count">{{ r.likes or 0 }}</span></button>
                             {% if user_rank in ('C', 'B', 'A', 'S', 'S+') %}
-                            <button type="button" class="rv-vote-btn gdislike {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike" title="Dislikes require C rank (500 XP) — one click, no reason needed."><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span></button>
+                            <button type="button" class="rv-vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like"><span class="vote-emoji">👍</span><span class="rv-vote-count">{{ r.likes or 0 }}</span></button>
+                            <button type="button" class="rv-vote-btn gdislike {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike" title="Voting requires C rank (500 XP) — one click, no reason needed."><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span></button>
                             {% else %}
-                            <button type="button" class="rv-vote-btn rv-dislike-locked" data-kind="dislike" title="Dislikes require C rank (500 XP) — D-rank accounts can only like."><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span><span class="rv-lock-tag"><i class="fas fa-lock"></i> C+</span></button>
+                            <button type="button" class="rv-vote-btn rv-like-locked" data-kind="like" title="Voting requires C rank (500 XP) — keep reviewing to unlock your vote."><span class="vote-emoji">👍</span><span class="rv-vote-count">{{ r.likes or 0 }}</span><span class="rv-lock-tag"><i class="fas fa-lock"></i> C+</span></button>
+                            <button type="button" class="rv-vote-btn rv-dislike-locked" data-kind="dislike" title="Voting requires C rank (500 XP) — keep reviewing to unlock your vote."><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span><span class="rv-lock-tag"><i class="fas fa-lock"></i> C+</span></button>
                             {% endif %}
                         </div>
                         {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
-                        <span class="rv-xp-bottle" title="Review's own liquid XP — poured by the likes it drew, drained by dislikes. Separate from {{ r.username }}'s profile XP.">
+                        <span class="rv-xp-bottle" title="Review's own liquid XP under Rating Power — green likes +15 each, dislikes −15; 1/10 Trash takes; 5/10 is neutral. Separate from {{ r.username }}'s profile XP.">
                             <span class="rv-bottle-glass">
                                 <span class="rv-bottle-liquid" style="width:{{ [((r.review_xp|int) / 150), 100]|min }}%;opacity:{{ (0.3 + (([r.review_xp|int, 15000]|min / 15000)) * 0.7) | round(2) }}"></span>
                                 <span class="rv-bottle-level">{% if r.review_level %}{{ r.review_level }}{% else %}—{% endif %}</span>
@@ -311,8 +315,9 @@
                         <span class="rv-ep-tag"><i class="fas fa-tv"></i> Episode Review</span>
                         <span class="rv-ep-no">EP {{ r.episode_number }}</span>
                         {% if r.season_name_display %}<span class="rv-ep-season">{{ r.season_name_display }}</span>{% endif %}
-                        <span class="rv-stars">{% for i in range(1,11) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
-                        <span class="rv-score">{{ r.rating }}/10</span>
+                        <span class="rv-stars rv-band-{{ r.band }}">{% for i in range(1,11) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
+                        <span class="rv-score rv-band-{{ r.band }}">{{ r.rating }}/10</span>
+                        <span class="rv-word rv-band-{{ r.band }}">{{ RATING_LABELS.get(r.rating, '') }}</span>
                         <span class="dot-sep">·</span>
                         <span class="rv-time">{{ r.created_at }}</span>
                     </div>
@@ -326,15 +331,16 @@
                     <div class="rv-footer">
                         {% if current_user and not mine %}
                         <div class="rv-vote" data-review-id="{{ r.id }}" data-review-type="episode">
-                            <button type="button" class="rv-vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like"><span class="vote-emoji">👍</span><span class="rv-vote-count">{{ r.likes or 0 }}</span></button>
                             {% if user_rank in ('C', 'B', 'A', 'S', 'S+') %}
-                            <button type="button" class="rv-vote-btn gdislike {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike" title="Dislikes require C rank (500 XP) — one click, no reason needed."><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span></button>
+                            <button type="button" class="rv-vote-btn gvote {{ 'voted-like' if r.user_vote == 1 else '' }}" data-kind="like"><span class="vote-emoji">👍</span><span class="rv-vote-count">{{ r.likes or 0 }}</span></button>
+                            <button type="button" class="rv-vote-btn gdislike {{ 'voted-dislike' if r.user_vote == 0 else '' }}" data-kind="dislike" title="Voting requires C rank (500 XP) — one click, no reason needed."><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span></button>
                             {% else %}
-                            <button type="button" class="rv-vote-btn rv-dislike-locked" data-kind="dislike" title="Dislikes require C rank (500 XP) — D-rank accounts can only like."><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span><span class="rv-lock-tag"><i class="fas fa-lock"></i> C+</span></button>
+                            <button type="button" class="rv-vote-btn rv-like-locked" data-kind="like" title="Voting requires C rank (500 XP) — keep reviewing to unlock your vote."><span class="vote-emoji">👍</span><span class="rv-vote-count">{{ r.likes or 0 }}</span><span class="rv-lock-tag"><i class="fas fa-lock"></i> C+</span></button>
+                            <button type="button" class="rv-vote-btn rv-dislike-locked" data-kind="dislike" title="Voting requires C rank (500 XP) — keep reviewing to unlock your vote."><span class="vote-emoji">👎</span><span class="rv-vote-count">{{ r.dislikes or 0 }}</span><span class="rv-lock-tag"><i class="fas fa-lock"></i> C+</span></button>
                             {% endif %}
                         </div>
                         {% else %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> Your review</span>{% endif %}
-                        <span class="rv-xp-bottle" title="Review's own liquid XP — poured by the likes it drew, drained by dislikes. Separate from {{ r.username }}'s profile XP.">
+                        <span class="rv-xp-bottle" title="Review's own liquid XP under Rating Power — green likes +15 each, dislikes −15; 1/10 Trash takes; 5/10 is neutral. Separate from {{ r.username }}'s profile XP.">
                             <span class="rv-bottle-glass">
                                 <span class="rv-bottle-liquid" style="width:{{ [((r.review_xp|int) / 150), 100]|min }}%;opacity:{{ (0.3 + (([r.review_xp|int, 15000]|min / 15000)) * 0.7) | round(2) }}"></span>
                                 <span class="rv-bottle-level">{% if r.review_level %}{{ r.review_level }}{% else %}—{% endif %}</span>

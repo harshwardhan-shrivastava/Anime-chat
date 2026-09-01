@@ -41,7 +41,7 @@
 
 </head>
 
-<body data-anime-slug="{{ anime.slug }}" data-user-id="{{ current_user.id if current_user else '' }}">
+<body data-anime-slug="{{ anime.slug }}" data-user-id="{{ current_user.id if current_user else '' }}" data-user-rank="{{ user_rank or '' }}">
 
     <!-- Background Effects -->
 
@@ -697,39 +697,42 @@
 
         {% if overall_count %}
         <!-- ===== Anime overall liquid XP tank (all reviews, wide) ===== -->
-        <div style="background:linear-gradient(135deg,#0d1521,#101a29);border:1px solid #1f2b3a;border-radius:18px;padding:18px 24px;margin-bottom:22px;">
+        <div class="{{ 'elix-negative' if overall_negative else '' }}" style="background:linear-gradient(135deg,#0d1521,#101a29);border:1px solid {{ '#7f1d1d' if overall_negative else '#1f2b3a' }};border-radius:18px;padding:18px 24px;margin-bottom:22px;">
             <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:center;">
                 <div style="flex:0 0 auto;text-align:center;">
-                    <div class="elix-bottle" title="The anime's overall liquid XP — every review's likes pour the tank, dislikes drain it. Full tank = S+ lid (15,000 XP).">
+                    <div class="elix-bottle" title="The anime's overall liquid XP — green-review likes pour the tank, dislikes drain it, and a mob-liked Trash (1/10) review visibly takes from it. Full tank = S+ lid (15,000 XP).">
                         <div class="elix-glass">
-                            <div class="elix-liquid" style="width:{{ [overall_xp / 150, 100]|min }}%;"></div>
-                            <span class="elix-level">{{ overall_tier }}</span>
+                            <div class="elix-liquid" style="width:{{ [([overall_xp, 0]|max) / 150, 100]|min }}%;"></div>
+                            <span class="elix-level">{{ overall_tier or '—' }}</span>
                             <span class="elix-num">{{ overall_label }} <i class="fas fa-bolt"></i></span>
                         </div>
                         <span class="elix-label">Overall XP</span>
                     </div>
                 </div>
                 <div style="flex:1 1 260px;min-width:220px;color:#8b98ab;font-size:0.85rem;line-height:1.55;">
+                    {% if overall_negative %}
+                    <div style="color:#e7ecf3;font-weight:800;font-size:1rem;margin-bottom:4px;"><i class="fas fa-bolt" style="color:#f87171;"></i> Mobbed down — the Trash vote is costing this anime</div>
+                    <div>A mob-liked <b style="color:#f87171;">1/10 Trash</b> review outvoted the positives, so the tank went negative: <b style="color:#f87171;">{{ overall_label }} XP taken</b>. Dislike that review with a C+ account to hand it back — the community decides.</div>
+                    {% else %}
                     <div style="color:#e7ecf3;font-weight:800;font-size:1rem;margin-bottom:4px;"><i class="fas fa-flask" style="color:#34d399;"></i> The community's overall vote</div>
-                    <div>Sum of XP from all <b style="color:#d7deea;">{{ overall_count }}</b> review{{ 's' if overall_count != 1 else '' }} on this anime — every like pours the tank in, every dislike drains it. The S+ lid sits at <b style="color:#fde047;">15,000 XP</b>, so even a 10/10 crowd shows its real weight here.</div>
+                    <div>Sum of XP from all <b style="color:#d7deea;">{{ overall_count }}</b> review{{ 's' if overall_count != 1 else '' }} on this anime — green-review likes pour the tank in (+15 each), dislikes drain it, and a mob-liked 1/10 takes from it. The S+ lid sits at <b style="color:#fde047;">15,000 XP</b>.</div>
+                    {% endif %}
                 </div>
             </div>
         </div>
         {% endif %}
 
-        <!-- ===== REVIEW XP (flat points legend) ===== -->
+        <!-- ===== REVIEW XP (Rating Power legend) ===== -->
         <div style="background:linear-gradient(135deg,#0d1521,#101a29);border:1px solid #1f2b3a;border-radius:18px;padding:22px 24px;margin-bottom:22px;">
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
                 <i class="fas fa-bolt" style="color:#facc15;font-size:1.1rem;"></i>
-                <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#e7ecf3;">Review XP — Plain &amp; Simple</h3>
+                <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#e7ecf3;">Review XP — One Vote, One Rate</h3>
             </div>
-            <p style="margin:0 0 4px;color:#8b98ab;font-size:0.85rem;line-height:1.55;max-width:760px;">
-                No rank-weight math. Every <b style="color:#4ade80;">👍 like is worth +10 XP</b> and every <b style="color:#f87171;">👎 dislike −5 XP</b>.
-                A review's XP is just the raw points it racked up. <b style="color:#f87171;">Dislikes and war replies require C rank (500 XP)</b>, so D-rank accounts can only like.
+            <p style="margin:0 0 4px;color:#8b98ab;font-size:0.85rem;line-height:1.55;max-width:800px;">
+                Flat and fair: a <b style="color:#4ade80;">👍 like on a green review (6–10) pours +15 XP</b> into this anime's tank, a <b style="color:#f87171;">👎 dislike drains 15</b>.
+                <b style="color:#f87171;">Trash (1/10)</b> mirrors the mob — each like <b style="color:#f87171;">takes 15 XP</b> (only when the mob wins the ratio), each dislike hands it back.
+                <b style="color:#9ca3af;">5/10 Mid is neutral</b>: it never moves XP. <b style="color:#f87171;">Voting requires C rank (500 XP)</b> — likes <i>and</i> dislikes — so a fresh-account mob can't vote at all.
             </p>
-            <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);font-size:0.78rem;color:#7d8ba0;line-height:1.6;">
-                Every <b style="color:#4ade80;">👍 like is +10</b> and <b style="color:#f87171;">👎 dislike −5</b> — a review's XP is its raw points, no multipliers.
-            </div>
         </div>
 
         <div class="review-box">

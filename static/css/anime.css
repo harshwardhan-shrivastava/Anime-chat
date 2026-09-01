@@ -3115,3 +3115,29 @@ footer p{
 }
 .elix-num i { font-size: 0.85rem; color: #fde047; margin-left: 2px; }
 .elix-label { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.8px; color: #facc15; text-transform: uppercase; opacity: 0.95; }
+
+/* ---- Rating Power: negative (mobbed-down) elixir tank ---- */
+.elix-negative {
+    border-color: rgba(239,68,68,0.45) !important;
+    box-shadow: 0 10px 36px -18px rgba(239,68,68,0.45);
+}
+.elix-negative .elix-num { color: #f87171; }
+.elix-negative .elix-level { color: #f87171; }
+.elix-negative .elix-liquid {
+    background: linear-gradient(180deg, #fca5a5, #ef4444 60%, #b91c1c) !important;
+    box-shadow: 0 0 16px rgba(239,68,68,0.8);
+}
+
+/* ---- Rating Power: locked vote buttons (votes are C+ only) ---- */
+.review-vote-btn.rv-like-locked {
+    cursor: not-allowed !important;
+    opacity: 0.55;
+    border-style: dashed !important;
+}
+.rv-lock-tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 0.6rem; font-weight: 800; letter-spacing: 0.03em;
+    color: #fbbf24; background: rgba(251,191,36,0.12);
+    border: 1px solid rgba(251,191,36,0.35); border-radius: 999px;
+    padding: 1px 6px; margin-left: 4px; vertical-align: middle;
+}

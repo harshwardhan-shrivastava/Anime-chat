@@ -25,6 +25,10 @@ const noReviewsMsg = document.getElementById("noReviewsMsg");
 const currentUserId = document.body.dataset.userId
     ? parseInt(document.body.dataset.userId, 10)
     : null;
+// Injected from the server: the viewer's rank tier ('' for guests). Voting
+// (likes AND dislikes) requires C rank and above under Rating Power.
+const userRank = document.body.dataset.userRank || "";
+const canVoteRank = ["C", "B", "A", "S", "S+"].indexOf(userRank) !== -1;
 
 let selectedRating = 0;
 
@@ -120,9 +124,13 @@ function buildVoteBar(review) {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.dataset.kind = kind;
-        btn.className = "review-vote-btn" + (active ? (kind === "like" ? " vote-active voted-like" : " vote-active voted-dislike") : "");
+        // Logged-in users below C rank see locked vote buttons (votes are C+).
+        const locked = !!currentUserId && !canVoteRank;
+        btn.className = "review-vote-btn" + (active ? (kind === "like" ? " vote-active voted-like" : " vote-active voted-dislike") : "") + (locked ? " rv-like-locked" : "");
         btn.innerHTML = (kind === "like" ? "\ud83d\udc4d" : "\ud83d\udc4e") +
-            ' <span class="vote-count">' + (kind === "like" ? (review.likes || 0) : (review.dislikes || 0)) + "</span>";
+            ' <span class="vote-count">' + (kind === "like" ? (review.likes || 0) : (review.dislikes || 0)) + "</span>" +
+            (locked ? '<span class="rv-lock-tag"><i class="fas fa-lock"></i> C+</span>' : "");
+        if (locked) btn.title = "Voting requires C rank (500 XP) — keep reviewing to unlock your vote.";
         return btn;
     }
 
@@ -142,6 +150,10 @@ function buildVoteBar(review) {
     function vote(isLike) {
         if (!currentUserId) {
             alert("Please log in to vote on reviews.");
+            return;
+        }
+        if (!canVoteRank) {
+            alert("Voting requires C rank (500 XP) — keep reviewing to unlock your vote.");
             return;
         }
         fetch(`/api/anime-review/${review.id}/vote`, {
