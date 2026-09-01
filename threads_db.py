@@ -288,6 +288,45 @@ def create_tables():
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_thr_reports_status ON thr_reports(status)")
 
+
+    # ---- Invites ---------------------------------------------------------------
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS thr_invites(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            community_id INTEGER NOT NULL,
+            code TEXT NOT NULL UNIQUE,
+            created_by INTEGER NOT NULL,
+            uses INTEGER DEFAULT 0,
+            max_uses INTEGER DEFAULT 0,
+            expires_at TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (community_id) REFERENCES thr_communities(id) ON DELETE CASCADE,
+            FOREIGN KEY (created_by) REFERENCES users(id)
+        )
+    """)
+
+    # ---- Nicknames per guild ---------------------------------------------------
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS thr_guild_nicknames(
+            community_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            nickname TEXT NOT NULL DEFAULT '',
+            PRIMARY KEY (community_id, user_id)
+        )
+    """)
+
+    # ---- Channel categories ----------------------------------------------------
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS thr_channel_categories(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            community_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            sort_order INTEGER DEFAULT 0,
+            FOREIGN KEY (community_id) REFERENCES thr_communities(id) ON DELETE CASCADE
+        )
+    """)
+
+    # ---- Friend requests
     # ---- Friend requests ---------------------------------------------------------
     cur.execute("""
         CREATE TABLE IF NOT EXISTS thr_friend_requests(
@@ -1982,6 +2021,165 @@ def update_community(cid, name=None, description=None, genre=None, icon_color=No
     conn.commit()
     conn.close()
     return True
+
+
+
+
+# ---------------------------------------------------------------------------
+# Invites (Discord-style invite links)
+# ---------------------------------------------------------------------------
+
+import secrets as _secrets
+
+def generate_invite(cid, user_id, max_uses=0, expires_days=0):
+    """Generate an invite code for a community."""
+    code = _secrets.token_urlsafe(8)
+    conn = get_connection()
+    cur = conn.cursor()
+    expires = None
+    if expires_days > 0:
+        from datetime import datetime, timedelta
+        expires = (datetime.utcnow() + timedelta(days=expires_days)).strftime('%Y-%m-%d %H:%M:%S')
+    cur.execute(
+        "INSERT INTO thr_invites (community_id, code, created_by, max_uses, expires_at) VALUES (?, ?, ?, ?, ?)",
+        (cid, code, user_id, max_uses or 0, expires),
+    )
+    conn.commit()
+    invite_id = cur.lastrowid
+    cur.execute("SELECT * FROM thr_invites WHERE id = ?", (invite_id,))
+    row = dict(cur.fetchone())
+    conn.close()
+    return row
+
+def join_by_invite(code, user_id):
+    """Join a community by invite code. Returns (community_id, error)."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM thr_invites WHERE code = ?", (code,))
+    inv = cur.fetchone()
+    if not inv:
+        conn.close()
+        return None, 'invalid_code'
+    inv = dict(inv)
+    # Check expiry
+    if inv.get('expires_at'):
+        from datetime import datetime
+        if datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S') > inv['expires_at']:
+            conn.close()
+            return None, 'expired'
+    # Check max uses
+    if inv['max_uses'] > 0 and inv['uses'] >= inv['max_uses']:
+        conn.close()
+        return None, 'max_uses'
+    # Check banned
+    cur.execute("SELECT 1 FROM thr_community_bans WHERE community_id = ? AND user_id = ?",
+                (inv['community_id'], user_id))
+    if cur.fetchone():
+        conn.close()
+        return None, 'banned'
+    # Check already member
+    cur.execute("SELECT 1 FROM thr_community_members WHERE community_id = ? AND user_id = ?",
+                (inv['community_id'], user_id))
+    if cur.fetchone():
+        conn.close()
+        return inv['community_id'], None
+    # Join
+    cur.execute("INSERT OR IGNORE INTO thr_community_members (community_id, user_id, role) VALUES (?, ?, 'member')",
+                (inv['community_id'], user_id))
+    # Increment uses
+    cur.execute("UPDATE thr_invites SET uses = uses + 1 WHERE id = ?", (inv['id'],))
+    conn.commit()
+    conn.close()
+    return inv['community_id'], None
+
+def list_invites(cid):
+    """List all active invites for a community."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT i.*, u.username AS creator_name
+        FROM thr_invites i JOIN users u ON u.id = i.created_by
+        WHERE i.community_id = ?
+        ORDER BY i.id DESC
+    """, (cid,))
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
+
+def revoke_invite(invite_id, cid):
+    """Delete an invite."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM thr_invites WHERE id = ? AND community_id = ?", (invite_id, cid))
+    ok = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return ok
+
+# ---------------------------------------------------------------------------
+# Nicknames (per-guild nicknames like Discord)
+# ---------------------------------------------------------------------------
+
+def set_nickname(cid, user_id, nickname):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO thr_guild_nicknames (community_id, user_id, nickname) VALUES (?, ?, ?) " +
+        "ON CONFLICT(community_id, user_id) DO UPDATE SET nickname = excluded.nickname",
+        (cid, user_id, (nickname or '').strip()[:30]),
+    )
+    conn.commit()
+    conn.close()
+
+def get_nickname(cid, user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT nickname FROM thr_guild_nicknames WHERE community_id = ? AND user_id = ?",
+                (cid, user_id))
+    row = cur.fetchone()
+    conn.close()
+    return row['nickname'] if row and row['nickname'] else None
+
+def get_all_nicknames(cid):
+    """Return {user_id: nickname} for a community."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT user_id, nickname FROM thr_guild_nicknames WHERE community_id = ? AND nickname != ''", (cid,))
+    out = {r['user_id']: r['nickname'] for r in cur.fetchall()}
+    conn.close()
+    return out
+
+# ---------------------------------------------------------------------------
+# Channel categories
+# ---------------------------------------------------------------------------
+
+def create_category(cid, name, sort_order=0):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO thr_channel_categories (community_id, name, sort_order) VALUES (?, ?, ?)",
+                (cid, (name or '').strip()[:40], sort_order))
+    cat_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return cat_id
+
+def get_categories(cid):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM thr_channel_categories WHERE community_id = ? ORDER BY sort_order, id", (cid,))
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
+
+def update_community_public(cid, is_public):
+    """Toggle community public/private."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("UPDATE thr_communities SET is_public = ? WHERE id = ?", (1 if is_public else 0, cid))
+    ok = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return ok
 
 
 def create_channel(cid, name, topic=None):

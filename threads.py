@@ -1481,6 +1481,119 @@ def user_blocked():
     return jsonify({"success": True, "blocked": out})
 
 
+
+# ---- Invites ----
+
+@bp.route("/threads/api/communities/<int:cid>/invites", methods=["POST"])
+def invite_create(cid):
+    user, community, err = _community_guard(cid)
+    if err:
+        return err
+    mem_err = _member_guard(community, user)
+    if mem_err:
+        return mem_err
+    data = request.get_json(silent=True) or {}
+    max_uses = int(data.get("max_uses") or 0)
+    expires_days = int(data.get("expires_days") or 0)
+    inv = threads_db.generate_invite(cid, user["id"], max_uses=max_uses, expires_days=expires_days)
+    inv["url"] = "/threads?invite=" + inv["code"]
+    return jsonify({"success": True, "invite": inv})
+
+
+@bp.route("/threads/api/communities/<int:cid>/invites")
+def invite_list(cid):
+    user, community, err = _community_guard(cid)
+    if err:
+        return err
+    mem_err = _member_guard(community, user)
+    if mem_err:
+        return mem_err
+    invites = threads_db.list_invites(cid)
+    return jsonify({"success": True, "invites": invites})
+
+
+@bp.route("/threads/api/invites/<code>/join", methods=["POST"])
+def invite_join(code):
+    user, err = _json_user()
+    if err:
+        return err
+    cid, error = threads_db.join_by_invite(code, user["id"])
+    if error:
+        return jsonify({"success": False, "error": error}), 400
+    communities = threads_db.get_user_communities(user["id"])
+    joined = next((c for c in communities if c["id"] == cid), None)
+    return jsonify({"success": True, "community": joined})
+
+
+@bp.route("/threads/api/invites/<int:iid>/revoke", methods=["DELETE"])
+def invite_revoke(iid):
+    user, err = _json_user()
+    if err:
+        return err
+    # Find which community this invite belongs to
+    conn = threads_db.get_connection()
+    row = conn.execute("SELECT community_id FROM thr_invites WHERE id = ?", (iid,)).fetchone()
+    conn.close()
+    if not row:
+        return jsonify({"success": False, "error": "not_found"}), 404
+    community = threads_db.get_community(row["community_id"])
+    mod_err = _mod_guard(community, user)
+    if mod_err:
+        return mod_err
+    threads_db.revoke_invite(iid, row["community_id"])
+    return jsonify({"success": True})
+
+
+# ---- Public/Private toggle ----
+
+@bp.route("/threads/api/communities/<int:cid>/visibility", methods=["POST"])
+def community_visibility(cid):
+    user, community, err = _community_guard(cid)
+    if err:
+        return err
+    # Only owner can change visibility
+    if threads_db.get_member_role(cid, user["id"]) != "owner":
+        return jsonify({"success": False, "error": "forbidden"}), 403
+    data = request.get_json(silent=True) or {}
+    is_public = bool(data.get("is_public", True))
+    threads_db.update_community_public(cid, is_public)
+    threads_db.log_mod_action(cid, user["id"], "set_public" if is_public else "set_private")
+    return jsonify({"success": True, "is_public": is_public})
+
+
+# ---- Nicknames ----
+
+@bp.route("/threads/api/communities/<int:cid>/nickname", methods=["POST"])
+def set_nickname(cid):
+    user, err = _json_user()
+    if err:
+        return err
+    mem_err = _member_guard(threads_db.get_community(cid), user)
+    if mem_err:
+        return mem_err
+    data = request.get_json(silent=True) or {}
+    threads_db.set_nickname(cid, user["id"], data.get("nickname", ""))
+    return jsonify({"success": True})
+
+
+# ---- Channel categories ----
+
+@bp.route("/threads/api/communities/<int:cid>/categories", methods=["POST"])
+def category_create(cid):
+    user, community, err = _community_guard(cid)
+    if err:
+        return err
+    mod_err = _mod_guard(community, user)
+    if mod_err:
+        return mod_err
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"success": False, "error": "bad_name"}), 400
+    cat_id = threads_db.create_category(cid, name, int(data.get("sort_order") or 0))
+    return jsonify({"success": True, "categories": threads_db.get_categories(cid)})
+
+
 # ---------------------------------------------------------------------------
 # Registration hook
 # ---------------------------------------------------------------------------

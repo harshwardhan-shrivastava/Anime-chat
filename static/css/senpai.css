@@ -1,0 +1,574 @@
+/* ======================================================
+   "YOUR SENPAI" — AI character chat
+   Picker + chat interface styling
+====================================================== */
+
+/* ---- Hero ---- */
+.senpai-hero {
+    text-align: center;
+    padding: 100px 20px 30px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.senpai-hero .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(123, 46, 255, 0.15);
+    border: 1px solid rgba(143, 91, 255, 0.3);
+    color: #c4b5fd;
+    padding: 8px 18px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 24px;
+}
+
+.senpai-hero h1 {
+    font-size: 52px;
+    font-weight: 800;
+    color: white;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+}
+
+.senpai-hero h1 span {
+    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.senpai-hero p {
+    color: #8f94b0;
+    font-size: 16px;
+    line-height: 1.6;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* ---- Picker section ---- */
+.senpai-picker-section {
+    max-width: 1100px;
+    margin: 0 auto 60px;
+    padding: 0 20px;
+}
+
+/* ---- Quick picks ---- */
+.senpai-quickpicks {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.senpai-quickpick {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    width: 110px;
+}
+
+.senpai-quickpick:hover {
+    transform: translateY(-6px) scale(1.05);
+}
+
+.senpai-quickpick img {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid rgba(143, 91, 255, 0.35);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.senpai-quickpick:hover img {
+    border-color: rgba(143, 91, 255, 0.8);
+    box-shadow: 0 0 20px rgba(123, 46, 255, 0.4);
+}
+
+.senpai-quickpick-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    text-align: center;
+}
+
+.senpai-quickpick-anime {
+    font-size: 11px;
+    color: #6b7280;
+    text-align: center;
+}
+
+/* ---- Search ---- */
+.senpai-search-box {
+    position: relative;
+    max-width: 600px;
+    margin: 0 auto 24px;
+}
+
+.senpai-search-box .fa-search {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6b7280;
+    font-size: 16px;
+}
+
+.senpai-search-box input {
+    width: 100%;
+    padding: 14px 44px 14px 48px;
+    background: #151A2D;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    color: white;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    box-sizing: border-box;
+}
+
+.senpai-search-box input:focus {
+    border-color: rgba(143, 91, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(123, 46, 255, 0.1);
+}
+
+.senpai-search-box input::placeholder {
+    color: #4b5563;
+}
+
+.senpai-search-clear {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.senpai-search-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.senpai-search-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: #151A2D;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 14px;
+    padding: 16px 10px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.senpai-search-card:hover {
+    border-color: rgba(143, 91, 255, 0.5);
+    box-shadow: 0 0 18px rgba(123, 46, 255, 0.25);
+    transform: translateY(-4px);
+}
+
+.senpai-search-card img {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(143, 91, 255, 0.25);
+}
+
+.senpai-search-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    text-align: center;
+}
+
+.senpai-search-anime {
+    font-size: 11px;
+    color: #6b7280;
+    text-align: center;
+}
+
+.senpai-search-loading,
+.senpai-search-empty {
+    text-align: center;
+    padding: 40px;
+    color: #6b7280;
+}
+
+.senpai-search-empty i {
+    font-size: 32px;
+    display: block;
+    margin-bottom: 12px;
+}
+
+/* ---- Chat view ---- */
+.senpai-chat-view {
+    max-width: 800px;
+    margin: 30px auto 0;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 100px);
+}
+
+.senpai-chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: #151A2D;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px 16px 0 0;
+    gap: 12px;
+}
+
+.senpai-chat-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.senpai-chat-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(143, 91, 255, 0.4);
+}
+
+.senpai-chat-header-info h2 {
+    font-size: 18px;
+    font-weight: 800;
+    color: white;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.senpai-chat-header-info span {
+    font-size: 13px;
+    color: #8f94b0;
+}
+
+.senpai-chat-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.senpai-cooldown {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #8f94b0;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 6px 12px;
+    border-radius: 20px;
+}
+
+.senpai-switch-btn {
+    background: rgba(123, 46, 255, 0.15);
+    border: 1px solid rgba(143, 91, 255, 0.35);
+    color: #c4b5fd;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.3s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.senpai-switch-btn:hover {
+    background: rgba(123, 46, 255, 0.25);
+    border-color: rgba(143, 91, 255, 0.6);
+}
+
+/* ---- Messages ---- */
+.senpai-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: #0D1324;
+    border-left: 1px solid rgba(255, 255, 255, 0.07);
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.senpai-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.senpai-messages::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.senpai-msg {
+    display: flex;
+    max-width: 75%;
+}
+
+.senpai-msg-user {
+    align-self: flex-end;
+}
+
+.senpai-msg-assistant {
+    align-self: flex-start;
+}
+
+.senpai-msg-bubble {
+    padding: 12px 16px;
+    border-radius: 18px;
+    font-size: 14.5px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+.senpai-msg-user .senpai-msg-bubble {
+    background: linear-gradient(135deg, #7b2eff, #6d28d9);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.senpai-msg-assistant .senpai-msg-bubble {
+    background: #1e2438;
+    color: #e5e7eb;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom-left-radius: 4px;
+}
+
+/* ---- Typing indicator ---- */
+.senpai-typing {
+    display: flex;
+    gap: 5px;
+    padding: 8px 16px;
+    align-self: flex-start;
+}
+
+.senpai-typing-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6b7280;
+    animation: senpaiTyping 1.4s infinite ease-in-out;
+}
+
+.senpai-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.senpai-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes senpaiTyping {
+    0%, 60%, 100% { transform: scale(0.8); opacity: 0.4; }
+    30% { transform: scale(1.1); opacity: 1; }
+}
+
+/* ---- Input bar ---- */
+.senpai-input-bar {
+    display: flex;
+    gap: 10px;
+    padding: 16px 20px;
+    background: #151A2D;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0 0 16px 16px;
+}
+
+.senpai-input-bar input {
+    flex: 1;
+    padding: 12px 18px;
+    background: #0D1324;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    color: white;
+    font-size: 14.5px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.senpai-input-bar input:focus {
+    border-color: rgba(143, 91, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(123, 46, 255, 0.1);
+}
+
+.senpai-input-bar input::placeholder {
+    color: #4b5563;
+}
+
+.senpai-send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #7b2eff, #6d28d9);
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.3s;
+    flex-shrink: 0;
+}
+
+.senpai-send-btn:hover:not(:disabled) {
+    transform: scale(1.08);
+    box-shadow: 0 0 16px rgba(123, 46, 255, 0.4);
+}
+
+.senpai-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ---- Modals ---- */
+.senpai-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.senpai-modal {
+    background: #151A2D;
+    border: 1px solid rgba(143, 91, 255, 0.25);
+    border-radius: 20px;
+    padding: 36px 32px;
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.senpai-modal-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(123, 46, 255, 0.15);
+    border: 2px solid rgba(143, 91, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 24px;
+    color: #c4b5fd;
+}
+
+.senpai-modal h3 {
+    font-size: 22px;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 10px;
+}
+
+.senpai-modal p {
+    color: #8f94b0;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+
+.senpai-modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.senpai-modal-cancel,
+.senpai-modal-confirm {
+    padding: 10px 28px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: 0.3s;
+    border: none;
+}
+
+.senpai-modal-cancel {
+    background: rgba(255, 255, 255, 0.06);
+    color: #8f94b0;
+}
+
+.senpai-modal-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.senpai-modal-confirm {
+    background: linear-gradient(135deg, #7b2eff, #6d28d9);
+    color: white;
+}
+
+.senpai-modal-confirm:hover {
+    box-shadow: 0 0 18px rgba(123, 46, 255, 0.4);
+    transform: translateY(-2px);
+}
+
+/* ---- Persona gen overlay ---- */
+.senpai-gen-modal {
+    max-width: 380px;
+}
+
+.senpai-gen-spinner {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 20px;
+    border-width: 3px;
+    border-color: rgba(143, 91, 255, 0.2);
+    border-top-color: #8b5cf6;
+}
+
+/* ---- Spinner (shared) ---- */
+.spinner {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(143, 91, 255, 0.2);
+    border-top-color: #8b5cf6;
+    border-radius: 50%;
+    animation: senpaiSpin 0.8s linear infinite;
+}
+
+@keyframes senpaiSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 640px) {
+    .senpai-hero h1 { font-size: 36px; }
+    .senpai-chat-view { padding: 0 10px; height: calc(100vh - 80px); }
+    .senpai-chat-header { padding: 12px 14px; }
+    .senpai-chat-header-info h2 { font-size: 16px; }
+    .senpai-quickpick { width: 90px; }
+    .senpai-quickpick img { width: 72px; height: 72px; }
+    .senpai-search-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+    .senpai-msg { max-width: 85%; }
+    .senpai-cooldown { display: none; }
+}

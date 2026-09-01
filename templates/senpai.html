@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Senpai | Otakul</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/characters.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/senpai.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://s4.anilist.co" crossorigin>
+    <link rel="dns-prefetch" href="https://s4.anilist.co">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="background">
+    <div class="circle one"></div>
+    <div class="circle two"></div>
+    <div class="circle three"></div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-list" style="max-width:1300px;margin:20px auto 0;width:90%;">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+{% endwith %}
+
+{% include "_navbar.html" %}
+
+<!-- ================= PICKER VIEW ================= -->
+<section class="senpai-hero" id="senpaiPickerView">
+    <span class="hero-badge"><i class="fas fa-heart"></i> Chat with your favorite anime character</span>
+    <h1>Your <span>Senpai</span></h1>
+    <p>Pick a character and they'll talk to you in their own voice — personality, tone, and all. You're locked in for 24 hours, so choose wisely.</p>
+</section>
+
+<section class="senpai-picker-section" id="senpaiPickerSection">
+    <!-- Quick picks -->
+    <div class="senpai-quickpicks" id="senpaiQuickPicks">
+        {% for c in quick_picks %}
+        <button class="senpai-quickpick" data-id="{{ c.id }}" data-name="{{ c.name }}">
+            <img src="{{ c.image }}" alt="{{ c.name }}" loading="lazy">
+            <span class="senpai-quickpick-name">{{ c.name }}</span>
+            <span class="senpai-quickpick-anime">{{ c.title }}</span>
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- Search bar (reuses characters search API) -->
+    <div class="senpai-search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" id="senpaiSearch" autocomplete="off"
+               placeholder="Search any character — try "Goku", "Levi", "Naruto"…">
+        <button id="senpaiSearchClear" class="char-search-clear" aria-label="Clear" hidden>
+            <span class="modal-x" aria-hidden="true"></span>
+        </button>
+    </div>
+
+    <div class="senpai-search-grid" id="senpaiSearchGrid"></div>
+    <div class="senpai-search-loading" id="senpaiSearchLoading" hidden>
+        <span class="spinner"></span> Searching the library…
+    </div>
+    <div class="senpai-search-empty" id="senpaiSearchEmpty" hidden>
+        <i class="fas fa-user-slash"></i>
+        <p>No characters found. Try a different name.</p>
+    </div>
+</section>
+
+<!-- ================= CHAT VIEW ================= -->
+<section class="senpai-chat-view" id="senpaiChatView" hidden>
+    <div class="senpai-chat-header">
+        <div class="senpai-chat-header-left">
+            <img class="senpai-chat-avatar" id="senpaiChatAvatar" src="" alt="">
+            <div class="senpai-chat-header-info">
+                <h2 id="senpaiChatName">—</h2>
+                <span id="senpaiChatAnime">—</span>
+            </div>
+        </div>
+        <div class="senpai-chat-header-right">
+            <div class="senpai-cooldown" id="senpaiCooldown" hidden>
+                <i class="fas fa-clock"></i>
+                <span id="senpaiCooldownLabel">Switch in 24h 0m</span>
+            </div>
+            <button class="senpai-switch-btn" id="senpaiSwitchBtn" hidden>
+                <i class="fas fa-exchange-alt"></i> Switch Senpai
+            </button>
+        </div>
+    </div>
+
+    <div class="senpai-messages" id="senpaiMessages">
+        <!-- Messages injected by JS -->
+    </div>
+
+    <div class="senpai-typing" id="senpaiTyping" hidden>
+        <span class="senpai-typing-dot"></span>
+        <span class="senpai-typing-dot"></span>
+        <span class="senpai-typing-dot"></span>
+    </div>
+
+    <div class="senpai-input-bar">
+        <input type="text" id="senpaiInput" placeholder="Message your senpai…" autocomplete="off" maxlength="2000">
+        <button id="senpaiSendBtn" class="senpai-send-btn" aria-label="Send">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+</section>
+
+<!-- ================= LOCK CONFIRMATION MODAL ================= -->
+<div class="senpai-modal-overlay" id="senpaiLockModal" hidden>
+    <div class="senpai-modal">
+        <div class="senpai-modal-icon">
+            <i class="fas fa-lock"></i>
+        </div>
+        <h3>Lock in your senpai?</h3>
+        <p id="senpaiLockText">You've chosen — as your senpai. You can switch again in 24 hours.</p>
+        <div class="senpai-modal-buttons">
+            <button class="senpai-modal-cancel" id="senpaiLockCancel">Cancel</button>
+            <button class="senpai-modal-confirm" id="senpaiLockConfirm">Lock In</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= LOADING OVERLAY (persona gen) ================= -->
+<div class="senpai-modal-overlay" id="senpaiGenOverlay" hidden>
+    <div class="senpai-modal senpai-gen-modal">
+        <span class="spinner senpai-gen-spinner"></span>
+        <h3>Getting to know <span id="senpaiGenName">—</span>…</h3>
+        <p>First-time persona generation — this only happens once for this character.</p>
+    </div>
+</div>
+
+<script>
+    window.SENPAI_QUICK_PICKS = {{ quick_picks | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/senpai.js') }}"></script>
+</body>
+</html>
