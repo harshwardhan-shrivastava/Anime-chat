@@ -35,6 +35,7 @@
     var lockConfirm = document.getElementById("senpaiLockConfirm");
     var genOverlay = document.getElementById("senpaiGenOverlay");
     var genName = document.getElementById("senpaiGenName");
+    var genCancel = document.getElementById("senpaiGenCancel");
 
     var QUICK_PICKS = window.SENPAI_QUICK_PICKS || [];
 
@@ -43,6 +44,7 @@
     var cooldownTimer = null;
     var searchDebounce = null;
     var sending = false;
+    var currentAbort = null;  // AbortController for in-flight choose request
 
     // ---- Helpers ----
     function esc(text) {
@@ -57,11 +59,25 @@
             opts.headers["Content-Type"] = "application/json";
             opts.body = JSON.stringify(body);
         }
+        // 60s timeout — persona gen can be slow on cold starts
+        var ctrl = new AbortController();
+        opts.signal = ctrl.signal;
+        currentAbort = ctrl;
+        var timeout = setTimeout(function () { ctrl.abort(); }, 60000);
         return fetch(url, opts).then(function (r) {
+            clearTimeout(timeout);
+            currentAbort = null;
             return r.json().then(function (data) {
                 if (!r.ok) return Promise.reject(data);
                 return data;
             });
+        }).catch(function (err) {
+            clearTimeout(timeout);
+            currentAbort = null;
+            if (err.name === "AbortError") {
+                return Promise.reject({ error: "Request timed out. Try again." });
+            }
+            return Promise.reject(err);
         });
     }
 
@@ -137,6 +153,18 @@
     lockCancel.addEventListener("click", closeLockModal);
     lockModal.addEventListener("click", function (e) {
         if (e.target === lockModal) closeLockModal();
+    });
+
+    // Gen overlay cancel — abort in-flight request and hide overlay
+    genCancel.addEventListener("click", function () {
+        if (currentAbort) { currentAbort.abort(); currentAbort = null; }
+        genOverlay.hidden = true;
+    });
+    genOverlay.addEventListener("click", function (e) {
+        if (e.target === genOverlay) {
+            if (currentAbort) { currentAbort.abort(); currentAbort = null; }
+            genOverlay.hidden = true;
+        }
     });
 
     lockConfirm.addEventListener("click", function () {
