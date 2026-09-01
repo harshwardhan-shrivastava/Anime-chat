@@ -225,11 +225,47 @@ def main():
         stats["siblings"] += 1
         changed[slug] = (entry.get("title"), [("Episodes", len(keep))])
 
+    # ---- Phase 3: sibling-parent mains keep only their own season -------
+    # The catalog models each season as its own card (rent-a-girlfriend-
+    # season-2, attack-on-titan-season-3, ...), so the parent's page should
+    # show a single flat card with the FIRST season's episodes -- like the
+    # approved Slime layout -- instead of a Seasons grid that duplicates
+    # the sibling cards. Only collapse when EVERY season after the first
+    # already has its own sibling card, so no content is ever hidden
+    # (AoT's "The Final Season" has no sibling -> its grid stays).
+    mains_collapsed = 0
+    for slug, entry in data.items():
+        if SIB_RE.search(slug):
+            continue
+        seasons = entry.get("seasons") or []
+        if len(seasons) < 2:
+            continue
+        kids = {SIB_RE.sub("", k) for k in data if SIB_RE.search(k)}
+        if slug not in kids:
+            continue  # no season-sibling cards at all -> grid is the nav
+        first = seasons[0].get("episodes") or []
+        if not first:
+            continue
+        covered = True
+        for s in seasons[1:]:
+            name = str(s.get("name") or "").strip()
+            m = re.match(r"^Season (\d+)$", name)
+            if not m or (slug + "-season-" + m.group(1)) not in data:
+                covered = False  # named arc or missing sibling -> keep grid
+                break
+        if not covered:
+            continue
+        entry["seasons"] = [{"name": "Episodes", "episodes": first}]
+        entry["watch_order"] = ["Episodes"]
+        entry["total_episodes"] = len(first)
+        mains_collapsed += 1
+        changed[slug] = (entry.get("title"), [("Episodes", len(first))])
+
     with open(DATA, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-    print("collapsed: %d | rebuilt series: %d | sibling-mirrored: %d | skipped-empty: %d"
-          % (stats["collapsed"], stats["rebuilt"], stats["siblings"], stats["skipped_empty"]))
+    print("collapsed: %d | rebuilt series: %d | sibling-mirrored: %d | mains-collapsed-to-s1: %d | skipped-empty: %d"
+          % (stats["collapsed"], stats["rebuilt"], stats["siblings"], mains_collapsed, stats["skipped_empty"]))
     for slug in ["slam-dunk", "rent-a-girlfriend", "rent-a-girlfriend-season-2",
                  "rent-a-girlfriend-season-3", "rent-a-girlfriend-season-4",
                  "my-hero-academia", "my-hero-academia-season-2",
