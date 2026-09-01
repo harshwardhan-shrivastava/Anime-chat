@@ -111,7 +111,6 @@ from chat import chat_bp
 from profile_routes import bp as profile_bp
 
 from threads import init_threads
-from character_chat import init_character_chat
 
 # ---- Rating Power vote gate + local-SQLite lock fix, on the plain vote route ----
 # vote_review calls the module-global `toggle_review_like` at call time, so
@@ -217,7 +216,6 @@ app.register_blueprint(wz_bp)
 
 
 init_threads(app)
-init_character_chat(app)
 
 
 # Make sure the profile/history/list tables exist even if the app is
