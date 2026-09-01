@@ -1,5 +1,5 @@
 // Community Reviews page — extracted from the inline <script> of reviews.html.
-// Dislikes are plain C+ votes; the Reply War handles replies.
+// Dislikes are plain C+ votes (D can only like green/neutral); the Reply War handles replies.
 (function () {
     "use strict";
     function $(s){ return document.querySelector(s); }
@@ -72,8 +72,9 @@
             btn.addEventListener("click", function () {
                 if (busy) return; busy = true;
                 var isLike = btn.dataset.kind === "like";
-                // Locked vote buttons (below C rank): never send the request —
-                // under Rating Power likes AND dislikes require C rank.
+                // Locked vote buttons (server-rendered per rank/band): never
+                // send the request — dislikes and RED-review likes stay locked
+                // below C rank; D can still like green/neutral reviews.
                 if (btn.classList.contains("rv-like-locked") || btn.classList.contains("rv-dislike-locked")) {
                     busy = false;
                     return;

@@ -628,12 +628,23 @@ body { background: var(--rv-bg); color: var(--rv-text); font-family: 'Inter', -a
 .rv-score.rv-band-negative { background: rgba(239,68,68,0.14); color: #f87171; }
 .rv-score.rv-band-neutral { background: rgba(148,163,184,0.14); color: #cbd5e1; }
 .rv-word {
-    font-size: 0.7rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
-    border-radius: 999px; padding: 2px 9px; border: 1px solid transparent; white-space: nowrap;
+    font-size: 0.78rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+    border-radius: 999px; padding: 3px 12px; border: 1px solid transparent; white-space: nowrap;
+}
+.rv-word-big {
+    font-size: 0.95rem; padding: 6px 18px; letter-spacing: 0.09em;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
 }
 .rv-word.rv-band-negative { color: #f87171; border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.08); }
 .rv-word.rv-band-neutral { color: #cbd5e1; border-color: rgba(148,163,184,0.3); background: rgba(148,163,184,0.08); }
 .rv-word.rv-band-positive { color: #4ade80; border-color: rgba(74,222,128,0.35); background: rgba(74,222,128,0.08); }
+
+/* ---- Rating Power legend tier table (rank-priced votes) ---- */
+.rv-rp-tiers { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.rv-rp-tier { font-size: 0.8rem; color: #c6d1e0; white-space: nowrap; }
+.rv-rp-tier b { color: #fff; margin-right: 3px; }
+.rv-rp-tier em { font-style: normal; color: #4ade80; font-weight: 700; }
+.rv-rp-tier .rv-rp-tier-dlt { color: #f87171; margin-left: 3px; }
 
 /* ---- Rating Power legend grid (10-star verdict system) ---- */
 .rv-rp-grid {

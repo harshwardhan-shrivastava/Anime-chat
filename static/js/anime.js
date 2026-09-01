@@ -25,10 +25,20 @@ const noReviewsMsg = document.getElementById("noReviewsMsg");
 const currentUserId = document.body.dataset.userId
     ? parseInt(document.body.dataset.userId, 10)
     : null;
-// Injected from the server: the viewer's rank tier ('' for guests). Voting
-// (likes AND dislikes) requires C rank and above under Rating Power.
+// Injected from the server: the viewer's rank tier ('' for guests). Under
+// Rating Power: dislikes and likes on RED (1-4) reviews require C rank+
+// (500 XP); D-rank accounts can still like green/neutral reviews (+3).
 const userRank = document.body.dataset.userRank || "";
 const canVoteRank = ["C", "B", "A", "S", "S+"].indexOf(userRank) !== -1;
+
+// The 10-star verdict words, shown as the big rating badge on review cards.
+const RATING_WORDS = {1: "Trash", 2: "Awful", 3: "Meh", 4: "Hopeless", 5: "Mid", 6: "Good enough", 7: "Good", 8: "Great", 9: "Peak", 10: "Absolute Cinema"};
+function bandOf(rating) {
+    rating = parseInt(rating, 10) || 0;
+    if (rating >= 6) return "positive";
+    if (rating === 5) return "neutral";
+    return "negative";
+}
 
 let selectedRating = 0;
 
@@ -108,8 +118,8 @@ function buildReviewMenu(reviewId, card) {
 }
 
 // Like/dislike bar under each review card.
-function buildVoteBar(review) {
-    // Don't show vote buttons on your own review.
+function buildVoteBar(review) {        // Don't show vote buttons on your own review.
+
     if (currentUserId && review.user_id === currentUserId) {
         const note = document.createElement("div");
         note.className = "own-review-note";
@@ -124,13 +134,18 @@ function buildVoteBar(review) {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.dataset.kind = kind;
-        // Logged-in users below C rank see locked vote buttons (votes are C+).
-        const locked = !!currentUserId && !canVoteRank;
+        // Locked below C: dislikes always; likes only on RED (1-4) verdicts
+        // (D can still like green/neutral reviews at +3). F can't vote at all.
+        const belowC = !!currentUserId && !canVoteRank;
+        const isRed = bandOf(review.rating) === "negative";
+        const locked = !!currentUserId && (kind === "like" ? belowC && (isRed || userRank === "F") : belowC);
         btn.className = "review-vote-btn" + (active ? (kind === "like" ? " vote-active voted-like" : " vote-active voted-dislike") : "") + (locked ? " rv-like-locked" : "");
         btn.innerHTML = (kind === "like" ? "\ud83d\udc4d" : "\ud83d\udc4e") +
             ' <span class="vote-count">' + (kind === "like" ? (review.likes || 0) : (review.dislikes || 0)) + "</span>" +
             (locked ? '<span class="rv-lock-tag"><i class="fas fa-lock"></i> C+</span>' : "");
-        if (locked) btn.title = "Voting requires C rank (500 XP) — keep reviewing to unlock your vote.";
+        if (locked) btn.title = kind === "like"
+            ? "Liking a negative review requires C rank (500 XP) — keep reviewing to unlock your vote."
+            : "Dislikes require C rank (500 XP) — keep reviewing to unlock your vote.";
         return btn;
     }
 
@@ -152,9 +167,19 @@ function buildVoteBar(review) {
             alert("Please log in to vote on reviews.");
             return;
         }
-        if (!canVoteRank) {
-            alert("Voting requires C rank (500 XP) — keep reviewing to unlock your vote.");
+        if (userRank === "F") {
+            alert("Your account is flagged — reviewing power suspended.");
             return;
+        }
+        if (!canVoteRank) {
+            // D-rank: likes on green/neutral reviews are allowed (+3); dislikes
+            // and likes on RED verdicts stay locked. Mirrors the server gate.
+            if (isLike && bandOf(review.rating) !== "negative") {
+                // allowed — falls through to fetch
+            } else {
+                alert("Voting requires C rank (500 XP) — keep reviewing to unlock your vote.");
+                return;
+            }
         }
         fetch(`/api/anime-review/${review.id}/vote`, {
             method: "POST",
@@ -363,6 +388,17 @@ function renderStats(data) {
             }
             const ratingEl = document.createElement("span");
             ratingEl.textContent = `${starsForValue(review.rating)} ${review.rating}/10 \u00b7 ${timeAgo(review.created_at)}`;
+            const word = RATING_WORDS[parseInt(review.rating, 10)];
+            if (word) {
+                const wb = document.createElement("span");
+                wb.textContent = word;
+                const bnd = bandOf(review.rating);
+                wb.style.cssText = `font-size:0.9rem;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;border-radius:999px;padding:4px 14px;margin-left:8px;border:1px solid;vertical-align:middle;${
+                    bnd === "negative" ? "color:#f87171;border-color:rgba(239,68,68,0.4);background:rgba(239,68,68,0.1);" :
+                    bnd === "neutral" ? "color:#cbd5e1;border-color:rgba(148,163,184,0.3);background:rgba(148,163,184,0.1);" :
+                    "color:#4ade80;border-color:rgba(74,222,128,0.4);background:rgba(74,222,128,0.1);"}`;
+                ratingEl.appendChild(wb);
+            }
             infoWrap.appendChild(nameEl);
             infoWrap.appendChild(ratingEl);
             header.appendChild(infoWrap);

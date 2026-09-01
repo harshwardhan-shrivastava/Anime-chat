@@ -112,20 +112,39 @@ from profile_routes import bp as profile_bp
 
 from threads import init_threads
 
-# ---- Rating Power C+ gate + local-SQLite lock fix, on the plain vote route ----
+# ---- Rating Power vote gate + local-SQLite lock fix, on the plain vote route ----
 # vote_review calls the module-global `toggle_review_like` at call time, so
-# rebinding it here (same pattern as review_history_patch) keeps a hand-crafted
-# D-rank like/dislike request blocked everywhere, not just in the UI. Under
-# Rating Power NO vote below C rank counts — a fresh-account mob has no vote
-# weapon anywhere. The reimplement also commits the vote BEFORE recalculating
-# the author's XP — the original leaves the INSERT uncommitted while recalc
-# opens a second connection, which deadlocks on local SQLite (it only works on
-# Turso because that backend is autocommit).
+# rebinding it here (same pattern as review_history_patch) keeps hand-crafted
+# below-C like/dislike requests blocked everywhere, not just in the UI. Under
+# Rating Power: dislikes and likes on RED (1-4) reviews require C rank (500
+# XP)+; D-rank accounts can still like GREEN/GREY reviews (+3); F accounts
+# can't vote at all. The reimplement also commits the vote BEFORE
+# recalculating the author's XP — the original leaves the INSERT uncommitted
+# while recalc opens a second connection, which deadlocks on local SQLite (it
+# only works on Turso because that backend is autocommit).
 def _gated_toggle_review_like(user_id, review_type, review_id, is_like):
-    if not can_dislike(get_user_rank(user_id)):
-        raise PermissionError(
-            "Voting requires C rank (500 XP) — D-rank accounts can't vote yet. Keep reviewing to unlock it."
-        )
+    voter_rank = get_user_rank(user_id)
+    if voter_rank == "F":
+        raise PermissionError("Your account is flagged — reviewing power suspended.")
+    if not can_dislike(voter_rank):
+        if not is_like:
+            raise PermissionError(
+                "Dislikes require C rank (500 XP) — D-rank accounts can only like."
+            )
+        # D can like GREEN/GREY reviews, but liking a RED (1-4) verdict is C+.
+        _db2 = __import__("database")
+        _c = _db2.get_connection()
+        _cur = _c.cursor()
+        if review_type == "episode":
+            _cur.execute("SELECT rating FROM episode_reviews WHERE id=?", (review_id,))
+        else:
+            _cur.execute("SELECT rating FROM reviews WHERE id=?", (review_id,))
+        _rr = _cur.fetchone()
+        _c.close()
+        if _rr is None:
+            raise PermissionError("Review not found.")
+        if int(_rr["rating"] or 0) <= 4:
+            raise PermissionError("Liking a negative review requires C rank (500 XP).")
     import database as _db
     conn = _db.get_connection()
     cursor = conn.cursor()
@@ -1351,18 +1370,19 @@ def community(anime_slug):
 
 def _build_rating_power():
     """Rating Power legend data for the reviews page: the 10-star verdict
-    labels in their three bands (RED / GREY / GREEN), the flat +/-15 XP math
-    per band, and the C+ vote gate. Replaces the old rank-priced schedule —
-    votes are flat now, gated by rank instead of priced by it.
+    labels in their three bands (RED / GREY / GREEN), the rank-priced elixir
+    schedule with its band mirror, and the vote gates. One vote = the
+    VOTER's rank power (D +3 like ... S+ +15, C -2 dislike ... S+ -7):
+    green pours it in, red takes it back out, grey stays silent.
     """
     bands = []
     for band_id, title, accent, note in [
         ("negative", "Negative \u00b7 RED", "#f87171",
-         "Trash (1/10) is the mob mirror: a like TAKES 15 XP off the anime/episode (only when the mob won the ratio) and a dislike gives 15 back. Awful to Hopeless votes weigh the reviewer's credentials, never the tank."),
+         "The mirror: a like on RED (1\u20134) TAKES the voter's tier value off the anime/episode \u2014 C \u22125, B \u22127, A \u22129, S \u221211, S+ \u221215. A dislike hands the tier's drain value back (+2 up to +7). A red verdict the elite likes genuinely costs the tank."),
         ("neutral", "Neutral \u00b7 GREY", "#9ca3af",
          "Mid (5/10) never moves XP either way \u2014 it counts in the score, but the tank stays silent."),
         ("positive", "Positive \u00b7 GREEN", "#4ade80",
-         "Every like pours +15 XP into the anime/episode, every dislike drains 15. All green bars \u2014 Good enough to Absolute Cinema \u2014 play by the same flat rule."),
+         "Likes pour in at the voter's rank price: D +3, C +5, B +7, A +9, S +11, S+ +15. Dislikes drain at the same ladder: C \u22122, B \u22123, A \u22124, S \u22125, S+ \u22127."),
     ]:
         ratings = [
             {"n": n, "label": RATING_LABELS[n]}
@@ -1372,8 +1392,16 @@ def _build_rating_power():
         bands.append({"id": band_id, "title": title, "accent": accent, "ratings": ratings, "note": note})
     return {
         "bands": bands,
+        "tiers": [
+            {"rank": "D", "like": "+3", "dislike": "\u2014"},
+            {"rank": "C", "like": "+5", "dislike": "\u22122"},
+            {"rank": "B", "like": "+7", "dislike": "\u22123"},
+            {"rank": "A", "like": "+9", "dislike": "\u22124"},
+            {"rank": "S", "like": "+11", "dislike": "\u22125"},
+            {"rank": "S+", "like": "+15", "dislike": "\u22127"},
+        ],
         "rate": VOTE_RATE,
-        "gate": "C rank (500 XP) and above can vote \u2014 likes AND dislikes. D-rank accounts have no vote weapon anywhere.",
+        "gate": "Dislikes and likes on RED (1\u20134) reviews require C rank (500 XP). D-rank accounts can still like green/neutral reviews at +3; F accounts can't vote at all.",
     }
 
 
@@ -1399,7 +1427,7 @@ def reviews_page():
         r["band"] = rating_band(r.get("rating"))
         pts = point_map.get(r["id"])
         if pts:
-            r["review_xp"] = max(0, (pts.get("like_points") or 0) + (pts.get("dislike_points") or 0))
+            r["review_xp"] = (pts.get("like_points") or 0) + (pts.get("dislike_points") or 0)
             r["contested"] = pts.get("contested", 0)
         else:
             r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"], r.get("rating"))
@@ -1409,7 +1437,7 @@ def reviews_page():
         _we = war_effects.get(r["id"], {"penalty": 0, "bonus": 0})
         r["war_penalty"] = _we.get("penalty", 0)
         r["war_bonus"] = _we.get("bonus", 0)
-        r["review_xp"] = max(0, r["review_xp"] - r["war_penalty"] + r["war_bonus"])
+        r["review_xp"] = r["review_xp"] - r["war_penalty"] + r["war_bonus"]
         r["review_level"] = review_level_for_xp(r["review_xp"])
         r["xp_lvl"] = review_rank_for_xp(r["review_xp"])
         r["user_vote"] = user_votes.get(r["id"])
@@ -1489,7 +1517,7 @@ def reviews_page():
             ep_points = get_bulk_review_points("episode", ep_ids)
             epts = ep_points.get(r["id"])
             if epts:
-                r["review_xp"] = max(0, (epts.get("like_points") or 0) + (epts.get("dislike_points") or 0))
+                r["review_xp"] = (epts.get("like_points") or 0) + (epts.get("dislike_points") or 0)
                 r["contested"] = epts.get("contested", 0)
             else:
                 r["review_xp"] = review_vote_xp(r["likes"], r["dislikes"], r.get("rating"))
@@ -1502,7 +1530,7 @@ def reviews_page():
         _ew = ep_war_effects.get(r["id"], {"penalty": 0, "bonus": 0})
         r["war_penalty"] = _ew.get("penalty", 0)
         r["war_bonus"] = _ew.get("bonus", 0)
-        r["review_xp"] = max(0, r["review_xp"] - r["war_penalty"] + r["war_bonus"])
+        r["review_xp"] = r["review_xp"] - r["war_penalty"] + r["war_bonus"]
         r["review_level"] = review_level_for_xp(r["review_xp"])
         r["xp_lvl"] = review_rank_for_xp(r["review_xp"])
         r["user_vote"] = ep_user_votes.get(r["id"])

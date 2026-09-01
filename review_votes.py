@@ -100,25 +100,37 @@ def toggle_anime_review_vote(user_id, review_id, is_like):
     Returns (user_vote, removed, likes, dislikes) where user_vote is
     1 (liked), 0 (disliked) or None (no vote after toggle).
     Also adjusts the review author's XP (+10 like / -5 dislike, reversed on
-    remove). Voting is C rank (500 XP) and above — likes AND dislikes — so
-    a fresh D-rank mob has no vote anywhere. Raises PermissionError when
-    the voter is below C.
+    remove). Voting gates under Rating Power: dislikes and likes on RED
+    (1-4) reviews require C rank (500 XP) and above; D-rank accounts can
+    still like GREEN/GREY reviews (+3). F accounts can't vote at all.
+    Raises PermissionError when the voter hits a gate.
     """
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT user_id FROM reviews WHERE id=?", (review_id,))
+    cursor.execute("SELECT user_id, rating FROM reviews WHERE id=?", (review_id,))
     row = cursor.fetchone()
     if not row:
         conn.close()
         return None, False, 0, 0
     review_author_id = row["user_id"]
+    review_rating = int(row["rating"] or 0)
 
-    # Rating Power gate: every vote (like or dislike) is C rank and above.
-    if not can_dislike(_voter_rank(user_id)):
+    # Vote gates: dislikes, and likes on NEGATIVE (red) reviews, are C+.
+    # D-rank accounts may still like positive/neutral reviews (+3);
+    # F accounts (dislike-ratio abusers) can't vote at all.
+    voter_rank = _voter_rank(user_id)
+    if voter_rank == "F":
         conn.close()
+        raise PermissionError("Your account is flagged — reviewing power suspended.")
+    if not can_dislike(voter_rank) and (not is_like or review_rating <= 4):
+        conn.close()
+        if not is_like:
+            raise PermissionError(
+                "Dislikes require C rank (500 XP) — D-rank accounts can only like."
+            )
         raise PermissionError(
-            "Voting requires C rank (500 XP) — D-rank accounts can't vote yet. Keep reviewing to unlock it."
+            "Liking a negative review requires C rank (500 XP)."
         )
 
     cursor.execute(
@@ -140,7 +152,7 @@ def toggle_anime_review_vote(user_id, review_id, is_like):
             # Switch vote: the row's point value changes with the new direction
             cursor.execute(
                 "UPDATE review_likes SET is_like=?, points=? WHERE id=?",
-                (1 if is_like else 0, (VOTE_RATE if is_like else -VOTE_RATE), existing["id"]),
+                (1 if is_like else 0, vote_points_for_rank(_voter_rank(user_id), is_like), existing["id"]),
             )
             user_vote = 1 if is_like else 0
             if review_author_id and review_author_id != user_id:
@@ -148,7 +160,7 @@ def toggle_anime_review_vote(user_id, review_id, is_like):
     else:
         cursor.execute(
             "INSERT INTO review_likes (user_id, review_type, review_id, is_like, points) VALUES (?, 'anime', ?, ?, ?)",
-            (user_id, review_id, 1 if is_like else 0, (VOTE_RATE if is_like else -VOTE_RATE)),
+            (user_id, review_id, 1 if is_like else 0, vote_points_for_rank(_voter_rank(user_id), is_like)),
         )
         user_vote = 1 if is_like else 0
         if review_author_id and review_author_id != user_id:
@@ -364,35 +376,54 @@ VOTE_SCALE = {
     "S+": (+15, -7),
 }
 
-# Votes now require C rank and above in BOTH directions (Rating Power), so
-# the tiered VOTE_SCALE above is retired: every approved vote is a flat
-# VOTE_RATE (+15/-15) priced by the REVIEW's rating band at read time. The
-# legacy scale remains only for writing the historical `points` column, which
-# nothing reads anymore.
+# The tiered VOTE_SCALE above is the LIVE pricing: a vote is worth the
+# VOTER's rank power — D like +3, C +5, B +7, A +9, S +11, S+ +15; dislikes
+# drain -2 (C) up to -7 (S+), and D has no dislike at all. High ranks steer
+# the tank, a low-rank mob can only nudge it. The special case is Trash
+# (1/10): ONLY S+ votes (15,000 XP) move its mirror (see get_bulk_review_points).
 CAN_DISLIKE_RANKS = ("C", "B", "A", "S", "S+")
 
 
 def can_dislike(rank):
-    """True if this rank may vote at all (C and above — likes AND dislikes)."""
+    """Dislikes are C rank and above only — D-rank accounts can only like."""
     return rank in CAN_DISLIKE_RANKS
 
 
 def vote_points_for_rank(rank, is_like):
-    """Legacy rank-tier point value (written to the old `points` column)."""
+    """Rank-tier point value of a like/dislike for a voter of the given rank
+    (D +3 like, C +5/-2, B +7/-3, A +9/-4, S +11/-5, S+ +15/-7)."""
     like, dislike = VOTE_SCALE.get(rank, VOTE_SCALE["D"])
     return like if is_like else dislike
 
 
+def _tier_for_eff_xp(eff):
+    """Voter rank tier from effective XP (dev accounts read as S+)."""
+    eff = max(0, int(eff or 0))
+    if eff >= 15000:
+        return "S+"
+    if eff >= 5000:
+        return "S"
+    if eff >= 2000:
+        return "A"
+    if eff >= 1000:
+        return "B"
+    if eff >= 500:
+        return "C"
+    return "D"
+
+
 def review_vote_xp(likes, dislikes, rating=None):
-    """Net review XP under Rating Power (flat +/-15). Fallback used when a
-    review is missing from the points map. Positive (6-10): likes +15,
-    dislikes -15. Trash (1/10): likes -15, dislikes +15. Anything else:
-    0. rating=None assumes a positive (6-10) review."""
+    """Net review XP fallback for a review missing from the points map.
+    Priced at C tier (a mid-water default when per-voter ranks aren't
+    computed). Full band mirror: green likes +5 / dislikes -2; red likes
+    -5 / dislikes +2; grey 0. Returns the signed net (can be negative)."""
     rating = int(rating or 0)
-    if rating == 1:
-        return max(0, (dislikes or 0) * VOTE_RATE - (likes or 0) * VOTE_RATE)
-    if rating_band(rating) == "positive":
-        return max(0, (likes or 0) * VOTE_RATE - (dislikes or 0) * VOTE_RATE)
+    c_like, c_dislike = VOTE_SCALE["C"]
+    band = rating_band(rating)
+    if band == "positive":
+        return (likes or 0) * c_like + (dislikes or 0) * c_dislike
+    if band == "negative":
+        return -((likes or 0) * c_like) - ((dislikes or 0) * c_dislike)
     return 0
 
 
@@ -424,22 +455,28 @@ def review_level_for_xp(review_xp):
 #   6 Good enough | 7 Good | 8 Great
 #   9 Peak | 10 Absolute Cinema                    -> GREEN (positive)
 #
-# Votes (like AND dislike) require C rank (500 XP) — D-rank accounts
-# cannot vote at all, so a fresh-account mob has no weapon anywhere.
+# Vote gates: dislikes and likes on RED (1-4) reviews require C rank (500
+# XP); D-rank accounts can still like GREEN and NEUTRAL reviews at +3. The
+# only vote a D cannot reach is the one that hurts or praises a Red verdict.
 #
-# XP math — flat, fair, symmetric (+15 / -15, every rank votes the same):
-#   GREEN (6-10):  each like = +15 XP, each dislike = -15 XP.
+# XP math — priced by the VOTER's rank tier (the elixir schedule:
+# D +3, C +5/-2, B +7/-3, A +9/-4, S +11/-5, S+ +15/-7), then shaped by
+# the REVIEW's band as a full mirror — the badge works BOTH ways:
+#   GREEN (6-10):  likes pour in at the voter's tier value (+V); dislikes
+#                  drain at their tier value (-D).
+#   RED (1-4):     the mirror — a like TAKES the voter's tier value (-V)
+#                  off the tank; a dislike hands the tier's drain value
+#                  back (+D). A red verdict the elite likes costs the
+#                  anime/episode exactly what a green one earns.
 #   GREY (5):      0 XP either way (the community's fence).
-#   TRASH (1/10):  mob mirror — each like TAKES 15 XP, each dislike
-#                  gives 15 back (the crowd rejected the trash). The take
-#                  only happens when the mob won the ratio: net likes >
-#                  dislikes moves the tank down; a community win moves
-#                  it up. 2-4/10 votes weigh the reviewer's credentials,
-#                  never the tank.
+# A D-rank voter can only like GREEN/GREY reviews (+3). Dislikes and RED
+# likes require C rank (500 XP) and above — a fresh-account mob has no
+# weighted weapon anywhere. F accounts can't vote at all.
 # The ep/anime tank = the SUM of every review's net contribution (raw,
-# unfloored) so one mobbed 1/10 visibly costs the anime/episode.
+# unfloored) — an anime/episode mobbed with red likes can go deep
+# negative (e.g. -5000 XP), exactly like a beloved one fills to S+.
 # =====================================================================
-VOTE_RATE = 15  # one approved vote = 15 liquid points, flat for all ranks
+VOTE_RATE = 15  # the S+ tier value — the headline number on the legend/tank
 
 RATING_LABELS = {
     1: "Trash",
@@ -487,8 +524,8 @@ def rating_label(rating):
 def submit_review_dislike(user_id, review_type, review_id, reason):
     """Create a dislike WITH a mandatory reason (one per user per review).
 
-    C rank (500 XP) and above only — under Rating Power no D-rank account
-    can vote at all, so a fresh-account mob has no weapon anywhere.
+    C rank (500 XP) and above only — D-rank accounts have no dislike
+    weapon anywhere (they may still like green/neutral reviews at +3).
     Returns (ok, error, counts) where counts = {likes, dislikes} after.
     """
     if not can_dislike(_voter_rank(user_id)):
@@ -516,7 +553,7 @@ def submit_review_dislike(user_id, review_type, review_id, reason):
             (user_id, review_type, review_id),
         )
         existing = cursor.fetchone()
-        points = -VOTE_RATE
+        points = vote_points_for_rank(_voter_rank(user_id), False)
         if existing:
             cursor.execute(
                 "UPDATE review_likes SET is_like=0, points=? WHERE id=?",
@@ -751,12 +788,16 @@ def get_dislike_gating(review_type, review_ids):
 def get_bulk_review_points(review_type, review_ids):
     """Return {review_id: {like_points, dislike_points, contested}} for reviews.
 
-    Rating Power math — flat +15/-15 per vote, priced by the REVIEW's own
-    rating band (voters are C+ only, so no rank tiering is needed):
-      * 6-10 (positive): like +15, dislike -15
-      * 5 (neutral):     0, 0
-      * 1 (Trash):       like -15 (the mob mirror: it takes), dislike +15
-      * 2-4:             0, 0 (votes still weigh the reviewer's credentials)
+    Elixir points are priced by the VOTER's rank tier (D +3 like, C +5/-2,
+    B +7/-3, A +9/-4, S +11/-5, S+ +15/-7) and then shaped by the REVIEW's
+    rating band as a FULL mirror — the badge works both ways:
+      * 6-10 (positive): likes pour in at the voter's tier value, dislikes
+        drain at their tier value.
+      * 1-4 (negative):  the mirror — a like TAKES the voter's tier value
+        off the tank; a dislike hands the tier's drain value back.
+      * 5 (neutral):     0, 0 (the fence).
+    Returns signed values, so a red verdict the elite likes shows a NEGATIVE
+    contribution (the badge/tank visibly loses XP). Dev accounts read as S+.
     """
     if not review_ids:
         return {}
@@ -773,28 +814,37 @@ def get_bulk_review_points(review_type, review_ids):
     ratings = {row["id"]: int(row["rating"] or 0) for row in cursor.fetchall()}
 
     cursor.execute(
-        f"""SELECT rl.review_id,
-        SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) as likes,
-        SUM(CASE WHEN rl.is_like=0 THEN 1 ELSE 0 END) as dislikes
+        f"""SELECT rl.review_id, rl.is_like,
+        {_VOTE_PTS_SQL} as val
         FROM review_likes rl
-        WHERE rl.review_type=? AND rl.review_id IN ({placeholders})
-        GROUP BY rl.review_id""",
+        LEFT JOIN users u ON u.id = rl.user_id
+        LEFT JOIN user_xp ux ON ux.user_id = rl.user_id
+        WHERE rl.review_type=? AND rl.review_id IN ({placeholders})""",
         [review_type] + ids,
     )
     rows = cursor.fetchall()
     conn.close()
 
-    counts = {row["review_id"]: (row["likes"] or 0, row["dislikes"] or 0) for row in rows}
+    like_pts, dislike_pts = {}, {}
+    for row in rows:
+        rid = row["review_id"]
+        if row["is_like"]:
+            like_pts[rid] = like_pts.get(rid, 0) + (row["val"] or 0)
+        else:
+            dislike_pts[rid] = dislike_pts.get(rid, 0) + (row["val"] or 0)
+
     result = {}
     for rid in ids:
-        likes, dislikes = counts.get(rid, (0, 0))
         rating = ratings.get(rid, 0)
-        if rating_band(rating) == "positive":
-            like_points = likes * VOTE_RATE
-            dislike_points = -dislikes * VOTE_RATE
-        elif rating == 1:
-            like_points = -likes * VOTE_RATE
-            dislike_points = dislikes * VOTE_RATE
+        band = rating_band(rating)
+        if band == "positive":
+            like_points = like_pts.get(rid, 0)
+            dislike_points = dislike_pts.get(rid, 0)
+        elif band == "negative":
+            # Mirror: a like on a red verdict takes the voter's tier value,
+            # a dislike hands the tier's drain value back to the tank.
+            like_points = -(like_pts.get(rid, 0) or 0)
+            dislike_points = -(dislike_pts.get(rid, 0) or 0)
         else:
             like_points = 0
             dislike_points = 0
@@ -856,7 +906,7 @@ def get_target_review_ids(review_type, anime_slug, season_name=None, episode_num
 def overall_review_xp(review_type, review_ids):
     """Sum of net Rating Power across every review under a target (anime or
     one episode). Unlike a single review's badge (which is floored at 0),
-    the target tank keeps the sign: a mob-liked Trash (1/10) genuinely
+    the target tank keeps the sign: an S+-backed Trash (1/10) genuinely
     TAKES from the anime/episode total. Total = sum of
     (like_points + dislike_points - war_penalty + war_bonus).
     Returns (total_xp, review_count); total_xp may be negative."""
@@ -875,8 +925,8 @@ def overall_review_xp(review_type, review_ids):
 
 
 def format_xp_label(xp):
-    """'55.5k' for 55,500, '-225' for -225 (a mobbed Trash review shows its
-    cost) — the readout on the wide liquid gauge next to the S+ lid
+    """'55.5k' for 55,500, '-225' for -225 (an S+-backed Trash review shows
+    its cost) — the readout on the wide liquid gauge next to the S+ lid
     (15,000 XP)."""
     xp = int(xp or 0)
     if abs(xp) >= 1000:

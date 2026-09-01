@@ -175,7 +175,7 @@
             {% if overall_count %}
             <!-- ===== Episode overall liquid XP tank (all reviews, wide) ===== -->
             <div class="{{ 'elix-negative' if overall_negative else '' }}" style="display:flex;align-items:center;gap:16px;margin:18px 0 4px;flex-wrap:wrap;">
-                <div class="elix-bottle" title="The episode's overall liquid XP — green-review likes pour the tank, dislikes drain it, and a mob-liked Trash (1/10) review visibly takes from it. Full tank = S+ lid (15,000 XP).">
+                <div class="elix-bottle" title="The episode's overall liquid XP — green-review likes pour the tank, dislikes drain it, and a red verdict the elite likes takes from it. A mobbed episode can go negative. Full tank = S+ lid (15,000 XP).">
                     <div class="elix-glass">
                         <div class="elix-liquid" style="width:{{ [([overall_xp, 0]|max) / 150, 100]|min }}%;"></div>
                         <span class="elix-level">{{ overall_tier or '—' }}</span>
@@ -188,9 +188,9 @@
                     <div style="color:#d7deea;font-weight:800;font-size:1rem;"><i class="fas fa-star" style="color:#fde047;"></i> {{ '%.1f'|format(stats.average) }}/10</div>
                     {% endif %}
                     {% if overall_negative %}
-                    <div style="margin-top:2px;color:#f87171;">from {{ overall_count }} review{{ 's' if overall_count != 1 else '' }} — mobbed down: a liked 1/10 Trash took <b>{{ overall_label }} XP</b>. C+ users can dislike it to hand the XP back.</div>
+                    <div style="margin-top:2px;color:#f87171;">from {{ overall_count }} review{{ 's' if overall_count != 1 else '' }} — RED-verdict likes outweighed the positives, so this episode tanked <b>{{ overall_label }} XP</b>. C-rank+ users can dislike those red reviews to hand the XP back.</div>
                     {% else %}
-                    <div style="margin-top:2px;">from {{ overall_count }} review{{ 's' if overall_count != 1 else '' }} — green likes pour the tank (+15 each), dislikes drain it, a mob-liked 1/10 takes. The S+ lid sits at 15,000 XP.</div>
+                    <div style="margin-top:2px;">from {{ overall_count }} review{{ 's' if overall_count != 1 else '' }} — green likes pour the tank at the voter's rank price (D +3 → S+ +15), dislikes drain it, red-verdict likes take from it. The S+ lid sits at 15,000 XP.</div>
                     {% endif %}
                 </div>
             </div>
