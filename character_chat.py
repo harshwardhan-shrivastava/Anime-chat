@@ -82,15 +82,16 @@ def _require_user():
     return user, None
 
 
+# ---------------------------------------------------------------------------# Character DB lookup
 # ---------------------------------------------------------------------------
-# Character DB lookup
-# ---------------------------------------------------------------------------
+_char_conn_cache = [None]
 
 def _char_conn():
-    conn = sqlite3.connect(_CHAR_DB, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
-
+    if _char_conn_cache[0] is None:
+        conn = sqlite3.connect(_CHAR_DB, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        _char_conn_cache[0] = conn
+    return _char_conn_cache[0]
 
 def _get_character_by_id(character_id):
     """Fetch a single character row from the read-only characters DB."""
@@ -101,7 +102,6 @@ def _get_character_by_id(character_id):
             "FROM characters WHERE id = ?",
             (str(character_id),),
         ).fetchone()
-        conn.close()
         return dict(row) if row else None
     except sqlite3.Error:
         return None
@@ -265,15 +265,20 @@ def _get_or_generate_persona(character):
     persona = None
     if LLM_API_KEY:
         try:
+            print(f"[senpai] generating persona for {name} via LLM...", flush=True)
             raw = _call_llm(
                 "You are a persona writer. You output only valid JSON.",
                 [{"role": "user", "content": meta_prompt}],
                 max_tokens=400,
             )
             persona = _parse_persona_json(raw)
+            if persona:
+                print(f"[senpai] persona generated for {name}", flush=True)
         except Exception as exc:
             print(f"[senpai] persona generation failed for {name}: {exc}",
                   flush=True)
+    else:
+        print(f"[senpai] no LLM key, using fallback persona for {name}", flush=True)
 
     if persona is None:
         persona = _fallback_persona(name, anime)
@@ -432,6 +437,7 @@ def senpai_status():
 def senpai_choose():
     """Lock in a character. Checks 24h cooldown. Generates+caches persona.
     Overwrites the old conversation entirely."""
+    print(f"[senpai] choose called, LLM key={'SET' if LLM_API_KEY else 'EMPTY'}", flush=True)
     user, err = _require_user()
     if err:
         return err
