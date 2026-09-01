@@ -700,32 +700,32 @@ body { background: var(--rv-bg); color: var(--rv-text); font-family: 'Inter', -a
 .rv-rp-locknote { color: #fbbf24; font-weight: 800; }
 
 /* ---- Rank ladder (guide: real badges with XP) ---- */
-.rv-rank-ladder { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.rv-rank-ladder { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; max-width: 320px; }
 .rv-rank-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 7px 12px; border-radius: 12px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 3px 10px; border-radius: 10px;
     border: 1px solid rgba(255,255,255,0.06);
     background: rgba(255,255,255,0.02);
 }
-.rv-rank-row .rank-badge { font-size: 14px; padding: 5px 20px; min-width: 66px; justify-content: center; }
-.rv-rank-xp { margin-left: auto; color: #94a3b8; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap; }
+.rv-rank-row .rank-badge { font-size: 11px; padding: 1px 11px; min-width: 42px; justify-content: center; }
+.rv-rank-xp { margin-left: auto; color: #94a3b8; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap; }
 .rv-rank-row.is-you {
     border-color: rgba(251,191,36,0.55);
-    box-shadow: 0 0 18px rgba(251,191,36,0.18), inset 0 0 12px rgba(251,191,36,0.05);
+    box-shadow: 0 0 16px rgba(251,191,36,0.16), inset 0 0 10px rgba(251,191,36,0.04);
     background: linear-gradient(90deg, rgba(251,191,36,0.1), rgba(255,255,255,0.02) 70%);
 }
 .rv-rank-row.is-you .rv-rank-xp { color: #fbbf24; }
 .rv-rank-you {
-    display: inline-flex; align-items: center; gap: 5px;
-    color: #fbbf24; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 4px;
+    color: #fbbf24; font-size: 0.64rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
     background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.4);
-    border-radius: 999px; padding: 3px 10px; flex-shrink: 0;
+    border-radius: 999px; padding: 1px 8px; flex-shrink: 0;
 }
 .rv-rank-ungraded { opacity: 0.8; }
 .rv-rank-q {
-    width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+    width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
     background: linear-gradient(135deg, #64748b, #475569);
     display: inline-flex; align-items: center; justify-content: center;
-    font-weight: 900; color: #fff; font-size: 0.9rem;
+    font-weight: 900; color: #fff; font-size: 0.8rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.35);
 }
