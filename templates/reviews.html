@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260902a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260902c">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -167,13 +167,16 @@
                     <div class="rv-gcol">
                         <h4><i class="fas fa-bolt"></i> Trusted XP (the tiebreaker)</h4>
                         <p>Every anime's badge shows its <strong>Trusted XP</strong> — the combined XP of the reviewers shaping its grade. Two anime with the same <strong>10/10</strong> aren't equal: the one backed by <strong>more Trusted XP</strong> wins Vs-battle ties. Trusted XP also ranks the anime — and every review's <strong>Review XP</strong> uses the exact same ladder:</p>
-                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-Splus">S+</span> <span>5,000 XP</span></div>
-                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-S">S</span> <span>3,000 XP</span></div>
-                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-A">A</span> <span>2,000 XP</span></div>
-                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-B">B</span> <span>1,500 XP</span></div>
-                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-C">C</span> <span>1,000 XP</span></div>
-                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-D">D</span> <span>500 XP</span></div>
-                        <div class="rv-rank-row-l"><span style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#64748b,#475569);display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:0.85rem;">?</span> <span>below 500 XP — ungraded</span></div>
+                        <div class="rv-rank-ladder">
+                            <div class="rv-rank-row"><span class="rank-badge rank-S+"><span class="rank-text">S+</span></span><span class="rv-rank-xp">5,000 XP</span></div>
+                            <div class="rv-rank-row"><span class="rank-badge rank-S">S</span><span class="rv-rank-xp">3,000 XP</span></div>
+                            <div class="rv-rank-row"><span class="rank-badge rank-A">A</span><span class="rv-rank-xp">2,000 XP</span></div>
+                            <div class="rv-rank-row"><span class="rank-badge rank-B">B</span><span class="rv-rank-xp">1,500 XP</span></div>
+                            <div class="rv-rank-row"><span class="rank-badge rank-C">C</span><span class="rv-rank-xp">1,000 XP</span></div>
+                            <div class="rv-rank-row"><span class="rank-badge rank-D">D</span><span class="rv-rank-xp">500 XP</span></div>
+                            <div class="rv-rank-row rv-rank-ungraded"><span class="rv-rank-q">?</span><span class="rv-rank-xp">below 500 XP — ungraded</span></div>
+                        </div>
+                        <p style="margin-top:8px;color:var(--rv-muted-2);font-size:0.78rem;">That's the ladder for an <strong>anime's own badge</strong>. Your profile climbs its own one in the <b>Ranks</b> card →</p>
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-rocket"></i> Rank Up &amp; Earn XP</h4>
@@ -192,14 +195,19 @@
                         <p>War is for <strong>replies</strong> — C+ reviewers post <strong>one take</strong> (Positive 👍 or Negative 👎) on any review, and a 24-hour battle begins. <strong>Anyone</strong> votes 👍/👎 on every take; the entry with the <strong>best like-ratio</strong> wins (100👍 / 50👎 still loses to 75👍 / 0👎). The <strong>winner's reply</strong> is the only one shown under the review, tagged <strong>Positive</strong> or <strong>Negative</strong> — and a <strong>Negative winner knocks the review's XP</strong>, so a bad take can genuinely be beaten. Open <strong>War</strong> in the nav for every battle, hottest first.</p>
                     </div>
                     <div class="rv-gcol">
-                        <h4><i class="fas fa-trophy"></i> Ranks</h4>
-                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-Splus">S+</span> <span>15,000+ XP</span></div>
-                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-S">S</span> <span>5,000 XP</span></div>
-                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-A">A</span> <span>2,000 XP</span></div>
-                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-B">B</span> <span>1,000 XP</span></div>
-                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-C">C</span> <span>500 XP</span></div>
-                        <div class="rv-rank-row-l"><span class="rv-chip-s rk-D">D</span> <span>100 XP sign-in bonus</span></div>
-                        <p style="margin-top:8px;color:var(--rv-muted-2);font-size:0.8rem;">Click any reviewer to see their full history.</p>
+                        <h4><i class="fas fa-trophy"></i> Ranks — your ladder</h4>
+                        <p>Reviews, likes and wars fill your profile XP — the higher your rank, the more your vote is worth.{% if user_rank %} You are <strong style="color:#fbbf24;">{{ user_rank }}</strong> right now.{% endif %}</p>
+                        <div class="rv-rank-ladder">
+                            {% set rk_ladder = [('S+', '15,000+ XP'), ('S', '5,000 XP'), ('A', '2,000 XP'), ('B', '1,000 XP'), ('C', '500 XP'), ('D', '0 – 499 XP')] %}
+                            {% for rk, xp in rk_ladder %}
+                            <div class="rv-rank-row{% if user_rank == rk %} is-you{% endif %}">
+                                <span class="rank-badge rank-{{ rk }}">{% if rk == 'S+' %}<span class="rank-text">S+</span>{% else %}{{ rk }}{% endif %}</span>
+                                <span class="rv-rank-xp">{{ xp }}</span>
+                                {% if user_rank == rk %}<span class="rv-rank-you"><i class="fas fa-location-arrow"></i> you</span>{% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <p style="margin-top:8px;color:var(--rv-muted-2);font-size:0.8rem;">Click any reviewer to see their full history — and your rank badge shows wherever you post.</p>
                     </div>
                 </div>
             </div>
