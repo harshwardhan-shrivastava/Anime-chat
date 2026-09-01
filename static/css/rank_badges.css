@@ -40,20 +40,11 @@
 .rank-D {
   background: linear-gradient(135deg, #16232e 0%, #243a4c 50%, #16232e 100%);
   color: #8fd0f0;
-  border: 1px solid rgba(140, 200, 235, 0.45);
+  border: 1px solid rgba(160, 215, 245, 0.55);
   overflow: hidden;
   text-shadow: 0 0 8px rgba(143, 208, 240, 0.7), 0 0 18px rgba(143, 208, 240, 0.3);
-  animation: windBreath 1.6s ease-in-out infinite;
-}
-@keyframes windBreath {
-  0%, 100% {
-    box-shadow: 0 0 6px rgba(122, 184, 212, 0.2), inset 0 0 6px rgba(122, 184, 212, 0.08);
-    border-color: rgba(140, 200, 235, 0.35);
-  }
-  50% {
-    box-shadow: 0 0 14px rgba(122, 184, 212, 0.45), 0 0 28px rgba(122, 184, 212, 0.15), inset 0 0 10px rgba(122, 184, 212, 0.15);
-    border-color: rgba(160, 215, 245, 0.6);
-  }
+  /* static mid-glow; the breath is now a cheap opacity pulse, not a box-shadow repaint */
+  box-shadow: 0 0 10px rgba(122, 184, 212, 0.32), 0 0 20px rgba(122, 184, 212, 0.12), inset 0 0 8px rgba(122, 184, 212, 0.12);
 }
 /* Flowing gust streaks — three layers sweeping across at different speeds/directions */
 .rank-D::before {
@@ -66,21 +57,14 @@
     linear-gradient(90deg, transparent 0%, rgba(122, 184, 212, 0.25) 50%, transparent 100%);
   background-repeat: no-repeat;
   background-size: 55% 1.5px, 75% 1px, 40% 1px;
-  background-position: -60% 28%, 130% 52%, -50% 74%;
+  background-position: 20% 28%, 70% 52%, 35% 74%;
   border-radius: 2px;
-  animation: gustFlow 1.2s linear infinite;
+  /* streaks stay put; only opacity breathes (no background-position repaint) */
+  animation: gustBreath 2.2s ease-in-out infinite;
 }
-@keyframes gustFlow {
-  0% {
-    background-position: -60% 28%, 130% 52%, -50% 74%;
-    opacity: 0;
-  }
-  20% { opacity: 1; }
-  80% { opacity: 1; }
-  100% {
-    background-position: 160% 28%, -80% 52%, 150% 74%;
-    opacity: 0;
-  }
+@keyframes gustBreath {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
 }
 /* Soft swirling air current rising through the badge */
 .rank-D::after {
@@ -185,32 +169,31 @@
 .rank-S {
   background: linear-gradient(135deg, #0a1628 0%, #0d1f3c 50%, #0a1628 100%);
   color: #60c5ff;
-  border: 2px solid rgba(96, 197, 255, 0.5);
-  animation: sGlow 2.5s ease-in-out infinite;
+  border: 2px solid rgba(96, 197, 255, 0.6);
+  /* static mid-glow; the pulse now runs on a separate opacity layer, not box-shadow */
   box-shadow:
-    0 0 8px rgba(96, 197, 255, 0.4),
-    0 0 20px rgba(96, 197, 255, 0.2),
-    inset 0 0 12px rgba(96, 197, 255, 0.1);
+    0 0 11px rgba(96, 197, 255, 0.5),
+    0 0 28px rgba(96, 197, 255, 0.25),
+    inset 0 0 15px rgba(96, 197, 255, 0.12);
   text-shadow:
     0 0 8px rgba(96, 197, 255, 0.8),
     0 0 20px rgba(96, 197, 255, 0.4);
 }
-@keyframes sGlow {
-  0%, 100% {
-    box-shadow:
-      0 0 8px rgba(96, 197, 255, 0.4),
-      0 0 20px rgba(96, 197, 255, 0.2),
-      inset 0 0 12px rgba(96, 197, 255, 0.1);
-    border-color: rgba(96, 197, 255, 0.5);
-  }
-  50% {
-    box-shadow:
-      0 0 14px rgba(96, 197, 255, 0.6),
-      0 0 35px rgba(96, 197, 255, 0.3),
-      0 0 60px rgba(96, 197, 255, 0.1),
-      inset 0 0 18px rgba(96, 197, 255, 0.15);
-    border-color: rgba(96, 197, 255, 0.7);
-  }
+.rank-S::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 10px;
+  box-shadow:
+    0 0 16px rgba(96, 197, 255, 0.55),
+    0 0 40px rgba(96, 197, 255, 0.3),
+    0 0 70px rgba(96, 197, 255, 0.12);
+  animation: sGlowPulse 2.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes sGlowPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
 }
 
 /* ---- S+ Rank — Galaxy ---- */
@@ -245,6 +228,7 @@
     rgba(135, 206, 235, 0.3),
     transparent
   );
+  will-change: transform;
   animation: galaxySpin 6s linear infinite;
 }
 @keyframes galaxySpin {
@@ -269,6 +253,15 @@
 @keyframes starsTwinkle {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
+}
+
+/* ---- Reduced motion: freeze badge FX for users who opt out ---- */
+@media (prefers-reduced-motion: reduce) {
+  .rank-badge,
+  .rank-badge::before,
+  .rank-badge::after {
+    animation: none !important;
+  }
 }
 
 /* ---- Vote buttons ---- */
