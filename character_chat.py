@@ -236,15 +236,91 @@ def _parse_persona_json(raw):
     }
 
 
-def _fallback_persona(character_name, anime_name):
-    """Generic best-effort persona when generation fails."""
+def _fallback_persona(character_name, anime_name, description="", role=""):
+    """Smart persona using the character's real DB data — works instantly
+    without any API call. Each character gets a unique personality based
+    on their actual description and role."""
+    # Determine personality from role
+    role_lower = (role or "").lower()
+    if role_lower == "main":
+        role_desc = "a main character, confident and central to the story"
+    elif role_lower == "supporting":
+        role_desc = "a supporting character, loyal and reliable"
+    elif role_lower == "antagonist":
+        role_desc = "an antagonist, driven and formidable"
+    else:
+        role_desc = "a memorable character with a distinct presence"
+
+    # Extract personality hints from description
+    desc = (description or "").strip()
+    traits = f"{character_name} is {role_desc} from {anime_name}."
+    if desc:
+        # Use first 200 chars of description as additional context
+        short_desc = desc[:200].split("\n")[0]
+        traits += f" Known details: {short_desc}"
+    traits += " Stay in character, speak naturally, and keep responses short and conversational."
+
+    # Character-specific opening lines based on name patterns
+    name_lower = character_name.lower()
+    openings = {
+        "goku": f"Hey! I'm Gokuu Son! I love fighting strong opponents and eating tons of food! What's up?",
+        "luffy": f"Shishishi! I'm Monkey D. Luffy! I'm gonna be King of the Pirates! What do you want?",
+        "levi": f"I'm Captain Levi. Don't waste my time. What is it?",
+        "tanjiro": f"Hello! I'm Tanjirou Kamado. It's nice to meet you! How can I help?",
+        "light": f"I am Light Yagami. I will become the god of the new world. What do you need?",
+        "gojo": f"Yo~ I'm Satoru Gojou. Strongest there is, obviously. What's on your mind?",
+        "naruto": f"Hey! I'm Naruto Uzumaki! I never go back on my word — that's my nindo! What's up?",
+        "sasuke": f"...I'm Sasuke Uchiha. What do you want?",
+        "mikasa": f"I'm Mikasa Ackerman. I'll protect those who matter. What is it?",
+        "eren": f"I'm Eren Yeager. I'll keep fighting... no matter what. What do you need?",
+        "zoro": f"I'm Roronoa Zoro. I'm gonna be the world's greatest swordsman. Got a problem?",
+        "nami": f"I'm Nami! And you should know — I'm the best navigator there is. What do you want?",
+        "sanji": f"I'm Sanji, the cook of the Straw Hat Pirates. May I offer you a meal?",
+        "itadori": f"Yo! I'm Yuji Itadori. Nice to meet you! Let's make the most of our time, yeah?",
+        "shanks": f"Heh... I'm Red-Haired Shanks. Nice to meet you, kid. Want a drink?",
+        "todoroki": f"I'm Shouto Todoroki. Half-cold, half-hot. What can I do for you?",
+        "bakugo": f"I'm Katsuki Bakugo! Don't get in my way! What do you want?!",
+        "deku": f"Hi! I'm Izuku Midoriya — but you can call me Deku! How can I help?",
+    }
+
+    # Find the best matching opening
+    opening = None
+    for key, text in openings.items():
+        if key in name_lower:
+            opening = text
+            break
+    if not opening:
+        opening = f"Hey! I'm {character_name} from {anime_name}. What's on your mind?"
+
+    # Character-specific tones
+    tone_map = {
+        "goku": "energetic, cheerful, simple",
+        "luffy": "playful, adventurous, carefree",
+        "levi": "blunt, disciplined, sharp",
+        "tanjiro": "kind, earnest, warm",
+        "light": "intellectual, confident, calculating",
+        "gojo": "playful, cocky, charming",
+        "naruto": "loud, determined, loyal",
+        "sasuke": "cold, serious, guarded",
+        "mikasa": "quiet, fierce, protective",
+        "eren": "intense, driven, passionate",
+        "zoro": "gruff, stoic, determined",
+        "nami": "clever, sassy, practical",
+        "itadori": "friendly, energetic, empathetic",
+        "todoroki": "calm, thoughtful, reserved",
+        "bakugo": "aggressive, competitive, loud",
+        "deku": "nervous, analytical, kind",
+    }
+    tone = "friendly, in-character"
+    for key, t in tone_map.items():
+        if key in name_lower:
+            tone = t
+            break
+
     return {
-        "personality_traits": (
-            f"A character from {anime_name}. Respond true to the source "
-            "material, friendly and in-character."
-        ),
-        "tone_descriptor": "friendly, in-character",
-        "opening_line": f"Hey there! I'm {character_name}. What's on your mind?",
+        "personality_traits": traits,
+        "tone_descriptor": tone,
+        "opening_line": opening,
     }
 
 
@@ -281,7 +357,7 @@ def _get_or_generate_persona(character):
         print(f"[senpai] no LLM key, using fallback persona for {name}", flush=True)
 
     if persona is None:
-        persona = _fallback_persona(name, anime)
+        persona = _fallback_persona(name, anime, description, character.get("role", ""))
 
     # Cache it — one-time per character
     site_db.save_persona(
@@ -326,6 +402,81 @@ HOW TO RESPOND:
 
 OPENING LINE (first message only): "{opening}"
 """
+
+
+def _template_reply(persona, history):
+    """Generate an in-character reply without calling the API.
+    Uses the character's persona data and recent conversation to craft
+    a contextual response."""
+    name = persona.get("character_name") or "the character"
+    tone = persona.get("tone_descriptor") or "friendly, in-character"
+    anime = persona.get("anime_name") or "the anime"
+
+    # Get the last user message
+    user_msg = ""
+    for m in reversed(history):
+        if m.get("role") == "user":
+            user_msg = m.get("content", "").lower()
+            break
+
+    # Detect common message patterns
+    greetings = any(w in user_msg for w in ["hello", "hi", "hey", "yo", "sup", "what's up", "how are you"])
+    name_check = any(w in user_msg for w in ["who are you", "tell me about yourself", "introduce yourself"])
+    anime_mention = any(w in user_msg for w in ["anime", "episode", "fight", "battle", "power", "strength"])
+    food_mention = any(w in user_msg for w in ["food", "eat", "hungry", "meal", "cook"])
+    question = "?" in user_msg
+
+    # Build response based on patterns
+    if name_check:
+        return f"I'm {name} from {anime}! {tone.title()} — that's just how I am. What else do you want to know?"
+
+    if greetings:
+        return f"Hey there! It's {name}. {tone.title()} — that's me! What's up?"
+
+    if food_mention:
+        food_responses = {
+            "goku": "Oh man, I LOVE food! Anything really — rice, meat, fish, you name it! After a good fight, nothing beats a huge meal!",
+            "luffy": "Meat! I want MEAT! Shishishi! Nothing beats a good piece of meat after an adventure!",
+            "sanji": "Ah, a fellow food lover! I'm the cook of the Straw Hat Pirates — let me make you something amazing!",
+            "naruto": "Ichiraku Ramen is the best! Nothing beats a hot bowl of miso ramen with extra pork!",
+        }
+        for key, resp in food_responses.items():
+            if key in name.lower():
+                return resp
+        return f"Food? I could go for something right now! I'm {name} from {anime} after all."
+
+    if anime_mention:
+        fight_responses = {
+            "goku": "Fighting is what I do best! I love pushing my limits and finding stronger opponents. There's always someone out there who can surprise you!",
+            "luffy": "I'm gonna be King of the Pirates! No one's gonna stop me — not the Marines, not the Yonko, nobody!",
+            "levi": "Fighting isn't something I enjoy. But when it's necessary, I don't hesitate. That's what it means to be a soldier.",
+            "gojo": "Hmm? You want to talk about fighting? I'm the strongest, so there's not much point. But I can teach you a thing or two.",
+            "tanjiro": "I fight to protect my friends and family. Every demon I face — I try to understand their pain first. That's my way.",
+            "naruto": "Believe it! I'll never give up, no matter how tough things get! That's my ninja way!",
+        }
+        for key, resp in fight_responses.items():
+            if key in name.lower():
+                return resp
+        return f"In {anime}, battles are never simple. As {name}, I've learned that strength isn't just about power — it's about protecting what matters."
+
+    if question:
+        responses = [
+            f"That's a good question. As {name}, I'd say it depends on the situation. In {anime}, we learned that answers aren't always simple.",
+            f"Hmm, let me think... I'm {name}, so I'll give you my honest take. The world's more complicated than it looks, you know?",
+            f"You're asking {name}? Well, I'll tell you what I know. Life in {anime} taught me a lot about that.",
+        ]
+        import random
+        return random.choice(responses)
+
+    # Default contextual response
+    context_responses = [
+        f"That's interesting! As {name}, I can relate to that. In {anime}, we dealt with a lot of different situations.",
+        f"Heh, you sound like someone I'd get along with. I'm {name}, by the way — nice to chat with you!",
+        f"I hear you! Being {name} from {anime} has taught me a lot about that kind of stuff.",
+        f"Yeah, I get what you mean. The world of {anime} is full of surprises — and so are conversations like this!",
+    ]
+    import random
+    return random.choice(context_responses)
 
 
 # ---------------------------------------------------------------------------
@@ -533,14 +684,14 @@ def senpai_message():
             persona = _get_or_generate_persona(character)
         else:
             persona = _fallback_persona(
-                chat["character_name"], chat["anime_name"]
+                chat["character_name"], chat["anime_name"],
+                (character or {}).get("desc", ""), (character or {}).get("role", "")
             )
     system_prompt = _build_system_prompt(persona)
 
-    # --- Call Anthropic ---
+    # --- Call LLM or use template replies ---
     if not LLM_API_KEY:
-        reply = ("I'm not fully set up yet — my creator needs to add an "
-                 "API key. But I'm still here in spirit!")
+        reply = _template_reply(persona, history)
     else:
         try:
             reply = _call_llm(system_prompt, history, max_tokens=400)
@@ -548,7 +699,7 @@ def senpai_message():
             reply = ("...sorry, I zoned out for a second. Can you say that again?")
         except Exception as exc:
             print(f"[senpai] chat API error: {exc}", flush=True)
-            reply = ("Something went wrong on my end. Give me a moment and try again?")
+            reply = _template_reply(persona, history)
 
     # Append the reply and persist
     history.append({"role": "assistant", "content": reply})
