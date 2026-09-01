@@ -33,6 +33,7 @@ and repairs those chunk artifacts WITHOUT destroying real structures:
 The original file is preserved as anime_data.json.bak-<date>.
 Run with --from-backup to rebuild from that pristine backup.
 """
+import copy
 import json
 import glob
 import os
@@ -317,12 +318,80 @@ def main():
         generic_flattened += 1
         changed[slug] = (entry.get("title"), [("Episodes", len(all_eps))])
 
+    # ---- Pass 6: seasonal shows keep only their own season on the main ---
+    # User rule: a seasonal anime's main page shows ONLY its first season's
+    # episodes, and every later season lives on its own <slug>-season-N
+    # card. Only non-seasonal shows (DBZ/Bleach-style, or shows whose grid
+    # was a 26-boundary chunk artifact) keep the flat all-episodes card.
+    # A generic grid whose FIRST season is 26 is the chunker's stamp
+    # (it always split at exactly 26); real seasonal shows start at
+    # 12/13/14/22/24/25/27... (Kuroko 25x3, Black Butler 24/12, Inuyasha
+    # 27/26/26/3/28/28/29). Cards still showing >=2 generic Season cards
+    # (AoT, Haikyuu, Rurouni Kenshin) are split the same way; named arc
+    # cards (One Piece sagas, Bleach arcs, Demon Slayer arcs) stay.
+    if os.path.exists(BACKUP):
+        bak = json.load(open(BACKUP))
+    else:
+        bak = {}
+    restored = 0
+    created = 0
+    for slug in list(data.keys()):
+        entry = data[slug]
+        if SIB_RE.search(slug):
+            continue
+        cur = entry.get("seasons") or []
+        cur_gen = sum(1 for s in cur
+                      if GEN_NAME_RE.match(str(s.get("name") or "").strip()))
+        if len(cur) >= 2 and cur_gen >= 2:
+            seasons, eps_list = cur, [s.get("episodes") or [] for s in cur]
+        else:
+            if len(cur) != 1:
+                continue
+            b = (bak.get(slug) or {}).get("seasons") or []
+            if len(b) < 2:
+                continue
+            if not all(GEN_NAME_RE.match(str(s.get("name") or "").strip()) for s in b):
+                continue
+            counts = [len(s.get("episodes") or []) for s in b]
+            if counts[0] == 26:
+                continue  # chunk artifact -> non-seasonal -> keep flat
+            seasons, eps_list = b, [s.get("episodes") or [] for s in b]
+        if not eps_list or not eps_list[0]:
+            continue
+        first = eps_list[0]
+        if not (len(cur) == 1 and (cur[0].get("episodes") or []) == first):
+            entry["seasons"] = [{"name": "Episodes", "episodes": first}]
+            entry["watch_order"] = ["Episodes"]
+            entry["total_episodes"] = len(first)
+            restored += 1
+            changed[slug] = (entry.get("title"), [("Episodes", len(first))])
+        for i in range(2, len(eps_list) + 1):
+            eps = eps_list[i - 1]
+            if not eps:
+                continue
+            kid = "%s-season-%d" % (slug, i)
+            if kid in data:
+                ke = data[kid]
+                ke["seasons"] = [{"name": "Episodes", "episodes": eps}]
+                ke["watch_order"] = ["Episodes"]
+                ke["total_episodes"] = len(eps)
+            else:
+                ke = copy.deepcopy(entry)
+                ke["slug"] = kid
+                ke["title"] = "%s Season %d" % (entry.get("title") or slug, i)
+                ke["seasons"] = [{"name": "Episodes", "episodes": eps}]
+                ke["watch_order"] = ["Episodes"]
+                ke["total_episodes"] = len(eps)
+                data[kid] = ke
+                created += 1
+            changed[kid] = (data[kid].get("title"), [("Episodes", len(eps))])
+
     with open(DATA, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-    print("collapsed: %d | rebuilt: %d | evidence-settled: %d | siblings: %d | mains-to-s1: %d | generic-grids-flattened: %d | skipped-empty: %d"
+    print("collapsed: %d | rebuilt: %d | evidence-settled: %d | siblings: %d | mains-to-s1: %d | generic-grids-flattened: %d | season-1-restored: %d | cards-created: %d | skipped-empty: %d"
           % (stats["collapsed"], stats["rebuilt"], stats["evidence"], stats["siblings"],
-             stats["mains"], generic_flattened, stats["skipped_empty"]))
+             stats["mains"], generic_flattened, restored, created, stats["skipped_empty"]))
     for slug in ["slam-dunk", "rent-a-girlfriend", "rent-a-girlfriend-season-2",
                  "rent-a-girlfriend-season-3", "rent-a-girlfriend-season-4",
                  "my-hero-academia", "my-hero-academia-season-2",
