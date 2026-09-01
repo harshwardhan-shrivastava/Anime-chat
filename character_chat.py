@@ -730,3 +730,6 @@ def init_character_chat(app):
     # exist here too in case of partial boot.
     site_db.create_tables()
     app.register_blueprint(bp)
+
+
+
