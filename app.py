@@ -1003,6 +1003,12 @@ def privacy_policy():
     return render_template("privacy.html")
 
 
+@app.route("/changelog")
+def changelog():
+    """What's New page — the changelog box listing everything shipped."""
+    return render_template("changelog.html")
+
+
 @app.route("/browse")
 def browse():
     sort = request.args.get("sort", "popular")
@@ -1392,13 +1398,15 @@ def _build_rating_power():
         bands.append({"id": band_id, "title": title, "accent": accent, "ratings": ratings, "note": note})
     return {
         "bands": bands,
+        # What each rank's vote is worth, both ways. gl/gd = green like /
+        # dislike, rl/rd = red like / dislike; None = locked for that rank.
         "tiers": [
-            {"rank": "D", "like": "+3", "dislike": "\u2014"},
-            {"rank": "C", "like": "+5", "dislike": "\u22122"},
-            {"rank": "B", "like": "+7", "dislike": "\u22123"},
-            {"rank": "A", "like": "+9", "dislike": "\u22124"},
-            {"rank": "S", "like": "+11", "dislike": "\u22125"},
-            {"rank": "S+", "like": "+15", "dislike": "\u22127"},
+            {"rank": "D", "gl": "+3", "gd": None, "rl": None, "rd": None},
+            {"rank": "C", "gl": "+5", "gd": "\u22122", "rl": "\u22125", "rd": "+2"},
+            {"rank": "B", "gl": "+7", "gd": "\u22123", "rl": "\u22127", "rd": "+3"},
+            {"rank": "A", "gl": "+9", "gd": "\u22124", "rl": "\u22129", "rd": "+4"},
+            {"rank": "S", "gl": "+11", "gd": "\u22125", "rl": "\u221211", "rd": "+5"},
+            {"rank": "S+", "gl": "+15", "gd": "\u22127", "rl": "\u221215", "rd": "+7"},
         ],
         "rate": VOTE_RATE,
         "gate": "Dislikes and likes on RED (1\u20134) reviews require C rank (500 XP). D-rank accounts can still like green/neutral reviews at +3; F accounts can't vote at all.",

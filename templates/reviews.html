@@ -94,46 +94,56 @@
         </div>
 
         <!-- ===== RATING POWER (the 10-star verdict system) ===== -->
-        <div style="background:radial-gradient(120% 160% at 0% 0%,rgba(52,211,153,0.08),transparent 45%),linear-gradient(160deg,#0c1518,#0d1521 60%,#101a29);border:1px solid rgba(52,211,153,0.22);border-radius:20px;padding:22px 24px;margin-bottom:22px;box-shadow:0 10px 40px -18px rgba(34,197,94,0.35);">
-            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px;">
-                <span style="width:38px;height:42px;flex:0 0 auto;position:relative;border:1px solid rgba(52,211,153,0.6);border-radius:9px 9px 7px 7px;background:linear-gradient(180deg,#0a101c,#08111f);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04),0 0 18px rgba(52,211,153,0.35);">
-                    <span style="position:absolute;left:0;right:0;bottom:0;height:70%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#a7f3d0,#34d399 60%,#059669);box-shadow:0 0 14px rgba(52,211,153,0.9);"></span>
-                </span>
+        <div class="rv-rp-legend">
+            <div class="rv-rp-headline">
+                <span class="rv-rp-icon"><span></span></span>
                 <div>
-                    <h3 style="margin:0;font-size:1.15rem;font-weight:800;color:#ecfdf5;">Rating Power <span style="color:var(--rv-gold);">· The 10-Star Verdict</span></h3>
-                    <p style="margin:4px 0 0;color:var(--rv-muted);font-size:0.86rem;line-height:1.55;max-width:840px;">
-                        Every rating is a verdict: <b style="color:#f87171;">1–4 RED</b> (negative) · <b style="color:#9ca3af;">5 GREY</b> (neutral) · <b style="color:#4ade80;">6–10 GREEN</b> (positive).
-                        A <b style="color:#4ade80;">👍 like pours XP at the voter's rank price</b> (D +3 → S+ +15) into the anime/episode tank; a <b style="color:#f87171;">👎 dislike drains at the rank ladder too</b> (C −2 → S+ −7). On <b style="color:#f87171;">RED (1–4) reviews it's the mirror</b> — a like <b style="color:#f87171;">TAKES</b> the rank's value off the tank, a dislike hands it back:
-                        an <b style="color:#f87171;">S+ like (15,000 XP) takes {{ vote_schedule.rate }} XP</b> from a red verdict. <b style="color:#c6d1e0;">{{ vote_schedule.gate }}</b>
+                    <h3>Rating Power <span>· The 10-Star Verdict</span></h3>
+                    <p class="rv-rp-intro">
+                        Every rating is a verdict — <b class="rv-rp-red">1–4 RED</b> (negative) · <b class="rv-rp-grey">5 GREY</b> (neutral) · <b class="rv-rp-green">6–10 GREEN</b> (positive).
+                        The table below is the points each voter rank gives or takes: on <b class="rv-rp-green">GREEN</b> it pours into the anime/episode tank, on <b class="rv-rp-red">RED</b> it takes right back out.
                     </p>
                 </div>
             </div>
-            <div class="rv-rp-grid">
-                {% for b in vote_schedule.bands %}
-                <div class="rv-rp-card rv-rp-{{ b.id }}">
-                    <div class="rv-rp-head"><span class="rv-rp-band">{{ b.title }}</span></div>
-                    <div class="rv-rp-ratings">
-                        {% for rt in b.ratings %}
-                        <span class="rv-rp-rating"><b>{{ rt.n }}</b>{{ rt.label }}</span>
-                        {% endfor %}
-                    </div>
-                    <div class="rv-rp-math">
-                        {% if b.id == 'positive' %}
-                        <div class="rv-rp-tiers">
-                            {% for t in vote_schedule.tiers %}
-                            <span class="rv-rp-tier"><b>{{ t.rank }}</b><em>+{{ t.like }}</em>{% if t.dislike != '—' %}<em class="rv-rp-tier-dlt">−{{ t.dislike }}</em>{% else %}<em class="rv-rp-tier-dlt">—</em>{% endif %}</span>
-                            {% endfor %}
-                        </div>
-                        {% elif b.id == 'neutral' %}
-                        <span class="rv-rp-zero">0 XP — the fence, never moves the tank</span>
-                        {% else %}
-                        <span>RED like <b>−{{ vote_schedule.rate }} XP</b> max (S+ takes the most)</span><span>RED dislike <b>+2 → +7 XP</b> back by rank</span>
-                        {% endif %}
-                    </div>
-                    <div class="rv-rp-note">{{ b.note }}</div>
-                </div>
-                {% endfor %}
+
+            <div class="rv-rp-pills">
+                {% for b in vote_schedule.bands %}{% for rt in b.ratings %}
+                <span class="rv-rp-pill rv-rp-pill-{{ b.id }}"><b>{{ rt.n }}</b>{{ rt.label }}</span>
+                {% endfor %}{% endfor %}
             </div>
+
+            <table class="rv-rp-table">
+                <thead>
+                    <tr>
+                        <th class="rv-rp-corner">Voter rank</th>
+                        <th colspan="2" class="rv-rp-th-green"><b>● GREEN (6–10)</b> — pours in</th>
+                        <th colspan="2" class="rv-rp-th-red"><b>● RED (1–4)</b> — takes out</th>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>Like</th>
+                        <th>Dislike</th>
+                        <th>Like</th>
+                        <th>Dislike</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in vote_schedule.tiers %}
+                    <tr>
+                        <td class="rv-rp-rank">{{ t.rank }}</td>
+                        <td class="rv-rp-val rv-v-plus">{{ t.gl }}</td>
+                        <td class="rv-rp-val {{ 'rv-v-minus' if t.gd is not none else 'rv-v-lock' }}">{{ t.gd if t.gd is not none else '🔒' }}</td>
+                        <td class="rv-rp-val {{ 'rv-v-minus' if t.rl is not none else 'rv-v-lock' }}">{{ t.rl if t.rl is not none else '🔒' }}</td>
+                        <td class="rv-rp-val {{ 'rv-v-plus' if t.rd is not none else 'rv-v-lock' }}">{{ t.rd if t.rd is not none else '🔒' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <p class="rv-rp-foot">
+                <span class="rv-rp-locknote">🔒 = locked</span> — dislikes and RED-verdict likes need <b>C rank (500 XP)</b>; D can only like green/neutral (+3) and F accounts can't vote at all.
+                <b>5/10 Mid</b> never moves XP — it counts in the score, not the tank.
+            </p>
         </div>
 
 

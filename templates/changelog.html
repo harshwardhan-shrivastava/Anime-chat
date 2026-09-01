@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What's New | Otakul</title>
+
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0b1018;
+            color: #cbd5e1;
+            font-family: 'Montserrat', system-ui, sans-serif;
+            line-height: 1.7;
+        }
+        .bg { position: fixed; inset: 0; z-index: -1;
+              background: linear-gradient(145deg, #07090f 0%, #0d1324 35%, #111827 65%, #090b10 100%); }
+        .wrap { max-width: 880px; margin: 0 auto; padding: 48px 24px 24px; }
+        .brand { display: inline-block; font-size: 1.6rem; font-weight: 800; color: #fff;
+                 text-decoration: none; letter-spacing: 0.5px; }
+        .brand span { color: #22c55e; }
+        h1 { color: #fff; font-size: 2rem; font-weight: 800; margin: 32px 0 6px; }
+        .updated { color: #64748b; font-size: 0.8rem; margin-bottom: 10px; }
+        .lead { color: #94a3b8; font-size: 0.92rem; max-width: 680px; margin-bottom: 30px; }
+
+        /* The changelog box */
+        .cl-box {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 12px 26px 26px;
+            box-shadow: 0 18px 50px -22px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .cl-entry {
+            position: relative;
+            padding: 22px 0 22px 30px;
+            border-left: 2px solid rgba(255,255,255,0.07);
+            margin-left: 12px;
+        }
+        .cl-entry:last-child { border-left-color: transparent; padding-bottom: 6px; }
+        .cl-entry::before {
+            content: "";
+            position: absolute;
+            left: -7px; top: 28px;
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34,197,94,0.18), 0 0 14px rgba(34,197,94,0.6);
+        }
+        .cl-entry.work::before { background: #f59e0b; box-shadow: 0 0 0 4px rgba(245,158,11,0.16), 0 0 14px rgba(245,158,11,0.55); }
+        .cl-entry.trust::before { background: #8f5bff; box-shadow: 0 0 0 4px rgba(143,91,255,0.16), 0 0 14px rgba(143,91,255,0.55); }
+        .cl-entry.data::before { background: #38bdf8; box-shadow: 0 0 0 4px rgba(56,189,248,0.16), 0 0 14px rgba(56,189,248,0.55); }
+        .cl-entry.speed::before { background: #f472b6; box-shadow: 0 0 0 4px rgba(244,114,182,0.16), 0 0 14px rgba(244,114,182,0.55); }
+        .cl-date {
+            display: inline-block;
+            background: rgba(34,197,94,0.1);
+            border: 1px solid rgba(34,197,94,0.3);
+            color: #4ade80;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            border-radius: 999px;
+            padding: 3px 12px;
+            margin-bottom: 8px;
+        }
+        .cl-entry.work .cl-date { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); color: #fbbf24; }
+        .cl-entry.trust .cl-date { background: rgba(143,91,255,0.12); border-color: rgba(143,91,255,0.35); color: #b39dff; }
+        .cl-entry.data .cl-date { background: rgba(56,189,248,0.1); border-color: rgba(56,189,248,0.3); color: #7dd3fc; }
+        .cl-entry.speed .cl-date { background: rgba(244,114,182,0.1); border-color: rgba(244,114,182,0.3); color: #f9a8d4; }
+        .cl-entry h2 { color: #e7ecf3; font-size: 1.1rem; font-weight: 800; margin-bottom: 4px; }
+        .cl-entry .sub { color: #8b98ab; font-size: 0.8rem; margin-bottom: 10px; }
+        .cl-entry ul { margin: 0 0 4px 20px; }
+        .cl-entry li { margin-bottom: 7px; color: #aeb9c9; font-size: 0.9rem; }
+        .cl-entry li b { color: #e7ecf3; }
+        .cl-entry li .g { color: #4ade80; font-weight: 600; }
+        .cl-entry li .r { color: #f87171; font-weight: 600; }
+        .cl-entry li .y { color: #fbbf24; font-weight: 600; }
+
+        .back { display: inline-block; margin-top: 34px; padding: 10px 22px;
+                background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 999px; color: #e2e8f0; font-weight: 600; font-size: 0.85rem;
+                text-decoration: none; }
+        .back:hover { border-color: #22c55e; color: #22c55e; }
+    </style>
+</head>
+<body>
+
+<div class="bg"></div>
+
+<div class="wrap">
+
+    <a class="brand" href="{{ url_for('home') }}">Ota<span>kul</span></a>
+
+    <h1>What's New</h1>
+    <div class="updated">Changelog · updated September 1, 2026</div>
+    <p class="lead">Everything we've shipped so far, in one box. OtaKul grows with its community — if you want something on this list, email us and we'll build it.</p>
+
+    <div class="cl-box">
+
+        <div class="cl-entry">
+            <span class="cl-date">September 1 · Rating Power v2</span>
+            <h2>The badge now works both ways — fair for every verdict</h2>
+            <div class="sub">The elixir system, rank-priced and mirrored</div>
+            <ul>
+                <li>One vote = the <b>voter's rank power</b>: <span class="g">D +3, C +5, B +7, A +9, S +11, S+ +15</span> on a like; dislikes drain <span class="r">C −2 up to S+ −7</span>.</li>
+                <li><span class="g">Green (6–10)</span> likes pour into the anime/episode tank — <span class="r">RED (1–4)</span> is the mirror: a like <b>takes</b> the same rank value out, a dislike hands it back. An S+ like on a 1/10 Trash review costs the title 15 XP, exactly what an S+ like on a 10/10 earns.</li>
+                <li>Anime/episode tanks and every review's own badge keep their sign — mobbed red verdicts sink the tank into <span class="r">negative XP</span> (red "Mobbed down" state).</li>
+                <li>Anti-bombing gates: <b>D-rank can only like green/neutral reviews (+3)</b>; dislikes and RED-review likes require <b>C rank (500 XP)</b>; F accounts can't vote at all.</li>
+                <li>Rating word badges (<span class="y">TRASH → ABSOLUTE CINEMA</span>) moved next to the Review XP box and made bigger on every card.</li>
+            </ul>
+        </div>
+
+        <div class="cl-entry work">
+            <span class="cl-date">September 1 · Rating Power v1</span>
+            <h2>The 10-Star Verdict system</h2>
+            <div class="sub">Every rating is a verdict, every vote is earned</div>
+            <ul>
+                <li>Ratings out of 10 with word verdicts: <span class="r">1 Trash · 2 Awful · 3 Meh · 4 Hopeless</span> · <span class="y">5 Mid</span> · <span class="g">6 Good enough · 7 Good · 8 Great · 9 Peak · 10 Absolute Cinema</span>.</li>
+                <li>Reviews earn their own <b>D–S+ Review XP badge</b> on every card; the anime's <b>Overall XP tank</b> = the sum of all its reviews.</li>
+                <li>Like/dislike ratio keeps reviewers honest — <b>dislike-ratio abusers drop to F rank</b> and lose their vote, so the ladder can't be farmed by hating.</li>
+            </ul>
+        </div>
+
+        <div class="cl-entry trust">
+            <span class="cl-date">August 31 · Trust &amp; Safety</span>
+            <h2>Bot-proof and law-abiding</h2>
+            <div class="sub">So real fans review, not bots</div>
+            <ul>
+                <li><b>Cloudflare Turnstile</b> bot check on account creation — bots can't flood the review feed.</li>
+                <li>Detailed <b>Privacy Policy</b> page covering data, third parties, cookies and rights, ready for ad monetization.</li>
+                <li>Site footer with a one-click <b>Email us</b> button (opens Gmail to otakul82888@gmail.com) and our GitHub link — hidden on Threads for a cleaner chat view.</li>
+            </ul>
+        </div>
+
+        <div class="cl-entry data">
+            <span class="cl-date">August 30 · Episode &amp; Season overhaul</span>
+            <h2>Every episode in its right place</h2>
+            <div class="sub">Clean seasons, accurate counts</div>
+            <ul>
+                <li>Fixed <b>That Time I Got Reincarnated as a Slime</b> showing all 4 seasons under Season 1 — each season now has its own card and its own episodes; same fix for <b>100 Girlfriends</b> (S1 = 12 episodes) and <b>617 more mismatched episode counts</b> across the catalog.</li>
+                <li>Every anime card now shows its <b>own HD poster background</b> (no more shared wallpaper) across thousands of titles, tuned to load without slowing the page.</li>
+            </ul>
+        </div>
+
+        <div class="cl-entry speed">
+            <span class="cl-date">August 29 · Performance &amp; polish</span>
+            <h2>Faster opens, cleaner layout</h2>
+            <div class="sub">The little things</div>
+            <ul>
+                <li><b>Instant page opens</b> — hero art preloaded so the first paint is immediate.</li>
+                <li>Threads layout polish: profile images, and the liquid-XP lead widened to the full train-style size it was always meant to be.</li>
+            </ul>
+        </div>
+
+    </div>
+
+    <a class="back" href="{{ url_for('home') }}">← Back to OtaKul</a>
+
+</div>
+
+{% include "_footer.html" %}
+
+</body>
+</html>
