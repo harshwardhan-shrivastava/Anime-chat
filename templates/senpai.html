@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/find_mood.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/characters.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/senpai.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/senpai.css') }}?v=20260901a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://s4.anilist.co" crossorigin>
@@ -142,6 +142,6 @@
 <script>
     window.SENPAI_QUICK_PICKS = {{ quick_picks | tojson }};
 </script>
-<script src="{{ url_for('static', filename='js/senpai.js') }}"></script>
+<script src="{{ url_for('static', filename='js/senpai.js') }}?v=20260901a"></script>
 </body>
 </html>
