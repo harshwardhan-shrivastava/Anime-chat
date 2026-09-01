@@ -292,12 +292,37 @@ def main():
         stats["mains"] += 1
         changed[slug] = (entry.get("title"), [("Episodes", len(first))])
 
+    # ---- Pass 5: flatten ALL remaining generic Season-N grids -----------
+    # The site's model is one card per page: shows with separate season
+    # cards keep only their own season (pass 4), and every remaining
+    # all-generic "Season 1/2/3" grid -- even real ones like Kuroko
+    # 25/25/25 or Black Butler 24/12 -- becomes a single flat card. Named
+    # arc/saga cards (One Piece sagas, Bleach arcs, AoT "The Final
+    # Season", Naruto/Shippuden...) are intentional watch-order structure
+    # and are kept.
+    generic_flattened = 0
+    for slug, entry in data.items():
+        if SIB_RE.search(slug):
+            continue
+        seasons = entry.get("seasons") or []
+        if len(seasons) < 2:
+            continue
+        names = [str(s.get("name") or "").strip() for s in seasons]
+        if not all(GEN_NAME_RE.match(n) for n in names):
+            continue
+        all_eps = [e for s in seasons for e in (s.get("episodes") or [])]
+        if not all_eps:
+            continue
+        collapse(entry, all_eps)
+        generic_flattened += 1
+        changed[slug] = (entry.get("title"), [("Episodes", len(all_eps))])
+
     with open(DATA, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-    print("collapsed: %d | rebuilt: %d | evidence-settled: %d | siblings: %d | mains-to-s1: %d | skipped-empty: %d"
+    print("collapsed: %d | rebuilt: %d | evidence-settled: %d | siblings: %d | mains-to-s1: %d | generic-grids-flattened: %d | skipped-empty: %d"
           % (stats["collapsed"], stats["rebuilt"], stats["evidence"], stats["siblings"],
-             stats["mains"], stats["skipped_empty"]))
+             stats["mains"], generic_flattened, stats["skipped_empty"]))
     for slug in ["slam-dunk", "rent-a-girlfriend", "rent-a-girlfriend-season-2",
                  "rent-a-girlfriend-season-3", "rent-a-girlfriend-season-4",
                  "my-hero-academia", "my-hero-academia-season-2",
