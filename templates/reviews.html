@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260902e">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260902f">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -94,17 +94,17 @@
         </div>
 
         <!-- ===== RATING POWER (the 10-star verdict system) ===== -->
-        <div class="rv-rp-legend">
-            <div class="rv-rp-headline">
+        <div class="rv-rp-legend open" id="rvRpLegend">
+            <div class="rv-rp-head" onclick="document.getElementById('rvRpLegend').classList.toggle('open')">
                 <span class="rv-rp-icon"><span></span></span>
-                <div>
-                    <h3>Rating Power <span>· The 10-Star Verdict</span></h3>
-                    <p class="rv-rp-intro">
-                        Every rating is a verdict — <b class="rv-rp-red">1–4 RED</b> (negative) · <b class="rv-rp-grey">5 GREY</b> (neutral) · <b class="rv-rp-green">6–10 GREEN</b> (positive).
-                        The table below is the points each voter rank gives or takes: on <b class="rv-rp-green">GREEN</b> it pours into the anime/episode tank, on <b class="rv-rp-red">RED</b> it takes right back out.
-                    </p>
-                </div>
+                <h3>Rating Power <span>· The 10-Star Verdict</span></h3>
+                <span class="rv-rp-tgl"><i class="fas fa-chevron-down"></i></span>
             </div>
+            <div class="rv-rp-body">
+            <p class="rv-rp-intro">
+                Every rating is a verdict — <b class="rv-rp-red">1–4 RED</b> (negative) · <b class="rv-rp-grey">5 GREY</b> (neutral) · <b class="rv-rp-green">6–10 GREEN</b> (positive).
+                The table below is the points each voter rank gives or takes: on <b class="rv-rp-green">GREEN</b> it pours into the anime/episode tank, on <b class="rv-rp-red">RED</b> it takes right back out.
+            </p>
 
             <div class="rv-rp-pills">
                 {% for b in vote_schedule.bands %}{% for rt in b.ratings %}
@@ -144,6 +144,7 @@
                 <span class="rv-rp-locknote">🔒 = locked</span> — dislikes and RED-verdict likes need <b>C rank (500 XP)</b>; D can only like green/neutral (+3) and F accounts can't vote at all.
                 <b>5/10 Mid</b> never moves XP — it counts in the score, not the tank.
             </p>
+            </div>
         </div>
 
 
@@ -183,19 +184,15 @@
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-bolt"></i> Review XP vs Your XP</h4>
-                        <p>Each review earns its own <strong>Review XP</strong>, shown as a <strong>D–S+</strong> badge on the card — and the anime/episode tank is the <strong>sum</strong> of every review's XP. Under <strong>Rating Power</strong> every vote is priced by the <strong>voter's rank</strong> (D +3 up to S+ +15; dislikes C −2 up to S+ −7), then shaped by the verdict: <strong>green 6–10</strong> likes pour in while dislikes drain; <strong>RED 1–4</strong> is the mirror — a like takes the rank's value off the tank, a dislike hands it back; <strong>5/10 Mid</strong> stays silent. A mobbed anime can sink below zero. Separate from <strong>your profile XP</strong> — the bar by your name that tracks your rank and reviewing power.</p>
+                        <p>Each review earns its own <strong>Review XP</strong> — the <strong>D–S+</strong> badge near the rating word — and the anime/episode tank is the <strong>sum</strong> of all its reviews' XP. Votes are priced by the <strong>voter's rank</strong> (D +3 → S+ +15; dislikes −2 → −7): <strong>GREEN</strong> pours in, <strong>RED</strong> takes back out, <strong>5/10</strong> stays silent, and a mobbed anime can sink negative. Separate from <strong>your profile XP</strong> — the bar by your name.</p>
                     </div>
                     <div class="rv-gcol">
-                        <h4><i class="fas fa-thumbs-down"></i> Dislikes &amp; Replies</h4>
-                        <p><strong>Dislikes require C rank (500 XP)</strong> — one click, no reason needed once your standing is earned, and so do <strong>likes on RED (1–4) reviews</strong>. D-rank accounts can only like green/neutral reviews at +3, so a brand-new mob can't pump up a Trash review to drag an anime down — on RED the mob's likes would take points off their own target. Review-bombing is dead on arrival.</p>
-                    </div>
-                    <div class="rv-gcol">
-                        <h4><i class="fas fa-swords"></i> Reply War</h4>
-                        <p>War is for <strong>replies</strong> — C+ reviewers post <strong>one take</strong> (Positive 👍 or Negative 👎) on any review, and a 24-hour battle begins. <strong>Anyone</strong> votes 👍/👎 on every take; the entry with the <strong>best like-ratio</strong> wins (100👍 / 50👎 still loses to 75👍 / 0👎). The <strong>winner's reply</strong> is the only one shown under the review, tagged <strong>Positive</strong> or <strong>Negative</strong> — and a <strong>Negative winner knocks the review's XP</strong>, so a bad take can genuinely be beaten. Open <strong>War</strong> in the nav for every battle, hottest first.</p>
+                        <h4><i class="fas fa-thumbs-down"></i> Dislikes &amp; Anti-Bombing</h4>
+                        <p><strong>Dislikes — and likes on RED (1–4) reviews — need C rank (500 XP)</strong>. D can only like green/neutral at +3, so a fresh mob can't pump up a Trash review or drown a masterpiece: on RED a mob's like actually <strong>takes</strong> points off its own target. Review-bombing is dead on arrival.</p>
                     </div>
                     <div class="rv-gcol">
                         <h4><i class="fas fa-trophy"></i> Ranks — your ladder</h4>
-                        <p>Reviews, likes and wars fill your profile XP — the higher your rank, the more your vote is worth.{% if user_rank %} You are <strong style="color:#fbbf24;">{{ user_rank }}</strong> right now.{% endif %}</p>
+                        <p>Reviews and likes fill your profile XP — the higher your rank, the more your vote is worth.{% if user_rank %} You are <strong style="color:#fbbf24;">{{ user_rank }}</strong> right now.{% endif %}</p>
                         <div class="rv-rank-ladder">
                             {% set rk_ladder = [('S+', '15,000+ XP'), ('S', '5,000 XP'), ('A', '2,000 XP'), ('B', '1,000 XP'), ('C', '500 XP'), ('D', '100 XP (start)')] %}
                             {% for rk, xp in rk_ladder %}
