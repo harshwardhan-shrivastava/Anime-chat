@@ -2536,6 +2536,14 @@ nav.nav-mobile-open .nav-burger-bar:nth-child(3){ transform:translateY(-6px) rot
         left:0;
         right:0;
         bottom:0;
+        top:auto;                  /* kill the shared nav top:12px -> full-height slab */
+        width:100%;                /* kill shared nav width:96% + margins */
+        max-width:none;
+        margin:0;
+        flex-wrap:nowrap;          /* fixed 5-tab dock, never wraps */
+        border-radius:0;           /* flush to screen edges */
+        height:auto;               /* content-sized dock (~64px) */
+        min-height:0;
         z-index:2000;
         background:rgba(9,12,19,.94);
         -webkit-backdrop-filter:blur(18px);
