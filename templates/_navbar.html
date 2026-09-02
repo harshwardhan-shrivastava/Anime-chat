@@ -1,6 +1,7 @@
 <nav class="main-nav">
     <a href="{{ url_for('home') }}" class="logo">
         <span class="logo-anime">Ota</span><span class="logo-chat">kul</span>
+        <span class="vmark" aria-hidden="true"></span>
     </a>
     <button type="button" class="nav-burger" id="navBurger" aria-label="Menu" aria-expanded="false">
         <span class="nav-burger-bar"></span>
@@ -128,6 +129,16 @@
 
     var burger = document.getElementById("navBurger");
     var mainNav = document.querySelector(".main-nav");
+
+    // Kill stale tab restores (bfcache): if this page came back from
+    // the browser's in-memory cache, force a fresh load so the tab
+    // can never show an old version of the site again.
+    window.addEventListener("pageshow", function (e) {
+        if (e.persisted) {
+            window.location.reload();
+        }
+    });
+
     if (burger && mainNav) {
         function setBurger(open) {
             mainNav.classList.toggle("nav-mobile-open", open);

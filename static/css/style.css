@@ -2968,3 +2968,21 @@ nav.nav-mobile-open .nav-burger-bar:nth-child(3){ transform:translateY(-6px) rot
         flex-wrap:wrap;
     }
 }
+
+/* ============================================================
+   LIVE-VERSION DOT — the small green dot next to OtaKul
+   proves the page is a fresh load, not a stale tab restore.
+============================================================ */
+.main-nav .logo{
+    position:relative;
+}
+.main-nav .vmark{
+    display:inline-block;
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:#4ade80;
+    margin-left:5px;
+    vertical-align:middle;
+    box-shadow:0 0 6px rgba(74,222,128,.85);
+}
