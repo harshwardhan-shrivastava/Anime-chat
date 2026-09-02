@@ -474,9 +474,14 @@ userStars.forEach(star => {
 });
 
 const userStarsWrapper = document.getElementById("userStars");
-userStarsWrapper.addEventListener("mouseleave", () => {
-    paintUserStars(selectedRating);
-});
+// #userStars only exists when a logged-in reviewer composer is rendered —
+// guard it or the script dies for guests before later handlers (like the
+// season expand buttons) ever bind.
+if (userStarsWrapper) {
+    userStarsWrapper.addEventListener("mouseleave", () => {
+        paintUserStars(selectedRating);
+    });
+}
 
 // ===============================
 // SUBMIT RATING + REVIEW
