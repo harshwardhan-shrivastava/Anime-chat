@@ -2,6 +2,9 @@
     <a href="{{ url_for('home') }}" class="logo">
         <span class="logo-anime">Ota</span><span class="logo-chat">kul</span>
     </a>
+    <button type="button" class="nav-burger" id="navBurger" aria-label="Menu" aria-expanded="false">
+        <i class="fas fa-bars"></i>
+    </button>
     <div class="nav-links">
         <a href="{{ url_for('browse', sort='new') }}">{{ t('New') }}</a>
         <a href="{{ url_for('browse', sort='upcoming') }}">{{ t('Upcoming') }}</a>
@@ -118,6 +121,27 @@
     }
     function closeCat() {
         if (catWrap) catWrap.classList.remove("open");
+    }
+
+    var burger = document.getElementById("navBurger");
+    var mainNav = document.querySelector(".main-nav");
+    if (burger && mainNav) {
+        function setBurger(open) {
+            mainNav.classList.toggle("nav-mobile-open", open);
+            burger.setAttribute("aria-expanded", open ? "true" : "false");
+        }
+        burger.addEventListener("click", function (e) {
+            e.stopPropagation();
+            setBurger(!mainNav.classList.contains("nav-mobile-open"));
+        });
+        mainNav.addEventListener("click", function (e) {
+            if (e.target.closest && e.target.closest(".nav-links a, .nav-right a, .nav-right button")) {
+                setBurger(false);
+            }
+        });
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") setBurger(false);
+        });
     }
 
     if (trigger && menu) {
