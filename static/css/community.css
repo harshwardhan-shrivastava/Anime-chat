@@ -4318,3 +4318,158 @@ input:focus-visible{
 .xp-bar.rank-S\+ { border-color: rgba(39,208,125,.35); }
 .xp-bar.rank-S\+ .xp-bar-fill { background: linear-gradient(90deg, #27d07d, #22c55e); }
 .xp-bar.rank-S\+ .xp-bar-text { color: #27d07d; }
+
+
+/* ==========================================================
+   MOBILE PASS — community + chat sized for phones
+   (Discord-style: compact hero, 3-up stats, single-line modal
+   header, per-group timestamps, full-width composer)
+========================================================== */
+@media (max-width: 600px) {
+
+    /* ---- Community hero: tight app card, no towering title ---- */
+    .community-hero{
+        min-height:0;
+        border-radius:22px;
+        margin-bottom:24px;
+    }
+    .hero-content{
+        padding:20px 14px 16px !important;
+    }
+    .hero-left h1{
+        font-size:clamp(20px,6vw,27px) !important;
+        line-height:1.2;
+        overflow-wrap:break-word;
+    }
+    .hero-left p{
+        font-size:13px;
+        line-height:1.55;
+    }
+    .community-tag{
+        font-size:10px;
+        padding:4px 10px;
+        border-radius:999px;
+    }
+    .hero-actions{
+        flex-wrap:wrap;
+        gap:8px;
+        width:100%;
+    }
+    .hero-actions .primary-button,
+    .hero-actions .secondary-button{
+        flex:1 1 100%;
+        padding:11px 14px;
+        font-size:14px;
+        border-radius:12px;
+        width:100%;
+    }
+    .hero-right{
+        padding:0 14px 16px;
+    }
+    .stats-grid{
+        grid-template-columns:repeat(3,1fr) !important;
+        gap:8px;
+    }
+    .stat-card{
+        padding:14px 6px;
+        border-radius:14px;
+        text-align:center;
+    }
+    .stat-number{
+        font-size:21px !important;
+    }
+    .stat-label{
+        font-size:11px !important;
+        opacity:.8;
+    }
+
+    /* ---- Chat modal: fits the phone ---- */
+    .chat-modal-header{
+        gap:10px;
+        padding:10px 12px;
+    }
+    .chat-modal-header h2{
+        font-size:16px;
+        min-width:0;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+    }
+    .chat-status{
+        padding:4px 10px !important;
+        font-size:11px !important;
+        gap:6px !important;
+        flex-shrink:0;
+        white-space:nowrap;
+    }
+    .chat-modal-close{
+        width:34px;
+        height:34px;
+        border-radius:10px;
+        flex-shrink:0;
+    }
+    .chat-modal-feed{
+        padding:12px 10px;
+    }
+    .chat-modal-composer{
+        padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+        gap:8px;
+    }
+    .composer-input textarea{
+        font-size:16px;
+        padding:10px 14px;
+    }
+
+    /* ---- Empty state: compact and centered, not a giant box ---- */
+    .welcome-box{
+        padding:30px 16px;
+        border-radius:18px;
+    }
+    .welcome-icon{
+        width:60px;
+        height:60px;
+        font-size:26px;
+        margin:0 auto 12px;
+    }
+    .welcome-box h2{
+        font-size:19px;
+        margin-bottom:8px;
+    }
+    .welcome-box p{
+        font-size:13px;
+        line-height:1.5;
+    }
+
+    /* ---- Message groups: Discord feel on a phone ---- */
+    .msg-group-head .avatar{
+        width:34px;
+        height:34px;
+        font-size:12px;
+    }
+    .msg-group-name{
+        font-size:14px;
+    }
+    .msg-group-time{
+        font-size:11px;
+        margin-left:2px;
+    }
+    .msg-lines{
+        padding-left:42px;
+    }
+    /* Discord shows the clock next to the name only - hide the
+       per-line time gutter so message text goes edge-to-edge */
+    .msg-line-time{
+        display:none;
+    }
+    .msg-line p{
+        font-size:14.5px;
+        line-height:1.55;
+    }
+    .msg-content{
+        min-width:0;
+    }
+    .reply-quote{
+        font-size:12.5px;
+        padding:6px 9px;
+    }
+}

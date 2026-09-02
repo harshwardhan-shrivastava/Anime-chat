@@ -2926,3 +2926,104 @@ html, body {
     .thr-rail-icon { width: 36px; height: 36px; font-size: 12px; }
     .thr-topbar-right .thr-icon-btn .thr-badge { right: -2px; }
 }
+
+
+/* ==========================================================
+   MOBILE PASS — Threads tuned for phones (Discord-style)
+   One timestamp per message (next to the name), compact
+   message rows, full-width rounded composer.
+========================================================== */
+@media (max-width: 600px) {
+
+    /* ---- Messages: single inline clock + tighter rows ---- */
+    .thr-msg{
+        gap:8px;
+        padding:5px 8px;
+        border-radius:0;
+    }
+    .thr-msg-avatar{
+        width:32px;
+        height:32px;
+        font-size:11px;
+    }
+    .thr-msg-head{
+        gap:6px;
+        align-items:baseline;
+    }
+    .thr-msg-user{
+        font-size:13.5px;
+    }
+    .thr-msg-time{
+        font-size:10.5px;
+    }
+    /* Discord shows the clock once, next to the name - the
+       duplicate under the message body goes away */
+    .thr-msg-meta .thr-msg-time{
+        display:none;
+    }
+    .thr-msg-content{
+        font-size:14px;
+        line-height:1.5;
+    }
+    .thr-msg-head .chat-rank-badge{
+        font-size:9.5px;
+        padding:2px 5px;
+        border-radius:5px;
+    }
+    .thr-msg-head .xp-bar{
+        max-width:70px;
+    }
+    .thr-msg-head .xp-bar-text{
+        font-size:8.5px;
+    }
+    .thr-reply-ref{
+        font-size:11.5px;
+        padding:3px 8px;
+        max-width:100%;
+    }
+    .thr-attach img,
+    .thr-attach video{
+        max-width:100%;
+        max-height:240px;
+        border-radius:10px;
+    }
+
+    /* ---- Composer: full-width pill, phone-friendly ---- */
+    .thr-composer{
+        padding:6px 8px calc(8px + env(safe-area-inset-bottom));
+    }
+    .thr-input-row{
+        border-radius:18px;
+        padding:6px 8px;
+        gap:6px;
+    }
+    .thr-input-row textarea{
+        font-size:16px;
+        padding:6px 4px;
+    }
+    .thr-input-btn{
+        width:32px;
+        height:32px;
+    }
+    .thr-send-btn{
+        width:34px;
+        height:34px;
+    }
+
+    /* ---- Conversation header: name + status, compact ---- */
+    .thr-chat-head{
+        padding:8px 10px;
+        gap:8px;
+    }
+    .thr-chat-title{
+        font-size:15px;
+        min-width:0;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+    }
+    .thr-chat-head .thr-icon-btn{
+        width:32px;
+        height:32px;
+    }
+}
