@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/find_mood.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/otachan.css') }}?v=20260902a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/otachan.css') }}?v=20260902va">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -33,26 +33,39 @@
 
 {% include "_navbar.html" %}
 
-<!-- ================= CHAT VIEW ================= -->
+<!-- ================= HERO ================= -->
 <section class="otachan-hero" id="otachanHero">
-    <span class="hero-badge"><i class="fas fa-robot"></i> Otakul's AI Assistant</span>
+    <span class="hero-badge">
+        <img class="hero-badge-logo" src="{{ url_for('static', filename='favicon.svg') }}" alt="OtaKul">
+        Otakul AI Assistant
+    </span>
     <h1>Chat with <span>Ota-chan</span></h1>
-    <p>Ask about anime, get recommendations, learn how Otakul works, or just have fun chatting!</p>
+    <p>Ask for anime picks and get real cards from the Otakul catalog — or ask about any show, and how the site works.</p>
 </section>
 
+<!-- Phones: Ota-chan is a desktop experience -->
+<div class="otachan-mobile-note">
+    <img class="otachan-mobile-note-logo" src="{{ url_for('static', filename='favicon.svg') }}" alt="Ota-chan">
+    <h2>Ota-chan lives on desktop 💻</h2>
+    <p>Ota-chan's full experience — anime cards, recommendations and site help — needs a bigger screen. Hop on a laptop or desktop to chat with her, or keep exploring New anime and Threads right here on your phone!</p>
+    <a class="otachan-mobile-back" href="{{ url_for('home') }}">← Back to browsing</a>
+</div>
+
+<!-- ================= CHAT ================= -->
 <section class="otachan-chat-section" id="otachanChatSection">
     <div class="otachan-chat-container">
         <!-- Chat header -->
         <div class="otachan-chat-header">
             <div class="otachan-avatar-wrap">
-                <div class="otachan-avatar">
-                    <i class="fas fa-robot"></i>
-                </div>
+                <img class="otachan-avatar" src="{{ url_for('static', filename='favicon.svg') }}" alt="Ota-chan">
                 <span class="otachan-status-dot"></span>
             </div>
             <div class="otachan-header-info">
-                <h2>Ota-chan</h2>
-                <span class="otachan-subtitle">Otakul AI Assistant</span>
+                <div class="otachan-name-row">
+                    <h2>Ota-chan</h2>
+                    <span class="otachan-online-pill"><span class="otachan-online-dot"></span>Online</span>
+                </div>
+                <span class="otachan-subtitle">Anime cards · show facts · site help</span>
             </div>
         </div>
 
@@ -68,16 +81,28 @@
             <span class="otachan-typing-dot"></span>
         </div>
 
+        <!-- Quick replies -->
+        <div class="otachan-quick" id="otachanQuick">
+            <button type="button" class="otachan-chip" data-q="recommend me some isekai anime with an english dub">🎌 Isekai w/ dub</button>
+            <button type="button" class="otachan-chip" data-q="recommend me the best romance anime">💜 Romance</button>
+            <button type="button" class="otachan-chip" data-q="recommend something scary">👻 Horror</button>
+            <button type="button" class="otachan-chip" data-q="recommend anime like attack on titan">⚔️ Like AoT</button>
+            <button type="button" class="otachan-chip" data-q="how do I earn xp on otakul">⭐ How XP works</button>
+        </div>
+
         <!-- Input bar -->
         <div class="otachan-input-bar">
             <input type="text" id="otachanInput" placeholder="Ask Ota-chan anything..." autocomplete="off" maxlength="2000">
             <button id="otachanSendBtn" class="otachan-send-btn" aria-label="Send">
-                <i class="fas fa-paper-plane"></i>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
             </button>
         </div>
     </div>
 </section>
 
-<script src="{{ url_for('static', filename='js/otachan.js') }}?v=20260902a"></script>
+<script src="{{ url_for('static', filename='js/otachan.js') }}?v=20260902va"></script>
 </body>
 </html>

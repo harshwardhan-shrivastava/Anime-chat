@@ -17,9 +17,11 @@ To enable, add two lines to app.py (after init_threads):
     init_ota_chan(app)
 """
 
+import ast
 import json
 import os
 import random
+import re
 import requests
 from flask import (
     Blueprint,
@@ -31,6 +33,7 @@ from flask import (
 )
 
 import database as site_db
+from anime_data import anime_database
 
 bp = Blueprint("otachan", __name__)
 
@@ -187,115 +190,570 @@ _RECOMMENDATIONS = {
 }
 
 
-def _template_reply(history):
-    """Generate a helpful reply without calling the API.
-    Detects common question patterns and responds as Ota-chan."""
+def _norm(text):
+    """Lowercase, squeeze whitespace, strip punctuation noise."""
+    text = (text or "").lower()
+    text = re.sub(r"[^a-z0-9\s'\-]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def _lev(a, b):
+    """Edit distance — small helper for spelling-tolerant matching."""
+    if abs(len(a) - len(b)) > 2:
+        return 99
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def _words(text):
+    return [w for w in _norm(text).replace("-", " ").split() if len(w) > 1]
+
+
+# Genre spellings the bot tolerates (common typos included).
+_GENRE_TOKENS = {
+    "isekai": ["isekai", "iskekai", "iskeai", "isekay", "isckai", "isokai", "isekai'd"],
+    "action": ["action", "actoin", "akshun"],
+    "romance": ["romance", "romantic", "romcom", "romance"],
+    "comedy": ["comedy", "comedies", "funny", "comedic"],
+    "thriller": ["thriller", "thriler", "suspense", "psychological"],
+    "horror": ["horror", "scary", "creepy"],
+    "fantasy": ["fantasy", "fantacy", "magic"],
+    "scifi": ["sci fi", "scifi", "science fiction", "mecha", "cyberpunk"],
+    "drama": ["drama", "tearjerker"],
+    "mystery": ["mystery", "detective"],
+    "sports": ["sports", "sport"],
+    "sliceoflife": ["slice of life", "sliceoflife", "sol"],
+    "adventure": ["adventure", "adventures"],
+    "music": ["music", "band", "idol"],
+    "supernatural": ["supernatural", "shonen", "shounen", "battle shonen"],
+}
+_GENRE_ALIAS = {}
+for canon, toks in _GENRE_TOKENS.items():
+    for t in toks:
+        _GENRE_ALIAS[t] = canon
+_CANONICAL = sorted(set(_GENRE_ALIAS.values()))
+
+# Catalog genre strings per canonical token. The catalog tags genres with
+# "\u2022" separators (e.g. "Action \u2022 Sci-Fi \u2022 Drama") \u2014 map the few names that
+# don't match their catalog spelling 1:1.
+_GENRE_CATALOG = {
+    "scifi": ["sci-fi", "sci fi", "mecha"],
+    "sliceoflife": ["slice of life"],
+}
+
+_GENRE_DISPLAY = {
+    "isekai": "Isekai",
+    "scifi": "Sci-Fi",
+    "sliceoflife": "Slice of Life",
+}
+
+
+# ---- Franchise dedupe + catalog pools ---------------------------------
+_SEASON_NOISE = re.compile(
+    r"\b(?:season|cour|part|series|arc|s(?:eason)?)\s*[0-9ivx]+\b|"
+    r"\b(?:movie|film|ova|ona|special|recap|2nd|3rd)\b|"
+    r"\b(?:ii|iii|iv|v|vi|vii|viii)\b",
+    re.IGNORECASE,
+)
+
+
+def _base_title(title):
+    """Reduce 'Mushoku Tensei -\u2026 Season 2' to franchise base 'mushoku tensei'."""
+    t = (title or "").lower()
+    t = re.split(r"\s+-\s+", t)[0]  # drop "\u2026 - Subtitle" tail (Re:ZERO -Starting\u2026)
+    t = re.sub(r"[^a-z0-9 ]+", " ", t)
+    t = _SEASON_NOISE.sub(" ", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    return t
+
+
+_BASE_CACHE = {}
+
+
+def _cached_base(entry):
+    slug = entry.get("slug")
+    if slug and slug in _BASE_CACHE:
+        return _BASE_CACHE[slug]
+    base = _base_title(entry.get("title") or "")
+    if slug:
+        _BASE_CACHE[slug] = base
+    return base
+
+
+def _fmt_members(count):
+    try:
+        n = int(count or 0)
+    except (TypeError, ValueError):
+        n = 0
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if n >= 1_000:
+        return f"{n / 1_000:.0f}k"
+    return str(n)
+
+
+def _has_dub(entry):
+    """Catalog `dub` is a stringified list, e.g. "['English','Japanese']"."""
+    dub = entry.get("dub")
+    if not dub:
+        return False
+    if isinstance(dub, list):
+        return any("english" in str(x).lower() for x in dub)
+    if isinstance(dub, str):
+        low = dub.lower().strip()
+        if low.startswith("["):
+            try:
+                return _has_dub({"dub": ast.literal_eval(dub)})
+            except (ValueError, SyntaxError):
+                pass
+        return "english" in low or low in ("yes", "true", "1", "dubbed")
+    return bool(dub)
+
+
+# The catalog's genre tags never say "isekai", so the pool is scanned once
+# from titles/slugs that carry an unmistakable isekai marker.
+_ISEKAI_MARKERS = [
+    "reincarnat", "tensei", "isekai", "another world", "in another",
+    "summon", "no game no life", "sword art online", "log horizon",
+    "overlord", "konosuba", "shield hero", "tanya the evil",
+    "devil is a part-timer", "bookworm", "restaurant to another world",
+    "death march", "arifureta", "cautious hero", "by the grace of the gods",
+    "eminence in shadow", "tsukimichi", "spider, so what", "8th son",
+    "spirit chronicles", "campfire cooking", "skeleton knight",
+    "black summoner", "saving 80,000 gold", "handyman saitou",
+    "reborn to master the blade", "drifters", "gate: jieitai",
+    "re:zero", "knights & magic", "isekai ojisan", "so i'm a spider",
+    "saint's magic power", "reborn as a vending machine",
+    "my instant death ability",
+]
+
+
+def _scan_isekai_pool():
+    """One entry per franchise for every clearly-isekai title in the catalog."""
+    best = {}
+    for entry in anime_database.values():
+        probe = f"{(entry.get('title') or '')} {(entry.get('slug') or '')}".lower()
+        if not any(m in probe for m in _ISEKAI_MARKERS):
+            continue
+        base = _cached_base(entry)
+        if base and (base not in best or (entry.get("member_count") or 0) > (best[base].get("member_count") or 0)):
+            best[base] = entry
+    return list(best.values())
+
+
+_ISEKAI_POOL = _scan_isekai_pool()
+
+
+def _match_genres(msg):
+    """Return canonical genres mentioned, tolerant of typos."""
+    norm = _norm(msg)
+    found = set()
+    # exact alias hits (multi-word aliases included)
+    for alias, canon in _GENRE_ALIAS.items():
+        if alias in norm:
+            found.add(canon)
+    if found:
+        return sorted(found)
+    # fuzzy: each word within edit distance 2 of a canonical token
+    for w in _words(msg):
+        for canon in _CANONICAL:
+            if _lev(w, canon) <= 2:
+                found.add(canon)
+    return sorted(found)
+
+
+def _wants_dub(msg):
+    norm = _norm(msg)
+    if any(w in norm for w in ["dub", "dubbed", "english dub", "dubed", "with dub"]):
+        return True
+    return False
+
+
+def _wants_sub(msg):
+    norm = _norm(msg)
+    if any(w in norm for w in ["sub", "subbed", "subtitle", "subtitled"]):
+        return not _wants_dub(msg)
+    return False
+
+
+_REC_WORDS = [
+    "recommend", "recommendation", "reccomend", "recomend", "recs", "suggest",
+    "suggestions", "any good", "good anime", "what to watch", "what should i watch",
+    "what anime", "similar to", "like ", "more like", "picks", "give me some",
+    "anime to watch", "watch next",
+]
+_ASK_WORDS = [
+    "recommend me some", "can you recommend", "please recommend", "pls recommend",
+    "rec me", "suggest me", "any recommendations",
+]
+
+
+def _is_recommend_ask(msg):
+    """True when the user is clearly asking for recommendations."""
+    norm = _norm(msg)
+    for w in _ASK_WORDS:
+        if w in norm:
+            return True
+    # misspelled trigger words within edit distance 1
+    for w in _words(msg):
+        if _lev(w, "recommend") <= 2 or _lev(w, "suggest") <= 2:
+            return True
+    for w in _REC_WORDS:
+        if w in norm:
+            return True
+    # bare genre + "anime" also reads as a rec request ("isekai anime with dub")
+    genres = _match_genres(msg)
+    if genres and ("anime" in norm or "show" in norm or "something" in norm):
+        return True
+    if genres and len(_words(norm)) <= 6:
+        return True
+    return False
+
+
+_STOP = {
+    "the", "and", "for", "with", "you", "your", "that", "this", "what", "about",
+    "anime", "show", "series", "some", "give", "me", "good", "great", "best", "top",
+    "favorite", "very", "really", "want", "need", "looking", "any", "please", "nice",
+    "like", "similar", "recs", "reccomend", "recommend", "recommendation", "suggest",
+}
+
+
+def _find_title(msg):
+    """Find a known anime title mentioned in the message (best effort)."""
+    target = _norm(msg)
+    if not target:
+        return None
+    words = [w for w in _words(target) if w not in _STOP and len(w) > 2]
+    if not words:
+        return None
+    total_len = sum(len(w) for w in words)
+    need = max(5, int(total_len * 0.6))
+    best = None
+    best_score = 0
+    for slug, e in anime_database.items():
+        title = _norm(e.get("title") or "")
+        if not title:
+            continue
+        score = 0
+        for w in words:
+            if re.search(rf"\b{re.escape(w)}\b", title):
+                score += len(w)
+        if score > best_score:
+            best_score = score
+            best = e
+        if best_score >= need:
+            break
+    if best_score >= need:
+        return best
+    return None
+
+
+def _card_for(entry):
+    """Build a compact card payload the front-end renders from the catalog."""
+    rating = entry.get("rating")
+    try:
+        rating = float(rating)
+    except (TypeError, ValueError):
+        rating = 0
+    eps = entry.get("total_episodes")
+    return {
+        "slug": entry.get("slug") or "",
+        "title": entry.get("title") or "",
+        "image": entry.get("image") or "",
+        "rating": round(rating, 1) if rating else None,
+        "eps": eps if isinstance(eps, int) else (str(eps) if eps else None),
+        "genre": (entry.get("genre") or "").split("\u2022")[0].strip(),
+        "members": _fmt_members(entry.get("member_count")),
+        "year": entry.get("start_year") or (entry.get("release") or "").split("-")[0],
+        "dub": _has_dub(entry),
+    }
+
+
+def _pick_from_catalog(genres, want_dub=False, limit=5):
+    """Pick up to `limit` catalog entries matching the requested genres.
+
+    Season/sequel duplicates collapse to one entry per franchise so a
+    recommendation list reads like a human's picks, not a database dump.
+    Isekai has no genre tag in the catalog, so it is served from a pool of
+    clearly-isekai titles scanned at startup; anything else matches the
+    catalog's real genre tags.
+    """
+    genres = [g for g in (genres or [])]
+    if "isekai" in genres:
+        pool = _ISEKAI_POOL
+        terms = [g for g in genres if g != "isekai"]
+    else:
+        pool = list(anime_database.values())
+        terms = genres
+
+    picked = []
+    seen = set()
+    for entry in pool:
+        if terms:
+            genre = (entry.get("genre") or "").lower()
+            ok = True
+            for g in terms:
+                needles = _GENRE_CATALOG.get(g) or [g]
+                if not any(n in genre for n in needles):
+                    ok = False
+                    break
+            if not ok:
+                continue
+        if want_dub and not _has_dub(entry):
+            continue
+        base = _cached_base(entry)
+        if base in seen:
+            continue
+        seen.add(base)
+        picked.append(entry)
+        if len(picked) >= 80:
+            break
+
+    if not picked:
+        return []
+
+    def _rank(entry):
+        try:
+            rating = float(entry.get("rating") or 0)
+        except (TypeError, ValueError):
+            rating = 0
+        return ((entry.get("member_count") or 0), rating)
+
+    picked.sort(key=_rank, reverse=True)
+    return [_card_for(e) for e in picked[:limit]]
+
+
+def _recommend_reply(msg):
+    """Full recommendation flow → (text, cards). Always offline-capable."""
+    genres = _match_genres(msg)
+    want_dub = _wants_dub(msg)
+    want_sub = _wants_sub(msg)
+
+    # "recommend something like <Title>" → treat the title's genres as the ask
+    title = _find_title(msg)
+    if not genres and title:
+        genres = _match_genres(title.get("genre") or "")
+
+    if not genres:
+        scope = "a mix of crowd favorites"
+        follow_up = (" Tell me a genre — isekai, action, romance, comedy, thriller — "
+                     "and I'll tailor the next batch!")
+    else:
+        scope = ", ".join(_GENRE_DISPLAY.get(g, g.title()) for g in genres)
+        follow_up = ""
+
+    cards = _pick_from_catalog(genres, want_dub=want_dub, limit=5)
+
+    if want_dub:
+        scope += " with an English dub"
+    elif want_sub:
+        scope += " with subs"
+
+    if not cards and want_dub:
+        # Rare: nothing matched with an English dub — relax the audio filter
+        # instead of abandoning the genre the user asked for.
+        cards = _pick_from_catalog(genres, limit=5)
+        if cards:
+            text = ("Couldn't fill a list of English-dubbed shows for that one, so here are "
+                    "the top picks in that lane — most of these got dubs too. Tap a card to "
+                    "check its dub languages on the anime page!")
+            return text, cards
+
+    if not cards:
+        # No exact match — fall back to the site's genuinely popular titles.
+        cards = _pick_from_catalog([], limit=5)
+        text = ("I couldn't find a strong match for that combo in the catalog — "
+                "here are some universally loved picks instead. Try another genre like "
+                "isekai, romance, or thriller, and I'll pull fresh cards!")
+        return text, cards
+
+    lead = cards[0]
+    label = "show" if len(cards) == 1 else "shows"
+    text = (f"Here are {len(cards)} {label} matching {scope} — straight from the Otakul "
+            f"catalog. Starting strong with {lead['title']}: tap any card to open its page "
+            f"and jump into the community chat!{follow_up}")
+    return text, cards
+
+
+def _anime_fact_reply(entry):
+    """Answer data questions about a specific show using OUR catalog."""
+    title = entry.get("title") or "This show"
+    genre = entry.get("genre") or "?"
+    eps = entry.get("total_episodes") or "?"
+    status = entry.get("status") or ""
+    year = (entry.get("release") or "").split("-")[0] or entry.get("start_year") or "?"
+    studio = entry.get("studio") or "?"
+    try:
+        rating = float(entry.get("rating") or 0)
+    except (TypeError, ValueError):
+        rating = 0
+    members = _fmt_members(entry.get("member_count"))
+    syn = (entry.get("synopsis") or "").strip()
+    if len(syn) > 220:
+        syn = syn[:220].rsplit(" ", 1)[0] + "\u2026"
+    dub_note = " \u00b7 English dub available" if _has_dub(entry) else ""
+    rating_txt = f"\u2b50 {rating:.1f}/5" if rating else "no community rating yet"
+    text = f"\U0001f3ac {title} \u2014 {status or 'Anime'}, {year}{dub_note}.\n"
+    text += f"Genre: {genre} | Studio: {studio} | Episodes: {eps}\n"
+    text += f"{rating_txt} \u00b7 {members} members on Otakul\n"
+    if syn:
+        text += f"\n{syn}"
+    text += "\n\nWant me to suggest similar shows, or open its page for reviews and chat?"
+    return text
+
+
+def _site_topic_reply(msg):
+    """Site / XP / guilds / features answers + battle debates + fallback."""
+    # Battles ("who would win")
+    if any(w in msg for w in ["who would win", "who wins", "vs", "fight", "battle", "stronger", "strongest"]):
+        found = []
+        for name in ["goku", "ichigo", "naruto", "sasuke", "luffy", "zoro", "saitama", "gojo",
+                     "itadori", "tanjiro", "lelouch", "levi", "eren", "gon", "killua", "guts", "tanya"]:
+            if name in _norm(msg):
+                found.append(name)
+        if len(found) >= 2:
+            return (f"⚔️ Fun matchup! Both are absolute monsters in their verses — raw power vs. "
+                    f"hax decides it. Tell me which two you want and I'll break down who takes it "
+                    f"and why, or debate it in a War Zone on Otakul!")
+        return ("Ooh, a battle debate! 🥊 Tell me exactly which two characters — like "
+                "'Goku vs Naruto' — and I'll give you my verdict. You can also start a real "
+                "Reply War under a review and let the community vote!")
+    # XP / rank
+    if any(w in msg for w in ["xp", "rank", "level", "tier", "experience", "unlock"]):
+        return ("On Otakul you earn XP from likes on your reviews, Reply Wars and community "
+                "participation. Ranks go F → D → C → B → A → S → S+. At C rank (500 XP) you "
+                "unlock dislikes, Reply Wars and War Zone creation — check your profile for "
+                "your current XP!")
+    # reviews
+    if any(w in msg for w in ["review", "rating", "rate", "stars"]):
+        return ("Reviews on Otakul use a 10-star verdict scale — 1–4 RED (negative), 5 grey, "
+                "6–10 GREEN. Reviews earn their own Review XP and you earn profile XP from "
+                "likes. Dislikes need C rank (500 XP). Tap any anime page to rate it!")
+    # guilds/threads
+    if any(w in msg for w in ["guild", "thread"]):
+        return ("Guilds (on the Threads page) are communities with roles — owner, moderator, "
+                "member — plus channels for chat and media, and guild wars for guild XP. Create "
+                "one from Threads or join an existing community!")
+    # wars
+    if "war" in msg or "warzone" in msg or "war zone" in msg:
+        return ("War Zone is Otakul's debate arena — post a declaration, battlers enter their "
+                "best takes, and the community votes by like-ratio. Wars settle after 24–72 "
+                "hours. C rank unlocks creating wars, and guilds can challenge each other in "
+                "GvG wars!")
+    # quiz
+    if any(w in msg for w in ["new to anime", "quiz", "starter", "beginner"]):
+        return ("The 'New to Anime' quiz in the navbar is the fastest way to get started — it "
+                "asks your preferences and recommends anime built around your taste. I can also "
+                "hand you recommendation cards right here — just ask!")
+    # characters
+    if any(w in msg for w in ["character", "characters", "cast", "voice actor"]):
+        return ("Otakul has a searchable Characters page with 10k+ characters — names, roles "
+                "and the anime they appear in. Ask me 'who would win' matchups too and I'll "
+                "debate them!")
+    # lists
+    if any(w in msg for w in ["list", "watching", "completed", "plan to watch", "dropped"]):
+        return ("You can track anime with four lists — Watching, Completed, Plan to Watch and "
+                "Dropped — with per-episode progress. Add shows from any anime page and your "
+                "profile keeps it all organized.")
+    # how do i / where do i (site help default)
+    if any(w in msg for w in ["how do i", "where do i", "how to", "how can i", "sign up", "login", "log in"]):
+        return ("Happy to help! The navbar is your map: Browse for the catalog, Reviews for "
+                "the feed, Threads for guilds, and your profile pill (top right) for settings "
+                "and lists. Tell me what you're trying to do and I'll point you to the exact page!")
+    # fallback
+    return ""
+
+
+def _smart_reply(history):
+    """Route a user message to the right brain. Returns (text, cards).
+
+    • Recommendation asks  → real anime CARDS from the Otakul catalog (max 5),
+      always handled locally so they never depend on the LLM being online.
+    • "Tell me about X"    → facts pulled from OUR catalog (title, studio,
+      episodes, rating, synopsis, members) when the show is recognized.
+    • Site / system Qs     → answered from Otakul's actual feature set.
+    • Everything else      → the LLM when a key is set, else a friendly reply.
+    """
     user_msg = ""
     for m in reversed(history):
         if m.get("role") == "user":
-            user_msg = m.get("content", "").lower()
+            user_msg = (m.get("content") or "").strip()
             break
+    norm = _norm(user_msg)
 
-    # ── Greetings & identity ──
-    if any(w in user_msg for w in ["who are you", "tell me about yourself", "what can you do", "your name", "what are you"]):
-        return "I'm Ota-chan, Otakul's mascot and AI assistant! 🎌 I can help you navigate the site (XP, reviews, guilds, War Zones), answer anime questions, give recommendations, and even debate 'who would win' matchups. What do you want to know?"
-
-    if any(w in user_msg for w in ["hello", "hi!", "hey", "yo!", "sup", "what's up", "how are you", "hii"]):
+    # Greetings / identity / small talk
+    if any(w in norm for w in ["who are you", "what can you do", "your name", "what are you"]):
+        return ("I'm Ota-chan, Otakul's own AI assistant! 🎌 I live on Otakul's catalog — I "
+                "can hand you anime recommendation cards (up to 5 at a time), answer questions "
+                "about shows with real data, explain how the site works (XP, reviews, guilds, "
+                "War Zones), and debate 'who would win' matchups."), []
+    if any(w in norm for w in ["hello", " hi", " hey", " sup", "yo", "what's up", "how are you", "hii", "good morning", "good evening"]):
         return random.choice([
-            "Hey there! 🎌 Ask me about anime, get recommendations, or learn how Otakul works!",
-            "Hii! Welcome to Otakul! Want anime recs, trivia, or help with the site?",
-            "Yo! I'm Ota-chan — your anime assistant. What's on your mind?",
-        ])
-
-    if any(w in user_msg for w in ["bye", "goodbye", "see you", "thanks", "thank you", "thx"]):
+            "Hey there! 🎌 Ask me for anime recs and I'll send over cards straight from the catalog — or ask about Otakul itself!",
+            "Hii! Want anime recommendations, show details, or help with the site? I'm all ears!",
+            "Yo! I'm Ota-chan — ask me for anime picks and I'll show you actual cards you can tap.",
+        ]), []
+    if any(w in norm for w in ["bye", "goodbye", "see you", "thank you", " thanks", "thx"]):
         return random.choice([
             "See you later! Happy anime-ing! ✨",
-            "Bye! Come back anytime you need help! 🎌",
-            "Take care! I'll be here when you need me! 💜",
-        ])
+            "Bye! Come back whenever you need a recommendation! 🎌",
+            "Take care! I'll be here when you want more picks 💜",
+        ]), []
 
-    # ── XP & Ranks ──
-    if any(w in user_msg for w in ["xp", "rank", "level", "tier", "experience"]):
-        return "On Otakul, you earn XP by getting likes on your reviews, winning Reply Wars, and community participation. Ranks go F → D → C → B → A → S → S+. At C rank (500 XP) you unlock dislikes, Reply Wars, and War Zone creation! Check your profile to see your current XP."
+    # --- Anime title recognized → talk about THAT show with real data ---
+    entry = _find_title(user_msg)
+    if entry and any(w in norm for w in ["tell me about", "about ", "how many episodes", "episodes does",
+                                         "when did", "who made", "studio", "rating", "synopsis", "is it good",
+                                         "what is ", "review of", "similar to", "like "] or len(_words(norm)) <= 3):
+        text = _anime_fact_reply(entry)
+        # "similar/like X" also returns recommendation cards
+        if "similar" in norm or "like " in norm or "recommend" in norm or "more like" in norm:
+            genres = _match_genres(entry.get("genre") or "")
+            cards = _pick_from_catalog(genres, limit=5)
+            if cards:
+                text += "\n\nThese are closest to it in the catalog:"
+                return text, cards
+        return text, []
 
-    # ── Reviews ──
-    if any(w in user_msg for w in ["review", "rating", "rate"]):
-        return "Reviews use a 2-10 star rating scale with text comments. Likes from higher-ranked users give more XP. At C rank (500 XP), you can also dislike reviews. Each review page has a Reply War section where you can debate stances!"
+    # --- Recommendation asks → cards ---
+    if _is_recommend_ask(user_msg):
+        return _recommend_reply(user_msg)
 
-    # ── Guild / Thread / Community ──
-    if any(w in user_msg for w in ["guild", "thread"]):
-        return "Guilds are communities with roles (owner/moderator/member). Each guild has channels for chat and media. Guilds can compete in Guild Wars for guild XP! Create one from the Threads page, or discover existing ones."
+    # --- Site features ---
+    site_ans = _site_topic_reply(norm)
+    if site_ans:
+        return site_ans, []
 
-    if any(w in user_msg for w in ["war zone", "warzone", "war"]):
-        return "War Zone is Otakul's debate arena! Post a declaration (your position), battlers enter their best takes, and the community votes. You need C rank to create wars. Guilds can also challenge each other in GvG wars! Wars settle after 24-72 hours."
+    # --- Anime-worded asks without a clear intent ---
+    if any(w in norm for w in ["anime", "manga", "show", "series", "season", "episode"]):
+        return ("Happy to dig into any show we have! Ask me things like 'recommend isekai anime "
+                "with a dub', 'tell me about Steins;Gate', or 'similar to Attack on Titan' — I'll "
+                "answer from the Otakul catalog and send cards you can tap right into."), []
 
-    # ── New to Anime ──
-    if any(w in user_msg for w in ["new to anime", "quiz", "recommend for me", "what should i watch"]):
-        return "Try the 'New to Anime' quiz in the navbar! It asks you fun preference questions and recommends anime based on your taste. It's the fastest way to find something you'll love!"
+    # --- LLM free-for-all when a key exists ---
+    if LLM_API_KEY:
+        try:
+            reply = _call_llm(_build_system_prompt(), history, max_tokens=500)
+            if reply:
+                return reply, []
+        except requests.exceptions.Timeout:
+            return "Sorry, I zoned out for a second — can you say that again?", []
+        except Exception as exc:
+            print(f"[otachan] chat API error: {exc}", flush=True)
 
-    # ── Anime lists ──
-    if any(w in user_msg for w in ["list", "watching", "completed", "plan to watch", "dropped"]):
-        return "Otakul has anime lists: Watching, Completed, Plan to Watch, and Dropped — with episode progress tracking! Add anime from any anime page. Track your progress and it shows on your profile."
-
-    # ── Chat / Community ──
-    if any(w in user_msg for w in ["chat", "community", "message"]):
-        return "Every anime has its own community chat room. Join from the anime's page and discuss in real-time with GIF support! It's a great way to talk about specific shows with other fans."
-
-    # ── Profile ──
-    if any(w in user_msg for w in ["profile", "avatar"]):
-        return "Your profile shows your avatar, username, rank badge, XP, review history, anime lists, and activity. You can toggle it between public and private in Settings!"
-
-    # ── Characters ──
-    if any(w in user_msg for w in ["character", "characters", "cast"]):
-        return "Otakul has a searchable database of 10,000+ anime characters with images, roles, and anime affiliations! Check the Characters page in the navbar to search by name."
-
-    # ── 'Who would win' battles ──
-    if any(w in user_msg for w in ["who would win", "vs", "fight", "who wins", "battle", "stronger", "strongest"]):
-        # Find character names mentioned
-        found_chars = []
-        for name, data in _BATTLE_DATA.items():
-            if name in user_msg:
-                found_chars.append((name, data))
-        if len(found_chars) >= 2:
-            chars_text = " vs. ".join(c[1] for c in found_chars)
-            return f"⚔️ Great matchup! {chars_text} — This is a legendary debate! Both have insane feats. If it's pure destructive power, the Dragon Ball character has universe-level feats. But hax abilities (like Gojo's Infinity or Lelouch's Geass) can bypass raw power. Who do YOU think wins? I'd love to hear your take!"
-        elif len(found_chars) == 1:
-            name, data = found_chars[0]
-            return f"{data} They're definitely one of the strongest in their verse! Who would you want to pit them against in a fight?"
-        else:
-            return "Ooh, a battle debate! 🥊 Tell me which specific characters you want to compare — like 'Goku vs Naruto' or 'Gojo vs Saitama' and I'll break down the matchup!"
-
-    # ── Recommendations ──
-    if any(w in user_msg for w in ["recommend", "suggest", "should i watch", "good anime"]):
-        rec_key = "default"
-        if "isekai" in user_msg:
-            rec_key = "isekai"
-        elif "action" in user_msg:
-            rec_key = "action"
-        elif "romance" in user_msg or "love" in user_msg:
-            rec_key = "romance"
-        elif "comedy" in user_msg or "funny" in user_msg:
-            rec_key = "comedy"
-        elif "thriller" in user_msg or "suspense" in user_msg:
-            rec_key = "thriller"
-        elif "best" in user_msg or "top" in user_msg or "greatest" in user_msg:
-            rec_key = "best"
-        recs = _RECOMMENDATIONS[rec_key]
-        chosen = random.sample(recs, min(3, len(recs)))
-        picks = "\n".join(f"• {r}" for r in chosen)
-        return f"🎬 Here are my picks:\n{picks}\nWant more? Tell me a specific genre or ask about any anime!"
-
-    # ── Anime-specific questions ──
-    if any(w in user_msg for w in ["anime", "manga", "show", "series", "watch", "season", "episode"]):
-        return "Tell me what specific anime or genre you're interested in! I can give detailed info about shows, recommend by genre (isekai, action, romance, comedy, thriller), or debate matchups between characters."
-
-    # ── Default ──
     return random.choice([
-        "I can help with anime recommendations, character info, 'who would win' debates, and questions about how Otakul works (XP, reviews, guilds, War Zones). What are you interested in?",
-        "Not sure what you mean — but I'm great at anime trivia, recommendations, site help, and battle debates! Try asking about a specific anime or character.",
-        "Hmm, try asking me about a specific anime, character, or genre — or ask about Otakul features like XP, reviews, or guilds!",
-    ])
-
+        "I can hand you recommendation cards (try 'recommend isekai anime with a dub'), answer "
+        "show questions from our catalog, or explain Otakul — XP, reviews, guilds, War Zones.",
+        "Not sure I caught that — but ask me for anime picks ('recommend me some romance'), "
+        "details on any show we have, or how Otakul works!",
+        "Try asking for recommendations, a specific anime ('tell me about Frieren'), or site help!",
+    ]), []
 
 # -------------------------------------------------------------------
 # LLM call
@@ -438,25 +896,16 @@ def otachan_message():
     if len(history) > MAX_HISTORY * 2:
         history = history[-(MAX_HISTORY * 2):]
 
-    # Build system prompt
-    system_prompt = _build_system_prompt()
+    # Ota-chan's smart reply — recommendation asks always return real
+    # anime cards from the catalog (max 5), answered locally so they
+    # never depend on the LLM being reachable.
+    reply, cards = _smart_reply(history)
 
-    # Call LLM or use template replies
-    if not LLM_API_KEY:
-        reply = _template_reply(history)
-    else:
-        try:
-            reply = _call_llm(system_prompt, history, max_tokens=500)
-            if not reply:
-                reply = _template_reply(history)
-        except requests.exceptions.Timeout:
-            reply = "Sorry, I zoned out for a second — can you say that again?"
-        except Exception as exc:
-            print(f"[otachan] chat API error: {exc}", flush=True)
-            reply = _template_reply(history)
-
-    # Append the reply and persist
-    history.append({"role": "assistant", "content": reply})
+    # Append the reply (with any recommendation cards) and persist
+    assistant_entry = {"role": "assistant", "content": reply}
+    if cards:
+        assistant_entry["cards"] = cards
+    history.append(assistant_entry)
 
     # Cap again before saving
     if len(history) > MAX_HISTORY * 2:
@@ -467,6 +916,7 @@ def otachan_message():
     return jsonify({
         "success": True,
         "reply": reply,
+        "cards": cards,
         "history": history,
     })
 
