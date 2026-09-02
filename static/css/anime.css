@@ -3421,3 +3421,30 @@ footer p{
         padding:8px 10px 10px;
     }
 }
+
+
+/* ---- secondary actions: keep them ONE line at half width ---- */
+@media (max-width: 600px){
+    .hero-actions .join-btn,
+    .hero-actions .anime-add-list-btn,
+    .hero-actions .review-scroll-btn{
+        height:38px;
+        box-sizing:border-box;
+    }
+    .hero-actions .anime-add-list-btn,
+    .hero-actions .review-scroll-btn{
+        padding:0 8px !important;
+        font-size:12.5px !important;
+        gap:6px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        line-height:1;
+    }
+    .hero-actions .join-btn{
+        padding:0 14px !important;
+        font-size:13px !important;
+        gap:8px;
+        white-space:nowrap;
+    }
+}
