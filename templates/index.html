@@ -7,7 +7,7 @@
     <title>Otakul</title>
 
     <link rel="icon" type="image/svg+xml"
-    href="{{ url_for('static', filename='favicon.svg') }}">    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260902n">
+    href="{{ url_for('static', filename='favicon.svg') }}">    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260902p">
     <style>
         /* Mobile first-screen guarantees — kept INLINE so a stale cached
            stylesheet can never re-break the phone layout (the homepage
@@ -18,10 +18,10 @@
             .hero p { font-size: 12px; line-height: 1.45; margin: 0 auto 10px; max-width: 330px; }
             .section-title { margin: 30px auto 14px; }
             .section-title h2 { font-size: 24px; }
-            .anime-grid { grid-template-columns: 1fr; width: 92%; margin: 14px auto 34px; gap: 14px; }
+            .anime-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 94%; margin: 14px auto 34px; gap: 12px; }
             .anime-card { border-radius: 14px; }
             .anime-card:hover { transform: none; }
-            .image-box { height: 120px; }
+            .image-box { height: auto; aspect-ratio: 4/5; }
         }
     </style>
 
