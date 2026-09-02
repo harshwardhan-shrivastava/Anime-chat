@@ -101,6 +101,65 @@
             grid-column: 1 / -1;
         }
     }
+    /* Support (PayPal / UPI) */
+    .site-footer .support-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 6px;
+        padding: 9px 16px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: #fff;
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+    }
+    .site-footer .support-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
+        color: #fff;
+    }
+    .site-footer .upi-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+    }
+    .site-footer .upi-id {
+        font-family: ui-monospace, 'Cascadia Mono', monospace;
+        font-size: 0.78rem;
+        color: #e2e8f0;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 5px 10px;
+        border-radius: 8px;
+        letter-spacing: 0.2px;
+    }
+    .site-footer .upi-copy {
+        background: rgba(255, 255, 255, 0.08);
+        color: #cbd5e1;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        font-size: 0.72rem;
+        font-weight: 700;
+        font-family: 'Montserrat', system-ui, sans-serif;
+        padding: 5px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+    }
+    .site-footer .upi-copy:hover {
+        background: rgba(34, 197, 94, 0.2);
+        color: #4ade80;
+    }
+    .site-footer .support-note {
+        font-size: 0.72rem;
+        color: #64748b;
+        margin-top: 6px;
+        line-height: 1.5;
+    }
 </style>
 
 <footer class="site-footer">
@@ -123,6 +182,15 @@
                 Email us
             </a>
             <a href="https://github.com/harshwardhan-shrivastava/Anime-chat" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a class="support-btn" href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&amp;business=kanchanpresssindri%40gmail.com&amp;item_name=Support%20OtaKul&amp;currency_code=USD&amp;no_shipping=1" target="_blank" rel="noopener noreferrer">
+                <i class="fas fa-heart" aria-hidden="true"></i>
+                Support OtaKul
+            </a>
+            <div class="upi-row">
+                <span class="upi-id">9102700754@ptsbi</span>
+                <button type="button" class="upi-copy" onclick="copyUpi(this)">Copy UPI</button>
+            </div>
+            <span class="support-note">Voluntary tip via PayPal or UPI (GPay/PhonePe) — it just keeps OtaKul free. Never required, always appreciated ♥</span>
         </div>
         <div class="footer-col">
             <h4>Legal</h4>
@@ -131,6 +199,41 @@
     </div>
     <div class="footer-bottom">
         <span>© 2026 OtaKul. All rights reserved.</span>
-        <span>Made with ❤️ for anime fans.</span>
+        <span>Made with ❤️ for anime fans · Profile avatars by <a href="https://charat.me" target="_blank" rel="noopener noreferrer" style="color:#64748b;">Charat</a></span>
     </div>
 </footer>
+
+<script>
+(function () {
+    "use strict";
+    if (window.copyUpi) return;
+    function legacy(txt, done) {
+        var ta = document.createElement("textarea");
+        ta.value = txt;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+            document.execCommand("copy");
+            done();
+        } catch (e) {
+            window.prompt("Your UPI ID:", txt);
+        }
+        document.body.removeChild(ta);
+    }
+    window.copyUpi = function (btn) {
+        var id = "9102700754@ptsbi";
+        var done = function () {
+            var old = btn.textContent;
+            btn.textContent = "Copied \u2713";
+            setTimeout(function () { btn.textContent = old; }, 2000);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(id).then(done, function () { legacy(id, done); });
+        } else {
+            legacy(id, done);
+        }
+    };
+})();
+</script>

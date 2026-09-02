@@ -1,5 +1,6 @@
 import calendar
 import functools
+import gzip
 import json
 import os
 import random
@@ -235,16 +236,48 @@ def _attach_user():
 
 
 @app.after_request
-def _no_store_html(response):
-    """Never let browsers cache HTML pages.
+def _performance_headers(response):
+    """Response speed & freshness headers.
 
-    Without this, browsers (especially Brave) serve stale copies of pages
-    like /signup for hours, which caused confusing "old version" errors
-    (outdated username messages, missing fixes). Static assets (css/js)
-    are unaffected - only text/html is forced fresh.
+    1. Static assets carry a ?v= cache-buster on every page, so they get a
+       one-year immutable cache — repeat visits fetch zero css/js.
+    2. HTML pages are never cached (prevents stale-tab bugs); API JSON is
+       always revalidated.
+    3. Text-ish responses (HTML/CSS/JS/JSON/SVG) are gzip-compressed when the
+       client accepts it, shrinking page and chat payloads ~70-85%.
     """
-    if response.mimetype == "text/html":
+    if request.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif response.mimetype == "text/html":
         response.headers["Cache-Control"] = "no-store, max-age=0"
+    elif response.mimetype == "application/json":
+        response.headers["Cache-Control"] = "no-cache"
+
+    if (
+        response.status_code < 400
+        and response.mimetype
+        and "gzip" in (request.headers.get("Accept-Encoding", "") or "")
+        and response.direct_passthrough is False
+        and not response.headers.get("Content-Encoding")
+        and (
+            response.mimetype.startswith("text/")
+            or response.mimetype in ("application/json", "application/javascript", "image/svg+xml")
+        )
+    ):
+        try:
+            raw = response.get_data()
+        except Exception:
+            raw = b""
+        if raw and len(raw) >= 1024:
+            compressed = gzip.compress(raw, 2, mtime=0)
+            if len(compressed) < len(raw):
+                response.set_data(compressed)
+                response.headers["Content-Encoding"] = "gzip"
+                vary = response.headers.get("Vary", "")
+                if "Accept-Encoding" not in vary:
+                    response.headers["Vary"] = (
+                        (vary + ", Accept-Encoding").strip(", ") if vary else "Accept-Encoding"
+                    )
     return response
 
 
@@ -849,34 +882,33 @@ def _sort_value(entry, sort):
     return (year, popularity)
 
 
-def _catalog_entries(sort="latest", genre=None, limit=None):
+# The enriched catalog is expensive to build (14k entries x stats lookups),
+# so it's built once per window and shared by every request. Filtering and
+# sorting still happen per request; returned dicts are copies so routes that
+# stamp extra fields (badge labels) can never leak mutations into the cache.
+_CATALOG_ENRICHED = {"ts": 0.0, "items": None}
+_CATALOG_TTL = 90.0
+
+
+def _enriched_catalog_items():
+    now = time.time()
+    cached = _CATALOG_ENRICHED["items"]
+    if cached is not None and now - _CATALOG_ENRICHED["ts"] < _CATALOG_TTL:
+        return cached
+
     all_stats = get_all_anime_stats()
     _ensure_airing_schedule()
     real_members = get_all_community_member_counts()
 
-    entries = []
+    items = []
     for slug, entry in anime_database.items():
-        if genre:
-            genres = entry.get("genre", "").lower()
-            if genre.lower() not in genres:
-                continue
-
         status = entry.get("status", "")
-        if sort == "new" and status != "Ongoing":
-            continue
-        if sort == "upcoming" and status != "Upcoming":
-            continue
-        if sort == "latest" and status == "Upcoming":
-            continue
-
         stats = all_stats.get(slug, {"votes": 0, "average": 0})
-        live_rating = stats["average"] if stats["votes"] > 0 else entry.get("rating", "N/A")
-
-        entries.append({
+        items.append({
             "slug": slug,
             "title": entry.get("title", slug),
             "image": entry.get("image", ""),
-            "live_rating": live_rating,
+            "live_rating": stats["average"] if stats["votes"] > 0 else entry.get("rating", "N/A"),
             "live_votes": stats["votes"],
             "member_count": real_members.get(slug, 0),
             "rating": entry.get("rating", "N/A"),
@@ -895,6 +927,29 @@ def _catalog_entries(sort="latest", genre=None, limit=None):
             "has_sub": bool(entry.get("subtitles")),
             "arc_count": len(entry.get("watch_order") or []) or len(entry.get("seasons") or []),
         })
+    _CATALOG_ENRICHED["ts"] = now
+    _CATALOG_ENRICHED["items"] = items
+    return items
+
+
+def _catalog_entries(sort="latest", genre=None, limit=None):
+    entries = _enriched_catalog_items()
+
+    if genre or sort in ("new", "upcoming", "latest"):
+        keep = []
+        for entry in entries:
+            if genre:
+                if genre.lower() not in entry.get("genre", "").lower():
+                    continue
+            status = entry.get("status", "")
+            if sort == "new" and status != "Ongoing":
+                continue
+            if sort == "upcoming" and status != "Upcoming":
+                continue
+            if sort == "latest" and status == "Upcoming":
+                continue
+            keep.append(entry)
+        entries = keep
 
     if sort in ("new", "upcoming"):
         if sort == "new":
@@ -908,7 +963,7 @@ def _catalog_entries(sort="latest", genre=None, limit=None):
 
     if limit:
         entries = entries[:limit]
-    return entries
+    return [dict(e) for e in entries]
 
 
 def _episode_badge(entry):
