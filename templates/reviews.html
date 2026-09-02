@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260830a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260902f">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}?v=20260902g">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -93,8 +93,8 @@
             </div>
         </div>
 
-        <!-- ===== RATING POWER (the 10-star verdict system) ===== -->
-        <div class="rv-rp-legend open" id="rvRpLegend">
+        <!-- ===== RATING POWER (the 10-star verdict system) — collapsed by default, tap to open ===== -->
+        <div class="rv-rp-legend" id="rvRpLegend">
             <div class="rv-rp-head" onclick="document.getElementById('rvRpLegend').classList.toggle('open')">
                 <span class="rv-rp-icon"><span></span></span>
                 <h3>Rating Power <span>· The 10-Star Verdict</span></h3>
@@ -245,9 +245,9 @@
                 {% endif %}
                 <div class="rv-card-body">
                     <div class="rv-user-line">
-                        <a class="rv-avatar" href="/user/{{ r.username | urlencode }}" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[0]|upper }}{% if r.avatar %}<img src="/static/images/avatars/{{ r.avatar }}" alt="{{ r.username }}" loading="lazy" onerror="this.remove()">{% endif %}</a>
+                        <a class="rv-avatar" href="/user/{{ r.username | urlencode }}" data-profile-uid="{{ r.user_id }}" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[0]|upper }}{% if r.avatar %}<img src="/static/images/avatars/{{ r.avatar }}" alt="{{ r.username }}" loading="lazy" onerror="this.remove()">{% endif %}</a>
                         <div class="rv-user-meta">
-                            <a class="rv-username" href="/user/{{ r.username | urlencode }}"><h3>{{ r.username }}{% if mine %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> you</span>{% endif %}</h3></a>
+                            <a class="rv-username" href="/user/{{ r.username | urlencode }}" data-profile-uid="{{ r.user_id }}"><h3>{{ r.username }}{% if mine %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> you</span>{% endif %}</h3></a>
                             <div class="rv-badges">
                                 {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:0.95rem;padding:3px 14px;letter-spacing:2px;">{{ r.rank }}</span>{% endif %}
                                 {% if is_developer(r.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
@@ -291,7 +291,7 @@
                             <span class="rv-bottle-label">Review XP</span>
                         </span>
                         <div class="rv-foot-spacer"></div>
-                        <a class="rv-link-btn" href="/user/{{ r.username | urlencode }}"><i class="fas fa-user"></i> History</a>
+                        <a class="rv-link-btn" href="/user/{{ r.username | urlencode }}/history"><i class="fas fa-clock-rotate-left"></i> History</a>
                         <button type="button" class="rv-link-btn primary" data-share="/anime/{{ r.anime_slug }}"><i class="fas fa-share-nodes"></i> Share</button>
                     </div>
 
@@ -321,9 +321,9 @@
                 {% endif %}
                 <div class="rv-card-body">
                     <div class="rv-user-line">
-                        <a class="rv-avatar" href="/user/{{ r.username | urlencode }}" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[0]|upper }}{% if r.avatar %}<img src="/static/images/avatars/{{ r.avatar }}" alt="{{ r.username }}" loading="lazy" onerror="this.remove()">{% endif %}</a>
+                        <a class="rv-avatar" href="/user/{{ r.username | urlencode }}" data-profile-uid="{{ r.user_id }}" style="background:{{ r.avatar_color or '#374151' }};">{{ r.username[0]|upper }}{% if r.avatar %}<img src="/static/images/avatars/{{ r.avatar }}" alt="{{ r.username }}" loading="lazy" onerror="this.remove()">{% endif %}</a>
                         <div class="rv-user-meta">
-                            <a class="rv-username" href="/user/{{ r.username | urlencode }}"><h3>{{ r.username }}{% if mine %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> you</span>{% endif %}</h3></a>
+                            <a class="rv-username" href="/user/{{ r.username | urlencode }}" data-profile-uid="{{ r.user_id }}"><h3>{{ r.username }}{% if mine %}<span class="rv-mine-note"><i class="fas fa-user-check"></i> you</span>{% endif %}</h3></a>
                             <div class="rv-badges">
                                 {% if r.rank %}<span class="rank-badge rank-{{ r.rank }}" style="font-size:0.95rem;padding:3px 14px;letter-spacing:2px;">{{ r.rank }}</span>{% endif %}
                                 {% if is_developer(r.username) %}<span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}
@@ -373,7 +373,7 @@
                             <span class="rv-bottle-label">Review XP</span>
                         </span>
                         <div class="rv-foot-spacer"></div>
-                        <a class="rv-link-btn" href="/user/{{ r.username | urlencode }}"><i class="fas fa-user"></i> History</a>
+                        <a class="rv-link-btn" href="/user/{{ r.username | urlencode }}/history"><i class="fas fa-clock-rotate-left"></i> History</a>
                         <button type="button" class="rv-link-btn primary" data-share="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}"><i class="fas fa-share-nodes"></i> Share</button>
                     </div>
 
@@ -386,7 +386,32 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/reviews.js') }}?v=20260902a"></script>
+    <!-- ===== Reviewer profile modal (Threads-style) ===== -->
+    <div class="rv-prof-overlay hidden" id="rvProfOverlay">
+        <div class="rv-prof-card" role="dialog" aria-modal="true">
+            <button type="button" class="rv-prof-close" id="rvProfClose" aria-label="Close"><i class="fas fa-times"></i></button>
+            <div class="rv-prof-head">
+                <div class="rv-prof-avatar" id="rvProfAvatar">?</div>
+                <div>
+                    <div class="rv-prof-name" id="rvProfName">…</div>
+                    <div class="rv-prof-sub" id="rvProfSub"></div>
+                </div>
+            </div>
+            <div class="rv-prof-badge-wrap" id="rvProfBadge"></div>
+            <div class="rv-prof-xp">
+                <div class="rv-prof-xp-labels"><span id="rvProfXp">0 XP</span><span id="rvProfPct">0%</span></div>
+                <div class="rv-prof-xp-track"><div class="rv-prof-xp-fill" id="rvProfXpFill" style="width:0%"></div></div>
+            </div>
+            <div class="rv-prof-joined" id="rvProfJoined"><i class="fas fa-calendar"></i> Joined …</div>
+            <div class="rv-prof-guilds">
+                <div class="rv-prof-guilds-title">GUILDS</div>
+                <div class="rv-prof-guilds-list" id="rvProfGuilds"><span class="rv-prof-guild-empty">No guilds yet</span></div>
+            </div>
+            <a class="rv-prof-history" id="rvProfHistory" href="#"><i class="fas fa-clock-rotate-left"></i> View full review history</a>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/reviews.js') }}?v=20260902b"></script>
 {% include "_footer.html" %}
 
 </body>

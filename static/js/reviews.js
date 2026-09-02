@@ -154,4 +154,100 @@
         try { document.execCommand("copy"); done(); } catch(e){}
         document.body.removeChild(ta);
     });
+
+    // ---- Reviewer profile modal (Threads-style) ----
+    function rvEsc(s) {
+        return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function rvFmtJoinDate(s) {
+        if (!s) return "";
+        var m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!m) return s;
+        var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+        var day = parseInt(m[3], 10);
+        var ord = (day % 10 === 1 && day !== 11) ? "st" : (day % 10 === 2 && day !== 12) ? "nd" : (day % 10 === 3 && day !== 13) ? "rd" : "th";
+        return months[parseInt(m[2], 10) - 1] + " " + day + ord + ", " + m[1];
+    }
+
+    function rvFillProfile(res) {
+        var u = res.user || {};
+        var av = document.getElementById("rvProfAvatar");
+        if (av) {
+            if (u.avatar) {
+                av.innerHTML = '<img src="/static/images/avatars/' + encodeURIComponent(u.avatar) + '" alt="">';
+                av.style.background = "none";
+            } else {
+                av.innerHTML = "";
+                av.textContent = (u.username || "?").charAt(0).toUpperCase();
+                av.style.background = "linear-gradient(135deg," + (u.avatar_color || "#64748b") + ",#475569)";
+            }
+        }
+        document.getElementById("rvProfName").textContent = "@" + (u.username || "unknown");
+        document.getElementById("rvProfSub").textContent = res.rank ? res.rank + " Rank" : "";
+        var badge = document.getElementById("rvProfBadge");
+        badge.innerHTML = res.rank
+            ? '<span class="rank-badge rank-' + rvEsc(res.rank) + '"><span class="rank-text">' + rvEsc(res.rank) + "</span></span>"
+            : "";
+        var xp = parseInt(res.xp || 0, 10) || 0;
+        document.getElementById("rvProfXp").textContent = xp.toLocaleString() + " XP";
+        var pct = Math.max(0, Math.min(100, parseInt(res.xp_pct || 0, 10) || 0));
+        document.getElementById("rvProfPct").textContent = pct + "%";
+        document.getElementById("rvProfXpFill").style.width = pct + "%";
+        document.getElementById("rvProfJoined").innerHTML = '<i class="fas fa-calendar"></i> Joined ' + (rvFmtJoinDate(res.joined_at) || "unknown");
+        var g = document.getElementById("rvProfGuilds");
+        var guilds = res.guilds || [];
+        if (!guilds.length) {
+            g.innerHTML = '<span class="rv-prof-guild-empty">No guilds yet</span>';
+        } else {
+            g.innerHTML = guilds.map(function (x) {
+                return '<span class="rv-prof-guild"><i class="fas fa-hashtag"></i> ' + rvEsc(x.name || "?") +
+                    (x.role === "owner" ? ' <span class="rv-prof-guild-owner">OWNER</span>' : "") + "</span>";
+            }).join("");
+        }
+        document.getElementById("rvProfHistory").href = "/user/" + encodeURIComponent(u.username || "") + "/history";
+    }
+
+    function rvOpenProfile(uid) {
+        fetch("/threads/api/users/" + encodeURIComponent(uid) + "/profile", { credentials: "include" })
+            .then(function (r) {
+                if (!r.ok) throw new Error("http " + r.status);
+                return r.json();
+            })
+            .then(function (res) {
+                if (!res || !res.success) throw new Error("bad payload");
+                rvFillProfile(res);
+                var ov = document.getElementById("rvProfOverlay");
+                ov.classList.remove("hidden");
+                document.body.style.overflow = "hidden";
+            })
+            .catch(function () {
+                alert("Could not load this profile.");
+            });
+    }
+
+    function rvCloseProfile() {
+        var ov = document.getElementById("rvProfOverlay");
+        if (!ov) return;
+        ov.classList.add("hidden");
+        document.body.style.overflow = "";
+    }
+
+    document.addEventListener("click", function (e) {
+        var trig = e.target.closest("[data-profile-uid]");
+        if (trig) {
+            e.preventDefault();
+            var uid = trig.getAttribute("data-profile-uid");
+            if (uid) rvOpenProfile(uid);
+            return;
+        }
+        if (e.target.closest("#rvProfClose")) { rvCloseProfile(); return; }
+        if (e.target === document.getElementById("rvProfOverlay")) rvCloseProfile();
+    });
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && document.getElementById("rvProfOverlay") &&
+            !document.getElementById("rvProfOverlay").classList.contains("hidden")) {
+            rvCloseProfile();
+        }
+    });
 })();

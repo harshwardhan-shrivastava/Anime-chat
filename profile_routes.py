@@ -246,6 +246,90 @@ def public_profile(username):
         genres=_genre_list(),
     )
 
+@bp.route("/user/<username>/history")
+def user_review_history(username):
+    """Full review history for a user — anime + episode reviews, with sort
+    (highest / newest / oldest) and a search-by-anime filter bar."""
+    import database as db
+    target = db.get_user_by_username(username)
+    if target is None:
+        flash("User not found.", "error")
+        return redirect(url_for("home"))
+    is_owner = g.get("user") and g.get("user")["id"] == target["id"]
+    if not is_owner and not target.get("is_public"):
+        flash("This profile is private.", "error")
+        return redirect(url_for("home"))
+
+    sort = request.args.get("sort", "newest")
+    if sort not in ("highest", "newest", "oldest"):
+        sort = "newest"
+    q = (request.args.get("q") or "").strip()
+    page = max(1, request.args.get("page", 1, type=int))
+    per_page = 25
+
+    reviews = db.get_user_review_history(target["id"], 400)
+    if q:
+        ql = q.casefold()
+        reviews = [r for r in reviews if ql in (r.get("anime_title") or "").casefold()]
+    if sort == "highest":
+        reviews.sort(key=lambda r: r["rating"], reverse=True)
+    elif sort == "oldest":
+        reviews.sort(key=lambda r: (r.get("created_at") or ""))
+    # "newest" keeps the DB's id-DESC order.
+
+    total = len(reviews)
+    pages = max(1, (total + per_page - 1) // per_page)
+    page = min(page, pages)
+    start = (page - 1) * per_page
+    page_reviews = reviews[start:start + per_page]
+    anime_count = sum(1 for r in reviews if r["type"] == "anime")
+    ep_count = sum(1 for r in reviews if r["type"] == "episode")
+
+    for r in page_reviews:
+        likes = db.get_bulk_review_likes(r["type"], [r["id"]])
+        r["likes"] = likes.get(r["id"], {}).get("likes", 0)
+        r["dislikes"] = likes.get(r["id"], {}).get("dislikes", 0)
+        r["date_fmt"] = (r.get("created_at") or "")[:10]
+        if r["type"] == "episode":
+            r["season_idx"] = _resolve_season_idx(r["anime_slug"], r.get("season_name"))
+
+    user_xp = db.get_user_xp(target["id"])
+    user_rank = db.get_user_rank(target["id"])
+    history_count = db.get_history_count(target["id"])
+    return render_template(
+        "user_history.html",
+        target=target,
+        page_reviews=page_reviews,
+        anime_count=anime_count,
+        ep_count=ep_count,
+        total=total,
+        sort=sort,
+        q=q,
+        page=page,
+        pages=pages,
+        user_xp=user_xp,
+        user_rank=user_rank,
+        history_count=history_count,
+    )
+
+
+def _resolve_season_idx(anime_slug, season_name):
+    """Map a stored season_name (display name or raw index) to a 1-based
+    season index for building episode links."""
+    entry = anime_database.get(anime_slug)
+    seasons = (entry or {}).get("seasons") or []
+    try:
+        idx = int(season_name)
+        if 1 <= idx <= len(seasons):
+            return idx
+    except (TypeError, ValueError):
+        pass
+    for i, s in enumerate(seasons, 1):
+        if s.get("name") == season_name:
+            return i
+    return 1
+
+
 @bp.route("/api/lists", methods=["GET", "POST"])
 def api_lists():
     user, err = _require_user_json()

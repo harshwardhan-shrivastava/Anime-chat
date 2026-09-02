@@ -742,3 +742,151 @@ body { background: var(--rv-bg); color: var(--rv-text); font-family: 'Inter', -a
     font-weight: 900; color: #fff; font-size: 0.8rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.35);
 }
+
+/* ===== Reviewer profile modal (Threads-style) ===== */
+.rv-prof-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(5, 8, 15, 0.72);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.rv-prof-overlay.hidden { display: none; }
+.rv-prof-card {
+    position: relative;
+    width: 100%;
+    max-width: 380px;
+    background: radial-gradient(120% 120% at 20% 0%, #241a3d 0%, #12141f 55%);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    border-radius: 18px;
+    padding: 22px;
+    color: #e9ebf5;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+}
+.rv-prof-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: none;
+    color: #9aa2bd;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.rv-prof-close:hover { color: #fff; background: rgba(255, 255, 255, 0.12); }
+.rv-prof-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.rv-prof-avatar {
+    width: 62px;
+    min-width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #64748b, #475569);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: 800;
+    color: #fff;
+    overflow: hidden;
+}
+.rv-prof-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.rv-prof-name { font-size: 18px; font-weight: 800; }
+.rv-prof-sub { font-size: 13px; color: #9aa2bd; margin-top: 2px; }
+.rv-prof-badge-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 14px;
+}
+.rv-prof-badge-wrap .rank-badge { padding: 8px 26px; font-size: 1.15rem; letter-spacing: 3px; border-radius: 12px; }
+.rv-prof-xp {
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+.rv-prof-xp-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #c4c9dd;
+    margin-bottom: 6px;
+}
+.rv-prof-xp-track {
+    height: 10px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+.rv-prof-xp-fill {
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+    transition: width 0.4s ease;
+}
+.rv-prof-joined {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #c4c9dd;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 999px;
+    padding: 7px 14px;
+    margin-bottom: 16px;
+}
+.rv-prof-guilds { margin-bottom: 18px; }
+.rv-prof-guilds-title {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: #6f7694;
+    margin-bottom: 8px;
+}
+.rv-prof-guilds-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.rv-prof-guild {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #d6c9ff;
+    background: rgba(139, 92, 246, 0.16);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    border-radius: 999px;
+    padding: 6px 12px;
+}
+.rv-prof-guild-owner {
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #0b0f19;
+    background: #fbbf24;
+    border-radius: 6px;
+    padding: 2px 6px;
+}
+.rv-prof-guild-empty { font-size: 12.5px; color: #6f7694; }
+.rv-prof-history {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #6d28d9, #8b5cf6);
+    border-radius: 10px;
+    padding: 11px;
+    text-decoration: none;
+}
+.rv-prof-history:hover { filter: brightness(1.1); }

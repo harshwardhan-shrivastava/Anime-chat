@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ target.username }}'s Reviews — Otakul</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}">
+    <style>
+        .uh-wrap { max-width: 900px; margin: 0 auto; padding: 24px 18px 60px; }
+        .uh-header {
+            display: flex; align-items: center; gap: 18px;
+            background: linear-gradient(135deg, rgba(43, 16, 85, 0.5), rgba(18, 20, 31, 0.6));
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            border-radius: 16px; padding: 22px; margin-bottom: 18px;
+        }
+        .uh-header .profile-avatar { border-radius: 50%; overflow: hidden; width: 88px; height: 88px; min-width: 88px; }
+        .uh-header .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .uh-header h1 { margin: 0 0 6px; font-size: 1.5rem; color: #fff; }
+        .uh-header .uh-meta { color: #9aa2bd; font-size: 0.85rem; margin-top: 8px; }
+        .uh-header .profile-rank-badge { margin-top: 8px; }
+        .uh-view-profile {
+            margin-left: auto; white-space: nowrap;
+            color: #d6c9ff; font-size: 0.85rem; font-weight: 700; text-decoration: none;
+            background: rgba(139, 92, 246, 0.14); border: 1px solid rgba(139, 92, 246, 0.4);
+            border-radius: 9px; padding: 8px 14px;
+        }
+        .uh-view-profile:hover { background: rgba(139, 92, 246, 0.26); color: #fff; }
+
+        .uh-filters {
+            display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+            background: #151824; border: 1px solid #2a2f45; border-radius: 14px; padding: 12px 14px; margin-bottom: 22px;
+        }
+        .uh-search { flex: 1; min-width: 200px; display: flex; gap: 8px; }
+        .uh-search input {
+            flex: 1; background: #0e1119; border: 1px solid #2a2f45; border-radius: 9px;
+            color: #e9ebf5; padding: 9px 12px; font-size: 0.9rem; outline: none;
+        }
+        .uh-search input:focus { border-color: #8b5cf6; }
+        .uh-search button {
+            background: linear-gradient(135deg, #6d28d9, #8b5cf6); color: #fff; border: none;
+            border-radius: 9px; padding: 0 16px; font-weight: 700; cursor: pointer; font-size: 0.9rem;
+        }
+        .uh-sorts { display: flex; gap: 6px; }
+        .uh-sort {
+            color: #9aa2bd; text-decoration: none; font-size: 0.82rem; font-weight: 700;
+            border: 1px solid #2a2f45; border-radius: 999px; padding: 7px 13px;
+        }
+        .uh-sort:hover { color: #fff; border-color: #8b5cf6; }
+        .uh-sort.active { color: #fff; background: rgba(139, 92, 246, 0.2); border-color: #8b5cf6; }
+
+        .uh-section-title {
+            display: flex; align-items: baseline; gap: 10px;
+            font-size: 1.05rem; font-weight: 800; color: #e9ebf5; margin: 26px 0 12px;
+        }
+        .uh-section-count { font-size: 0.8rem; color: #8b5cf6; font-weight: 700; }
+
+        .uh-item {
+            background: #151824; border: 1px solid #262b3d; border-radius: 12px;
+            padding: 14px 16px; margin-bottom: 10px;
+        }
+        .uh-item-top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+        .uh-item-title { color: #c4b5fd; font-weight: 700; font-size: 0.98rem; text-decoration: none; }
+        .uh-item-title:hover { color: #fff; text-decoration: underline; }
+        .uh-item-type {
+            font-size: 0.72rem; font-weight: 800; letter-spacing: 0.5px;
+            border-radius: 6px; padding: 3px 8px;
+        }
+        .uh-item-type.ep { background: rgba(139, 92, 246, 0.18); color: #c4b5fd; }
+        .uh-item-type.anime { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
+        .uh-stars { color: #fbbf24; letter-spacing: 1px; font-size: 0.9rem; }
+        .uh-score { color: #9aa2bd; font-size: 0.85rem; font-weight: 700; }
+        .uh-item-date { margin-left: auto; color: #6f7694; font-size: 0.8rem; }
+        .uh-likes { color: #6f7694; font-size: 0.8rem; margin-top: 8px; }
+        .uh-likes i { margin-right: 3px; }
+        .uh-item-comment { color: #c9cddd; font-size: 0.9rem; line-height: 1.5; margin: 10px 0 0; }
+        .uh-empty { color: #6f7694; font-size: 0.9rem; padding: 16px; text-align: center; background: #151824; border-radius: 12px; }
+
+        .uh-pager { display: flex; gap: 10px; justify-content: center; align-items: center; margin-top: 26px; }
+        .uh-page-btn {
+            color: #d6c9ff; text-decoration: none; font-size: 0.85rem; font-weight: 700;
+            background: rgba(139, 92, 246, 0.14); border: 1px solid rgba(139, 92, 246, 0.4);
+            border-radius: 9px; padding: 8px 16px;
+        }
+        .uh-page-btn:hover { background: rgba(139, 92, 246, 0.26); color: #fff; }
+        .uh-page-btn.disabled { opacity: 0.4; pointer-events: none; }
+        .uh-page-num { color: #9aa2bd; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    {% include '_navbar.html' %}
+
+    <main class="profile-page">
+        <div class="uh-wrap">
+            <section class="uh-header">
+                <div class="profile-avatar">
+                    <img src="{{ url_for('static', filename='images/avatars/' ~ target.avatar) }}" alt="{{ target.username }}'s avatar" class="settings-avatar-img">
+                </div>
+                <div>
+                    <h1>{{ target.username }}{% if is_developer(target.username) %} <span class="dev-tag"><i class="fas fa-code"></i> Developer</span>{% endif %}</h1>
+                    <div class="profile-rank-badge rank-badge-{{ user_rank | lower | replace('+', 'p') }}">
+                        {{ user_rank }} Rank
+                        <span class="rank-xp">{{ user_xp }} XP</span>
+                    </div>
+                    <p class="uh-meta">{{ total }} review{{ '' if total == 1 else 's' }} · {{ history_count }} anime visited</p>
+                </div>
+                <a class="uh-view-profile" href="/user/{{ target.username | urlencode }}"><i class="fas fa-user"></i> View profile</a>
+            </section>
+
+            <section class="uh-filters">
+                <form class="uh-search" method="get" action="/user/{{ target.username | urlencode }}/history">
+                    <input type="hidden" name="sort" value="{{ sort }}">
+                    <input type="text" name="q" value="{{ q }}" placeholder="Search by anime…" autocomplete="off">
+                    <button type="submit"><i class="fas fa-magnifying-glass"></i> Search</button>
+                </form>
+                <div class="uh-sorts">
+                    <a class="uh-sort {{ 'active' if sort == 'highest' else '' }}" href="{{ url_for('profile.user_review_history', username=target.username, sort='highest', q=q) }}">Highest</a>
+                    <a class="uh-sort {{ 'active' if sort == 'newest' else '' }}" href="{{ url_for('profile.user_review_history', username=target.username, sort='newest', q=q) }}">Newest</a>
+                    <a class="uh-sort {{ 'active' if sort == 'oldest' else '' }}" href="{{ url_for('profile.user_review_history', username=target.username, sort='oldest', q=q) }}">Oldest</a>
+                </div>
+            </section>
+
+            <div class="uh-section-title"><i class="fas fa-film"></i> Anime Reviews <span class="uh-section-count">({{ anime_count }})</span></div>
+            {% set anime_items = page_reviews | selectattr('type','equalto','anime') | list %}
+            {% if anime_items %}
+                {% for r in anime_items %}
+                <div class="uh-item">
+                    <div class="uh-item-top">
+                        <a class="uh-item-title" href="/anime/{{ r.anime_slug }}">{{ r.anime_title }}</a>
+                        <span class="uh-item-type anime">Review</span>
+                        <span class="uh-stars">{% for i in range(1,11) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
+                        <span class="uh-score">{{ r.rating }}/10</span>
+                        <span class="uh-item-date">{{ r.date_fmt }}</span>
+                    </div>
+                    <div class="uh-likes"><i class="fas fa-thumbs-up"></i>{{ r.likes }} <i class="fas fa-thumbs-down"></i>{{ r.dislikes }}</div>
+                    {% if r.comment %}<p class="uh-item-comment">{{ r.comment }}</p>{% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="uh-empty">No anime reviews yet.</p>
+            {% endif %}
+
+            <div class="uh-section-title"><i class="fas fa-tv"></i> Episode Reviews <span class="uh-section-count">({{ ep_count }})</span></div>
+            {% set ep_items = page_reviews | selectattr('type','equalto','episode') | list %}
+            {% if ep_items %}
+                {% for r in ep_items %}
+                <div class="uh-item">
+                    <div class="uh-item-top">
+                        <a class="uh-item-title" href="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}">{{ r.anime_title }}</a>
+                        <span class="uh-item-type ep">Ep {{ r.episode_number }} · {{ r.season_idx }}</span>
+                        <span class="uh-stars">{% for i in range(1,11) %}{% if i <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
+                        <span class="uh-score">{{ r.rating }}/10</span>
+                        <span class="uh-item-date">{{ r.date_fmt }}</span>
+                    </div>
+                    <div class="uh-likes"><i class="fas fa-thumbs-up"></i>{{ r.likes }} <i class="fas fa-thumbs-down"></i>{{ r.dislikes }}</div>
+                    {% if r.comment %}<p class="uh-item-comment">{{ r.comment }}</p>{% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="uh-empty">No episode reviews yet.</p>
+            {% endif %}
+
+            {% if pages > 1 %}
+            <div class="uh-pager">
+                <a class="uh-page-btn {{ 'disabled' if page <= 1 }}" href="{{ url_for('profile.user_review_history', username=target.username, sort=sort, q=q, page=page-1) }}"><i class="fas fa-chevron-left"></i> Prev</a>
+                <span class="uh-page-num">Page {{ page }} of {{ pages }}</span>
+                <a class="uh-page-btn {{ 'disabled' if page >= pages }}" href="{{ url_for('profile.user_review_history', username=target.username, sort=sort, q=q, page=page+1) }}">Next <i class="fas fa-chevron-right"></i></a>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/search.js') }}"></script>
+{% include "_footer.html" %}
+
+</body>
+</html>
