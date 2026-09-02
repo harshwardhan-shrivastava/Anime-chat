@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ota-chan | Otakul</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/find_mood.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/otachan.css') }}?v=20260902a">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="background">
+    <div class="circle one"></div>
+    <div class="circle two"></div>
+    <div class="circle three"></div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-list" style="max-width:1300px;margin:20px auto 0;width:90%;">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+{% endwith %}
+
+{% include "_navbar.html" %}
+
+<!-- ================= CHAT VIEW ================= -->
+<section class="otachan-hero" id="otachanHero">
+    <span class="hero-badge"><i class="fas fa-robot"></i> Otakul's AI Assistant</span>
+    <h1>Chat with <span>Ota-chan</span></h1>
+    <p>Ask about anime, get recommendations, learn how Otakul works, or just have fun chatting!</p>
+</section>
+
+<section class="otachan-chat-section" id="otachanChatSection">
+    <div class="otachan-chat-container">
+        <!-- Chat header -->
+        <div class="otachan-chat-header">
+            <div class="otachan-avatar-wrap">
+                <div class="otachan-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <span class="otachan-status-dot"></span>
+            </div>
+            <div class="otachan-header-info">
+                <h2>Ota-chan</h2>
+                <span class="otachan-subtitle">Otakul AI Assistant</span>
+            </div>
+        </div>
+
+        <!-- Messages area -->
+        <div class="otachan-messages" id="otachanMessages">
+            <!-- Messages injected by JS -->
+        </div>
+
+        <!-- Typing indicator -->
+        <div class="otachan-typing" id="otachanTyping" hidden>
+            <span class="otachan-typing-dot"></span>
+            <span class="otachan-typing-dot"></span>
+            <span class="otachan-typing-dot"></span>
+        </div>
+
+        <!-- Input bar -->
+        <div class="otachan-input-bar">
+            <input type="text" id="otachanInput" placeholder="Ask Ota-chan anything..." autocomplete="off" maxlength="2000">
+            <button id="otachanSendBtn" class="otachan-send-btn" aria-label="Send">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/otachan.js') }}?v=20260902a"></script>
+</body>
+</html>

@@ -1251,6 +1251,17 @@ def create_tables():
         )
     """)
 
+    # ---- Ota-chan AI assistant chat (one persistent conversation per user)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ota_chan_chat(
+            user_id INTEGER NOT NULL,
+            conversation_history TEXT NOT NULL DEFAULT '[]',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -3817,3 +3828,38 @@ def set_profile_public(user_id, is_public):
     conn.close()
 
 
+# Ota-chan AI assistant (one persistent chat per user)
+# -------------------------------------------------------------------
+
+def get_ota_chan_chat(user_id):
+    """Return the user's Ota-chan chat row, or None."""
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT user_id, conversation_history, created_at, updated_at "
+        "FROM ota_chan_chat WHERE user_id = ?",
+        (user_id,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def set_ota_chan_chat(user_id, conversation_history_json):
+    """Create or update the user's Ota-chan conversation."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT 1 FROM ota_chan_chat WHERE user_id = ?",
+        (user_id,),
+    )
+    if cursor.fetchone():
+        cursor.execute(
+            "UPDATE ota_chan_chat SET conversation_history = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
+            (conversation_history_json, user_id),
+        )
+    else:
+        cursor.execute(
+            "INSERT INTO ota_chan_chat (user_id, conversation_history) VALUES (?, ?)",
+            (user_id, conversation_history_json),
+        )
+    conn.commit()
+    conn.close()
