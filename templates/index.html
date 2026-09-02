@@ -13,15 +13,15 @@
            stylesheet can never re-break the phone layout (the homepage
            used to ship style.css without a cache-buster). */
         @media (max-width: 640px) {
-            .hero { margin: 22px auto 16px; padding: 16px 14px 10px; }
-            .hero h1 { font-size: clamp(22px, 7vw, 34px); line-height: 1.15; margin-bottom: 8px; }
-            .hero p { font-size: 13.5px; line-height: 1.5; margin: 0 auto 14px; max-width: 340px; }
+            .hero { margin: 14px auto 10px; padding: 8px 14px 4px; }
+            .hero h1 { font-size: clamp(19px, 6vw, 26px); line-height: 1.2; margin-bottom: 4px; }
+            .hero p { font-size: 12px; line-height: 1.45; margin: 0 auto 10px; max-width: 330px; }
             .section-title { margin: 30px auto 14px; }
             .section-title h2 { font-size: 24px; }
             .anime-grid { grid-template-columns: 1fr; width: 92%; margin: 14px auto 34px; gap: 14px; }
             .anime-card { border-radius: 14px; }
             .anime-card:hover { transform: none; }
-            .image-box { height: 140px; }
+            .image-box { height: 120px; }
         }
     </style>
 
@@ -182,17 +182,6 @@
 <script src="{{ url_for('static', filename='js/search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/list_picker.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/navigation.js') }}" defer></script>
-<div id="vwProbe" style="position:fixed;left:8px;bottom:8px;z-index:99999;background:#ffd54a;color:#111;font:700 12px/1.5 monospace;padding:6px 10px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.4);"></div>
-<script>
-(function () {
-    var d = document.getElementById("vwProbe");
-    if (!d) return;
-    var w = window.innerWidth || document.documentElement.clientWidth;
-    var m = window.matchMedia ? window.matchMedia("(max-width: 640px)") : null;
-    d.textContent = "vw=" + w + "px dpr=" + (window.devicePixelRatio || 1) +
-        (m ? (" m640=" + (m.matches ? "yes" : "no")) : "");
-})();
-</script>
 {% include "_footer.html" %}
 
 </body>
