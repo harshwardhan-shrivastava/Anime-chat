@@ -4,7 +4,7 @@ Uses the shared review_likes table. Rank tiers: everyone starts at D;
 S+ is intentionally almost impossible (50,000 XP). A reviewer whose
 received votes are overwhelmingly dislikes drops to F regardless of XP.
 """
-from database import get_connection, recalculate_user_xp_preserving_rewards, get_user_xp, war_is_live, recalculate_user_xp, get_war_effects, episode_season_keys
+from database import get_connection, recalculate_user_xp_preserving_rewards, get_user_xp, war_is_live, recalculate_user_xp, get_war_effects, episode_season_keys, invalidate_reviews_feed_cache
 from dev_accounts import is_dev_username, DEV_USERNAMES
 
 # Developer accounts read as S+ (their raw user_xp row lags behind the
@@ -167,6 +167,7 @@ def toggle_anime_review_vote(user_id, review_id, is_like):
             recalculate_user_xp_preserving_rewards(review_author_id)
 
     conn.commit()
+    invalidate_reviews_feed_cache()
 
     cursor.execute(
         "SELECT SUM(CASE WHEN is_like=1 THEN 1 ELSE 0 END) as likes, "

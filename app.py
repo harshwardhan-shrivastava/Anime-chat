@@ -80,6 +80,8 @@ from database import (
     delete_episode_review,
     set_profile_public,
     recalculate_user_xp,
+    reviews_feed_cache_get,
+    reviews_feed_cache_put,
 )
 from auth import auth, load_logged_in_user
 from review_votes import (
@@ -107,6 +109,7 @@ from review_votes import (
     get_target_review_ids,
     overall_review_xp,
     format_xp_label,
+    get_user_review_votes,
 )
 from chat import chat_bp
 from profile_routes import bp as profile_bp
@@ -1521,11 +1524,14 @@ def _build_rating_power():
 @app.route("/reviews")
 def reviews_page():
     """Global reviews feed — highest-ranked first, then newest."""
-    raw = get_all_reviews(limit=200)
     user = g.get("user")
+    shared = reviews_feed_cache_get()
+    if shared is not None:
+        return _render_reviews_feed(user, shared)
+    raw = get_all_reviews(limit=200)
     review_ids = [r["id"] for r in raw]
     like_counts = get_bulk_review_likes("anime", review_ids)
-    user_votes = get_user_anime_review_votes(review_ids, user["id"]) if user else {}
+    user_votes = {}
     rank_map = get_bulk_reviewer_ranks([r["user_id"] for r in raw])
     point_map = get_bulk_review_points("anime", review_ids)
     war_effects = get_war_effects("anime", review_ids)
@@ -1571,14 +1577,12 @@ def reviews_page():
     except Exception:
         ep_like_counts = {}
     ep_user_votes = {}
-    if user:
-        try:
-            from review_votes import get_user_review_votes
-            ep_user_votes = get_user_review_votes("episode", ep_ids, user["id"])
-        except Exception:
-            ep_user_votes = {}
     ep_rank_map = get_bulk_reviewer_ranks([r["user_id"] for r in raw_ep])
     ep_war_effects = get_war_effects("episode", ep_ids)
+    try:
+        ep_points = get_bulk_review_points("episode", ep_ids)
+    except Exception:
+        ep_points = {}
     episode_reviews = []
     for r in raw_ep:
         entry = anime_database.get(r["anime_slug"])
@@ -1627,7 +1631,6 @@ def reviews_page():
         r["dislikes"] = counts["dislikes"]
         r["band"] = rating_band(r.get("rating"))
         try:
-            ep_points = get_bulk_review_points("episode", ep_ids)
             epts = ep_points.get(r["id"])
             if epts:
                 r["review_xp"] = (epts.get("like_points") or 0) + (epts.get("dislike_points") or 0)
@@ -1734,28 +1737,75 @@ def reviews_page():
     replies_map = get_review_replies("anime", review_ids)
     replies_map.update(get_review_replies("episode", ep_ids))
     migrate_replies_to_war()
-    war_map = {}
-    war_map.update((("anime", rid), w) for rid, w in get_war_entries("anime", review_ids, _uid).items())
-    war_map.update((("episode", rid), w) for rid, w in get_war_entries("episode", ep_ids, _uid).items())
     reward_war_leaders()
     settle_war_outcomes()
-    user_rank = get_user_rank(_uid) if _uid else None
 
+    # Everything above this point is shared by every visitor - cache it for
+    # a few seconds so a page load costs ONE DB round trip, not ~14.
+    shared_ctx = {
+        "reviews": reviews,
+        "episode_reviews": episode_reviews,
+        "top_reviewers": top_reviewers,
+        "top_graded": top_graded,
+        "vote_schedule": vote_schedule,
+        "replies": replies_map,
+        "RANK_TIER": RANK_TIER,
+    }
+    reviews_feed_cache_put(shared_ctx)
+    return _render_reviews_feed(user, shared_ctx)
+
+
+def _render_reviews_feed(user, shared):
+    """Render /reviews from the shared (cached) feed payload. The feed
+    itself is identical for every visitor - only your votes, your war
+    annotations, and your rank differ, so those are resolved fresh here."""
+    _uid = user["id"] if user else None
+    reviews = [dict(r) for r in shared["reviews"]]
+    episode_reviews = [dict(r) for r in shared["episode_reviews"]]
+    war_map = {}
+    user_rank = None
+    if _uid:
+        anime_ids = [r["id"] for r in reviews if r.get("id")]
+        ep_ids = [r["id"] for r in episode_reviews if r.get("id")]
+        try:
+            anime_votes = get_user_review_votes("anime", anime_ids, _uid)
+            ep_votes = get_user_review_votes("episode", ep_ids, _uid)
+        except Exception:
+            anime_votes, ep_votes = {}, {}
+        for r in reviews:
+            r["user_vote"] = anime_votes.get(r["id"])
+        for r in episode_reviews:
+            r["user_vote"] = ep_votes.get(r["id"])
+        try:
+            war_map.update(
+                (("anime", rid), w)
+                for rid, w in get_war_entries("anime", anime_ids, _uid).items()
+            )
+            war_map.update(
+                (("episode", rid), w)
+                for rid, w in get_war_entries("episode", ep_ids, _uid).items()
+            )
+        except Exception:
+            war_map = {}
+        try:
+            user_rank = get_user_rank(_uid)
+        except Exception:
+            user_rank = None
     return render_template(
         "reviews.html",
         reviews=reviews,
         episode_reviews=episode_reviews,
-        top_reviewers=top_reviewers,
-        top_graded=top_graded,
-        vote_schedule=vote_schedule,
+        top_reviewers=shared["top_reviewers"],
+        top_graded=shared["top_graded"],
+        vote_schedule=shared["vote_schedule"],
         RATING_LABELS=RATING_LABELS,
-        replies=replies_map,
+        replies=shared["replies"],
         war=war_map,
         user_rank=user_rank,
         GRADE_ORDER=GRADE_ORDER,
         anime_review_count=len(reviews),
         episode_review_count=len(episode_reviews),
-        RANK_TIER=RANK_TIER,
+        RANK_TIER=shared["RANK_TIER"],
         current_user=user,
     )
 

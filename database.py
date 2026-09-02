@@ -1190,6 +1190,18 @@ def create_tables():
         "ON review_reasons(review_type, review_id)"
     )
 
+    # Community chat reads feed windows by (anime_slug, id) and reactions by
+    # message_id - without these, every chat open/poll scanned the whole
+    # chat_messages / chat_reactions tables.
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_chat_messages_anime_id "
+        "ON chat_messages(anime_slug, id)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_chat_reactions_message "
+        "ON chat_reactions(message_id)"
+    )
+
     # Ratings moved from 5-star to 10-star. Legacy rows are 1-5; migrate them
     # to /10 exactly once (only when no rating above 5 exists yet, so a fresh
     # 10-star database is never touched twice). Episode reviews are already
@@ -2026,6 +2038,41 @@ _all_reviews_cache = None
 _all_reviews_cache_time = 0
 _all_reviews_cache_ttl = 60  # seconds
 
+
+# The /reviews feed builds 400 enriched review cards from ~14 sequential DB
+# round trips (more with the episode tab's bulk lookups). On a remote
+# database (Turso) that is most of the page's server time, so the fully
+# assembled shared payload is cached for a few seconds and replayed with
+# only the per-user bits (your votes, war status, rank) resolved per
+# request. Votes / new reviews / new replies invalidate it immediately.
+_reviews_feed_cache = None
+_reviews_feed_cache_time = 0.0
+_reviews_feed_cache_ttl = 12.0  # seconds
+
+
+def reviews_feed_cache_get():
+    """Return the cached shared /reviews payload or None."""
+    if _reviews_feed_cache is None:
+        return None
+    if time.time() - _reviews_feed_cache_time >= _reviews_feed_cache_ttl:
+        return None
+    return _reviews_feed_cache
+
+
+def reviews_feed_cache_put(payload):
+    """Store the shared /reviews payload (reviews, episode_reviews, and the
+    derived leaderboards)."""
+    global _reviews_feed_cache, _reviews_feed_cache_time
+    _reviews_feed_cache = payload
+    _reviews_feed_cache_time = time.time()
+
+
+def invalidate_reviews_feed_cache():
+    """Drop the cached /reviews payload after a vote, review, reply, or war
+    outcome changes the feed."""
+    global _reviews_feed_cache
+    _reviews_feed_cache = None
+
 def get_anime_stats(anime_slug):
     now = time.time()
     cached = _anime_stats_cache.get(anime_slug)
@@ -2797,6 +2844,7 @@ def add_episode_review(anime_slug, season_name, episode_number, user_id,
          rating, comment or "")
     )
     conn.commit()
+    invalidate_reviews_feed_cache()
     conn.close()
     _episode_stats_cache.pop(anime_slug, None)
     _episode_stats_cache_times.pop(anime_slug, None)
@@ -3753,6 +3801,7 @@ def toggle_review_like(user_id, review_type, review_id, is_like):
             recalculate_user_xp(review_author_id)
 
     conn.commit()
+    invalidate_reviews_feed_cache()
     conn.close()
     return new_is_like, removed
 
