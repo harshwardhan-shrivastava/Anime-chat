@@ -7,7 +7,6 @@ const animeSlug = document.body.dataset.animeSlug;
 const bigRating = document.getElementById("bigRating");
 const ratingStarsDisplay = document.getElementById("ratingStarsDisplay");
 const reviewCountLabel = document.getElementById("reviewCountLabel");
-const statReviewCount = document.getElementById("statReviewCount");
 const ratingBreakdown = document.getElementById("ratingBreakdown");
 const heroScore = document.getElementById("heroScore");
 const heroStars = document.getElementById("heroStars");
@@ -331,7 +330,6 @@ function renderStats(data) {
     if (bigRating) bigRating.textContent = votes > 0 ? average.toFixed(2) : "N/A";
     if (ratingStarsDisplay) ratingStarsDisplay.textContent = votes > 0 ? starsForValue(average) : emptyStars();
     if (reviewCountLabel) reviewCountLabel.textContent = `${votes} Community Review${votes === 1 ? "" : "s"}`;
-    if (statReviewCount) statReviewCount.textContent = votes;
 
     heroScore.textContent = votes > 0 ? average.toFixed(1) : "N/A";
     heroStars.textContent = votes > 0 ? starsForValue(average) : emptyStars();
