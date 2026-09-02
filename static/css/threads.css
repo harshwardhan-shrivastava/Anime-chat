@@ -2901,3 +2901,28 @@ html, body {
     .thr-modal { padding: 10px; }
     #msgList, .thr-chat-body { padding: 10px 8px; }
 }
+
+/* ============================================================
+   THREADS — Discord-mobile topbar (small phones)
+   ============================================================ */
+@media (max-width: 560px) {
+    .thr-topbar { gap: 6px; padding: 0 8px; height: 52px; }
+    .thr-center-brand { display: none; }
+    .thr-tabs { gap: 4px; margin-left: 2px; }
+    .thr-tab { padding: 7px 10px; font-size: 13px; }
+    .thr-tab-label { display: none; }
+    .thr-tab { padding: 8px 11px; }
+    .thr-otakul-mark { width: 28px; height: 28px; font-size: 14px; }
+    .thr-topbar-right { gap: 6px; }
+    .thr-back-btn, .thr-icon-btn { width: 34px; height: 34px; }
+    .thr-avatar { width: 28px; height: 28px; }
+    .thr-user-pill { padding: 3px 6px; }
+    .thr-user-caret { display: none; }
+    .thr-menu-btn { width: 34px; height: 34px; }
+    .thr-left { top: 52px; }
+}
+@media (max-width: 400px) {
+    .thr-rail { width: 50px; }
+    .thr-rail-icon { width: 36px; height: 36px; font-size: 12px; }
+    .thr-topbar-right .thr-icon-btn .thr-badge { right: -2px; }
+}

@@ -13,7 +13,7 @@
     </noscript>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"></noscript>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260902j">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260902s">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260901c">
 </head>
 <body
@@ -44,10 +44,10 @@
             </button>
             <nav class="thr-tabs">
                 <button class="thr-tab active" data-tab="messages">
-                    <i class="fas fa-comment-dots"></i> {{ t('Messages') }}
+                    <i class="fas fa-comment-dots"></i> <span class="thr-tab-label">{{ t('Messages') }}</span>
                 </button>
                 <button class="thr-tab" data-tab="communities">
-                    <i class="fas fa-users"></i> {{ t('Guilds') }}
+                    <i class="fas fa-users"></i> <span class="thr-tab-label">{{ t('Guilds') }}</span>
                 </button>
             </nav>
             <a href="{{ url_for('home') }}" class="thr-back-btn" title="Back to Otakul">

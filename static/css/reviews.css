@@ -913,3 +913,16 @@ body { background: var(--rv-bg); color: var(--rv-text); font-family: 'Inter', -a
     .rv-stat { padding: 10px 8px; }
     .rv-search input { font-size: 0.85rem; }
 }
+
+/* ============================================================
+   REVIEWS — small screens extras
+   ============================================================ */
+@media (max-width: 720px) {
+    .rv-page { padding: 0 10px 40px; }
+    .rv-rp-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .rv-rp-table { min-width: 620px; }
+    .rv-guide-body { padding: 16px 14px; }
+    .rv-guide-grid { grid-template-columns: 1fr; }
+    .rv-rp-head h3 { font-size: 0.95rem; }
+    .rv-rp-intro { font-size: 0.82rem; }
+}

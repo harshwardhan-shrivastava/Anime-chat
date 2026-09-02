@@ -3155,3 +3155,22 @@ footer p{
     }
     .episodes-list, .comments-section { padding: 0 14px; }
 }
+
+/* ============================================================
+   ANIME PAGE — small phones
+   ============================================================ */
+@media(max-width:560px){
+    .hero-image { height: 230px; }
+    .hero-content { left: 12px; right: 12px; bottom: 16px; gap: 14px; }
+    .hero-content .poster { display: none; }
+    .hero-text h1 { font-size: clamp(19px, 6.4vw, 26px); }
+    .hero-text p { font-size: 12.5px; line-height: 1.5; }
+    .info-left, .info-right { padding: 0 14px; }
+    .info-row { flex-wrap: wrap; gap: 8px; }
+    .watch-order { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .episodes-list, .comments-section, .recommendation-grid { padding-left: 12px; padding-right: 12px; }
+    .stream-row { gap: 8px; }
+    .stream-row a, .stream-row button { flex: 1 1 auto; min-width: 0; font-size: 12.5px; }
+    iframe, video { max-width: 100%; }
+    .player-wrap, .video-box { aspect-ratio: 16 / 9; height: auto; max-height: 46vh; }
+}

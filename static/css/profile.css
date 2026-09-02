@@ -921,3 +921,17 @@
     .profile-list-card { flex-wrap: wrap; row-gap: 10px; }
     .profile-avatar { width: 76px; height: 76px; }
 }
+
+/* ============================================================
+   PROFILE — phone tabs + settings
+   ============================================================ */
+@media (max-width: 900px) {
+    .profile-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+    .profile-tab { white-space: nowrap; }
+}
+@media (max-width: 560px) {
+    .profile-banner { padding: 16px 12px; }
+    .profile-settings-card { padding: 18px 14px; }
+    .profile-settings-id { flex-direction: column; align-items: flex-start; }
+    .profile-btn-ghost, .profile-btn-primary { padding: 10px 14px; font-size: 13px; }
+}

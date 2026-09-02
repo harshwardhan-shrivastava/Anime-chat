@@ -886,3 +886,12 @@ img[src*="fantasy7"]{
     .avatar-gallery { grid-template-columns: repeat(3, 1fr); }
     .code-inputs input { width: 44px; height: 52px; font-size: 20px; }
 }
+
+/* ============================================================
+   AUTH — tiny screens (prevent iOS zoom, keep cards snug)
+   ============================================================ */
+@media (max-width: 420px) {
+    .auth-card { padding: 30px 18px; }
+    .auth-card input, .auth-card input[type=text], .auth-card input[type=password], .auth-card input[type=email] { font-size: 16px; }
+    .auth-wrapper { padding: 18px 10px; }
+}
