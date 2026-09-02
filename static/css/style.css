@@ -2733,13 +2733,22 @@ nav.nav-mobile-open .nav-burger-bar:nth-child(3){ transform:translateY(-6px) rot
     /* ---- genre chips: swipeable discovery rail ---- */
     .mob-genres{
         display:flex;
+        flex-wrap:nowrap;
+        align-items:center;
         gap:8px;
         overflow-x:auto;
         -webkit-overflow-scrolling:touch;
         padding:6px 12px 14px;
         width:100%;
+        max-width:none;
+        margin:0 auto;
         box-sizing:border-box;
         scrollbar-width:none;
+        /* the generic nav rule (sticky, wrap, centered) must never
+           turn this rail into a floating multi-row panel */
+        position:static !important;
+        justify-content:flex-start !important;
+        z-index:auto !important;
     }
     .mob-genres::-webkit-scrollbar{ display:none; }
     .mob-genres a{

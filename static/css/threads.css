@@ -3288,11 +3288,75 @@ html, body {
     #commRail{
         touch-action: pan-y;
     }
-    /* sheet entering (channel list / conversation list) */
-    #threads-app .thr-left:not(.hidden){ animation: thrSheetIn .16s ease; }
-    #channelPanel:not(.hidden),
-    #discoverPanel:not(.hidden){ animation: thrSheetIn .16s ease; }
-    /* chat entering turns the phone, like Discord's pane swap */
+}
+
+/* ============================================================
+   MOBILE — Discord-style DRAWER swipe (follow-the-finger):
+   while a chat is open the sidebar (conversation list / guild
+   rail + channels) is an overlay drawer that rides along with
+   the drag and springs open/closed on release. thr-sheet-open
+   = drawer parked open over the chat.
+============================================================ */
+@media (max-width: 700px){
+    /* drawer elements ride above the chat and animate on snap */
+    #threads-app.thr-dm-open .thr-left,
+    #threads-app.thr-guild-open #commRail,
+    #threads-app.thr-guild-open #channelPanel,
+    #threads-app.thr-guild-open #discoverPanel{
+        will-change: transform;
+        transition: transform .3s cubic-bezier(.22,.9,.3,1), visibility .3s;
+    }
+    /* keep them rendered (drop the old display:none hiding) so the
+       transform can slide them in from the left edge */
+    #threads-app.thr-dm-open .thr-left{
+        display: flex !important;
+    }
+    #threads-app.thr-guild-open #commRail{
+        display: flex !important;
+    }
+    #threads-app.thr-guild-open #channelPanel,
+    #threads-app.thr-guild-open #discoverPanel{
+        display: block !important;
+    }
+    /* chat is always the base layer whenever a chat is open */
     #threads-app.thr-dm-open .thr-main,
-    #threads-app.thr-guild-open .thr-main{ animation: thrChatIn .16s ease; }
+    #threads-app.thr-guild-open .thr-main{
+        display: flex !important;
+    }
+    /* closed: everything parked off the left edge */
+    #threads-app.thr-dm-open:not(.thr-sheet-open) .thr-left{
+        transform: translateX(-102%);
+        visibility: hidden;
+    }
+    #threads-app.thr-guild-open:not(.thr-sheet-open) #commRail{
+        transform: translateX(-118%);
+        visibility: hidden;
+    }
+    #threads-app.thr-guild-open:not(.thr-sheet-open) #channelPanel,
+    #threads-app.thr-guild-open:not(.thr-sheet-open) #discoverPanel{
+        transform: translateX(-118%);
+        visibility: hidden;
+    }
+    /* open: drawer parked over the chat */
+    #threads-app.thr-sheet-open.thr-dm-open .thr-left{
+        transform: translateX(0);
+        visibility: visible;
+    }
+    #threads-app.thr-sheet-open.thr-guild-open #commRail{
+        transform: translateX(0);
+        visibility: visible;
+    }
+    #threads-app.thr-sheet-open.thr-guild-open #channelPanel,
+    #threads-app.thr-sheet-open.thr-guild-open #discoverPanel{
+        transform: translateX(0);
+        visibility: visible;
+    }
+    /* while dragging: transforms are inline (finger-tracked), so
+       the resting transition must not fight the finger */
+    #threads-app.thr-drag .thr-left,
+    #threads-app.thr-drag #commRail,
+    #threads-app.thr-drag #channelPanel,
+    #threads-app.thr-drag #discoverPanel{
+        transition: none !important;
+    }
 }

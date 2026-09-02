@@ -362,6 +362,7 @@
         // hides and the chat covers the phone, Discord-style).
         if (window.innerWidth <= 700) {
             document.getElementById("threads-app").classList.add("thr-dm-open");
+            document.getElementById("threads-app").classList.remove("thr-sheet-open");
         }
         renderChatHead();
 
@@ -2037,11 +2038,13 @@
         if (isComm) {
             // entering Guilds closes any open message chat
             document.getElementById("threads-app").classList.remove("thr-dm-open");
+            document.getElementById("threads-app").classList.remove("thr-sheet-open");
         }
         if (!isComm) {
             // back to the guild's channel list next time Guilds is opened
             var _app = document.getElementById("threads-app");
             _app.classList.remove("thr-guild-open");
+            _app.classList.remove("thr-sheet-open");
             // leaving an open conversation returns to the messages list
             _app.classList.remove("thr-dm-open");
             $("#channelPanel").classList.add("hidden");
@@ -2198,6 +2201,7 @@
         if (window.innerWidth <= 700) {
             var _appEl = document.getElementById("threads-app");
             if (_appEl) _appEl.classList.add("thr-guild-open");
+            if (_appEl) _appEl.classList.remove("thr-sheet-open");
         }
         State.active = { type: "channel", id: ch.id, conv: ch };
         State.replyTo = null;
@@ -2992,6 +2996,16 @@
         if (guildBack) {
             guildBack.addEventListener("click", function () {
                 var appEl = document.getElementById("threads-app");
+                if (window.innerWidth <= 700) {
+                    // Mobile: the back arrow opens/closes the sidebar
+                    // drawer over the chat (Discord behavior).
+                    if (appEl.classList.contains("thr-sheet-open")) {
+                        appEl.classList.remove("thr-sheet-open");
+                    } else {
+                        appEl.classList.add("thr-sheet-open");
+                    }
+                    return;
+                }
                 if (State.active && State.active.type === "channel") {
                     appEl.classList.remove("thr-guild-open");
                     return;
@@ -3614,81 +3628,104 @@
         }
 
 
-        // ==== MOBILE — Discord-style swipe navigation (<=700px) ====
-        // Right-drag on an open chat pulls its sidebar over it (the
-        // channel list inside a guild, the conversation list in
-        // Messages). Left-drag on the sidebar slides back into the
-        // open chat — exactly how Discord mobile handles the panes.
-        // touch events are used (not pointer) so the gesture works on
-        // every mobile browser; pan-y CSS keeps native vertical scroll.
+        // ==== MOBILE — Discord-style drawer swipe (<=700px) ====
+        // The sidebar is an overlay drawer: it rides along with the
+        // finger while you drag (chat stays underneath, like Discord)
+        // and springs open/closed on release. Open: right-drag on the
+        // chat. Close: left-drag on the drawer. Tap a conversation /
+        // channel to dive back in.
         (function () {
             var appEl = document.getElementById("threads-app");
             var bodyEl = document.querySelector(".thr-body");
             if (!appEl || !bodyEl) return;
-            var x0 = null, y0 = null, t0 = 0, horiz = false;
+            var railEl = document.getElementById("commRail");
+            var panelEl = document.getElementById("channelPanel");
+            var discEl = document.getElementById("discoverPanel");
+            var listEl = document.querySelector(".thr-left");
+            var mainEl = document.querySelector(".thr-main");
+            var startX = null, startY = null, startT = 0, dragging = false;
 
             function mobile() { return window.innerWidth <= 700; }
-            function pt(e) { return e.touches ? e.touches[0] : e.changedTouches[0]; }
+            function chatOpen() {
+                return appEl.classList.contains("thr-dm-open") ||
+                       appEl.classList.contains("thr-guild-open");
+            }
+            function inGuilds() { return appEl.classList.contains("thr-guild-open"); }
+
+            // finger-tracked transforms
+            function applyDrag(dx) {
+                var vw = window.innerWidth;
+                if (inGuilds()) {
+                    var railW = 54, panelW = vw - 54;
+                    if (railEl) railEl.style.transform = "translate3d(" + (dx - railW) + "px,0,0)";
+                    if (panelEl) panelEl.style.transform = "translate3d(" + (dx - panelW) + "px,0,0)";
+                    if (discEl && !discEl.classList.contains("hidden")) discEl.style.transform = "translate3d(" + (dx - panelW) + "px,0,0)";
+                } else {
+                    if (listEl) listEl.style.transform = "translate3d(" + (dx - vw) + "px,0,0)";
+                }
+                // the chat eases over a touch so it feels held, not yanked
+                if (mainEl) mainEl.style.transform = "translate3d(" + Math.min(dx * 0.22, 84) + "px,0,0)";
+            }
+
+            function clearDrag() {
+                if (railEl) railEl.style.transform = "";
+                if (panelEl) panelEl.style.transform = "";
+                if (discEl) discEl.style.transform = "";
+                if (listEl) listEl.style.transform = "";
+                if (mainEl) mainEl.style.transform = "";
+                appEl.classList.remove("thr-drag");
+            }
+
+            function commit(dx, dt) {
+                var vw = window.innerWidth;
+                var open = appEl.classList.contains("thr-sheet-open");
+                var flick = Math.abs(dx) / Math.max(dt, 50);
+                var shouldOpen = dx > vw * 0.34 ? true : (dx < -vw * 0.34 ? false : open);
+                if (flick > 0.75) shouldOpen = dx > 0;
+                clearDrag();
+                if (shouldOpen) appEl.classList.add("thr-sheet-open");
+                else appEl.classList.remove("thr-sheet-open");
+                dragging = false;
+            }
 
             bodyEl.addEventListener("touchstart", function (e) {
-                if (!mobile() || !e.touches.length) return;
+                if (!mobile() || !chatOpen() || !e.touches.length) return;
                 var t = e.touches[0];
-                x0 = t.clientX; y0 = t.clientY; t0 = Date.now(); horiz = false;
+                startX = t.clientX; startY = t.clientY; startT = Date.now();
+                dragging = false;
             }, { passive: true });
 
             bodyEl.addEventListener("touchmove", function (e) {
-                if (x0 === null || !e.touches.length) return;
+                if (startX === null || !e.touches.length || !chatOpen()) return;
                 var t = e.touches[0];
-                var dx = t.clientX - x0, dy = t.clientY - y0;
-                if (!horiz && Math.abs(dx) > 24 && Math.abs(dx) > Math.abs(dy) * 1.3) {
-                    horiz = true;
-                    // re-baseline so the final gesture distance is honest
-                    x0 = t.clientX; y0 = t.clientY; t0 = Date.now();
+                var dx = t.clientX - startX, dy = t.clientY - startY;
+                if (!dragging && Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+                    dragging = true;
                 }
+                if (!dragging) return;
+                var vw = window.innerWidth;
+                var d = Math.max(0, Math.min(vw, dx));
+                appEl.classList.add("thr-drag");
+                applyDrag(d);
             }, { passive: true });
 
-            function endSwipe(e) {
-                if (x0 === null || !e.changedTouches.length) return;
+            bodyEl.addEventListener("touchend", function (e) {
+                if (startX === null || !e.changedTouches.length) return;
                 var t = e.changedTouches[0];
-                var dx = t.clientX - x0, dy = t.clientY - y0;
-                var dt = Date.now() - t0;
-                x0 = null; y0 = null;
-                if (!horiz) { horiz = false; return; }
-                var wasHoriz = horiz;
-                horiz = false;
-                if (!wasHoriz || Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.3 || dt > 700) return;
-                if (!mobile()) return;
-                if (dx > 0) swipeRight(); else swipeLeft();
-            }
-
-            bodyEl.addEventListener("touchend", endSwipe);
-            bodyEl.addEventListener("touchcancel", function () {
-                x0 = null; y0 = null; horiz = false;
+                var dx = t.clientX - startX, dy = t.clientY - startY;
+                var dt = Date.now() - startT;
+                startX = null; startY = null;
+                if (dragging && chatOpen() && Math.abs(dx) > Math.abs(dy) * 1.15) {
+                    commit(dx, dt);
+                } else {
+                    clearDrag();
+                    dragging = false;
+                }
             });
-
-            // open the sidebar: pull it over the open chat
-            function swipeRight() {
-                if (appEl.classList.contains("thr-dm-open")) {
-                    appEl.classList.remove("thr-dm-open");
-                } else if (appEl.classList.contains("thr-guild-open")) {
-                    appEl.classList.remove("thr-guild-open");
-                }
-            }
-
-            // slide back into the open chat from the sidebar
-            function swipeLeft() {
-                if (appEl.classList.contains("thr-dm-open") ||
-                    appEl.classList.contains("thr-guild-open")) return;
-                if (State.activeTab === "communities" && State.active && State.active.type === "channel") {
-                    appEl.classList.add("thr-guild-open");
-                } else if (State.activeTab !== "communities" && State.active) {
-                    var cv = document.getElementById("convView");
-                    var es = document.getElementById("emptyState");
-                    if (cv) cv.classList.remove("hidden");
-                    if (es) es.classList.add("hidden");
-                    appEl.classList.add("thr-dm-open");
-                }
-            }
+            bodyEl.addEventListener("touchcancel", function () {
+                startX = null;
+                if (dragging) { clearDrag(); dragging = false; }
+            });
         })();
 
         // message actions — report / moderator delete

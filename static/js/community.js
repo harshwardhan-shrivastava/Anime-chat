@@ -31,6 +31,17 @@ const modalOnlineCountEl = document.getElementById("modalOnlineCount");
 // ===============================
 
 const ANIME_SLUG = document.body.dataset.animeSlug;
+
+// Mobile: the composer placeholder should read like every chat app, not
+// echo the anime name (it wraps/overflows on small screens). Swap it once
+// at boot; the full-screen modal input gets the same treatment.
+if (window.innerWidth <= 700) {
+    var _composerInput = document.getElementById("messageInput");
+    if (_composerInput) _composerInput.setAttribute("placeholder", "Type a message...");
+    var _modalComposer = document.getElementById("modalMessageInput");
+    if (_modalComposer) _modalComposer.setAttribute("placeholder", "Type a message...");
+}
+
 const CURRENT_USER = JSON.parse(document.body.dataset.user || "null");
 
 let lastSender = null;
