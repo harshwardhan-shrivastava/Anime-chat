@@ -1786,6 +1786,46 @@ def find_community_by_invite(code):
     return dict(row) if row else None
 
 
+def get_community_preview(code):
+    """Read-only guild info for an invite code: identity + member/channel
+    counts. Used by the invite card renderer and the join confirmation
+    prompt — never mutates anything."""
+    community = find_community_by_invite(code)
+    if not community:
+        return None
+    cid = community["id"]
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT name, description, genre, icon_color FROM thr_communities WHERE id = ?",
+        (cid,),
+    )
+    row = cur.fetchone()
+    cur.execute(
+        "SELECT COUNT(*) AS c FROM thr_community_members WHERE community_id = ?",
+        (cid,),
+    )
+    member_count = cur.fetchone()["c"]
+    cur.execute(
+        "SELECT COUNT(*) AS c FROM thr_channels WHERE community_id = ?",
+        (cid,),
+    )
+    channel_count = cur.fetchone()["c"]
+    conn.close()
+    if not row:
+        return None
+    return {
+        "id": cid,
+        "name": row["name"],
+        "description": row["description"] or "",
+        "genre": row["genre"] or "",
+        "icon_color": row["icon_color"] or "#8b5cf6",
+        "is_public": bool(community.get("is_public")),
+        "member_count": member_count,
+        "channel_count": channel_count,
+    }
+
+
 def join_community_by_invite(code, user_id):
     """Join a guild via invite link. Returns (community_id, error) where
     error is None on success. Banned users can't rejoin via invite."""

@@ -13,7 +13,7 @@
     </noscript>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"></noscript>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260827f">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260902a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260901c">
 </head>
 <body
@@ -48,9 +48,6 @@
             </nav>
             <a href="{{ url_for('home') }}" class="thr-back-btn" title="Back to Otakul">
                 <i class="fas fa-arrow-left"></i> {{ t('Site') }}
-            </a>
-            <a href="/war?create=1" class="thr-war-btn" title="Turn this into a War">
-                <i class="fas fa-swords"></i> War
             </a>
             <div class="thr-bell-wrap">
                 <button id="btnBell" class="thr-icon-btn" title="Notifications">
@@ -312,6 +309,30 @@
                 <input id="dmSearch" type="text" placeholder="Search users by username…" autocomplete="off">
             </div>
             <div id="dmResults" class="thr-user-results"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== GUILD INVITE JOIN MODAL ===================== -->
+<div class="thr-modal hidden" id="modalInviteJoin">
+    <div class="thr-modal-card thr-modal-invite">
+        <div class="thr-modal-head">
+            <h3>Join guild?</h3>
+            <button class="thr-modal-close" data-close="modalInviteJoin"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="thr-modal-body">
+            <div class="thr-invite-hero">
+                <div class="thr-invite-hero-thumb" id="inviteJoinThumb">?</div>
+                <div class="thr-invite-hero-text">
+                    <div class="thr-invite-hero-name" id="inviteJoinName">Loading…</div>
+                    <div class="thr-invite-hero-meta" id="inviteJoinMeta"></div>
+                </div>
+            </div>
+            <p class="thr-invite-hero-desc" id="inviteJoinDesc"></p>
+            <div class="thr-modal-actions">
+                <button class="thr-btn thr-btn-primary" id="btnInviteJoinYes">Yes, join it</button>
+                <button class="thr-btn" id="btnInviteJoinNo">Not now</button>
+            </div>
         </div>
     </div>
 </div>
@@ -690,7 +711,7 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260827f"></script>
+<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260902a"></script>
 <script>
 (function () {
     var pill = document.getElementById('btnUserMenu');

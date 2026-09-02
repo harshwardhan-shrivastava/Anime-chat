@@ -563,6 +563,7 @@
             pi++;
         }
         list.innerHTML = html;
+        hydrateInviteCards(list);
 
         // Cache the rendered HTML so reopening this conversation is instant
         // (like community chat where messages are already in the DOM).
@@ -574,6 +575,150 @@
         // Always scroll to bottom — like community chat.
         list.scrollTop = list.scrollHeight;
         updateSeenText();
+    }
+
+    // ------------------------------------------------------------------
+    // Rich inline content: @mentions + clickable links + guild invite cards
+    // ------------------------------------------------------------------
+    var _invitePreviewCache = {};
+
+    function renderInlineContent(content) {
+        // escape → pull the guild invite URL out (it becomes a rich card) →
+        // highlight mentions → linkify any remaining URLs → drop the card back.
+        var esc = escapeHtml(content || "");
+        var inviteCode = null;
+        var inc = esc.match(/threads\?invite=([A-Za-z0-9_\-]{4,40})/);
+        if (inc) {
+            inviteCode = inc[1];
+            esc = esc.replace(inc[0], "\u00a7INVITE\u00a7");
+        }
+        var out = esc
+            .replace(/@([A-Za-z0-9_]{3,20})/g, '<span class="thr-mention">@$1</span>')
+            .replace(/(https?:\/\/[^\s<"]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="thr-msg-link">$1</a>');
+        if (inviteCode) {
+            out = out.replace("\u00a7INVITE\u00a7", inviteCardSkeleton(inviteCode));
+        }
+        return out;
+    }
+
+    function inviteCardSkeleton(code) {
+        return '<div class="thr-invite-card' + (isChannelOpen() ? "" : "") + '" data-invite-code="' + escapeHtml(code) + '" role="button" tabindex="0">' +
+            '<div class="thr-invite-thumb"><span class="thr-invite-thumb-letter">#</span></div>' +
+            '<div class="thr-invite-info">' +
+            '<div class="thr-invite-title">Guild invite…</div>' +
+            '<div class="thr-invite-meta">Loading…</div>' +
+            '</div>' +
+            '<div class="thr-invite-open"><i class="fas fa-sign-in-alt"></i> Open</div>' +
+            '</div>';
+    }
+
+    function fillInviteCard(card, c) {
+        var thumb = card.querySelector(".thr-invite-thumb");
+        if (thumb) {
+            thumb.style.background = c.icon_color || "#8b5cf6";
+            var l = thumb.querySelector(".thr-invite-thumb-letter");
+            if (l) l.textContent = (c.name || "?").charAt(0).toUpperCase();
+        }
+        var t = card.querySelector(".thr-invite-title");
+        if (t) t.textContent = c.name || "Guild";
+        var m = card.querySelector(".thr-invite-meta");
+        if (m) {
+            m.textContent = c.member_count + " members · " + c.channel_count + " channels" +
+                (c.genre ? " · " + c.genre : "");
+        }
+        card.classList.toggle("thr-invite-joined", !!c.is_member);
+        var o = card.querySelector(".thr-invite-open");
+        if (o) {
+            o.innerHTML = c.is_member ? '<i class="fas fa-arrow-right"></i> Open' : '<i class="fas fa-sign-in-alt"></i> Join';
+        }
+    }
+
+    function failInviteCard(card, err) {
+        card.classList.add("thr-invite-card-error");
+        var t = card.querySelector(".thr-invite-title");
+        if (t) t.textContent = "Invite unavailable";
+        var m = card.querySelector(".thr-invite-meta");
+        if (m) m.textContent = err === "invalid_invite" ? "This invite is invalid or expired." : "Couldn't load this invite.";
+        var o = card.querySelector(".thr-invite-open");
+        if (o) o.style.display = "none";
+        card.removeAttribute("data-invite-code");
+    }
+
+    function hydrateInviteCards(root) {
+        var cards = root.querySelectorAll(".thr-invite-card[data-invite-code]:not([data-hydrated])");
+        for (var i = 0; i < cards.length; i++) {
+            var card = cards[i];
+            var code = card.getAttribute("data-invite-code");
+            card.setAttribute("data-hydrated", "1");
+            if (_invitePreviewCache[code]) {
+                fillInviteCard(card, _invitePreviewCache[code]);
+                continue;
+            }
+            (function (c, cd) {
+                api("/threads/api/invites/" + encodeURIComponent(cd) + "/preview").then(function (res) {
+                    if (!res.success) { failInviteCard(c, res.error); return; }
+                    _invitePreviewCache[cd] = res.community;
+                    fillInviteCard(c, res.community);
+                }).catch(function () {
+                    failInviteCard(c, null);
+                });
+            })(card, code);
+        }
+    }
+
+    function completeInviteJoin(code, announce) {
+        api("/threads/api/communities/join-invite", { json: { code: code } }).then(function (res) {
+            if (!res.success) {
+                toast(res.error === "invalid_invite" ? "That invite link is invalid or expired." : (res.error === "banned" ? "You can't join that guild." : "Could not join the guild."), "error");
+                return;
+            }
+            var joined = res.community;
+            if (announce !== false) toast("Joined " + (joined ? joined.name : "the guild") + "!");
+            refreshCommunities();
+            if (joined) {
+                State.discoverMode = false;
+                State.activeCommunity = joined;
+                State.myCommunityRole = joined.role || "member";
+                renderRail();
+                renderChannelPanel();
+                if (joined.channels && joined.channels.length) openChannel(joined.channels[0]);
+            }
+        });
+    }
+
+    function showInviteJoinModal(c, code) {
+        var thumb = $("#inviteJoinThumb");
+        if (thumb) {
+            thumb.style.background = c.icon_color || "#8b5cf6";
+            thumb.textContent = (c.name || "?").charAt(0).toUpperCase();
+        }
+        $("#inviteJoinName").textContent = c.name || "Guild";
+        $("#inviteJoinMeta").textContent = c.member_count + " members · " + c.channel_count + " channels" +
+            (c.genre ? " · " + c.genre : "");
+        var d = $("#inviteJoinDesc");
+        if (d) {
+            d.textContent = c.description || "";
+            d.classList.toggle("hidden", !c.description);
+        }
+        $("#modalInviteJoin").setAttribute("data-invite-code", code);
+        openModal("modalInviteJoin");
+    }
+
+    function openInviteLanding(code) {
+        api("/threads/api/invites/" + encodeURIComponent(code) + "/preview").then(function (res) {
+            if (!res.success) {
+                toast(res.error === "invalid_invite" ? "That invite link is invalid or expired." : "Couldn't load that invite.", "error");
+                return;
+            }
+            var c = res.community;
+            if (c.is_member) {
+                completeInviteJoin(code, false);
+                return;
+            }
+            showInviteJoinModal(c, code);
+        }).catch(function () {
+            toast("Couldn't load that invite.", "error");
+        });
     }
 
     function renderMessage(m) {
@@ -588,10 +733,7 @@
 
         var sender = m.sender || {};
         var content = m.content || "";
-        var mentions = escapeHtml(content).replace(
-            /@([A-Za-z0-9_]{3,20})/g,
-            '<span class="thr-mention">@$1</span>'
-        );
+        var mentions = renderInlineContent(content);
 
         var attach = "";
         if (m.kind === "anime") {
@@ -3319,6 +3461,24 @@
         $("#btnNewDm").addEventListener("click", function () { openModal("modalNewDm"); });
         $("#btnEmptyDm").addEventListener("click", function () { openModal("modalNewDm"); });
 
+        // guild invite join prompt (Yes / Not now)
+        $("#btnInviteJoinYes").addEventListener("click", function () {
+            var code = $("#modalInviteJoin").getAttribute("data-invite-code");
+            closeModal("modalInviteJoin");
+            if (code) completeInviteJoin(code);
+        });
+        $("#btnInviteJoinNo").addEventListener("click", function () {
+            closeModal("modalInviteJoin");
+        });
+
+        // guild invite cards in messages (delegated)
+        $("#msgList").addEventListener("click", function (e) {
+            var card = e.target.closest(".thr-invite-card");
+            if (!card) return;
+            var code = card.getAttribute("data-invite-code");
+            if (code) openInviteLanding(code);
+        });
+
         // tabs
         $$(".thr-tab").forEach(function (t) {
             t.addEventListener("click", function () {
@@ -3531,26 +3691,10 @@
         // parse URL params once for invite, open, etc.
         var params = new URLSearchParams(window.location.search);
 
-        // join a guild via ?invite=CODE, then open it
+        // guild invite link: ?invite=CODE → show the guild and ask to join
         var inviteCode = params.get("invite");
         if (inviteCode) {
-            api("/threads/api/communities/join-invite", { json: { code: inviteCode } }).then(function (res) {
-                if (!res.success) {
-                    toast(res.error === "invalid_invite" ? "That invite link is invalid or expired." : (res.error === "banned" ? "You can't join that guild." : "Could not join the guild."), "error");
-                    return;
-                }
-                var joined = res.community;
-                toast("Joined " + (joined ? joined.name : "the guild") + "!");
-                refreshCommunities();
-                if (joined) {
-                    State.discoverMode = false;
-                    State.activeCommunity = joined;
-                    State.myCommunityRole = joined.role || "member";
-                    renderRail();
-                    renderChannelPanel();
-                    if (joined.channels && joined.channels.length) openChannel(joined.channels[0]);
-                }
-            });
+            openInviteLanding(inviteCode);
         }
 
         // open ?with=dm:3 from a notification click elsewhere

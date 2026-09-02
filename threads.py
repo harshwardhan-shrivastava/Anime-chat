@@ -190,7 +190,10 @@ def index():
     user = _user()
     if user is None:
         flash("Log in to open Threads.", "error")
-        return redirect(url_for("auth.login", next="/threads"))
+        # Preserve the ?invite=CODE (and any other) query so a friend who
+        # clicks a guild invite while logged out still lands on the join
+        # prompt after logging in.
+        return redirect(url_for("auth.login", next=request.full_path))
 
     conversations = threads_db.get_user_conversations(user["id"])
 
@@ -966,6 +969,21 @@ def community_invite(cid):
         return mem_err
     code = threads_db.get_community_invite_code(cid)
     return jsonify({"success": True, "invite_code": code})
+
+
+@bp.route("/threads/api/invites/<code>/preview")
+def invite_preview(code):
+    """Read-only guild info for an invite code — powers the rich invite
+    card shown in chat and the "Join this guild?" confirmation prompt."""
+    comm = threads_db.get_community_preview(code)
+    if comm is None:
+        return jsonify({"success": False, "error": "invalid_invite"}), 404
+    user = _user()
+    is_member = False
+    if user:
+        is_member = threads_db.is_community_member(comm["id"], user["id"])
+    comm["is_member"] = is_member
+    return jsonify({"success": True, "community": comm})
 
 
 @bp.route("/threads/api/communities/<int:cid>/invite/send", methods=["POST"])

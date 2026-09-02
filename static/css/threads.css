@@ -189,22 +189,118 @@ html, body {
 
 .thr-back-btn:hover { color: var(--thr-text); background: var(--thr-panel); }
 
-.thr-war-btn {
+/* Clickable links inside message text */
+.thr-msg-link {
+    color: var(--thr-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    word-break: break-all;
+}
+.thr-msg-link:hover { color: #c4b5fd; }
+
+/* Guild invite cards inside messages (YouTube-style share preview) */
+.thr-invite-card {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    margin: 6px 0 2px;
+    max-width: 480px;
+    background: var(--thr-panel);
+    border: 1px solid var(--thr-border);
+    border-radius: 12px;
+    padding: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.thr-invite-card:hover { border-color: var(--thr-accent); transform: translateY(-1px); }
+.thr-invite-card-error { cursor: default; opacity: 0.85; }
+.thr-invite-thumb {
+    width: 88px;
+    min-width: 88px;
+    height: 88px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: 800;
+    color: #ffffff;
+    background: var(--thr-accent);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.thr-invite-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+}
+.thr-invite-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--thr-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.thr-invite-meta { font-size: 12px; color: var(--thr-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.thr-invite-open {
+    align-self: center;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: #fbbf24;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 800;
-    padding: 7px 12px;
-    border-radius: 9px;
-    border: 1px solid rgba(251, 191, 36, 0.4);
-    background: rgba(251, 191, 36, 0.1);
-    transition: all 0.15s ease;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--thr-accent);
+    background: rgba(139, 92, 246, 0.15);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    border-radius: 8px;
+    padding: 6px 10px;
+    white-space: nowrap;
+}
+.thr-invite-joined .thr-invite-open {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.12);
+    border-color: rgba(74, 222, 128, 0.4);
 }
 
-.thr-war-btn:hover { color: #0b0f19; background: #fbbf24; }
+/* Join-guild confirmation modal */
+.thr-modal-invite { width: 430px; }
+.thr-invite-hero {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+.thr-invite-hero-thumb {
+    width: 64px;
+    min-width: 64px;
+    height: 64px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 800;
+    color: #ffffff;
+    background: var(--thr-accent);
+}
+.thr-invite-hero-text { min-width: 0; }
+.thr-invite-hero-name { font-size: 17px; font-weight: 800; color: var(--thr-text); }
+.thr-invite-hero-meta { font-size: 13px; color: var(--thr-muted); margin-top: 2px; }
+.thr-invite-hero-desc {
+    font-size: 13px;
+    color: var(--thr-muted);
+    line-height: 1.5;
+    margin: 0 0 16px;
+}
+.thr-modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+.thr-modal-actions .thr-btn { min-width: 96px; }
 
 .thr-icon-btn {
     position: relative;
