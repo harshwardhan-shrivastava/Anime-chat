@@ -2837,3 +2837,67 @@ html, body {
     border: 1px solid rgba(248, 113, 113, 0.45);
     box-shadow: 0 0 12px rgba(248, 113, 113, 0.25);
 }
+
+/* ============================================================
+   THREADS — MOBILE (phones + small tablets)
+   Left panel becomes an off-canvas drawer opened by the
+   hamburger; chat stays full width; guild rail slimmed down.
+   ============================================================ */
+.thr-menu-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid var(--thr-border);
+    background: transparent;
+    color: var(--thr-text);
+    font-size: 15px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.thr-menu-btn:hover { background: var(--thr-panel); }
+.thr-scrim {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 6, 12, 0.55);
+    z-index: 55;
+}
+
+@media (max-width: 860px) {
+    .thr-menu-btn { display: inline-flex; }
+    .thr-left {
+        position: fixed;
+        left: 0;
+        top: 56px;
+        bottom: 0;
+        width: min(86vw, 320px);
+        min-width: 0;
+        z-index: 60;
+        box-shadow: 0 12px 44px rgba(0, 0, 0, 0.55);
+        transform: translateX(-105%);
+        transition: transform 0.22s ease;
+    }
+    body.thr-menu-open .thr-left { transform: translateX(0); }
+    body.thr-menu-open .thr-scrim { display: block; }
+    /* undo the old "hide tabs" rule so table/mobile users can still
+       switch between Messages and Guilds inside the drawer */
+    .thr-tabs { display: flex; gap: 6px; }
+    .thr-tab { padding: 8px 12px; font-size: 13px; white-space: nowrap; }
+    .thr-modal-card { width: min(94vw, 440px); }
+}
+
+@media (max-width: 560px) {
+    .thr-topbar { gap: 8px; padding: 0 10px; }
+    .thr-otakul-name, .thr-brand-name, .thr-user-name, .thr-back-btn span { display: none; }
+    .thr-tab { padding: 7px 10px; font-size: 12.5px; }
+    .thr-rail { width: 58px; }
+    .thr-rail-icon { width: 40px; height: 40px; font-size: 13px; }
+    .thr-msg { gap: 10px; padding: 6px; }
+    .thr-msg-avatar { width: 34px; height: 34px; font-size: 12px; }
+    .thr-msg-content { max-width: 100%; }
+    .thr-modal { padding: 10px; }
+    #msgList, .thr-chat-body { padding: 10px 8px; }
+}

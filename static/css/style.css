@@ -2197,3 +2197,71 @@ grid-template-columns:1fr;
     .wl{animation:none;opacity:.5}
     .duel-flash,.br,.petal{animation:none;opacity:0}
 }
+
+/* ============================================================
+   MOBILE POLISH — navbar + homepage on phones
+   ============================================================ */
+@media(max-width:640px){
+
+    nav{
+        padding:10px 14px;
+        row-gap:8px;
+    }
+
+    .nav-links{
+        flex-wrap:nowrap;
+        justify-content:flex-start;
+        overflow-x:auto;
+        -webkit-overflow-scrolling:touch;
+        scrollbar-width:none;
+        padding:2px 0 6px;
+    }
+
+    .nav-links::-webkit-scrollbar{ display:none; }
+
+    .nav-links a{
+        flex-shrink:0;
+        padding:9px 11px;
+        font-size:13.5px;
+        white-space:nowrap;
+    }
+
+    .nav-right{
+        gap:8px;
+        flex-wrap:wrap;
+        justify-content:flex-end;
+    }
+
+    .category-menu{
+        position:fixed;
+        left:12px;
+        right:12px;
+        top:58px;
+        min-width:0;
+        max-height:68vh;
+        overflow-y:auto;
+    }
+
+    .cat-genre-cols{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .hero{
+        padding:34px 18px 26px;
+    }
+
+    .hero h1{
+        font-size:clamp(26px,8vw,42px);
+    }
+
+    .hero p{
+        font-size:14.5px;
+        max-width:100%;
+    }
+
+    .search-box{
+        width:100%;
+        max-width:100%;
+    }
+
+}

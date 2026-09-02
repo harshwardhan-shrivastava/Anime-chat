@@ -315,6 +315,7 @@
     // Opening a conversation
     // ----------------------------------------------------------
     function openConversation(type, id) {
+        (window.mobileDrawerClose || function () {} )();
         var conv = null;
         State.conversations.forEach(function (c) {
             if (c.id === id && c.type === type) conv = c;
@@ -2015,6 +2016,7 @@
     // ============================================================
 
     function setTab(tab) {
+        (window.mobileDrawerClose || function () {} )();
         State.activeTab = tab;
         $$(".thr-tab").forEach(function (x) {
             x.classList.toggle("active", x.getAttribute("data-tab") === tab);
@@ -2157,6 +2159,7 @@
     }
 
     function openChannel(ch) {
+        (window.mobileDrawerClose || function () {} )();
         if (!ch) return;
         State.active = { type: "channel", id: ch.id, conv: ch };
         State.replyTo = null;
@@ -3500,6 +3503,24 @@
         // new DM + friend-requests buttons (header + empty state)
         $("#btnNewDm").addEventListener("click", function () { openModal("modalNewDm"); });
         $("#btnEmptyDm").addEventListener("click", function () { openModal("modalNewDm"); });
+
+        // mobile drawer: hamburger opens the left panel as an off-canvas
+        // overlay (<=860px), scrim / Esc close it, and opening any
+        // conversation auto-closes it so the chat gets full width.
+        function mobileDrawerClose() {
+            document.body.classList.remove("thr-menu-open");
+        }
+        window.mobileDrawerClose = mobileDrawerClose;
+        var btnThrMenu = $("#btnThrMenu");
+        var thrScrim = $("#thrScrim");
+        if (btnThrMenu) btnThrMenu.addEventListener("click", function (e) {
+            e.stopPropagation();
+            document.body.classList.toggle("thr-menu-open");
+        });
+        if (thrScrim) thrScrim.addEventListener("click", mobileDrawerClose);
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") mobileDrawerClose();
+        });
 
         // guild invite join prompt (Yes / Not now)
         $("#btnInviteJoinYes").addEventListener("click", function () {

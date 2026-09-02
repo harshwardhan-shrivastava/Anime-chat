@@ -890,3 +890,26 @@ body { background: var(--rv-bg); color: var(--rv-text); font-family: 'Inter', -a
     text-decoration: none;
 }
 .rv-prof-history:hover { filter: brightness(1.1); }
+
+/* ============================================================
+   REVIEWS — MOBILE
+   ============================================================ */
+@media (max-width: 720px) {
+    .rv-hero { padding: 30px 14px 18px; }
+    .rv-hero-inner { flex-direction: column; gap: 18px; }
+    .rv-board { width: 100%; }
+    .rv-rank-row { flex-wrap: wrap; gap: 8px; }
+    .rv-toolbar { gap: 10px; margin-bottom: 16px; }
+    .rv-tabs { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 5px; }
+    .rv-tab { white-space: nowrap; padding: 9px 14px; font-size: 0.85rem; }
+    .rv-search { flex: 1 1 100%; }
+    .rv-sort { width: 100%; }
+    .rv-prof-overlay { padding: 12px; }
+    .rv-prof-card { width: 100%; max-width: 420px; max-height: 88vh; overflow-y: auto; }
+    .rv-footer { flex-wrap: wrap; row-gap: 8px; }
+}
+@media (max-width: 480px) {
+    .rv-hero-stats { gap: 8px; width: 100%; }
+    .rv-stat { padding: 10px 8px; }
+    .rv-search input { font-size: 0.85rem; }
+}

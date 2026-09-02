@@ -13,7 +13,7 @@
     </noscript>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"></noscript>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260902d">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260902j">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260901c">
 </head>
 <body
@@ -24,6 +24,7 @@
     data-preloaded-guild='{{ preloaded_guild | tojson if preloaded_guild else "{}" }}'>
 
 <div id="threads-app">
+    <div class="thr-scrim" id="thrScrim"></div>
 
     <!-- ===================== TOP BAR ===================== -->
     <header class="thr-topbar">
@@ -38,6 +39,9 @@
         </div>
 
         <div class="thr-topbar-right">
+            <button id="btnThrMenu" class="thr-menu-btn" type="button" title="Menu" aria-label="Menu">
+                <i class="fas fa-bars"></i>
+            </button>
             <nav class="thr-tabs">
                 <button class="thr-tab active" data-tab="messages">
                     <i class="fas fa-comment-dots"></i> {{ t('Messages') }}
@@ -711,7 +715,7 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260902d"></script>
+<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260902j"></script>
 <script>
 (function () {
     var pill = document.getElementById('btnUserMenu');

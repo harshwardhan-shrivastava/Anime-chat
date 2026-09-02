@@ -910,3 +910,14 @@
     padding: 2px 9px; vertical-align: middle; white-space: nowrap;
 }
 .dev-tag i { color: #5eead4; font-size: 0.62rem; }
+
+/* ============================================================
+   PROFILE — MOBILE polish
+   ============================================================ */
+@media (max-width: 600px) {
+    .profile-banner-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .profile-id { flex-wrap: wrap; }
+    .profile-card-grid { grid-template-columns: 1fr; }
+    .profile-list-card { flex-wrap: wrap; row-gap: 10px; }
+    .profile-avatar { width: 76px; height: 76px; }
+}
