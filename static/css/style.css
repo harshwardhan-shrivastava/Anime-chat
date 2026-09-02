@@ -2980,3 +2980,55 @@ nav.nav-mobile-open .nav-burger-bar:nth-child(3){ transform:translateY(-6px) rot
         margin:0 auto;
     }
 }
+
+/* ============================================================
+   PHONE HOME FIXUP — v3
+   - Remove the rail edge-fade mask (it can blank whole shelves)
+   - Give cards soft placeholder tiles so rails never look empty
+     while poster images load
+   - Bring back the hero line so the first screen has text
+============================================================ */
+@media (max-width: 640px){
+    /* neutralize any mask so rails can never go invisible */
+    .anime-grid.for-you-grid,
+    .anime-grid.new-grid{
+        -webkit-mask-image:none;
+        mask-image:none;
+    }
+
+    /* placeholder tiles under lazy posters */
+    .anime-grid.for-you-grid .anime-card .image-box,
+    .anime-grid.new-grid .anime-card .image-box{
+        background:rgba(255,255,255,.06);
+    }
+    .anime-grid .anime-card .image-box{
+        background:rgba(255,255,255,.05);
+    }
+
+    /* hero: one readable line + the search */
+    .hero p{
+        display:-webkit-box;
+        -webkit-line-clamp:1;
+        -webkit-box-orient:vertical;
+        overflow:hidden;
+        font-size:11.5px;
+        margin:0 auto 8px;
+        max-width:420px;
+    }
+    .hero h1{
+        font-size:clamp(17px, 5vw, 21px);
+        margin:0 0 4px;
+    }
+    .hero{
+        margin:8px auto 4px;
+    }
+    .hero .search-box{
+        height:46px;
+        border-radius:16px;
+        background:rgba(255,255,255,.07);
+        border:1px solid rgba(255,255,255,.1);
+    }
+    .hero .search-box input{
+        font-size:14px;
+    }
+}
