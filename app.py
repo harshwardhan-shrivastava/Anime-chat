@@ -1000,13 +1000,13 @@ def _browse_page(entries, page):
 def privacy_policy():
     """Privacy policy page — explains data collection, third parties,
     cookies, rights, and contact info."""
-    return render_template("privacy.html")
+    return render_template("privacy.html", genres=_genre_list())
 
 
 @app.route("/changelog")
 def changelog():
     """What's New page — the changelog box listing everything shipped."""
-    return render_template("changelog.html")
+    return render_template("changelog.html", genres=_genre_list())
 
 
 @app.route("/browse")

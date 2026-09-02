@@ -23,7 +23,7 @@
                 <div class="cat-col cat-genres">
                     <span class="cat-heading">{{ t('Genres') }}</span>
                     <div class="cat-genre-cols">
-                        {% for genre in genres %}
+                        {% for genre in genres or [] %}
                         <a href="{{ url_for('category', genre=genre) }}">{{ genre }}</a>
                         {% endfor %}
                     </div>

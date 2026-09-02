@@ -7,6 +7,9 @@
 
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260902s">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}?v=20260902s">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -92,11 +95,11 @@
 </head>
 <body>
 
+{% include "_navbar.html" %}
+
 <div class="bg"></div>
 
 <div class="wrap">
-
-    <a class="brand" href="{{ url_for('home') }}">Ota<span>kul</span></a>
 
     <h1>What's New</h1>
     <div class="updated">Changelog · updated September 1, 2026</div>
