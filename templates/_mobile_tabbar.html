@@ -1,0 +1,49 @@
+<!-- Mobile bottom app bar (Crunchyroll-style). Visible on phones only;
+     hidden by CSS on wider screens. Included on main app pages. -->
+<div class="tabbar-spacer" aria-hidden="true"></div>
+<nav class="mob-tabbar" aria-label="Main navigation">
+    <a class="mtb-item" data-mtb="/" href="{{ url_for('home') }}">
+        <i class="fas fa-house" aria-hidden="true"></i>
+        <span>{{ t('Home') }}</span>
+    </a>
+    <a class="mtb-item" data-mtb="/browse" href="{{ url_for('browse') }}">
+        <i class="fas fa-compass" aria-hidden="true"></i>
+        <span>{{ t('Browse') }}</span>
+    </a>
+    <a class="mtb-item" data-mtb="/reviews" href="{{ url_for('reviews_page') }}">
+        <i class="fas fa-star" aria-hidden="true"></i>
+        <span>{{ t('Reviews') }}</span>
+    </a>
+    <a class="mtb-item" data-mtb="/threads" href="{{ url_for('threads.index') }}">
+        <i class="fas fa-comments" aria-hidden="true"></i>
+        <span>{{ t('Threads') }}</span>
+    </a>
+    <a class="mtb-item" data-mtb="account"
+       href="{{ url_for('profile.profile') if current_user else url_for('auth.login') }}">
+        {% if current_user and current_user.avatar %}
+        <img class="mtb-avatar" src="{{ url_for('static', filename='images/avatars/' ~ current_user.avatar) }}" alt="">
+        {% else %}
+        <i class="fas fa-user" aria-hidden="true"></i>
+        {% endif %}
+        <span>{{ t('You') }}</span>
+    </a>
+</nav>
+<script>
+(function () {
+    "use strict";
+    var path = window.location.pathname || "/";
+    var tabs = document.querySelectorAll(".mtb-item");
+    var match = null;
+    if (path === "/") match = "/";
+    else if (path.indexOf("/browse") === 0) match = "/browse";
+    else if (path.indexOf("/reviews") === 0 || path.indexOf("/anime-reviews") === 0) match = "/reviews";
+    else if (path.indexOf("/threads") === 0) match = "/threads";
+    else if (path.indexOf("/user/") === 0 || path.indexOf("/profile") === 0) match = "account";
+    tabs.forEach(function (tab) {
+        if (tab.getAttribute("data-mtb") === match) {
+            tab.classList.add("active");
+            tab.setAttribute("aria-current", "page");
+        }
+    });
+})();
+</script>

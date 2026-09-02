@@ -7,7 +7,7 @@
     <title>Otakul</title>
 
     <link rel="icon" type="image/svg+xml"
-    href="{{ url_for('static', filename='favicon.svg') }}">    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260902r">
+    href="{{ url_for('static', filename='favicon.svg') }}">    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260902x">
     <style>
         /* Mobile first-screen guarantees — kept INLINE so a stale cached
            stylesheet can never re-break the phone layout (the homepage
@@ -183,6 +183,8 @@
 <script src="{{ url_for('static', filename='js/list_picker.js') }}?v=20260902u" defer></script>
 <script src="{{ url_for('static', filename='js/navigation.js') }}?v=20260902u" defer></script>
 {% include "_footer.html" %}
+
+{% include "_mobile_tabbar.html" %}
 
 </body>
 
