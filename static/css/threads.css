@@ -3085,3 +3085,117 @@ html, body {
         color:var(--thr-accent);
     }
 }
+
+
+/* ==========================================================
+   MOBILE — Guilds flow (Discord-style): channel list first,
+   chat goes full-screen when you open a channel, a back
+   button returns to the list. Fixes the 50px chat sliver.
+========================================================== */
+@media (max-width: 700px){
+    .thr-body{
+        position:relative;
+    }
+    #commRail{
+        width:54px;
+        flex:0 0 54px;
+        z-index:7;
+    }
+    #channelPanel,
+    #discoverPanel{
+        position:absolute;
+        left:54px;
+        top:0;
+        bottom:0;
+        right:0;
+        z-index:6;
+        width:auto;
+        box-shadow:-10px 0 28px rgba(0,0,0,.28);
+    }
+    /* a channel is open -> chat takes the whole screen */
+    #threads-app.thr-guild-open #commRail,
+    #threads-app.thr-guild-open #channelPanel,
+    #threads-app.thr-guild-open #discoverPanel{
+        display:none;
+    }
+    .thr-mobile-back{
+        display:none;
+    }
+    #threads-app.thr-guild-open .thr-mobile-back{
+        display:inline-flex !important;
+    }
+
+    /* chat head tuned to the phone: one-line title, slim actions */
+    .thr-chat-head{
+        padding:6px 8px;
+        gap:6px;
+        min-height:46px;
+    }
+    .thr-chat-id{
+        min-width:0;
+        flex:1;
+    }
+    .thr-chat-name-row{
+        min-width:0;
+    }
+    .thr-chat-name{
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+        max-width:100%;
+    }
+    .thr-seen-text{
+        display:none;
+    }
+    .thr-chat-head .thr-icon-btn{
+        width:32px;
+        height:32px;
+    }
+}
+
+/* ==========================================================
+   MOBILE — top bar proportions: one uniform row of 32px
+   controls, no big/small mismatch
+========================================================== */
+@media (max-width: 560px){
+    .thr-topbar{
+        height:50px;
+        padding:0 8px;
+        gap:8px;
+    }
+    .thr-otakul-mark,
+    .thr-avatar{
+        width:30px;
+        height:30px;
+        font-size:13px;
+    }
+    .thr-topbar .thr-menu-btn,
+    .thr-topbar .thr-back-btn,
+    .thr-topbar .thr-icon-btn{
+        width:32px;
+        height:32px;
+        font-size:14px;
+    }
+    .thr-topbar .thr-back-btn{
+        width:auto;
+        padding:0 10px 0 8px;
+        gap:5px;
+        font-size:12px;
+        border-radius:9px;
+    }
+    .thr-user-pill{
+        padding:2px 4px;
+        gap:4px;
+        border-radius:10px;
+    }
+    .thr-user-caret{
+        display:none;
+    }
+    .thr-badge{
+        top:-3px;
+        right:-3px;
+        min-width:15px;
+        height:15px;
+        font-size:9px;
+    }
+}

@@ -1253,6 +1253,16 @@ if (input) {
     });
 }
 
+// Phones: the inline composer's keyboard scrolls the whole page and the
+// chat flies off screen. Send mobile typing into the full-screen chat
+// instead, so composer + messages stay on one screen like an app.
+input.addEventListener("focusin", function () {
+    if (window.innerWidth <= 700 && typeof window.__otakulOpenChatModal === "function") {
+        input.blur();
+        window.__otakulOpenChatModal();
+    }
+});
+
 // Tap-to-send (like WhatsApp / Discord) - Enter still works too.
 var chatSendBtn = document.getElementById("chatSendBtn");
 if (chatSendBtn) {
@@ -1308,11 +1318,10 @@ setInterval(refreshPresence, 8000);
     var modalSeen = new Set();
     var modalPoll = null;
 
-    // Open modal (or show lock if not a member)
-    enterOverlay.addEventListener("click", function () {
+    function openChatModal() {
+        // Show lock (and scroll to join) when not a member
         var isMember = document.body.dataset.isMember === "true";
         if (!isMember) {
-            // Show lock animation
             var btn = enterOverlay.querySelector(".chat-enter-btn") || enterOverlay;
             var original = btn.innerHTML;
             btn.innerHTML = "🔒 Join community first";
@@ -1325,7 +1334,6 @@ setInterval(refreshPresence, 8000);
                 btn.style.borderColor = "";
                 btn.style.color = "";
             }, 2000);
-            // Scroll to join button
             var joinBtn = document.getElementById("joinCommunityBtn");
             if (joinBtn) joinBtn.scrollIntoView({ behavior: "smooth", block: "center" });
             return;
@@ -1342,7 +1350,10 @@ setInterval(refreshPresence, 8000);
         modalBox.scrollTop = modalBox.scrollHeight;
         startModalPoll();
         if (modalInput) modalInput.focus();
-    });
+    }
+    // Used by the inline composer redirect on phones (see EVENTS below)
+    window.__otakulOpenChatModal = openChatModal;
+    enterOverlay.addEventListener("click", openChatModal);
 
     // Close
     if (modalClose) modalClose.addEventListener("click", closeModal);

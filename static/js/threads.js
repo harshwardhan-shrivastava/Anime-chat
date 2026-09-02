@@ -2030,6 +2030,8 @@
         $("#commRail").classList.toggle("hidden", !isComm);
         $(".thr-left").classList.toggle("hidden", isComm);
         if (!isComm) {
+            // back to the guild's channel list next time Guilds is opened
+            document.getElementById("threads-app").classList.remove("thr-guild-open");
             $("#channelPanel").classList.add("hidden");
             $("#discoverPanel").classList.add("hidden");
             if (isChannelOpen()) {
@@ -2166,6 +2168,12 @@
     function openChannel(ch) {
         (window.mobileDrawerClose || function () {} )();
         if (!ch) return;
+        // Mobile: opening a guild channel goes full-screen (chat covers the
+        // channel list, like Discord mobile). Back button returns to channels.
+        if (window.innerWidth <= 700) {
+            var _appEl = document.getElementById("threads-app");
+            if (_appEl) _appEl.classList.add("thr-guild-open");
+        }
         State.active = { type: "channel", id: ch.id, conv: ch };
         State.replyTo = null;
         State.attach = null;
@@ -2953,6 +2961,14 @@
         wirePartyModal();
 
         $("#btnSubmitReport").addEventListener("click", submitReport);
+
+        // mobile: back from a guild channel to its channel list
+        var guildBack = document.getElementById("btnGuildBack");
+        if (guildBack) {
+            guildBack.addEventListener("click", function () {
+                document.getElementById("threads-app").classList.remove("thr-guild-open");
+            });
+        }
 
         // rail
         $("#commRailList").addEventListener("click", function (e) {
