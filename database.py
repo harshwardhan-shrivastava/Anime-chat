@@ -2047,7 +2047,7 @@ _all_reviews_cache_ttl = 60  # seconds
 # request. Votes / new reviews / new replies invalidate it immediately.
 _reviews_feed_cache = None
 _reviews_feed_cache_time = 0.0
-_reviews_feed_cache_ttl = 12.0  # seconds
+_reviews_feed_cache_ttl = 25.0  # seconds (votes/reviews/replies invalidate it instantly anyway)
 
 
 def reviews_feed_cache_get():
