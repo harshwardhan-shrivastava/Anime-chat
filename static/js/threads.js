@@ -2099,10 +2099,27 @@
         refreshCommunities();
     }
 
+    function syncCommSheets() {
+        // Exactly one of channel / discover is visible at a time, and a
+        // chat open underneath parks the sheet over it (Discord-style).
+        $("#channelPanel").classList.toggle("hidden", State.discoverMode);
+        $("#discoverPanel").classList.toggle("hidden", !State.discoverMode);
+        var appEl = document.getElementById("threads-app");
+        if (window.innerWidth <= 700 && (appEl.classList.contains("thr-dm-open") || appEl.classList.contains("thr-guild-open"))) {
+            appEl.classList.add("thr-sheet-open");
+        }
+    }
+
     function showDiscover() {
         State.discoverMode = true;
         $("#channelPanel").classList.add("hidden");
         $("#discoverPanel").classList.remove("hidden");
+        if (window.innerWidth <= 700) {
+            var appEl = document.getElementById("threads-app");
+            if (appEl.classList.contains("thr-guild-open") || appEl.classList.contains("thr-dm-open")) {
+                appEl.classList.add("thr-sheet-open");
+            }
+        }
         loadDiscover();
     }
 
@@ -2977,6 +2994,7 @@
                 State.myCommunityRole = "owner";
                 renderRail();
                 renderChannelPanel();
+                syncCommSheets();
                 if (c.channels && c.channels.length) openChannel(c.channels[0]);
                 toast("Guild created!");
             });
@@ -3033,6 +3051,7 @@
             renderRail();
             renderChannelPanel();
             if (State.active && State.active.type === "channel") {
+            syncCommSheets();
                 var ok = false;
                 (c.channels || []).forEach(function (ch) { if (ch.id === State.active.id) ok = true; });
                 if (!ok) {
@@ -3085,6 +3104,7 @@
                 loadDiscover($("#discoverSearch").value);
                 renderRail();
                 renderChannelPanel();
+                syncCommSheets();
                 if (c.channels && c.channels.length) openChannel(c.channels[0]);
                 toast("Joined " + c.name);
             });

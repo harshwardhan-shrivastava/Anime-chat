@@ -3298,7 +3298,10 @@ html, body {
    = drawer parked open over the chat.
 ============================================================ */
 @media (max-width: 700px){
-    /* drawer elements ride above the chat and animate on snap */
+    /* === DRAWER MODE: while a chat is open the sidebar becomes an
+       absolutely-positioned overlay so it can slide over the chat —
+       crucially it leaves the flex flow, so the chat always gets the
+       FULL phone width (no invisible rail sliver, no crushed column). */
     #threads-app.thr-dm-open .thr-left,
     #threads-app.thr-guild-open #commRail,
     #threads-app.thr-guild-open #channelPanel,
@@ -3306,17 +3309,31 @@ html, body {
         will-change: transform;
         transition: transform .3s cubic-bezier(.22,.9,.3,1), visibility .3s;
     }
-    /* keep them rendered (drop the old display:none hiding) so the
-       transform can slide them in from the left edge */
+    /* out of flow: the chat underneath reflows to full width */
     #threads-app.thr-dm-open .thr-left{
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 100%;
         display: flex !important;
+        z-index: 9;
     }
     #threads-app.thr-guild-open #commRail{
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 54px;
         display: flex !important;
+        z-index: 8;
     }
     #threads-app.thr-guild-open #channelPanel,
     #threads-app.thr-guild-open #discoverPanel{
         display: block !important;
+    }
+    /* real hidden states must beat the forced-display (e.g. Discover
+       open over a channel chat — never stack panels) */
+    #threads-app.thr-dm-open .thr-left.hidden,
+    #threads-app.thr-guild-open #channelPanel.hidden,
+    #threads-app.thr-guild-open #discoverPanel.hidden{
+        display: none !important;
     }
     /* chat is always the base layer whenever a chat is open */
     #threads-app.thr-dm-open .thr-main,
@@ -3358,5 +3375,26 @@ html, body {
     #threads-app.thr-drag #channelPanel,
     #threads-app.thr-drag #discoverPanel{
         transition: none !important;
+    }
+}
+
+/* --- chat head: one clean row like Discord mobile. The channel
+   description (chatSub) must clamp to a single line instead of
+   wrapping the header into a tall card. --- */
+@media (max-width: 700px){
+    .thr-chat-head{
+        min-height: 50px;
+        height: auto;
+    }
+    .thr-chat-titles{
+        min-width: 0;
+    }
+    #chatSub{
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 11px;
+        line-height: 1.3;
     }
 }
