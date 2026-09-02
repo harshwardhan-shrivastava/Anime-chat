@@ -1177,6 +1177,19 @@ def create_tables():
             "UPDATE review_likes SET points = CASE WHEN is_like=1 THEN 10 ELSE -5 END WHERE points = 0"
         )
 
+    # The /reviews feed looks up votes/points in bulk by (review_type,
+    # review_id IN ...) - the UNIQUE(user_id, review_type, review_id)
+    # index leads with user_id and can't serve it, so without this index
+    # every 200-review page was doing ~200 full table scans.
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_review_likes_type_review "
+        "ON review_likes(review_type, review_id)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_review_reasons_type_review "
+        "ON review_reasons(review_type, review_id)"
+    )
+
     # Ratings moved from 5-star to 10-star. Legacy rows are 1-5; migrate them
     # to /10 exactly once (only when no rating above 5 exists yet, so a fresh
     # 10-star database is never touched twice). Episode reviews are already
@@ -2152,10 +2165,19 @@ def get_all_reviews(limit=200):
     return reviews
 
 
+_all_episode_reviews_cache = None
+_all_episode_reviews_cache_time = 0.0
+_all_episode_reviews_cache_ttl = 30.0
+
+
 def get_all_episode_reviews(limit=200):
     """Return the most recent EPISODE reviews across ALL anime (for the
-    Episode Reviews tab on /reviews).
+    Episode Reviews tab on /reviews). Cached like get_all_reviews.
     """
+    global _all_episode_reviews_cache, _all_episode_reviews_cache_time
+    now = time.time()
+    if _all_episode_reviews_cache and now - _all_episode_reviews_cache_time < _all_episode_reviews_cache_ttl:
+        return _all_episode_reviews_cache
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -2187,6 +2209,8 @@ def get_all_episode_reviews(limit=200):
         for row in cursor.fetchall()
     ]
     conn.close()
+    _all_episode_reviews_cache = reviews
+    _all_episode_reviews_cache_time = time.time()
     return reviews
 
 
