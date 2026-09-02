@@ -926,3 +926,210 @@ body { background: var(--rv-bg); color: var(--rv-text); font-family: 'Inter', -a
     .rv-rp-head h3 { font-size: 0.95rem; }
     .rv-rp-intro { font-size: 0.82rem; }
 }
+
+
+/* ============================================================
+   REVIEWS — native-app mobile pass
+   Goal: reviews are the star. The page opens on the feed, the
+   hero/leaderboard/explainers shrink to slim app furniture and
+   every card reads like IMDb mobile: poster, verdict, short
+   text, one-tap actions.
+============================================================ */
+@media (max-width: 720px){
+    .rv-page{ padding: 0 10px 56px; }
+    /* Hero: tight single block — badge, one-line title, row of
+       count chips, intro dropped to a whisper */
+    .rv-hero{ padding: 16px 14px 14px; border-radius: 18px; margin-bottom: 14px; }
+    .rv-hero-badge{ font-size: 0.66rem; padding: 4px 10px; gap: 6px; }
+    .rv-hero h1{ font-size: 1.5rem; line-height: 1.15; }
+    .rv-hero p{ font-size: 0.78rem; line-height: 1.45; margin-top: 8px; }
+    .rv-hero-left{ flex: none; }
+    .rv-hero-stats{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; }
+    .rv-stat{ padding: 8px 4px; border-radius: 12px; min-width: 0; }
+    .rv-stat .n{ font-size: 1.15rem; }
+    .rv-stat .l{ font-size: 0.62rem; margin-top: 3px; white-space: nowrap; }
+    /* Top reviewers: a horizontal strip of mini-cards, swiped
+       sideways — one line, never a tall ranked column */
+    .rv-board{ flex: none; width: 100%; border-radius: 14px; padding: 8px 10px; margin-top: 12px; }
+    .rv-board h3{ font-size: 0.78rem; margin: 0 0 8px; gap: 6px; }
+    .rv-board h3 i{ font-size: 0.8rem; }
+    .rv-board .sub{ display: none; }
+    .rv-board{ display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .rv-rank-row{ display: flex; width: auto; flex-direction: row; gap: 7px; align-items: center;
+                  flex: 0 0 auto; padding: 5px 9px; border-radius: 999px;
+                  border: 1px solid var(--rv-border); background: rgba(10,17,28,0.5); }
+    .rv-rank-pos{ font-size: 0.8rem; flex: 0 0 auto; }
+    .rv-rank-avatar{ width: 24px; height: 24px; font-size: 0.7rem; flex: 0 0 auto; }
+    .rv-rank-main{ text-align: left; min-width: 0; }
+    .rv-rank-name{ font-size: 0.72rem; font-weight: 700; display: block; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rv-rank-meta{ display: none; }
+    .rv-rank-rb{ display: none; }
+    /* explainer blocks become slim tappable rows (already collapsed) */
+    .rv-rp-legend{ margin-top: 10px; }
+    .rv-rp-head{ padding: 10px 12px; }
+    .rv-rp-icon{ width: 26px; height: 30px; }
+    .rv-rp-icon span{ width: 22px; height: 26px; }
+    .rv-rp-head h3{ font-size: 0.82rem; margin: 0; }
+    .rv-rp-head h3 span{ display: none; }
+    .rv-rp-head .rv-rp-tgl{ font-size: 0.8rem; }
+    .rv-guide-head{ padding: 10px 12px; }
+    .rv-guide-head h3{ font-size: 0.82rem; }
+    .rv-guide-head i{ font-size: 0.95rem; }
+    .rv-guide-head .tgl{ font-size: 0.8rem; }
+    .rv-guide{ margin-bottom: 0; }
+    /* toolbar: slim sticky bar — tabs on top, search + sort in one
+       row beneath, so reviews start right after */
+    .rv-toolbar{ display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; margin: 12px 0 10px;
+                 padding: 7px; border-radius: 14px; background: rgba(10,17,28,0.6);
+                 border: 1px solid var(--rv-border); position: sticky; top: 60px; z-index: 40;
+                 backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+    .rv-toolbar .rv-spacer{ display: none; }
+    .rv-tabs{ grid-column: 1 / -1; width: 100%; padding: 0; overflow-x: auto;
+              -webkit-overflow-scrolling: touch; border-radius: 11px; }
+    .rv-tab{ padding: 8px 13px; font-size: 0.8rem; border-radius: 9px; }
+    .rv-tab .cnt{ display: none; }
+    .rv-search{ grid-column: 1; height: 36px; min-width: 0; width: 100%;
+                 border-radius: 11px; padding: 0 10px; }
+    .rv-search input{ font-size: 0.8rem; }
+    .rv-sort{ grid-column: 2; width: auto; height: 36px; font-size: 0.78rem;
+              padding: 0 8px; border-radius: 11px; max-width: 118px; }
+
+    /* ---- review cards read like app rows: full-width content,
+       poster floating by the author header, actions one line ---- */
+    .rv-card.art:not(.ep){
+        display: block;
+        padding: 14px;
+        border-radius: 16px;
+    }
+    .rv-card.art:not(.ep) .rv-art{
+        display: block;
+        float: right;
+        width: 74px;
+        margin: 2px 0 10px 12px;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .rv-card.art:not(.ep) .rv-art img{ width: 100%; height: auto; display: block; }
+    .rv-card-body{ padding: 0; }
+    .rv-user-line{ gap: 9px; }
+    .rv-avatar{ width: 38px; height: 38px; font-size: 0.95rem; }
+    .rv-username h3{ font-size: 0.92rem; }
+    .rv-badges{ gap: 6px; margin-top: 2px; }
+    .rv-badges .rank-badge{ font-size: 0.72rem !important; padding: 2px 8px !important; letter-spacing: 1px !important; }
+    .rv-badges .xp-bar{ display: none !important; }
+    .rv-anime-line{ margin-top: 4px; gap: 7px; font-size: 0.86rem; }
+    .rv-anime-line a.rv-anime{ font-size: 0.92rem; }
+    .rv-stars{ font-size: 0.85rem; letter-spacing: 0.5px; }
+    .rv-time{ display: none; }
+    /* comment: shorter peek (3 lines) + bold tidy "more" */
+    .rv-comment{ margin-top: 10px; font-size: 0.92rem; line-height: 1.55; clear: both; }
+    .rv-comment.clamp{ max-height: 74px; }
+    .rv-more-btn{ font-size: 0.78rem; margin-top: 4px; }
+    /* footer: like/dislike first and chunky, verdict + slim xp to
+       its right, secondary links dropped on phones */
+    .rv-footer{ margin-top: 12px; padding-top: 10px; gap: 6px 8px; }
+    .rv-vote{ order: 1; }
+    .rv-vote-btn{ padding: 8px 12px; min-width: 0; gap: 6px; font-size: 0.84rem; border-radius: 999px; }
+    .rv-word{ order: 2; font-size: 0.78rem; margin-left: 2px; align-self: center; }
+    .rv-xp-bottle{ order: 3; flex-direction: row; gap: 5px; margin-left: auto; align-items: center; }
+    .rv-bottle-glass{ width: 62px; height: 18px; border-radius: 6px; }
+    .rv-bottle-glass::before{ width: 6px; }
+    .rv-bottle-glass::after{ height: 3px; left: 9px; right: 12px; }
+    .rv-bottle-glass .rv-bottle-liquid{ left: 6px; }
+    .rv-bottle-level{ font-size: 0.58rem; position: absolute; left: 0; right: 0; top: 0; text-align: center; z-index: 4; color: #0b1220; font-weight: 900; line-height: 18px; }
+    .rv-bottle-num{ font-size: 0.72rem; white-space: nowrap; }
+    .rv-bottle-num i{ font-size: 0.55rem; }
+    .rv-bottle-label{ display: none; }
+    .rv-foot-spacer{ display: none; }
+    .rv-link-btn{ order: 4; padding: 6px 9px; font-size: 0.74rem; border-radius: 999px; }
+    .rv-link-btn i{ font-size: 0.72rem; }
+    .rv-mine-note{ font-size: 0.78rem; }
+}
+
+/* ============================================================
+   REVIEWS — IMDb-mobile final polish (wins the cascade)
+   First card on screen fast, compact rows, app-feel footer.
+   ============================================================ */
+@media (max-width: 720px){
+    /* --- page + hero: feed first, furniture small --- */
+    .rv-page{ padding: 0 10px 48px; }
+    .rv-hero{ padding: 12px 12px 10px; border-radius: 16px; margin-bottom: 8px; }
+    .rv-hero-badge{ margin-bottom: 8px; }
+    .rv-hero h1{ font-size: 1.32rem; }
+    .rv-hero p{ display: none; }
+    .rv-hero-stats{ margin-top: 9px; gap: 5px; }
+    .rv-stat{ padding: 6px 3px; }
+    .rv-board{ margin-top: 9px; padding: 6px 8px; border-radius: 12px; }
+    .rv-board h3{ font-size: 0.68rem; margin: 0; flex: 0 0 auto; padding-right: 2px; }
+    .rv-rank-row{ padding: 4px 8px; }
+    .rv-rank-name{ max-width: 88px; }
+
+    /* --- legend + guide collapsed rows: slim, single tap rows --- */
+    .rv-rp-legend{ margin-top: 6px; }
+    .rv-rp-head{ padding: 7px 12px; }
+    .rv-guide-head{ padding: 7px 12px; line-height: 1.1; }
+    .rv-guide-head h3{ font-size: 0.78rem; line-height: 1.2; }
+    .rv-guide-head i{ font-size: 0.9rem; }
+    .rv-rp-head h3{ font-size: 0.78rem; }
+    .rv-guide{ margin-bottom: 0; }
+
+    /* --- toolbar: sticky, thinner, reviews visible beneath --- */
+    .rv-toolbar{ margin: 8px 0 10px; padding: 5px; gap: 5px; top: 58px; border-radius: 13px; }
+    .rv-tab{ padding: 6px 11px; font-size: 0.78rem; }
+    .rv-search{ height: 33px; }
+    .rv-search input{ font-size: 0.78rem; }
+    .rv-sort{ height: 33px; }
+
+    /* --- card footer: two tidy grid rows (IMDb-style actions) --- */
+    .rv-footer{
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        column-gap: 10px;
+        row-gap: 9px;
+        margin-top: 11px;
+        padding-top: 10px;
+    }
+    .rv-vote, .rv-mine-note{ grid-column: 1; grid-row: 1; }
+    .rv-vote{ gap: 5px; min-width: 0; }
+    .rv-vote-btn{
+        padding: 6px 10px; min-width: 0; gap: 4px; font-size: 0.8rem;
+        border-radius: 999px; flex: 0 1 auto;
+    }
+    .rv-lock-tag{ display: none !important; }
+    .rv-mine-note{ justify-self: start; align-self: center; font-size: 0.8rem; padding: 6px 12px; border-radius: 999px; }
+    .rv-word{
+        grid-column: 2; grid-row: 1; justify-self: end; align-self: center;
+        max-width: 118px; overflow: hidden; text-overflow: ellipsis;
+        font-size: 0.62rem; letter-spacing: 0.05em; padding: 3px 9px; white-space: nowrap;
+    }
+    .rv-word-big{ font-size: 0.64rem; padding: 4px 10px; letter-spacing: 0.07em; }
+    .rv-xp-bottle{
+        grid-column: 1; grid-row: 2; justify-self: stretch;
+        display: flex; flex-direction: row; align-items: center;
+        margin: 0; width: 100%; min-width: 0;
+    }
+    .rv-bottle-glass{ width: 100%; height: 16px; border-radius: 5px; flex: 1; }
+    .rv-bottle-glass::before{ width: 7px; border-radius: 5px 0 0 5px; }
+    .rv-bottle-glass::after{ top: 3px; left: 11px; right: 20px; height: 3px; }
+    .rv-bottle-liquid{ left: 7px; border-radius: 0 5px 5px 0; }
+    .rv-bottle-liquid::before{ display: none; }
+    .rv-bottle-level{ display: none; }
+    .rv-bottle-num{ right: 8px; font-size: 0.62rem; }
+    .rv-bottle-num i{ font-size: 0.5rem; }
+    .rv-bottle-label{ display: none; }
+    .rv-link-btn{ grid-column: 2; grid-row: 2; justify-self: end; padding: 5px 10px; font-size: 0.72rem; border-radius: 999px; }
+    .rv-link-btn:not(.primary){ display: none; }
+    .rv-foot-spacer{ display: none; }
+}
+
+/* --- reviews feed first on phones: hero, tabs, THEN reviews;
+   the legend + explainer guide tuck in below the feed --- */
+@media (max-width: 720px){
+    .rv-page{ display: flex; flex-direction: column; }
+    .rv-hero{ order: 0; }
+    .rv-toolbar{ order: 1; }
+    .rv-feed{ order: 2; }
+    .rv-rp-legend{ order: 3; margin-top: 14px; }
+    .rv-guide{ order: 4; }
+}
