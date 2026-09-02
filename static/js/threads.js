@@ -3613,6 +3613,84 @@
             });
         }
 
+
+        // ==== MOBILE — Discord-style swipe navigation (<=700px) ====
+        // Right-drag on an open chat pulls its sidebar over it (the
+        // channel list inside a guild, the conversation list in
+        // Messages). Left-drag on the sidebar slides back into the
+        // open chat — exactly how Discord mobile handles the panes.
+        // touch events are used (not pointer) so the gesture works on
+        // every mobile browser; pan-y CSS keeps native vertical scroll.
+        (function () {
+            var appEl = document.getElementById("threads-app");
+            var bodyEl = document.querySelector(".thr-body");
+            if (!appEl || !bodyEl) return;
+            var x0 = null, y0 = null, t0 = 0, horiz = false;
+
+            function mobile() { return window.innerWidth <= 700; }
+            function pt(e) { return e.touches ? e.touches[0] : e.changedTouches[0]; }
+
+            bodyEl.addEventListener("touchstart", function (e) {
+                if (!mobile() || !e.touches.length) return;
+                var t = e.touches[0];
+                x0 = t.clientX; y0 = t.clientY; t0 = Date.now(); horiz = false;
+            }, { passive: true });
+
+            bodyEl.addEventListener("touchmove", function (e) {
+                if (x0 === null || !e.touches.length) return;
+                var t = e.touches[0];
+                var dx = t.clientX - x0, dy = t.clientY - y0;
+                if (!horiz && Math.abs(dx) > 24 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+                    horiz = true;
+                    // re-baseline so the final gesture distance is honest
+                    x0 = t.clientX; y0 = t.clientY; t0 = Date.now();
+                }
+            }, { passive: true });
+
+            function endSwipe(e) {
+                if (x0 === null || !e.changedTouches.length) return;
+                var t = e.changedTouches[0];
+                var dx = t.clientX - x0, dy = t.clientY - y0;
+                var dt = Date.now() - t0;
+                x0 = null; y0 = null;
+                if (!horiz) { horiz = false; return; }
+                var wasHoriz = horiz;
+                horiz = false;
+                if (!wasHoriz || Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.3 || dt > 700) return;
+                if (!mobile()) return;
+                if (dx > 0) swipeRight(); else swipeLeft();
+            }
+
+            bodyEl.addEventListener("touchend", endSwipe);
+            bodyEl.addEventListener("touchcancel", function () {
+                x0 = null; y0 = null; horiz = false;
+            });
+
+            // open the sidebar: pull it over the open chat
+            function swipeRight() {
+                if (appEl.classList.contains("thr-dm-open")) {
+                    appEl.classList.remove("thr-dm-open");
+                } else if (appEl.classList.contains("thr-guild-open")) {
+                    appEl.classList.remove("thr-guild-open");
+                }
+            }
+
+            // slide back into the open chat from the sidebar
+            function swipeLeft() {
+                if (appEl.classList.contains("thr-dm-open") ||
+                    appEl.classList.contains("thr-guild-open")) return;
+                if (State.activeTab === "communities" && State.active && State.active.type === "channel") {
+                    appEl.classList.add("thr-guild-open");
+                } else if (State.activeTab !== "communities" && State.active) {
+                    var cv = document.getElementById("convView");
+                    var es = document.getElementById("emptyState");
+                    if (cv) cv.classList.remove("hidden");
+                    if (es) es.classList.add("hidden");
+                    appEl.classList.add("thr-dm-open");
+                }
+            }
+        })();
+
         // message actions — report / moderator delete
         $("#msgList").addEventListener("click", function (e) {
             var act = e.target.closest("[data-act]");

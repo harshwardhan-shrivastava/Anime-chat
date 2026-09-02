@@ -3266,3 +3266,33 @@ html, body {
         display: inline-flex !important;
     }
 }
+
+/* ============================================================
+   MOBILE — swipe navigation (Discord-style): pan-y keeps native
+   vertical scrolling, horizontal drags drive the sidebar/chats.
+   Sheets slide in with a quick ease so tab switches feel tactile.
+============================================================ */
+@keyframes thrSheetIn {
+    from { transform: translateX(34px); opacity: .4; }
+    to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes thrChatIn {
+    from { transform: translateX(-22px); opacity: .5; }
+    to   { transform: translateX(0);     opacity: 1; }
+}
+
+@media (max-width: 700px){
+    .thr-main,
+    .thr-left,
+    #channelPanel,
+    #commRail{
+        touch-action: pan-y;
+    }
+    /* sheet entering (channel list / conversation list) */
+    #threads-app .thr-left:not(.hidden){ animation: thrSheetIn .16s ease; }
+    #channelPanel:not(.hidden),
+    #discoverPanel:not(.hidden){ animation: thrSheetIn .16s ease; }
+    /* chat entering turns the phone, like Discord's pane swap */
+    #threads-app.thr-dm-open .thr-main,
+    #threads-app.thr-guild-open .thr-main{ animation: thrChatIn .16s ease; }
+}
