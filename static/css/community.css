@@ -4598,3 +4598,11 @@ input:focus-visible{
 .chat-modal-composer .send-btn:active{
     transform:scale(.92);
 }
+
+/* Tall pixel-art avatars (gyaru / fantasy7, 300x600 full-body art)
+   are cropped to the face + upper body EVERYWHERE, matching the
+   homepage. Position only - never size. */
+img[src*="gyaru"],
+img[src*="fantasy7"]{
+    object-position: top center;
+}

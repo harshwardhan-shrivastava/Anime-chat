@@ -3003,3 +3003,11 @@ nav.nav-mobile-open .nav-burger-bar:nth-child(3){ transform:translateY(-6px) rot
     vertical-align:middle;
     box-shadow:0 0 6px rgba(74,222,128,.85);
 }
+
+/* Tall pixel-art avatars (gyaru / fantasy7, 300x600 full-body art)
+   are cropped to the face + upper body EVERYWHERE, matching the
+   homepage. Position only - never size. */
+img[src*="gyaru"],
+img[src*="fantasy7"]{
+    object-position: top center;
+}

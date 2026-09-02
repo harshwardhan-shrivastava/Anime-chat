@@ -59,26 +59,28 @@
     .site-footer .footer-col a:hover {
         color: #22c55e;
     }
-    /* Gmail compose button */
-    .site-footer .gmail-btn {
+    /* Gmail compose button — selectors out-specificity the generic
+       `.site-footer .footer-col a` rule below (which otherwise wins the
+       cascade and paints the label muted-gray instead of white). */
+    .site-footer .footer-col .gmail-btn {
         display: inline-flex;
         align-items: center;
         gap: 8px;
         margin-top: 4px;
-        padding: 9px 16px;
+        padding: 10px 18px;
         border-radius: 999px;
         background: linear-gradient(135deg, #22c55e, #059669);
-        color: #fff;
-        font-size: 0.82rem;
-        font-weight: 700;
+        color: #fff !important;
+        font-size: 0.84rem;
+        font-weight: 800;
         text-decoration: none;
         transition: transform 0.2s, box-shadow 0.2s;
-        box-shadow: 0 4px 14px rgba(34, 197, 94, 0.25);
+        box-shadow: 0 6px 18px rgba(34, 197, 94, 0.3);
     }
-    .site-footer .gmail-btn:hover {
+    .site-footer .footer-col .gmail-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(34, 197, 94, 0.35);
-        color: #fff;
+        box-shadow: 0 10px 24px rgba(34, 197, 94, 0.4);
+        color: #fff !important;
     }
     .site-footer .footer-bottom {
         max-width: 1200px;
