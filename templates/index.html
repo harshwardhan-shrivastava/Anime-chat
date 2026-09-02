@@ -121,27 +121,6 @@
 
 </section>
 
-<!-- ================= MOBILE SPOTLIGHT (phone only) ================= -->
-
-{% if new_list %}
-{% set spot = new_list[0] %}
-<section class="mob-spotlight" aria-label="Trending now">
-    <a class="mob-spot-link" href="/anime/{{ spot.slug }}">
-        <div class="mob-spot-art" style="background-image:url('{{ spot.image | anime_img_large }}')"></div>
-        <div class="mob-spot-veil"></div>
-        <div class="mob-spot-body">
-            <span class="mob-spot-chip"><i class="fas fa-fire"></i> {{ spot.badge_label | default('Airing Now') }}</span>
-            <h2>{{ spot | jp_title }}</h2>
-            <div class="mob-spot-meta">
-                <span class="mob-spot-rating"><i class="fas fa-star"></i> {{ spot.live_rating or '—' }} /10</span>
-                <span class="mob-spot-members"><i class="fas fa-users"></i> {{ spot.member_count or 0 }} members</span>
-            </div>
-            <span class="mob-spot-cta">Enter Chat <i class="fas fa-arrow-right"></i></span>
-        </div>
-    </a>
-</section>
-{% endif %}
-
 <!-- ================= MOBILE GENRE CHIPS (phone only) ================= -->
 
 {% if genres %}
