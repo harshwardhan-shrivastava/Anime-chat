@@ -101,64 +101,202 @@
             grid-column: 1 / -1;
         }
     }
-    /* Support (PayPal / UPI) */
+
+    /* ================= SUPPORT (PayPal / UPI) =================
+       One button; the payment details stay hidden inside a clean
+       centered modal so the footer never shouts raw IDs at visitors. */
+    .site-footer .support-wrap {
+        position: relative;
+        margin-top: 6px;
+    }
     .site-footer .support-btn {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        margin-top: 6px;
-        padding: 9px 16px;
+        padding: 10px 18px;
+        border: none;
         border-radius: 999px;
-        background: linear-gradient(135deg, #f59e0b, #d97706);
+        background: linear-gradient(135deg, #ff7a59, #f43f5e 55%, #e11d48);
         color: #fff;
-        font-size: 0.82rem;
-        font-weight: 700;
+        font-size: 0.84rem;
+        font-weight: 800;
+        font-family: 'Montserrat', system-ui, sans-serif;
         text-decoration: none;
-        transition: transform 0.2s, box-shadow 0.2s;
-        box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(244, 63, 94, 0.35);
+        transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
     }
     .site-footer .support-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
+        filter: brightness(1.08);
+        box-shadow: 0 10px 24px rgba(244, 63, 94, 0.45);
         color: #fff;
     }
-    .site-footer .upi-row {
+    /* ---- modal (fixed, centered) ---- */
+    .site-footer .support-modal {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        background: rgba(3, 7, 18, 0.72);
+        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(6px);
+        padding: 18px;
+        box-sizing: border-box;
+    }
+    .site-footer .support-modal[hidden] {
+        display: none;
+    }
+    .site-footer .support-modal-card {
+        position: relative;
+        width: min(430px, 100%);
+        max-height: 90vh;
+        overflow-y: auto;
+        box-sizing: border-box;
+        background: #0e1420;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 20px;
+        padding: 24px 22px 20px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+        animation: footModalIn 0.18s ease;
+    }
+    @keyframes footModalIn {
+        from { opacity: 0; transform: translateY(10px) scale(0.98); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .site-footer .support-close {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        color: #94a3b8;
+        font-size: 14px;
+        line-height: 1;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s, color 0.2s;
+    }
+    .site-footer .support-close:hover {
+        background: rgba(255, 255, 255, 0.14);
+        color: #fff;
+    }
+    .site-footer .support-panel-title {
+        color: #f1f5f9;
+        font-size: 1rem;
+        font-weight: 800;
+        margin: 0 0 16px;
+        padding-right: 30px;
+        line-height: 1.35;
+    }
+    .site-footer .support-card {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 14px;
+        margin-bottom: 12px;
+        background: rgba(255, 255, 255, 0.03);
+    }
+    .site-footer .s-card-paypal {
+        border-left: 3px solid #009cde;
+    }
+    .site-footer .s-card-upi {
+        border-left: 3px solid #f59e0b;
+    }
+    .site-footer .s-card-head {
         display: flex;
         align-items: center;
         gap: 8px;
-        margin-top: 8px;
-    }
-    .site-footer .upi-id {
-        font-family: ui-monospace, 'Cascadia Mono', monospace;
-        font-size: 0.78rem;
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
         color: #e2e8f0;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        padding: 5px 10px;
-        border-radius: 8px;
-        letter-spacing: 0.2px;
     }
-    .site-footer .upi-copy {
-        background: rgba(255, 255, 255, 0.08);
+    .site-footer .s-card-paypal .s-card-head i { color: #38bdf8; font-size: 1rem; }
+    .site-footer .s-card-upi .s-card-head i { color: #fbbf24; font-size: 1rem; }
+    .site-footer .s-card-id {
+        margin: 10px 0 0;
+        font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+        font-size: 0.92rem;
+        color: #f8fafc;
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 9px 12px;
+        border-radius: 10px;
+        overflow-wrap: break-word;
+        word-break: break-all;
+    }
+    .site-footer .s-card-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+    }
+    .site-footer .s-open {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 9px 15px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        text-decoration: none;
+        color: #fff;
+        transition: filter 0.2s, transform 0.2s;
+    }
+    .site-footer .s-open:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.12);
+        color: #fff;
+    }
+    .site-footer .s-card-paypal .s-open { background: #0070ba; box-shadow: 0 4px 12px rgba(0, 112, 186, 0.35); }
+    .site-footer .s-card-upi .s-open { background: linear-gradient(135deg, #f59e0b, #ea580c); box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); }
+    .site-footer .s-copy {
+        padding: 9px 15px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.07);
         color: #cbd5e1;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        font-size: 0.72rem;
+        font-size: 0.8rem;
         font-weight: 700;
         font-family: 'Montserrat', system-ui, sans-serif;
-        padding: 5px 10px;
-        border-radius: 8px;
         cursor: pointer;
-        transition: background 0.2s, color 0.2s;
+        transition: background 0.2s, color 0.2s, border-color 0.2s;
     }
-    .site-footer .upi-copy:hover {
-        background: rgba(34, 197, 94, 0.2);
+    .site-footer .s-copy:hover {
+        background: rgba(34, 197, 94, 0.16);
+        border-color: rgba(34, 197, 94, 0.5);
         color: #4ade80;
     }
-    .site-footer .support-note {
+    .site-footer .s-copy.copied {
+        background: rgba(34, 197, 94, 0.2);
+        border-color: #22c55e;
+        color: #4ade80;
+    }
+    .site-footer .s-card-hint {
         font-size: 0.72rem;
-        color: #64748b;
-        margin-top: 6px;
         line-height: 1.5;
+        color: #7c8aa5;
+        margin-top: 10px;
+    }
+    .site-footer .support-note {
+        font-size: 0.76rem;
+        color: #64748b;
+        margin: 2px 0 0;
+        line-height: 1.55;
+    }
+    @media (max-width: 560px) {
+        .site-footer .support-modal {
+            padding: 14px;
+        }
     }
 </style>
 
@@ -182,15 +320,48 @@
                 Email us
             </a>
             <a href="https://github.com/harshwardhan-shrivastava/Anime-chat" target="_blank" rel="noopener noreferrer">GitHub</a>
-            <a class="support-btn" href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&amp;business=kanchanpresssindri%40gmail.com&amp;item_name=Support%20OtaKul&amp;currency_code=USD&amp;no_shipping=1" target="_blank" rel="noopener noreferrer">
-                <i class="fas fa-heart" aria-hidden="true"></i>
-                Support OtaKul
-            </a>
-            <div class="upi-row">
-                <span class="upi-id">9102700754@ptsbi</span>
-                <button type="button" class="upi-copy" onclick="copyUpi(this)">Copy UPI</button>
+
+            <div class="support-wrap">
+                <button type="button" class="support-btn" id="supportToggle" aria-expanded="false" aria-controls="supportModal">
+                    <i class="fas fa-heart" aria-hidden="true"></i>
+                    Support OtaKul
+                </button>
+
+                <div class="support-modal" id="supportModal" hidden role="dialog" aria-modal="true" aria-label="Support OtaKul">
+                    <div class="support-modal-card">
+                        <button type="button" class="support-close" id="supportClose" aria-label="Close">
+                            <i class="fas fa-xmark" aria-hidden="true"></i>
+                        </button>
+
+                        <p class="support-panel-title">Keep OtaKul free — one small tip goes a long way ♥</p>
+
+                        <div class="support-card s-card-paypal">
+                            <div class="s-card-head"><i class="fa-brands fa-paypal" aria-hidden="true"></i> PayPal</div>
+                            <div class="s-card-id">kanchanpresssindri@gmail.com</div>
+                            <div class="s-card-actions">
+                                <a class="s-open" href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&amp;business=kanchanpresssindri%40gmail.com&amp;item_name=Support%20OtaKul&amp;currency_code=USD&amp;no_shipping=1" target="_blank" rel="noopener noreferrer">
+                                    Open PayPal <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                                </a>
+                                <button type="button" class="s-copy" data-copy="kanchanpresssindri@gmail.com">Copy email</button>
+                            </div>
+                            <div class="s-card-hint">Donation page blocked in your region? Copy the email and send it inside the PayPal app instead.</div>
+                        </div>
+
+                        <div class="support-card s-card-upi">
+                            <div class="s-card-head"><i class="fas fa-mobile-screen-button" aria-hidden="true"></i> UPI · GPay / PhonePe</div>
+                            <div class="s-card-id">9102700754@ptsbi</div>
+                            <div class="s-card-actions">
+                                <a class="s-open" href="upi://pay?pa=9102700754%40ptsbi&amp;pn=OtaKul&amp;cu=INR">
+                                    Pay via UPI <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                                </a>
+                                <button type="button" class="s-copy" data-copy="9102700754@ptsbi">Copy UPI</button>
+                            </div>
+                        </div>
+
+                        <p class="support-note">Voluntary tip — never required, always appreciated. It just keeps OtaKul running.</p>
+                    </div>
+                </div>
             </div>
-            <span class="support-note">Voluntary tip via PayPal or UPI (GPay/PhonePe) — it just keeps OtaKul free. Never required, always appreciated ♥</span>
         </div>
         <div class="footer-col">
             <h4>Legal</h4>
@@ -206,8 +377,39 @@
 <script>
 (function () {
     "use strict";
-    if (window.copyUpi) return;
-    function legacy(txt, done) {
+    if (window.__otakulSupportWired) return;
+    var wrap = document.querySelector(".site-footer .support-wrap");
+    if (!wrap) return;
+    var btn = document.getElementById("supportToggle");
+    var modal = document.getElementById("supportModal");
+    var closeBtn = document.getElementById("supportClose");
+    if (!btn || !modal) return;
+    window.__otakulSupportWired = true;
+
+    function setOpen(open) {
+        modal.hidden = !open;
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
+        if (open) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+    }
+
+    btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        setOpen(modal.hidden);
+    });
+    if (closeBtn) closeBtn.addEventListener("click", function () { setOpen(false); });
+    modal.addEventListener("click", function (e) {
+        if (e.target === modal) setOpen(false);
+    });
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") setOpen(false);
+    });
+
+    // ---- copy helpers (clipboard API with a legacy fallback) ----
+    function legacyCopy(txt, done) {
         var ta = document.createElement("textarea");
         ta.value = txt;
         ta.style.position = "fixed";
@@ -217,23 +419,31 @@
         try {
             document.execCommand("copy");
             done();
-        } catch (e) {
-            window.prompt("Your UPI ID:", txt);
+        } catch (err) {
+            window.prompt("Copy this:", txt);
         }
         document.body.removeChild(ta);
     }
-    window.copyUpi = function (btn) {
-        var id = "9102700754@ptsbi";
+
+    wrap.addEventListener("click", function (e) {
+        var b = e.target.closest(".s-copy");
+        if (!b) return;
+        var txt = b.getAttribute("data-copy");
+        if (!txt) return;
         var done = function () {
-            var old = btn.textContent;
-            btn.textContent = "Copied \u2713";
-            setTimeout(function () { btn.textContent = old; }, 2000);
+            var old = b.textContent;
+            b.textContent = "Copied \u2713";
+            b.classList.add("copied");
+            setTimeout(function () {
+                b.textContent = old;
+                b.classList.remove("copied");
+            }, 1800);
         };
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(id).then(done, function () { legacy(id, done); });
+            navigator.clipboard.writeText(txt).then(done, function () { legacyCopy(txt, done); });
         } else {
-            legacy(id, done);
+            legacyCopy(txt, done);
         }
-    };
+    });
 })();
 </script>
