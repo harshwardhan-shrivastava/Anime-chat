@@ -2317,12 +2317,12 @@ grid-template-columns:1fr;
     .anime-grid{
         grid-template-columns:1fr;
         width:92%;
-        margin:16px auto 36px;
-        gap:14px;
+        margin:16px auto 40px;
+        gap:18px;
     }
 
     .anime-card{
-        border-radius:14px;
+        border-radius:16px;
     }
 
     .anime-card:hover{
@@ -2330,7 +2330,7 @@ grid-template-columns:1fr;
     }
 
     .image-box{
-        height:170px;
+        height:250px;
     }
 
 }
