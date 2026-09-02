@@ -4473,3 +4473,28 @@ input:focus-visible{
         padding:6px 9px;
     }
 }
+
+
+/* ---- Community hero buttons: compact app pills (overrides the
+   full-width slabs from the earlier mobile pass) ---- */
+@media (max-width: 600px){
+    .hero-actions{
+        gap:8px;
+    }
+    .hero-actions .primary-button,
+    .hero-actions .secondary-button{
+        flex:1 1 100%;
+        width:100%;
+        padding:11px 14px;
+        font-size:13.5px;
+        border-radius:12px;
+        font-weight:700;
+        max-height:44px;
+    }
+    .community-tag{
+        margin-bottom:8px;
+    }
+    .hero-right{
+        margin-top:2px;
+    }
+}

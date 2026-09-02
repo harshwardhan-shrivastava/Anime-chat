@@ -3286,3 +3286,138 @@ footer p{
         font-size: clamp(18px, 4vw, 26px);
     }
 }
+
+
+/* ==========================================================
+   ANIME PAGE — final mobile sizing (compact app feel)
+   Synopsis + Information become full-width reading cards,
+   the rating row shrinks to one line, action buttons become
+   short app pills, and "You May Also Like" goes 2-across.
+========================================================== */
+@media (max-width: 600px){
+
+    /* ---- Synopsis + Information: full-bleed comfortable cards ---- */
+    .info-section{
+        width:100%;
+        margin:0 0 10px;
+        gap:0;
+    }
+    .info-left,
+    .info-right{
+        width:100%;
+        padding:0 12px;
+        margin:0 0 14px;
+        box-sizing:border-box;
+    }
+    .info-left .glass-card,
+    .info-right .glass-card{
+        width:100% !important;
+        box-sizing:border-box;
+        padding:18px 16px;
+        border-radius:16px;
+    }
+    .glass-card h2{
+        font-size:19px;
+        margin-bottom:10px;
+    }
+    .glass-card p{
+        font-size:14px;
+        line-height:1.62;
+    }
+
+    /* ---- Information rows: two-line-friendly, phone type ---- */
+    .info-row{
+        padding:11px 0;
+        gap:10px;
+    }
+    .info-row > span{
+        font-size:12.5px;
+    }
+    .info-row > strong{
+        font-size:13px;
+        text-align:right;
+        min-width:0;
+    }
+    .info-row-genres{
+        align-items:flex-start;
+    }
+    .info-row-genres > span{
+        padding-top:3px;
+    }
+    .info-row-genres .genre-tags{
+        justify-content:flex-end;
+        flex-wrap:wrap;
+    }
+    .genre-tag{
+        font-size:11px;
+        padding:3px 9px;
+        border-radius:999px;
+    }
+
+    /* ---- Rating row: one compact line ---- */
+    .rating-box{
+        padding:7px 12px;
+        border-radius:13px;
+        gap:6px 10px;
+        margin-bottom:10px;
+    }
+    .rating-box .stars{
+        font-size:15px;
+        line-height:1;
+    }
+    .rating-box .score{
+        font-size:19px;
+        line-height:1;
+    }
+    .rating-box span{
+        font-size:12px;
+    }
+
+    /* ---- Actions: app-style — primary full-width, pair below ---- */
+    .hero-actions{
+        flex-direction:row;
+        flex-wrap:wrap;
+        align-items:stretch;
+        gap:8px;
+        width:100%;
+    }
+    .hero-actions .join-btn,
+    .hero-actions .anime-add-list-btn,
+    .hero-actions .review-scroll-btn{
+        width:auto;
+        padding:10px 14px;
+        font-size:13px;
+        font-weight:700;
+        border-radius:12px;
+        justify-content:center;
+        box-sizing:border-box;
+    }
+    .hero-actions .join-btn{
+        flex:1 1 100%;
+    }
+    .hero-actions .anime-add-list-btn,
+    .hero-actions .review-scroll-btn{
+        flex:1 1 calc(50% - 4px);
+        min-width:0;
+    }
+
+    /* ---- "You May Also Like": 2-across compact cards ---- */
+    .recommendation-grid{
+        grid-template-columns:repeat(2, 1fr);
+        gap:10px;
+        padding-left:12px;
+        padding-right:12px;
+    }
+    .recommend-card{
+        border-radius:14px;
+    }
+    .recommend-card img{
+        height:auto;
+        aspect-ratio:2/3;
+    }
+    .recommend-card h3{
+        font-size:12.5px;
+        line-height:1.3;
+        padding:8px 10px 10px;
+    }
+}

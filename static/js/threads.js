@@ -840,7 +840,9 @@
             var showText = content && !attach;
             body = parentRef + (showText ? '<div class="thr-msg-content">' + mentions + "</div>" : "") +
                 attach +
-                '<div class="thr-msg-meta"><span class="thr-msg-time">' + fmtClock(m.created_at) + "</span>" + flags + "</div>";
+                // Discord shows the clock once, next to the name (in the head
+                // above) - only flags live in this meta row.
+                (flags ? '<div class="thr-msg-meta">' + flags + "</div>" : "");
         }
 
         return '<div class="' + cls + '" data-mid="' + m.id + '">' +
