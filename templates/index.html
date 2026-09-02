@@ -7,7 +7,7 @@
     <title>Otakul</title>
 
     <link rel="icon" type="image/svg+xml"
-    href="{{ url_for('static', filename='favicon.svg') }}">    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260902x">
+    href="{{ url_for('static', filename='favicon.svg') }}">    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260902y">
     <style>
         /* Mobile first-screen guarantees — kept INLINE so a stale cached
            stylesheet can never re-break the phone layout (the homepage
@@ -120,6 +120,37 @@
 </div>
 
 </section>
+
+<!-- ================= MOBILE SPOTLIGHT (phone only) ================= -->
+
+{% if new_list %}
+{% set spot = new_list[0] %}
+<section class="mob-spotlight" aria-label="Trending now">
+    <a class="mob-spot-link" href="/anime/{{ spot.slug }}">
+        <div class="mob-spot-art" style="background-image:url('{{ spot.image | anime_img_large }}')"></div>
+        <div class="mob-spot-veil"></div>
+        <div class="mob-spot-body">
+            <span class="mob-spot-chip"><i class="fas fa-fire"></i> {{ spot.badge_label | default('Airing Now') }}</span>
+            <h2>{{ spot | jp_title }}</h2>
+            <div class="mob-spot-meta">
+                <span class="mob-spot-rating"><i class="fas fa-star"></i> {{ spot.live_rating or '—' }} /10</span>
+                <span class="mob-spot-members"><i class="fas fa-users"></i> {{ spot.member_count or 0 }} members</span>
+            </div>
+            <span class="mob-spot-cta">Enter Chat <i class="fas fa-arrow-right"></i></span>
+        </div>
+    </a>
+</section>
+{% endif %}
+
+<!-- ================= MOBILE GENRE CHIPS (phone only) ================= -->
+
+{% if genres %}
+<nav class="mob-genres" aria-label="Browse genres">
+    {% for g in genres[:12] %}
+    <a href="{{ url_for('category', genre=g) }}">{{ g }}</a>
+    {% endfor %}
+</nav>
+{% endif %}
 
 <!-- ================= RECOMMENDED FOR YOU ================= -->
 
