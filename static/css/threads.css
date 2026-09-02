@@ -3051,6 +3051,12 @@ html, body {
         display:none !important;
     }
 
+    /* burger stays: on the Messages tab it opens the conversation
+       list drawer (search + New DM inside) on phones */
+    .thr-topbar{
+        height:52px;
+    }
+
     .thr-mnav{
         display:grid;
         grid-template-columns:1fr 1fr;
@@ -3197,5 +3203,66 @@ html, body {
         min-width:15px;
         height:15px;
         font-size:9px;
+    }
+}
+
+
+/* ============================================================
+   MOBILE — Messages view (Discord-style): the conversation list
+   IS the Messages screen; an open chat covers it full-width and
+   the back button returns to the list. Guilds keep their own
+   rail/channel-list layout via .thr-guild-open above.
+============================================================ */
+@media (max-width: 700px){
+    /* the list (search + convs) is the primary Messages view */
+    .thr-left{
+        position: static;
+        transform: none;
+        width: 100%;
+        min-width: 0;
+        flex: 1 1 auto;
+        z-index: auto;
+        box-shadow: none;
+        border-right: none;
+        transition: none;
+        display: flex !important;
+    }
+    /* when the Guilds tab is active the list is hidden with the
+       .hidden class — that must win over the show rule above */
+    .thr-body > .thr-left.hidden{
+        display: none !important;
+    }
+    /* the list is always on screen now — the burger + scrim that
+       used to open it as a drawer are dead weight on phones */
+    .thr-menu-btn,
+    #thrScrim{
+        display: none !important;
+    }
+    /* the logo already links home — the “Site” pill would sit alone
+       in the middle of the phone bar */
+    .thr-back-btn{
+        display:none !important;
+    }
+    /* when a conversation is open the list hides and the chat
+       takes the whole screen */
+    #threads-app.thr-dm-open .thr-left,
+    #threads-app.thr-guild-open .thr-left{
+        display: none !important;
+    }
+    /* the chat column only exists while a conversation is open */
+    .thr-main{
+        display: none;
+    }
+    #threads-app.thr-dm-open .thr-main,
+    #threads-app.thr-guild-open .thr-main{
+        display: flex;
+    }
+    /* back button in the chat head closes back to the list */
+    .thr-mobile-back{
+        display: none !important;
+    }
+    #threads-app.thr-dm-open .thr-mobile-back,
+    #threads-app.thr-guild-open .thr-mobile-back{
+        display: inline-flex !important;
     }
 }

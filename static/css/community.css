@@ -4556,6 +4556,27 @@ input:focus-visible{
     .composer{
         padding:10px 12px calc(10px + env(safe-area-inset-bottom));
     }
+    /* Kill the old column stack — one WhatsApp-style row: [+] input [send] */
+    .composer{
+        flex-direction:row;
+        align-items:flex-end;
+        flex-wrap:wrap;
+        gap:8px;
+    }
+    .composer .composer-tools{
+        order:0;
+    }
+    .composer .composer-input{
+        order:1;
+        flex:1 1 150px;
+    }
+    .composer .send-btn{
+        order:2;
+        align-self:flex-end;
+    }
+    .composer .composer-input textarea{
+        font-size:16px;
+    }
 }
 
 

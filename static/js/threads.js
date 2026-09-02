@@ -358,6 +358,11 @@
         $("#msgList").innerHTML = '';
         $("#emptyState").classList.add("hidden");
         $("#convView").classList.remove("hidden");
+        // Mobile: a conversation being open is its own screen (the list
+        // hides and the chat covers the phone, Discord-style).
+        if (window.innerWidth <= 700) {
+            document.getElementById("threads-app").classList.add("thr-dm-open");
+        }
         renderChatHead();
 
         var cached = msgCache[key];
@@ -2029,9 +2034,16 @@
         var isComm = tab === "communities";
         $("#commRail").classList.toggle("hidden", !isComm);
         $(".thr-left").classList.toggle("hidden", isComm);
+        if (isComm) {
+            // entering Guilds closes any open message chat
+            document.getElementById("threads-app").classList.remove("thr-dm-open");
+        }
         if (!isComm) {
             // back to the guild's channel list next time Guilds is opened
-            document.getElementById("threads-app").classList.remove("thr-guild-open");
+            var _app = document.getElementById("threads-app");
+            _app.classList.remove("thr-guild-open");
+            // leaving an open conversation returns to the messages list
+            _app.classList.remove("thr-dm-open");
             $("#channelPanel").classList.add("hidden");
             $("#discoverPanel").classList.add("hidden");
             if (isChannelOpen()) {
@@ -2056,14 +2068,27 @@
                     State.myCommunityRole = c.role || "member";
                     renderRail();
                     renderChannelPanel();
-                    if (c.channels && c.channels.length) openChannel(c.channels[0]);
+                    // Desktop: opening the Guilds tab keeps the chat pane
+                    // live, so auto-open the default channel there. Phones:
+                    // the rail + channel list stay on screen (Discord mobile
+                    // shows the guild, not the chat); a channel opens on tap.
+                    if (window.innerWidth > 700 && c.channels && c.channels.length) {
+                        openChannel(c.channels[0]);
+                    }
                 } else {
                     // No guilds yet: show the empty rail with a hint to create/discover.
                     renderRail();
                     $("#channelPanel").classList.add("hidden");
                 }
             } else if (!isChannelOpen() && State.activeCommunity.channels && State.activeCommunity.channels.length) {
-                openChannel(State.activeCommunity.channels[0]);
+                if (window.innerWidth > 700) {
+                    openChannel(State.activeCommunity.channels[0]);
+                } else {
+                    // Phones: stay in the guild's channel list — the chat
+                    // opens only when a channel is tapped.
+                    document.getElementById("threads-app").classList.remove("thr-guild-open");
+                    renderChannelPanel();
+                }
             } else {
                 renderChannelPanel();
             }
@@ -2966,7 +2991,17 @@
         var guildBack = document.getElementById("btnGuildBack");
         if (guildBack) {
             guildBack.addEventListener("click", function () {
-                document.getElementById("threads-app").classList.remove("thr-guild-open");
+                var appEl = document.getElementById("threads-app");
+                if (State.active && State.active.type === "channel") {
+                    appEl.classList.remove("thr-guild-open");
+                    return;
+                }
+                // DM / group: back returns to the conversation list
+                State.active = null;
+                document.getElementById("convView").classList.add("hidden");
+                document.getElementById("emptyState").classList.remove("hidden");
+                appEl.classList.remove("thr-dm-open");
+                renderConversations();
             });
         }
 
@@ -3701,6 +3736,9 @@
                     };
                     $("#emptyState").classList.add("hidden");
                     $("#convView").classList.remove("hidden");
+                    if (pType !== "channel") {
+                        document.getElementById("threads-app").classList.add("thr-dm-open");
+                    }
                     renderChatHead();
                     renderMessages(true);
                     renderPins(State.pins);
