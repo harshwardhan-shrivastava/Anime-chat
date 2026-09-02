@@ -617,9 +617,14 @@
     function fillInviteCard(card, c) {
         var thumb = card.querySelector(".thr-invite-thumb");
         if (thumb) {
-            thumb.style.background = c.icon_color || "#8b5cf6";
-            var l = thumb.querySelector(".thr-invite-thumb-letter");
-            if (l) l.textContent = (c.name || "?").charAt(0).toUpperCase();
+            if (c.icon_url) {
+                thumb.innerHTML = '<img src="' + escapeHtml(c.icon_url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">';
+                thumb.style.background = "none";
+            } else {
+                thumb.style.background = c.icon_color || "#8b5cf6";
+                var l = thumb.querySelector(".thr-invite-thumb-letter");
+                if (l) l.textContent = (c.name || "?").charAt(0).toUpperCase();
+            }
         }
         var t = card.querySelector(".thr-invite-title");
         if (t) t.textContent = c.name || "Guild";
@@ -684,6 +689,10 @@
                 renderRail();
                 renderChannelPanel();
                 if (joined.channels && joined.channels.length) openChannel(joined.channels[0]);
+                // Switch the left sidebar from the DM list to the guild's
+                // rail + channels — opening a guild must not keep the
+                // conversations list visible.
+                if (State.activeTab !== "communities") setTab("communities");
             }
         });
     }
@@ -691,8 +700,13 @@
     function showInviteJoinModal(c, code) {
         var thumb = $("#inviteJoinThumb");
         if (thumb) {
-            thumb.style.background = c.icon_color || "#8b5cf6";
-            thumb.textContent = (c.name || "?").charAt(0).toUpperCase();
+            if (c.icon_url) {
+                thumb.innerHTML = '<img src="' + escapeHtml(c.icon_url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">';
+                thumb.style.background = "none";
+            } else {
+                thumb.style.background = c.icon_color || "#8b5cf6";
+                thumb.textContent = (c.name || "?").charAt(0).toUpperCase();
+            }
         }
         $("#inviteJoinName").textContent = c.name || "Guild";
         $("#inviteJoinMeta").textContent = c.member_count + " members · " + c.channel_count + " channels" +

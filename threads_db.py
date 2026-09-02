@@ -1797,7 +1797,7 @@ def get_community_preview(code):
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
-        "SELECT name, description, genre, icon_color FROM thr_communities WHERE id = ?",
+        "SELECT name, description, genre, icon_color, icon_url FROM thr_communities WHERE id = ?",
         (cid,),
     )
     row = cur.fetchone()
@@ -1820,6 +1820,7 @@ def get_community_preview(code):
         "description": row["description"] or "",
         "genre": row["genre"] or "",
         "icon_color": row["icon_color"] or "#8b5cf6",
+        "icon_url": row["icon_url"] or "",
         "is_public": bool(community.get("is_public")),
         "member_count": member_count,
         "channel_count": channel_count,

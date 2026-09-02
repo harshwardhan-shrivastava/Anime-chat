@@ -227,6 +227,14 @@ html, body {
     color: #ffffff;
     background: var(--thr-accent);
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+}
+.thr-invite-thumb img,
+.thr-invite-hero-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
 }
 .thr-invite-info {
     flex: 1;
