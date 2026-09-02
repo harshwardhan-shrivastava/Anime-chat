@@ -583,11 +583,13 @@
     var _invitePreviewCache = {};
 
     function renderInlineContent(content) {
-        // escape → pull the guild invite URL out (it becomes a rich card) →
-        // highlight mentions → linkify any remaining URLs → drop the card back.
+        // escape → pull the ENTIRE guild invite URL out (it becomes a rich
+        // card) → highlight mentions → linkify any remaining URLs → drop the
+        // card back in. The full URL must be swallowed at once so the linkify
+        // pass can't wrap the leftover "URL + placeholder" remnant in an <a>.
         var esc = escapeHtml(content || "");
         var inviteCode = null;
-        var inc = esc.match(/threads\?invite=([A-Za-z0-9_\-]{4,40})/);
+        var inc = esc.match(/https?:\/\/[^\s<"]*\/threads\?invite=([A-Za-z0-9_\-]{4,40})/i);
         if (inc) {
             inviteCode = inc[1];
             esc = esc.replace(inc[0], "\u00a7INVITE\u00a7");
@@ -596,13 +598,13 @@
             .replace(/@([A-Za-z0-9_]{3,20})/g, '<span class="thr-mention">@$1</span>')
             .replace(/(https?:\/\/[^\s<"]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="thr-msg-link">$1</a>');
         if (inviteCode) {
-            out = out.replace("\u00a7INVITE\u00a7", inviteCardSkeleton(inviteCode));
+            out = out.split("\u00a7INVITE\u00a7").join(inviteCardSkeleton(inviteCode));
         }
         return out;
     }
 
     function inviteCardSkeleton(code) {
-        return '<div class="thr-invite-card' + (isChannelOpen() ? "" : "") + '" data-invite-code="' + escapeHtml(code) + '" role="button" tabindex="0">' +
+        return '<div class="thr-invite-card" data-invite-code="' + escapeHtml(code) + '" role="button" tabindex="0">' +
             '<div class="thr-invite-thumb"><span class="thr-invite-thumb-letter">#</span></div>' +
             '<div class="thr-invite-info">' +
             '<div class="thr-invite-title">Guild invite…</div>' +
