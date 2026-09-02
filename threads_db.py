@@ -1560,6 +1560,64 @@ def get_community_channels(cid, user_id):
     return out
 
 
+def get_communities_channels(community_ids, user_id):
+    """Channels + unread counts for MANY communities at once, grouped by
+    community id. Batched replacement for the old per-guild loop in
+    get_user_communities (N sequential round trips over remote Turso →
+    every guild you belong to added one more network wait to page load)."""
+    if not community_ids:
+        return {}
+    ids = list(dict.fromkeys(community_ids))
+    placeholders = ",".join("?" for _ in ids)
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        f"""
+        SELECT ch.*,
+               COALESCE(r.last_read_message_id, 0) AS last_read_message_id,
+               EXISTS(
+                   SELECT 1 FROM thr_watch_parties wp
+                   WHERE wp.channel_id = ch.id
+                     AND datetime(wp.scheduled_time) <= datetime('now')
+               ) AS has_live_party
+        FROM thr_channels ch
+        LEFT JOIN thr_channel_reads r
+          ON r.channel_id = ch.id AND r.user_id = ?
+        WHERE ch.community_id IN ({placeholders})
+        ORDER BY ch.is_default DESC, ch.id ASC
+        """,
+        (user_id,) + tuple(ids),
+    )
+    rows = [dict(row) for row in cur.fetchall()]
+    # Unreads for every channel in ONE grouped query.
+    unread_by_channel = {}
+    if rows:
+        ch_ids = [ch["id"] for ch in rows]
+        cph = ",".join("?" for _ in ch_ids)
+        cur.execute(
+            f"""
+            SELECT m.context_id AS channel_id, COUNT(*) AS n
+            FROM thr_messages m
+            LEFT JOIN thr_channel_reads r
+              ON r.channel_id = m.context_id AND r.user_id = ?
+            WHERE m.context_type = 'channel'
+              AND m.context_id IN ({cph})
+              AND m.id > COALESCE(r.last_read_message_id, 0)
+              AND m.sender_id != ? AND m.deleted_at IS NULL
+            GROUP BY m.context_id
+            """,
+            (user_id,) + tuple(ch_ids) + (user_id,),
+        )
+        unread_by_channel = {r["channel_id"]: r["n"] for r in cur.fetchall()}
+    conn.close()
+    out = {}
+    for ch in rows:
+        ch["unread"] = unread_by_channel.get(ch["id"], 0)
+        ch["has_live_party"] = bool(ch["has_live_party"])
+        out.setdefault(ch["community_id"], []).append(ch)
+    return out
+
+
 def get_user_public_guild_tags(user_id):
     """Public guild tags for another user's mini-profile.
 
@@ -1587,7 +1645,11 @@ def get_user_public_guild_tags(user_id):
 
 def get_user_communities(user_id):
     """Rail list: communities the user belongs to, each with its channels,
-    total unread and per-community mute flag."""
+    total unread and per-community mute flag.
+
+    Batched: the old version ran get_community_channels() once per guild
+    (several sequential round trips over the remote Turso link), so the
+    page-load cost scaled with how many guilds you had joined."""
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
@@ -1601,17 +1663,21 @@ def get_user_communities(user_id):
         """,
         (user_id,),
     )
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+
+    channels_by_cid = get_communities_channels(
+        [c["id"] for c in rows], user_id
+    ) if rows else {}
     out = []
-    for row in cur.fetchall():
-        c = dict(row)
-        channels = get_community_channels(c["id"], user_id)
+    for c in rows:
+        channels = channels_by_cid.get(c["id"], [])
         c["channels"] = channels
         c["unread"] = sum(ch["unread"] for ch in channels)
         c["member_count"] = c.get("member_count") or 0
         c["muted"] = bool(c["muted"])
         c["role"] = c.get("role") or "member"
         out.append(c)
-    conn.close()
     return out
 
 
@@ -2593,3 +2659,36 @@ def delete_party(party_id):
     cur.execute("DELETE FROM thr_watch_parties WHERE id = ?", (party_id,))
     conn.commit()
     conn.close()
+
+def get_communities_parties(community_ids, viewer_id):
+    """Watch parties for MANY communities in ONE query, grouped by
+    community id (the communities list used to run one query per guild)."""
+    if not community_ids:
+        return {}
+    ids = list(dict.fromkeys(community_ids))
+    placeholders = ",".join("?" for _ in ids)
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        f"""
+        SELECT wp.*, ch.name AS channel_name, ch.community_id,
+               u.username AS host, u.avatar_color AS host_color,
+               CASE WHEN datetime(wp.scheduled_time) <= datetime('now') THEN 1 ELSE 0 END AS is_live,
+               (SELECT COUNT(*) FROM thr_watch_party_rsvps r WHERE r.party_id = wp.id) AS rsvp_count,
+               EXISTS(SELECT 1 FROM thr_watch_party_rsvps r WHERE r.party_id = wp.id AND r.user_id = ?) AS is_rsvped
+        FROM thr_watch_parties wp
+        JOIN thr_channels ch ON ch.id = wp.channel_id
+        JOIN users u ON u.id = wp.host_user_id
+        WHERE ch.community_id IN ({placeholders})
+        ORDER BY datetime(wp.scheduled_time) ASC
+        """,
+        (viewer_id,) + tuple(ids),
+    )
+    out = {}
+    for row in cur.fetchall():
+        item = dict(row)
+        item["is_live"] = bool(item["is_live"])
+        item["is_rsvped"] = bool(item["is_rsvped"])
+        out.setdefault(item.pop("community_id"), []).append(item)
+    conn.close()
+    return out

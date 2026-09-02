@@ -137,16 +137,22 @@ def _enrich_messages(rows, member_ids=None):
         if p.get("sender_id"):
             sender_ids.add(p["sender_id"])
 
-    for uid in sender_ids:
-        if uid not in users:
-            u = site_db.get_user_by_id(uid)  # served from the TTL cache when warm
-            if u:
-                users[uid] = {
-                    "id": u["id"],
-                    "username": u["username"],
-                    "avatar_color": u["avatar_color"],
-                    "avatar": u["avatar"],
-                }
+    # Batch-fetch every unknown sender in ONE query instead of one
+    # round trip per sender on a cold cache (30 senders = 30 sequential
+    # network waits on remote Turso, which is what made the first page
+    # load crawl). get_users_by_ids seeds the shared TTL cache, so a
+    # second enrichment call (e.g. pinned messages right after the main
+    # preload) finds its senders already warm.
+    missing = [uid for uid in sender_ids if uid not in users]
+    if missing:
+        found = site_db.get_users_by_ids(missing)
+        for uid, u in found.items():
+            users[uid] = {
+                "id": u["id"],
+                "username": u["username"],
+                "avatar_color": u["avatar_color"],
+                "avatar": u["avatar"],
+            }
 
     for m in rows:
         item = dict(m)
@@ -895,10 +901,13 @@ def communities_list():
     if err:
         return err
     communities = threads_db.get_user_communities(user["id"])
+    # Watch parties for every guild in ONE batched query (was one query
+    # per guild — N sequential round trips over the remote Turso link).
+    parties_by_cid = threads_db.get_communities_parties(
+        [c["id"] for c in communities], user["id"]
+    ) if communities else {}
     for c in communities:
-        c["parties"] = _enrich_parties(
-            threads_db.get_community_parties(c["id"], user["id"])
-        )
+        c["parties"] = _enrich_parties(parties_by_cid.get(c["id"], []))
     return jsonify({"success": True, "communities": communities})
 
 

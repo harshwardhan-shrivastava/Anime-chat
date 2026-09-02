@@ -867,23 +867,11 @@ def _add_war_reward(user_id, amount):
 
 
 def recalculate_user_xp_preserving_rewards(user_id):
-    """Recalculate a user's vote-derived XP but keep their permanent
-    war-reward pool intact (recalculate_user_xp would otherwise drop it).
-    The pool lives once in war_reward_xp; we just pin it back onto the live
-    xp column after each recompute."""
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT war_reward_xp FROM user_xp WHERE user_id=?", (user_id,))
-    row = cur.fetchone()
-    pool = (row["war_reward_xp"] or 0) if row else 0
-    conn.close()
+    """Recalculate a user's vote-derived XP while keeping their permanent
+    war-reward pool intact. recalculate_user_xp now folds war_reward_xp
+    back into xp itself, so this is a thin alias kept for callers that
+    explicitly want the preserving behavior."""
     recalculate_user_xp(user_id)
-    if pool:
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute("UPDATE user_xp SET xp = xp + ? WHERE user_id=?", (pool, user_id))
-        conn.commit()
-        conn.close()
 
 
 def get_guild_member_ids(gid):
@@ -3610,6 +3598,42 @@ def xp_progress(xp):
     return rank, pct
 
 
+def _received_vote_totals(cur, user_id):
+    """Sum likes/dislikes RECEIVED on a user's own anime and episode
+    reviews (review_likes rows pointing at their reviews), not votes the
+    user cast. Returns (likes, dislikes).
+
+    review_likes stores review_type + review_id where 'anime' maps to
+    reviews.id and 'episode' maps to episode_reviews.id; episode_reviews
+    carries an id column for that join.
+    """
+    try:
+        cur.execute(
+            """
+            SELECT
+                SUM(CASE WHEN rl.is_like=1 THEN 1 ELSE 0 END) AS likes,
+                SUM(CASE WHEN rl.is_like=0 THEN 1 ELSE 0 END) AS dislikes
+            FROM (
+                SELECT id FROM reviews WHERE user_id = ?
+                UNION ALL
+                SELECT id FROM episode_reviews WHERE user_id = ?
+                UNION ALL
+                SELECT id FROM war_entries WHERE user_id = ?
+            ) mine
+            JOIN review_likes rl ON rl.review_id = mine.id
+            WHERE rl.review_type IN ('anime', 'episode', 'warzone')
+            """,
+            (user_id, user_id, user_id),
+        )
+        row = cur.fetchone()
+        likes = int(row["likes"] or 0)
+        dislikes = int(row["dislikes"] or 0)
+        return likes, dislikes
+    except Exception:
+        return 0, 0
+
+
+
 def _compute_xp(user_id):
     """Compute XP live from review votes + reviews posted (same formula as
     recalculate_user_xp, but read-only). Keeps profiles from showing 0 XP
@@ -3617,19 +3641,7 @@ def _compute_xp(user_id):
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute(
-            """
-            SELECT
-                SUM(CASE WHEN is_like=1 THEN 1 ELSE 0 END) as likes,
-                SUM(CASE WHEN is_like=0 THEN 1 ELSE 0 END) as dislikes
-            FROM review_likes
-            WHERE user_id = ?
-            """,
-            (user_id,),
-        )
-        row = cursor.fetchone()
-        likes = row["likes"] or 0
-        dislikes = row["dislikes"] or 0
+        likes, dislikes = _received_vote_totals(cursor, user_id)
         total = likes + dislikes
         cursor.execute("SELECT COUNT(*) as cnt FROM reviews WHERE user_id = ?", (user_id,))
         review_count = cursor.fetchone()["cnt"] or 0
@@ -3684,25 +3696,37 @@ def add_xp(user_id, amount):
     conn.close()
 
 
+def _get_war_reward_pool(conn, user_id):
+    """Banked war-reward XP (war_reward_xp) for a user, 0 if none/absent."""
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT war_reward_xp FROM user_xp WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        return (row["war_reward_xp"] or 0) if row else 0
+    except Exception:
+        return 0
+
+
 def recalculate_user_xp(user_id):
     """Recalculate XP based on like/dislike ratio across ALL reviews.
 
     XP = base (100) + ratio * total_votes * 10
     where ratio = likes / (likes + dislikes)
+
+    The banked war-reward pool is ALWAYS preserved: wars credit both the
+    live `xp` column and a separate `war_reward_xp` record, and this
+    recompute folds the pool back in so posting a review / a vote swing /
+    a startup recalc can never silently strip earned war rank (a plain
+    recalc used to overwrite xp and demote S-rank war winners to D).
     """
     conn = get_connection()
     cursor = conn.cursor()
-    # Count all likes and dislikes across BOTH anime AND episode reviews
-    cursor.execute("""
-        SELECT
-            SUM(CASE WHEN is_like=1 THEN 1 ELSE 0 END) as likes,
-            SUM(CASE WHEN is_like=0 THEN 1 ELSE 0 END) as dislikes
-        FROM review_likes
-        WHERE user_id = ?
-    """, (user_id,))
-    row = cursor.fetchone()
-    likes = row["likes"] or 0
-    dislikes = row["dislikes"] or 0
+    pool = _get_war_reward_pool(conn, user_id)
+    # Count likes/dislikes RECEIVED on this user's own anime + episode
+    # reviews. (The old query filtered review_likes by user_id — votes the
+    # user cast on OTHER people's reviews — so a reviewer's rank never grew
+    # from being liked and voters were rewarded for casting instead.)
+    likes, dislikes = _received_vote_totals(cursor, user_id)
     total = likes + dislikes
     # Count reviews posted (for posting bonus)
     cursor.execute("SELECT COUNT(*) as cnt FROM reviews WHERE user_id = ?", (user_id,))
@@ -3718,13 +3742,14 @@ def recalculate_user_xp(user_id):
         xp = 100 + int(ratio * total * 25) + (total_reviews * 5)  # Base 100 + 25 per vote + 5 per review posted
     else:
         xp = 100 + (total_reviews * 5)  # Base 100 + 5 per review posted
+    xp += pool  # the banked war-reward pool rides on top of every recompute
     # Update or insert
     cursor.execute("SELECT xp FROM user_xp WHERE user_id=?", (user_id,))
     existing = cursor.fetchone()
     if existing:
         cursor.execute("UPDATE user_xp SET xp=? WHERE user_id=?", (xp, user_id))
     else:
-        cursor.execute("INSERT INTO user_xp (user_id, xp) VALUES (?, ?)", (user_id, xp))
+        cursor.execute("INSERT INTO user_xp (user_id, xp, war_reward_xp) VALUES (?, ?, ?)", (user_id, xp, pool))
     conn.commit()
     conn.close()
     return xp
