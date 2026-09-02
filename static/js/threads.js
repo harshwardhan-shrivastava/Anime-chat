@@ -582,7 +582,7 @@
     // ------------------------------------------------------------------
     var _invitePreviewCache = {};
 
-    function renderInlineContent(content) {
+    function renderInlineContent(content, invitePreview) {
         // escape → pull the ENTIRE guild invite URL out (it becomes a rich
         // card) → highlight mentions → linkify any remaining URLs → drop the
         // card back in. The full URL must be swallowed at once so the linkify
@@ -598,7 +598,10 @@
             .replace(/@([A-Za-z0-9_]{3,20})/g, '<span class="thr-mention">@$1</span>')
             .replace(/(https?:\/\/[^\s<"]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="thr-msg-link">$1</a>');
         if (inviteCode) {
-            out = out.split("\u00a7INVITE\u00a7").join(inviteCardSkeleton(inviteCode));
+            var cardHtml = invitePreview
+                ? inviteCardFilled(inviteCode, invitePreview)
+                : inviteCardSkeleton(inviteCode);
+            out = out.split("\u00a7INVITE\u00a7").join(cardHtml);
         }
         return out;
     }
@@ -612,6 +615,27 @@
             '</div>' +
             '<div class="thr-invite-open"><i class="fas fa-sign-in-alt"></i> Open</div>' +
             '</div>';
+    }
+
+    function inviteCardFilled(code, c) {
+        // Fully-populated card (server sent the preview with the message) —
+        // marked data-hydrated so the client never refetches it.
+        var thumbHtml = c.icon_url
+            ? '<img src="' + escapeHtml(c.icon_url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+            : '<span class="thr-invite-thumb-letter">' + escapeHtml((c.name || "?").charAt(0).toUpperCase()) + "</span>";
+        var joined = c.is_member ? " thr-invite-joined" : "";
+        var openHtml = c.is_member
+            ? '<i class="fas fa-arrow-right"></i> Open'
+            : '<i class="fas fa-sign-in-alt"></i> Join';
+        var meta = c.member_count + " members · " + c.channel_count + " channels" + (c.genre ? " · " + c.genre : "");
+        return '<div class="thr-invite-card' + joined + '" data-invite-code="' + escapeHtml(code) + '" data-hydrated="1" role="button" tabindex="0">' +
+            '<div class="thr-invite-thumb" style="background:' + escapeHtml(c.icon_color || "#8b5cf6") + '">' + thumbHtml + "</div>" +
+            '<div class="thr-invite-info">' +
+            '<div class="thr-invite-title">' + escapeHtml(c.name || "Guild") + "</div>" +
+            '<div class="thr-invite-meta">' + escapeHtml(meta) + "</div>" +
+            "</div>" +
+            '<div class="thr-invite-open">' + openHtml + "</div>" +
+            "</div>";
     }
 
     function fillInviteCard(card, c) {
@@ -749,7 +773,7 @@
 
         var sender = m.sender || {};
         var content = m.content || "";
-        var mentions = renderInlineContent(content);
+        var mentions = renderInlineContent(content, m.invite_preview || null);
 
         var attach = "";
         if (m.kind === "anime") {

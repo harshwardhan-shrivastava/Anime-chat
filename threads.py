@@ -17,7 +17,9 @@ To enable, add TWO lines to app.py (after the profile blueprint):
 """
 
 import os
+import re
 import secrets
+import time
 
 from flask import (
     Blueprint,
@@ -51,7 +53,11 @@ ALLOWED_EXT = {
 # ---------------------------------------------------------------------------
 
 def _user():
-    return g.get("user")
+    try:
+        return g.get("user")
+    except RuntimeError:
+        # No request context (background/import-time call) — treat as logged out.
+        return None
 
 
 def _json_user():
@@ -70,6 +76,44 @@ def _ctx(raw):
     if ctype not in threads_db.CONTEXT_TYPES or not cid.isdigit():
         return None
     return ctype, int(cid)
+
+
+_INVITE_PREVIEW_CACHE = {}
+_INVITE_PREVIEW_TTL = 60  # seconds — guild info changes rarely
+
+
+def _invite_code_in(content):
+    """Extract the invite code from a message body, or None."""
+    if not content:
+        return None
+    m = re.search(r"threads\?invite=([A-Za-z0-9_\-]{4,40})", content, re.IGNORECASE)
+    return m.group(1) if m else None
+
+
+def _invite_preview_for_message(content):
+    """Guild preview snapshot for a message containing an invite link, or
+    None. Cached per code (60s TTL) so chat feeds render invite cards
+    instantly with zero per-card round trips."""
+    code = _invite_code_in(content)
+    if not code:
+        return None
+    now = time.time()
+    cached = _INVITE_PREVIEW_CACHE.get(code)
+    if cached and now - cached[1] < _INVITE_PREVIEW_TTL:
+        comm = cached[0]
+    else:
+        comm = threads_db.get_community_preview(code)
+        _INVITE_PREVIEW_CACHE[code] = (comm, now)
+        if len(_INVITE_PREVIEW_CACHE) > 500:
+            _INVITE_PREVIEW_CACHE.clear()
+    if comm is None:
+        return None
+    user = _user()
+    preview = dict(comm)
+    preview["is_member"] = bool(user) and threads_db.is_community_member(
+        comm["id"], user["id"]
+    )
+    return preview
 
 
 def _enrich_messages(rows, member_ids=None):
@@ -117,6 +161,13 @@ def _enrich_messages(rows, member_ids=None):
                 "content": parent.get("content") or "",
                 "id": parent["id"],
             }
+        # Guild invite preview rides along with the message itself so the
+        # invite card renders fully populated on first paint — no client
+        # round trip, no visible "Loading…" state.
+        if m.get("kind") == "text" and not item.get("deleted_at"):
+            item["invite_preview"] = _invite_preview_for_message(
+                m.get("content") or ""
+            )
         out.append(item)
     return out
 
