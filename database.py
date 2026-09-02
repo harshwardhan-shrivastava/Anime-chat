@@ -1319,7 +1319,14 @@ def get_user_by_email(email):
 def get_user_by_username(username):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+    # Case-insensitive so shared profile/history links work regardless of
+    # how the username is capitalized in the URL (the UNIQUE constraint on
+    # username is case-sensitive in SQLite, so exact matches still win first).
+    cursor.execute(
+        "SELECT * FROM users WHERE username = ? COLLATE NOCASE "
+        "ORDER BY CASE WHEN username = ? THEN 0 ELSE 1 END LIMIT 1",
+        (username, username),
+    )
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else None

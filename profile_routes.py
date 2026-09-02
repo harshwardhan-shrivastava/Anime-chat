@@ -1,6 +1,6 @@
 import re
 
-from flask import Blueprint, render_template, request, jsonify, g, url_for, flash, redirect, session
+from flask import Blueprint, render_template, request, jsonify, g, url_for, flash, redirect, session, abort
 
 from anime_data import anime_database
 from database import (
@@ -253,8 +253,9 @@ def user_review_history(username):
     import database as db
     target = db.get_user_by_username(username)
     if target is None:
-        flash("User not found.", "error")
-        return redirect(url_for("home"))
+        return render_template(
+            "user_not_found.html", username=username, requested_path="history"
+        ), 404
     is_owner = g.get("user") and g.get("user")["id"] == target["id"]
     if not is_owner and not target.get("is_public"):
         flash("This profile is private.", "error")
