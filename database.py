@@ -2112,7 +2112,8 @@ def get_all_reviews(limit=200):
     cursor.execute(
         """
         SELECT r.id, r.anime_slug, r.username, r.rating, r.comment,
-               r.created_at, r.user_id, u.avatar, u.avatar_color
+               r.created_at, r.user_id, u.avatar, u.avatar_color,
+               u.username AS u_username
         FROM reviews r
         LEFT JOIN users u ON u.id = r.user_id
         ORDER BY r.id DESC
@@ -2124,7 +2125,7 @@ def get_all_reviews(limit=200):
         {
             "id": row["id"],
             "anime_slug": row["anime_slug"],
-            "username": row["username"],
+            "username": row["u_username"] or row["username"],
             "rating": row["rating"],
             "comment": row["comment"] or "",
             "created_at": row["created_at"],
@@ -2150,7 +2151,7 @@ def get_all_episode_reviews(limit=200):
         """
         SELECT r.id, r.anime_slug, r.season_name, r.episode_number,
                r.username, r.rating, r.comment, r.created_at, r.user_id,
-               u.avatar, u.avatar_color
+               u.username AS u_username, u.avatar, u.avatar_color
         FROM episode_reviews r
         LEFT JOIN users u ON u.id = r.user_id
         ORDER BY r.id DESC
@@ -2164,7 +2165,7 @@ def get_all_episode_reviews(limit=200):
             "anime_slug": row["anime_slug"],
             "season_name": row["season_name"],
             "episode_number": row["episode_number"],
-            "username": row["username"],
+            "username": row["u_username"] or row["username"],
             "rating": row["rating"],
             "comment": row["comment"] or "",
             "created_at": row["created_at"],
@@ -3770,6 +3771,7 @@ def get_user_review_history(user_id, limit=50):
     cursor.execute(
         "SELECT id, anime_slug, season_name, episode_number, rating, comment, created_at "
         "FROM episode_reviews WHERE user_id=? ORDER BY id DESC LIMIT ?",
+        (user_id, limit),
     )
     for row in cursor.fetchall():
         entry = anime_database.get(row["anime_slug"])

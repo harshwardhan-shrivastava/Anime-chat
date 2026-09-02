@@ -219,13 +219,9 @@ def public_profile(username):
         flash("User not found.", "error")
         return redirect(url_for("home"))
 
-    is_owner = g.get("user") and g.get("user")["id"] == target["id"]
-
-    # Check if profile is public (or owner viewing own profile)
-    if not is_owner and not target.get("is_public"):
-        flash("This profile is private.", "error")
-        return redirect(url_for("home"))
-
+    # Reviews are public feed content (they're on /reviews), so the profile
+    # page for them is always visible — no is_public gate. Browsing history
+    # stays private on the owner's own /profile?tab=history page.
     reviews = db.get_user_review_history(target["id"], 30)
     for r in reviews:
         likes_data = db.get_bulk_review_likes(r["type"], [r["id"]])
@@ -256,11 +252,9 @@ def user_review_history(username):
         return render_template(
             "user_not_found.html", username=username, requested_path="history"
         ), 404
-    is_owner = g.get("user") and g.get("user")["id"] == target["id"]
-    if not is_owner and not target.get("is_public"):
-        flash("This profile is private.", "error")
-        return redirect(url_for("home"))
-
+    # No is_public gate here either: this page shows the same reviews the
+    # public /reviews feed already shows. The "private" flag only ever
+    # applied to browsing history, which never leaves /profile.
     sort = request.args.get("sort", "newest")
     if sort not in ("highest", "newest", "oldest"):
         sort = "newest"
