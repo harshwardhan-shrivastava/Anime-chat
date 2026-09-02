@@ -3027,3 +3027,61 @@ html, body {
         height:32px;
     }
 }
+
+
+/* ==========================================================
+   MOBILE — Messages | Guilds bottom dock (Discord-style
+   separation) + keyboard-friendly dynamic viewport height
+========================================================== */
+.thr-mnav{
+    display:none;
+}
+
+@media (max-width: 700px){
+    /* dynamic viewport: when the keyboard opens the app column
+       shrinks with the screen so the composer stays visible */
+    #threads-app{
+        height:100vh;
+        height:100dvh;
+    }
+
+    /* the tiny top icon-tabs give way to the bottom dock so the
+       two sections read as separate screens, like Discord mobile */
+    .thr-tabs{
+        display:none !important;
+    }
+
+    .thr-mnav{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        flex-shrink:0;
+        background:var(--thr-bg-2);
+        border-top:1px solid var(--thr-border);
+        padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+        gap:6px;
+        z-index:30;
+    }
+    .thr-mnav-btn{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:8px;
+        border:none;
+        background:transparent;
+        color:var(--thr-muted);
+        font-size:14px;
+        font-weight:700;
+        padding:10px 6px;
+        border-radius:12px;
+        cursor:pointer;
+        transition:background-color .15s ease, color .15s ease;
+        font-family:inherit;
+    }
+    .thr-mnav-btn i{
+        font-size:15px;
+    }
+    .thr-mnav-btn.active{
+        background:var(--thr-accent-soft);
+        color:var(--thr-accent);
+    }
+}

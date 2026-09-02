@@ -16,7 +16,7 @@
     <!-- Main CSS -->
 
     <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/community.css') }}?v=20260902m2">
+          href="{{ url_for('static', filename='css/community.css') }}?v=20260902n1">
     <link rel="stylesheet"
           href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260901c">
 
@@ -594,6 +594,11 @@ data-user='{{ current_user | tojson if current_user else "null" }}'
 
                 </div>
 
+                <button type="button" class="send-btn composer-send-btn" id="chatSendBtn"
+                        title="Send" aria-label="Send">
+                    <i class="fas fa-paper-plane"></i>
+                    <span class="send-label">Send</span>
+                </button>
 
 
             </div>
@@ -820,6 +825,11 @@ data-user='{{ current_user | tojson if current_user else "null" }}'
             <div id="modalPendingPreview" class="pending-preview" style="display:none"></div>
             <textarea id="modalMessageInput" rows="1" placeholder="Share your thoughts with the {{ anime_name }} community..."></textarea>
         </div>
+        <button type="button" class="send-btn composer-send-btn" id="modalSendBtn"
+                title="Send" aria-label="Send">
+            <i class="fas fa-paper-plane"></i>
+            <span class="send-label">Send</span>
+        </button>
     </div>
 </div>
 <!-- ====================================================== -->
@@ -842,7 +852,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'
 
 </div>
 
-<script src="{{ url_for('static', filename='js/community.js') }}?v=20260826f"></script>
+<script src="{{ url_for('static', filename='js/community.js') }}?v=20260902n1"></script>
 
 {% include "_footer.html" %}
 

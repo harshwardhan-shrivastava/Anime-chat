@@ -3448,3 +3448,55 @@ footer p{
         white-space:nowrap;
     }
 }
+
+
+/* ==========================================================
+   ANIME PAGE — review composer sized for phones
+   (10-star row must FIT the card, tap-friendly but compact;
+   form controls bumped up a touch for mobile thumbs)
+========================================================== */
+@media (max-width: 600px){
+    .review-box{
+        max-width:100%;
+        padding:0 12px;
+        margin-bottom:18px;
+    }
+    .review-box .review-composer{
+        border-radius:18px;
+        padding:22px 14px 18px;
+    }
+    /* 10 stars on one row that actually fits 360px screens */
+    .review-rate-row{
+        gap:6px;
+        margin-bottom:14px;
+    }
+    .review-rate-label{
+        font-size:.95rem;
+        width:100%;
+        margin-bottom:2px;
+    }
+    .review-rate-row .user-stars{
+        gap:4px;
+        max-width:100%;
+    }
+    .review-rate-row .user-stars i{
+        font-size:23px;
+        line-height:1;
+    }
+    .selected-rating-label{
+        font-size:.9rem;
+    }
+    .review-box textarea{
+        min-height:96px;
+        padding:14px 16px;
+        border-radius:14px;
+        font-size:15px;
+        margin-top:10px;
+    }
+    .review-box button{
+        padding:13px 26px;
+        font-size:14.5px;
+        border-radius:12px;
+        margin-top:12px;
+    }
+}

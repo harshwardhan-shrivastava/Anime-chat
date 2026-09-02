@@ -4498,3 +4498,62 @@ input:focus-visible{
         margin-top:2px;
     }
 }
+
+
+/* ==========================================================
+   MOBILE — chat keyboard pass + tap-to-send buttons
+   (WhatsApp / Discord feel: composer + latest messages fit
+   one screen while typing)
+========================================================== */
+
+/* send buttons sit inline after the input, green circles */
+.composer .send-btn,
+.chat-modal-composer .send-btn{
+    flex-shrink:0;
+    width:46px;
+    height:46px;
+    min-width:46px;
+    padding:0;
+    justify-content:center;
+    align-items:center;
+    border-radius:50%;
+    font-size:15px;
+    transform:none;
+}
+.composer .send-btn:hover,
+.chat-modal-composer .send-btn:hover{
+    transform:scale(1.05);
+    box-shadow:0 8px 24px rgba(39,208,125,.35);
+}
+.composer .send-btn .send-label,
+.chat-modal-composer .send-btn .send-label{
+    display:none;
+}
+.composer .send-btn i,
+.chat-modal-composer .send-btn i{
+    font-size:16px;
+    margin:0;
+}
+
+@media (max-width: 700px){
+    /* dynamic viewport: keyboard pushes the composer up and the feed
+       shrinks instead of hiding behind the keys */
+    .chat-modal{
+        top:0;
+        left:0;
+        right:0;
+        height:100vh;
+        height:100dvh;
+    }
+    .chat-modal-feed{
+        min-height:0;
+    }
+    .chat-modal-composer{
+        padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    }
+    /* inline composer on the page: keep the box compact so the whole
+       chat + typing row fit one screen */
+    .composer{
+        padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    }
+}

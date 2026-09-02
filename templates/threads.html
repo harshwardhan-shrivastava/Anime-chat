@@ -13,7 +13,7 @@
     </noscript>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"></noscript>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260902m1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/threads.css') }}?v=20260902n1">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260901c">
 </head>
 <body
@@ -295,6 +295,17 @@
             </div>
         </section>
     </div>
+
+    <!-- Mobile Messages/Guilds switcher — Discord-style separation
+         (bottom dock, visible on phones only) -->
+    <nav class="thr-mnav" id="thrMnav" aria-label="Sections">
+        <button type="button" class="thr-mnav-btn active" data-tab="messages">
+            <i class="fas fa-comment-dots"></i><span>Messages</span>
+        </button>
+        <button type="button" class="thr-mnav-btn" data-tab="communities">
+            <i class="fas fa-users"></i><span>Guilds</span>
+        </button>
+    </nav>
 </div>
 
 <!-- ===================== TOAST ===================== -->
@@ -715,7 +726,7 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260902m2"></script>
+<script src="{{ url_for('static', filename='js/threads.js') }}?v=20260902n1"></script>
 <script>
 (function () {
     var pill = document.getElementById('btnUserMenu');

@@ -1253,6 +1253,15 @@ if (input) {
     });
 }
 
+// Tap-to-send (like WhatsApp / Discord) - Enter still works too.
+var chatSendBtn = document.getElementById("chatSendBtn");
+if (chatSendBtn) {
+    chatSendBtn.addEventListener("click", function () {
+        sendMessage();
+        if (input) input.focus();
+    });
+}
+
 // ===============================
 // BOOTSTRAP
 // ===============================
@@ -1347,8 +1356,14 @@ setInterval(refreshPresence, 8000);
         if (modalPoll) clearInterval(modalPoll);
     }
 
-    // Modal send
-    // modalSendBtn removed — Enter key handles text send
+    // Modal send — tap-to-send button + Enter both work
+    var modalSendBtn = document.getElementById("modalSendBtn");
+    if (modalSendBtn) {
+        modalSendBtn.addEventListener("click", function () {
+            sendModalMsg();
+            if (modalInput) modalInput.focus();
+        });
+    }
     if (modalInput) modalInput.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendModalMsg(); }
     });

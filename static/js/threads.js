@@ -2023,6 +2023,9 @@
         $$(".thr-tab").forEach(function (x) {
             x.classList.toggle("active", x.getAttribute("data-tab") === tab);
         });
+        $$(".thr-mnav-btn").forEach(function (x) {
+            x.classList.toggle("active", x.getAttribute("data-tab") === tab);
+        });
         var isComm = tab === "communities";
         $("#commRail").classList.toggle("hidden", !isComm);
         $(".thr-left").classList.toggle("hidden", isComm);
@@ -3548,6 +3551,16 @@
                 setTab(t.getAttribute("data-tab"));
             });
         });
+
+        // mobile bottom dock (Messages | Guilds) — same setTab, always in sync
+        var mnav = document.getElementById("thrMnav");
+        if (mnav) {
+            mnav.querySelectorAll(".thr-mnav-btn").forEach(function (t) {
+                t.addEventListener("click", function () {
+                    setTab(t.getAttribute("data-tab"));
+                });
+            });
+        }
 
         // message actions — report / moderator delete
         $("#msgList").addEventListener("click", function (e) {
