@@ -3174,3 +3174,115 @@ footer p{
     iframe, video { max-width: 100%; }
     .player-wrap, .video-box { aspect-ratio: 16 / 9; height: auto; max-height: 46vh; }
 }
+
+/* ============================================================
+   ANIME DETAIL — PHONE HERO REDESIGN (app-style card, not a
+   shrunken desktop banner). Content flows under the art instead
+   of being absolutely stacked onto a short image, so nothing
+   clips or squeezes on small screens.
+============================================================ */
+@media (max-width: 560px){
+    .hero{
+        margin-bottom: 14px;
+    }
+    .hero-image{
+        height: 200px;
+    }
+    .hero-content{
+        position: relative;
+        z-index: 2;
+        left: auto;
+        right: auto;
+        bottom: auto;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        margin-top: -52px;
+        padding: 16px 16px 20px;
+    }
+    .hero-text{
+        width: 100%;
+        max-width: 100%;
+    }
+    .hero-text p{
+        margin-bottom: 12px;
+    }
+    .anime-type{
+        margin-bottom: 8px;
+        font-size: 12px;
+        padding: 6px 14px;
+    }
+
+    /* rating row: wraps instead of overflowing the right edge */
+    .rating-box{
+        max-width: 100%;
+        width: fit-content;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        padding: 10px 16px;
+        margin-bottom: 2px;
+    }
+    .stars{
+        font-size: 19px;
+        line-height: 1;
+    }
+    .score{
+        font-size: 26px;
+        line-height: 1;
+    }
+
+    /* action buttons: full-width stacked rows — reads like an app */
+    .hero-actions{
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 9px;
+    }
+    .hero-actions .join-btn,
+    .hero-actions .anime-add-list-btn,
+    .hero-actions .review-scroll-btn{
+        width: 100%;
+        justify-content: center;
+        padding: 13px 16px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+
+    /* section titles: one line, no mid-phrase wraps */
+    .section-title{
+        font-size: clamp(17px, 5vw, 22px);
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+    .section-title a{
+        white-space: nowrap;
+    }
+
+    /* season cards + episode rows: comfortable touch sizes */
+    .season-card{
+        margin-bottom: 14px;
+    }
+    .expand-btn{
+        padding: 15px 16px;
+        font-size: 14px;
+    }
+    .episode-list{
+        padding: 12px;
+    }
+    .episode{
+        padding: 10px 8px;
+    }
+}
+@media (max-width: 768px) and (min-width: 561px){
+    .rating-box{
+        max-width: 100%;
+        flex-wrap: wrap;
+    }
+    .hero-text{
+        min-width: 0;
+    }
+    .section-title{
+        white-space: nowrap;
+        font-size: clamp(18px, 4vw, 26px);
+    }
+}

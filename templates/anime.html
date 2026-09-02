@@ -17,10 +17,10 @@
     <link rel="preload" as="image" fetchpriority="high" href="{{ anime.banner | anime_img_large }}">
     {% endif %}
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/anime.css') }}?v=20260902s">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/anime.css') }}?v=20260902v">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260901c">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/list_picker.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/list_picker.css') }}?v=20260902u">
 
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
@@ -938,8 +938,8 @@
 
     </section>
 
-    <script src="{{ url_for('static', filename='js/anime.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/list_picker.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/anime.js') }}?v=20260902u"></script>
+    <script src="{{ url_for('static', filename='js/list_picker.js') }}?v=20260902u"></script>
 
     <script>
     (function () {

@@ -16,10 +16,10 @@
     href="{{ url_for('static', filename='css/auth.css') }}?v=20260902s">
 
     <link rel="stylesheet"
-    href="{{ url_for('static', filename='css/find_mood.css') }}">
+    href="{{ url_for('static', filename='css/find_mood.css') }}?v=20260902u">
 
     <link rel="stylesheet"
-    href="{{ url_for('static', filename='css/characters.css') }}">
+    href="{{ url_for('static', filename='css/characters.css') }}?v=20260902u">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -290,7 +290,7 @@
 
 <script id="characters-data" type="application/json">{{ characters_data_json | safe }}</script>
 
-<script src="{{ url_for('static', filename='js/characters.js') }}"></script>
+<script src="{{ url_for('static', filename='js/characters.js') }}?v=20260902u"></script>
 
 {% include "_footer.html" %}
 
