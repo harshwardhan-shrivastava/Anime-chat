@@ -12,6 +12,12 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260902h">
     <style>
         .uh-wrap { max-width: 900px; margin: 0 auto; padding: 24px 18px 60px; }
+        .uh-crumb {
+            max-width: 900px; margin: 0 auto; padding: 14px 18px 0;
+            font-size: 0.85rem; font-weight: 700;
+        }
+        .uh-crumb a { color: #d6c9ff; text-decoration: none; }
+        .uh-crumb a:hover { color: #fff; }
         .uh-header {
             display: flex; align-items: center; gap: 18px;
             background: linear-gradient(135deg, rgba(43, 16, 85, 0.5), rgba(18, 20, 31, 0.6));
@@ -92,7 +98,9 @@
     </style>
 </head>
 <body>
-    {% include '_navbar.html' %}
+    <div class="uh-crumb">
+        <a href="{{ url_for('reviews_page') }}"><i class="fas fa-arrow-left"></i> Community reviews</a>
+    </div>
 
     <main class="profile-page">
         <div class="uh-wrap">
