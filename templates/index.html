@@ -7,7 +7,7 @@
     <title>Otakul</title>
 
     <link rel="icon" type="image/svg+xml"
-    href="{{ url_for('static', filename='favicon.svg') }}">    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260902z3">
+    href="{{ url_for('static', filename='favicon.svg') }}">    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260902z4">
     <style>
         /* Mobile first-screen guarantees — kept INLINE so a stale cached
            stylesheet can never re-break the phone layout (the homepage
@@ -22,6 +22,14 @@
             .anime-card { border-radius: 14px; }
             .anime-card:hover { transform: none; }
             .image-box { height: auto; aspect-ratio: 4/5; }
+            /* navbar: everything lives in the ☰ drawer on phones */
+            .main-nav .nav-burger { display: inline-flex !important; }
+            .main-nav .nav-links,
+            .main-nav .nav-right { display: none !important; }
+            .main-nav.nav-mobile-open .nav-links,
+            .main-nav.nav-mobile-open .nav-right { display: flex !important; }
+            .main-nav.nav-mobile-open .nav-links { flex-direction: column; order: 3; flex-basis: 100%; }
+            .main-nav.nav-mobile-open .nav-right { order: 4; flex-basis: 100%; flex-wrap: wrap; }
         }
     </style>
 
