@@ -11,9 +11,18 @@
     overflow-x:hidden;
     position:relative;
     display:flex;
+    flex-direction:column;   /* card above, site footer below — never side-by-side */
     align-items:center;
-    justify-content:center;
+    justify-content:flex-start;
     padding:40px 20px;
+}
+
+/* Auth pages must size everything with border-box: without it the
+   full-width inputs add padding on top of 100% and overflow their card. */
+.auth-body *,
+.auth-body *::before,
+.auth-body *::after{
+    box-sizing:border-box;
 }
 
 .auth-body .background{
@@ -37,6 +46,10 @@
 .auth-wrapper{
     width:100%;
     max-width:484px;
+    /* Card floats centered above the footer. Auto margins collapse to
+       zero when the page is taller than the screen, so nothing clips
+       at the top on small phones. */
+    margin:auto;
 }
 
 .auth-brand{
@@ -61,6 +74,15 @@
     padding:42px 38px;
     backdrop-filter:blur(18px);
     box-shadow:0 24px 70px rgba(0,0,0,.5);
+}
+
+/* The shared site footer on auth pages must stretch full-width under
+   the card instead of being squeezed beside it. */
+.auth-body > .site-footer{
+    width:100%;
+    max-width:100%;
+    flex-shrink:0;
+    margin-top:44px;
 }
 
 .auth-card h1{
@@ -410,6 +432,12 @@
 }
 
 @media (max-width:520px){
+    .auth-body{
+        padding:28px 14px;
+    }
+    .auth-brand{
+        margin-bottom:20px;
+    }
     .auth-card{
         padding:32px 24px;
     }
