@@ -4,7 +4,7 @@ Uses the shared review_likes table. Rank tiers: everyone starts at D;
 S+ is intentionally almost impossible (50,000 XP). A reviewer whose
 received votes are overwhelmingly dislikes drops to F regardless of XP.
 """
-from database import get_connection, recalculate_user_xp_preserving_rewards, get_user_xp, war_is_live, recalculate_user_xp, get_war_effects
+from database import get_connection, recalculate_user_xp_preserving_rewards, get_user_xp, war_is_live, recalculate_user_xp, get_war_effects, episode_season_keys
 from dev_accounts import is_dev_username, DEV_USERNAMES
 
 # Developer accounts read as S+ (their raw user_xp row lags behind the
@@ -878,7 +878,7 @@ def get_user_review_votes(review_type, review_ids, user_id):
 # Overall "liquid XP" totals (an anime's / an episode's sum of review XP)
 # =====================================================================
 
-def get_target_review_ids(review_type, anime_slug, season_name=None, episode_number=None):
+def get_target_review_ids(review_type, anime_slug, season_name=None, season_index=None, episode_number=None):
     """Review ids under one target: an anime ('anime') or one episode
     ('episode', which needs season_name + episode_number). Returns [] if
     any required field is missing."""
@@ -891,12 +891,16 @@ def get_target_review_ids(review_type, anime_slug, season_name=None, episode_num
             "SELECT id FROM reviews WHERE anime_slug=? ORDER BY id", (anime_slug or "",)
         )
     else:
-        if not season_name or episode_number is None:
+        if episode_number is None:
             conn.close()
             return []
+        # Match either season_name spelling (display name or raw index) —
+        # episode reviews written by the AJAX endpoint store the index.
+        keys = episode_season_keys(season_name, season_index)
         cursor.execute(
-            "SELECT id FROM episode_reviews WHERE anime_slug=? AND season_name=? AND episode_number=? ORDER BY id",
-            (anime_slug or "", season_name, episode_number),
+            "SELECT id FROM episode_reviews WHERE anime_slug=? AND episode_number=? AND season_name IN (%s) ORDER BY id"
+            % ",".join("?" * len(keys)),
+            tuple([anime_slug or "", episode_number] + list(keys)),
         )
     ids = [r["id"] for r in cursor.fetchall()]
     conn.close()

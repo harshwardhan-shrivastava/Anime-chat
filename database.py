@@ -2705,10 +2705,38 @@ def reward_war_leaders():
     conn.close()
 
 
+def episode_season_keys(season_name, season_index=None):
+    """Both spellings one episode's season may be stored under in
+    episode_reviews: the display name (e.g. 'Season 1', written by the
+    form POST) and the raw index (e.g. '1', written by the AJAX rate
+    endpoint). Reads must try both, otherwise reviews posted through
+    the AJAX UI vanish on the next page load. Deduped tuple."""
+    keys = []
+    for k in (season_name, season_index):
+        if k is None:
+            continue
+        k = str(k).strip()
+        if k and k not in keys:
+            keys.append(k)
+    return tuple(keys) or ("",)
+
+
 def add_episode_review(anime_slug, season_name, episode_number, user_id,
-                       username, avatar_color, rating, comment):
+                       username, avatar_color, rating, comment,
+                       season_index=None):
     conn = get_connection()
     cursor = conn.cursor()
+    # Clear any previous review of this same episode written under the
+    # OTHER season_name spelling (the AJAX endpoint stores the raw index,
+    # the form POST stores the display name) so one episode never holds
+    # two rows for the same user — the review is found and replaced under
+    # either spelling.
+    keys = episode_season_keys(season_name, season_index)
+    cursor.execute(
+        "DELETE FROM episode_reviews WHERE anime_slug=? AND episode_number=? AND user_id=? AND season_name IN (%s)"
+        % ",".join("?" * len(keys)),
+        tuple([anime_slug, episode_number, user_id] + list(keys)),
+    )
     cursor.execute(
         """
         INSERT INTO episode_reviews
@@ -2731,20 +2759,26 @@ def add_episode_review(anime_slug, season_name, episode_number, user_id,
     _episode_stats_cache_times.pop(anime_slug, None)
 
 
-def delete_episode_review(anime_slug, season_name, episode_number, user_id):
-    """Delete an episode review only if it belongs to the given user."""
+def delete_episode_review(anime_slug, season_name, episode_number, user_id,
+                          season_index=None):
+    """Delete an episode review only if it belongs to the given user.
+    Matches either season_name spelling (display name or raw index)."""
     conn = get_connection()
     cursor = conn.cursor()
+    keys = episode_season_keys(season_name, season_index)
     cursor.execute(
-        "SELECT id FROM episode_reviews WHERE anime_slug=? AND season_name=? AND episode_number=? AND user_id=?",
-        (anime_slug, season_name, episode_number, user_id),
+        "SELECT id FROM episode_reviews WHERE anime_slug=? AND episode_number=? AND user_id=? AND season_name IN (%s)"
+        % ",".join("?" * len(keys)),
+        tuple([anime_slug, episode_number, user_id] + list(keys)),
     )
     row = cursor.fetchone()
     if not row:
+        conn.close()
         return False
     cursor.execute(
-        "DELETE FROM episode_reviews WHERE anime_slug=? AND season_name=? AND episode_number=? AND user_id=?",
-        (anime_slug, season_name, episode_number, user_id),
+        "DELETE FROM episode_reviews WHERE anime_slug=? AND episode_number=? AND user_id=? AND season_name IN (%s)"
+        % ",".join("?" * len(keys)),
+        tuple([anime_slug, episode_number, user_id] + list(keys)),
     )
     deleted = cursor.rowcount > 0
     conn.commit()
@@ -2754,14 +2788,16 @@ def delete_episode_review(anime_slug, season_name, episode_number, user_id):
         _episode_stats_cache_times.pop(anime_slug, None)
     return deleted
 
-def get_episode_stats(anime_slug, season_name, episode_number):
+
+def get_episode_stats(anime_slug, season_name, episode_number, season_index=None):
     conn = get_connection()
     cursor = conn.cursor()
+    keys = episode_season_keys(season_name, season_index)
     cursor.execute(
         """SELECT rating, COUNT(*) as count FROM episode_reviews
-        WHERE anime_slug=? AND season_name=? AND episode_number=?
-        GROUP BY rating""",
-        (anime_slug, season_name, episode_number)
+        WHERE anime_slug=? AND episode_number=? AND season_name IN (%s)
+        GROUP BY rating""" % ",".join("?" * len(keys)),
+        tuple([anime_slug, episode_number] + list(keys))
     )
     breakdown = {str(n): 0 for n in range(1, 11)}
     for row in cursor.fetchall():
@@ -2770,21 +2806,22 @@ def get_episode_stats(anime_slug, season_name, episode_number):
     total_votes = sum(breakdown.values())
     cursor.execute(
         """SELECT AVG(rating) as avg_rating FROM episode_reviews
-        WHERE anime_slug=? AND season_name=? AND episode_number=?""",
-        (anime_slug, season_name, episode_number)
+        WHERE anime_slug=? AND episode_number=? AND season_name IN (%s)""" % ",".join("?" * len(keys)),
+        tuple([anime_slug, episode_number] + list(keys))
     )
     avg_row = cursor.fetchone()
     average = round(avg_row["avg_rating"], 1) if avg_row["avg_rating"] is not None else 0
 
     cursor.execute(
-        """SELECT username, avatar_color, rating, comment, created_at
+        """SELECT user_id, username, avatar_color, rating, comment, created_at
         FROM episode_reviews
-        WHERE anime_slug=? AND season_name=? AND episode_number=?
-        ORDER BY id DESC""",
-        (anime_slug, season_name, episode_number)
+        WHERE anime_slug=? AND episode_number=? AND season_name IN (%s)
+        ORDER BY id DESC""" % ",".join("?" * len(keys)),
+        tuple([anime_slug, episode_number] + list(keys))
     )
     reviews = [
         {
+            "user_id": row["user_id"],
             "username": row["username"],
             "avatar_color": row["avatar_color"],
             "rating": row["rating"],
@@ -2804,15 +2841,18 @@ def get_episode_stats(anime_slug, season_name, episode_number):
     return result
 
 
-def get_user_episode_review(anime_slug, season_name, episode_number, user_id):
+def get_user_episode_review(anime_slug, season_name, episode_number, user_id,
+                            season_index=None):
     if not user_id:
         return None
     conn = get_connection()
     cursor = conn.cursor()
+    keys = episode_season_keys(season_name, season_index)
     cursor.execute(
         """SELECT rating, comment FROM episode_reviews
-        WHERE anime_slug=? AND season_name=? AND episode_number=? AND user_id=?""",
-        (anime_slug, season_name, episode_number, user_id)
+        WHERE anime_slug=? AND episode_number=? AND user_id=? AND season_name IN (%s)
+        ORDER BY id""" % ",".join("?" * len(keys)),
+        tuple([anime_slug, episode_number, user_id] + list(keys))
     )
     row = cursor.fetchone()
     conn.close()

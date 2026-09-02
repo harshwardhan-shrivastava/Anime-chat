@@ -1228,11 +1228,37 @@ def anime(anime_slug):
     overall_label = format_xp_label(overall_xp)
     overall_tier = review_rank_for_xp(overall_xp) if not overall_negative else None
     user_rank = get_user_rank(user["id"]) if user else None
+    # Episode review stats may be stored under either the season display
+    # name or the raw season index (AJAX-written rows) — alias the index
+    # groups onto the catalog season names so per-episode ratings show.
+    episode_stats = get_all_episode_stats(anime_slug)
+    for si, s in enumerate((anime_with_recs.get("seasons") or []), 1):
+        sname = s.get("name")
+        if not sname:
+            continue
+        idx_group = episode_stats.pop(str(si), None)
+        if not idx_group:
+            continue
+        if sname not in episode_stats:
+            episode_stats[sname] = idx_group
+            continue
+        dst = episode_stats[sname]
+        for ep, st in idx_group.items():
+            if ep not in dst:
+                dst[ep] = st
+                continue
+            v1, v2 = dst[ep].get("votes", 0), st.get("votes", 0)
+            a1, a2 = dst[ep].get("average", 0), st.get("average", 0)
+            total = v1 + v2
+            dst[ep] = {
+                "average": round((a1 * v1 + a2 * v2) / total, 1) if total else 0,
+                "votes": total,
+            }
     return render_template(
         "anime.html",
         anime=anime_with_recs,
         next_episode_label=_episode_badge(anime),
-        episode_stats=get_all_episode_stats(anime_slug),
+        episode_stats=episode_stats,
         grade_card=grade_card,
         overall_xp=overall_xp,
         overall_count=overall_count,
@@ -1243,6 +1269,25 @@ def anime(anime_slug):
         vote_schedule=_build_rating_power(),
         GRADE_ORDER=GRADE_ORDER,
     )
+
+
+def _season_name_prongs(anime_slug, season_name):
+    """Resolve the (display_name, index) pair for a season given either
+    spelling. Episode reviews are stored under both (AJAX writes the raw
+    index, the form POST writes the display name), so lookups pass both."""
+    entry = anime_database.get(anime_slug)
+    seasons = (entry or {}).get("seasons") or []
+    try:
+        idx = int(season_name)
+        if 1 <= idx <= len(seasons):
+            return (seasons[idx - 1].get("name") or season_name, season_name)
+    except (TypeError, ValueError):
+        pass
+    if seasons:
+        for i, s in enumerate(seasons, 1):
+            if s.get("name") == season_name:
+                return (season_name, str(i))
+    return (season_name, None)
 
 
 def _find_episode(anime_slug, season_idx, episode_number):
@@ -1302,14 +1347,15 @@ def episode_rate(anime_slug, season_idx, episode_number):
         add_episode_review(
             anime_slug, season_name, episode_number,
             user["id"], user["username"], user["avatar_color"],
-            rating, comment,
+            rating, comment, season_index=season_idx,
         )
         flash(f"Thanks for rating {episode_title}!", "success")
         return redirect(url_for("episode_rate", anime_slug=anime_slug,
                                 season_idx=season_idx,
                                 episode_number=episode_number))
 
-    stats = get_episode_stats(anime_slug, season_name, episode_number)
+    stats = get_episode_stats(anime_slug, season_name, episode_number,
+                              season_index=season_idx)
     # Overall 'liquid XP' total across this episode's reviews (fills the
     # wide gauge next to the episode's rating).
     overall_xp = 0
@@ -1318,7 +1364,8 @@ def episode_rate(anime_slug, season_idx, episode_number):
         overall_xp, overall_count = overall_review_xp(
             "episode",
             get_target_review_ids(
-                "episode", anime_slug, season_name, episode_number
+                "episode", anime_slug, season_name,
+                season_index=season_idx, episode_number=episode_number,
             ),
         )
     except Exception:
@@ -1328,7 +1375,8 @@ def episode_rate(anime_slug, season_idx, episode_number):
     overall_tier = review_rank_for_xp(overall_xp) if not overall_negative else None
     user = g.get("user")
     my_review = get_user_episode_review(
-        anime_slug, season_name, episode_number, user["id"] if user else None
+        anime_slug, season_name, episode_number,
+        user["id"] if user else None, season_index=season_idx,
     )
     return render_template(
         "episode_rate.html",
@@ -2121,12 +2169,17 @@ def api_episode_rate():
         return jsonify({"success": False, "error": "Invalid rating."}), 400
     if rating < 1 or rating > 10:
         return jsonify({"success": False, "error": "Rating must be between 1 and 10."}), 400
+    # The AJAX client sends the season INDEX (e.g. "1"). Resolve it to the
+    # display name so stored reviews match the page GET's lookup, but keep
+    # the index as season_index so reads hit both spellings.
+    season_key, season_index = _season_name_prongs(anime_slug, season_name)
     add_episode_review(
-        anime_slug, season_name, int(episode_number),
+        anime_slug, season_key, int(episode_number),
         user["id"], user["username"], user["avatar_color"],
-        rating, comment,
+        rating, comment, season_index=season_index,
     )
-    stats = get_episode_stats(anime_slug, season_name, int(episode_number))
+    stats = get_episode_stats(anime_slug, season_key, int(episode_number),
+                              season_index=season_index)
     return jsonify({
         "success": True,
         "average": stats.get("average", 0),
@@ -2159,7 +2212,9 @@ def delete_episode_review_route():
     episode_number = data.get("episode_number")
     if not all([anime_slug, season_name, episode_number]):
         return jsonify({"success": False, "error": "Missing fields."}), 400
-    if not delete_episode_review(anime_slug, season_name, int(episode_number), user["id"]):
+    season_key, season_index = _season_name_prongs(anime_slug, season_name)
+    if not delete_episode_review(anime_slug, season_key, int(episode_number), user["id"],
+                                 season_index=season_index):
         return jsonify({"success": False, "error": "Review not found."}), 404
     return jsonify({"success": True})
 
