@@ -127,7 +127,7 @@ def profile():
                 pick = _pick_card(row["anime_slug"], skip_stats=True)
                 if pick is None:
                     continue
-                pick["badge_label"] = "Visited"
+                pick.pop("badge_label", None)  # history pill shows visit time
                 pick["visited_at"] = row["viewed_at"]
                 history.append(pick)
             history_count = get_history_count(user["id"])

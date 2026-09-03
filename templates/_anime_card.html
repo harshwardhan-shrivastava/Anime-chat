@@ -20,10 +20,12 @@
 
         <!-- Badge -->
 
-        <div class="anime-badge{% if anime.badge_label == 'FOR YOU' %} badge-foryou{% endif %}{% if anime.badge_label == 'NEW' %} badge-new{% endif %}{% if anime.badge_label == 'AIRING NOW' %} badge-airing{% endif %}">
+        <div class="anime-badge{% if anime.badge_label == 'FOR YOU' %} badge-foryou{% endif %}{% if anime.badge_label == 'NEW' %} badge-new{% endif %}{% if anime.badge_label == 'AIRING NOW' %} badge-airing{% endif %}{% if anime.visited_at %} visited-pill{% endif %}">
 
             {% if anime.badge_label %}
                 {{ anime.badge_label }}
+            {% elif anime.visited_at %}
+                <i class="fas fa-clock"></i> {{ anime.visited_at | time_ago }}
             {% elif anime.next_episode_at %}
                 AIRING NOW
             {% elif anime.start_year %}

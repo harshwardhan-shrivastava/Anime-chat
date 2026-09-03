@@ -1038,3 +1038,39 @@
     .profile-stat-num { font-size: 21px; }
     .profile-btn-ghost, .profile-btn-primary { padding: 10px 14px; font-size: 13px; }
 }
+
+/* ============================================================
+   PROFILE — phone history grid: compact 2-across like home/browse
+   (the inner .anime-card rules from style.css keep each card tight)
+   ============================================================ */
+@media (max-width: 640px) {
+    .profile-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+    .profile-section {
+        padding: 24px 4% 40px;
+        width: 94%;
+    }
+}
+
+/* History cards: the visit-time pill in the badge slot stays tidy next to
+   the rating badge, even on compact 2-across phone cards. */
+.anime-badge.visited-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    padding: 5px 11px;
+    line-height: 1;
+    background: rgba(11, 10, 26, .78);
+    border: 1px solid rgba(255, 255, 255, .18);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    white-space: nowrap;
+}
+.anime-badge.visited-pill i { font-size: 9.5px; }
+@media (max-width: 640px) {
+    .anime-badge.visited-pill { padding: 4px 8px; }
+    .anime-badge.visited-pill i { display: none; }
+}
