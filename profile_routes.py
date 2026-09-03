@@ -91,20 +91,15 @@ def profile():
         return redirect(url_for("auth.login", next=request.path))
 
     # Settings tab: update username + avatar image (Tohoku-style).
+    # The user is already authenticated via session; password resets go
+    # through the Forgot password flow, so no password prompt here.
     if request.method == "POST":
-        from werkzeug.security import check_password_hash
         import database as db
 
         username = (request.form.get("username") or "").strip()
         # Sanitize hidden control characters and trim to 100 - any name works.
         username = re.sub(r"[\x00-\x1f\x7f\u200b-\u200d\ufeff]", "", username).strip()[:100]
         avatar = (request.form.get("avatar") or "profile1.png").strip()
-        password = request.form.get("password") or ""
-
-        full = db.get_user_by_id(user["id"])
-        if not full or not check_password_hash(full["password_hash"], password):
-            flash("Enter your current password to save changes.", "error")
-            return redirect(url_for("profile.profile", tab="settings"))
 
         if not username:
             flash("Type a username first.", "error")
