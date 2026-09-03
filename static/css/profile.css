@@ -478,34 +478,6 @@
     box-shadow: 0 14px 34px rgba(123, 46, 255, .28);
 }
 .profile-stat:hover::before { opacity: 1; }
-.profile-stat-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 15px;
-    margin-bottom: 10px;
-    background: rgba(56, 189, 248, .14);
-    color: #38bdf8;
-    border: 1px solid rgba(56, 189, 248, .24);
-}
-.profile-stat:nth-child(2) .profile-stat-icon {
-    background: rgba(167, 139, 250, .14);
-    color: #a78bfa;
-    border-color: rgba(167, 139, 250, .24);
-}
-.profile-stat:nth-child(3) .profile-stat-icon {
-    background: rgba(255, 140, 66, .14);
-    color: #ff8c42;
-    border-color: rgba(255, 140, 66, .24);
-}
-.profile-stat:nth-child(4) .profile-stat-icon {
-    background: rgba(39, 208, 125, .14);
-    color: #27d07d;
-    border-color: rgba(39, 208, 125, .24);
-}
 .profile-stat-num {
     display: block;
     font-size: 27px;
@@ -1034,7 +1006,6 @@
     .profile-settings-id .profile-avatar { width: 84px; height: 84px; }
     .profile-settings-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 20px; }
     .profile-stat { padding: 16px 10px 14px; border-radius: 16px; }
-    .profile-stat-icon { width: 34px; height: 34px; font-size: 13px; margin-bottom: 8px; border-radius: 10px; }
     .profile-stat-num { font-size: 21px; }
     .profile-btn-ghost, .profile-btn-primary { padding: 10px 14px; font-size: 13px; }
 }
