@@ -111,6 +111,17 @@
     width: 90%;
     display: flex;
     gap: 6px;
+    /* Neutralize the shared nav{...} card styling (sticky slab) that leaks
+       onto this <nav> — profile tabs are a plain underline bar. */
+    position: static;
+    top: auto;
+    z-index: auto;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     border-bottom: 1px solid rgba(255, 255, 255, .08);
 }
 .profile-tab {
@@ -915,23 +926,64 @@
    PROFILE — MOBILE polish
    ============================================================ */
 @media (max-width: 600px) {
-    .profile-banner-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .profile-banner-inner { flex-direction: column; align-items: center; text-align: center; gap: 12px; }
     .profile-id { flex-wrap: wrap; }
     .profile-card-grid { grid-template-columns: 1fr; }
     .profile-list-card { flex-wrap: wrap; row-gap: 10px; }
-    .profile-avatar { width: 76px; height: 76px; }
+    .profile-avatar { width: 84px; height: 84px; }
 }
 
 /* ============================================================
    PROFILE — phone tabs + settings
    ============================================================ */
 @media (max-width: 900px) {
-    .profile-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+    .profile-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; scrollbar-width: none; }
+    .profile-tabs::-webkit-scrollbar { display: none; }
     .profile-tab { white-space: nowrap; }
 }
-@media (max-width: 560px) {
-    .profile-banner { padding: 16px 12px; }
-    .profile-settings-card { padding: 18px 14px; }
-    .profile-settings-id { flex-direction: column; align-items: flex-start; }
+@media (max-width: 600px) {
+    .profile-banner { padding: 14px 12px 18px; width: 94%; }
+    .profile-banner-inner { padding: 26px 18px; border-radius: 20px; }
+    .profile-id { min-width: 0; width: 100%; }
+    .profile-id h1 { font-size: 23px; }
+    .profile-id p { justify-content: center; flex-wrap: wrap; }
+    .profile-rank-badge { margin-top: 8px; }
+    .profile-logout-btn { width: 100%; justify-content: center; padding: 13px 20px; }
+
+    /* Tab bar becomes a compact 4-across pill dock — SETTINGS always reachable */
+    .profile-tabs {
+        width: 94%;
+        padding: 6px;
+        gap: 4px;
+        border-bottom: none;
+        background: rgba(10, 13, 22, .72);
+        border: 1px solid rgba(255, 255, 255, .08);
+        border-radius: 14px;
+    }
+    .profile-tab {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 10px 4px;
+        font-size: 11.5px;
+        letter-spacing: .5px;
+        text-align: center;
+        border-bottom: none;
+        border-radius: 10px;
+    }
+    .profile-tab.active {
+        border-bottom: none;
+        background: rgba(143, 91, 255, .16);
+    }
+
+    .profile-section { padding: 26px 4% 44px; width: 94%; }
+    .profile-section-head h2 { font-size: 22px; }
+    .profile-section-head p { font-size: 13.5px; line-height: 1.5; }
+
+    .profile-settings-card { padding: 20px 16px; border-radius: 18px; }
+    .profile-settings-id { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .profile-settings-id .profile-avatar { width: 84px; height: 84px; }
+    .profile-settings-stats { gap: 10px; }
+    .profile-stat { flex: 1 1 calc(50% - 5px); min-width: calc(50% - 5px); padding: 14px 10px; }
+    .profile-stat-num { font-size: 24px; }
     .profile-btn-ghost, .profile-btn-primary { padding: 10px 14px; font-size: 13px; }
 }

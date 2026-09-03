@@ -17,6 +17,8 @@ from database import (
     get_view_history,
     get_history_count,
     update_user_profile,
+    get_user_xp,
+    get_user_rank,
     MAX_USER_LISTS,
 )
 
