@@ -78,7 +78,7 @@
                 <div class="rv-board">
                     <h3><i class="fas fa-trophy"></i> Top Reviewers</h3>
                     <div class="sub">Highest ranked, most XP</div>
-                    {% for u in top_reviewers %}
+                    {% for u in top_reviewers[:3] %}
                     <a class="rv-rank-row" href="/user/{{ u.username | urlencode }}">
                         <span class="rv-rank-pos {{ 'top' if loop.index == 1 else ('top2' if loop.index == 2 else ('top3' if loop.index == 3 else '')) }}">
                             {{ ['🥇','🥈','🥉'][loop.index0] if loop.index <= 3 else loop.index }}

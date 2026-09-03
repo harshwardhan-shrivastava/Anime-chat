@@ -3759,7 +3759,10 @@ def get_all_user_ranks(user_ids):
     """Return {user_id: {xp, rank}} for a list of user IDs.
 
     Every requested user gets an entry -- those without a user_xp row
-    default to 100 XP / rank D so badges always render.
+    default to 100 XP / rank D so badges always render. Developer
+    accounts are pinned to S+ (15000 XP) like every other rank display
+    (profile, reviews, threads mini-profile), so thread badges never
+    show a stale D/B for dev usernames.
     """
     if not user_ids:
         return {}
@@ -3768,12 +3771,23 @@ def get_all_user_ranks(user_ids):
     placeholders = ",".join("?" * len(user_ids))
     cursor.execute(f"SELECT user_id, xp FROM user_xp WHERE user_id IN ({placeholders})", user_ids)
     xp_map = {row["user_id"]: row["xp"] for row in cursor.fetchall()}
+    # One batched lookup for dev usernames (S+ always), instead of N queries.
+    dev_ids = set()
+    try:
+        cursor.execute(f"SELECT id, username FROM users WHERE id IN ({placeholders})", user_ids)
+        for row in cursor.fetchall():
+            if is_dev_username(row["username"]):
+                dev_ids.add(row["id"])
+    except Exception:
+        pass
     conn.close()
     result = {}
     for uid in user_ids:
         xp = xp_map.get(uid, 0)
         if not xp:
             xp = 100
+        if uid in dev_ids:
+            xp = 15000
         result[uid] = {"xp": xp, "rank": get_xp_tier(xp)}
     return result
 
