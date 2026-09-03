@@ -364,11 +364,14 @@
         <!-- Seasons -->
 
     {% if anime.seasons %}
+
+    {% set _flat_label = (anime.seasons|length == 1) and (anime.seasons[0].name or '').strip().startswith('Season ') and (anime.seasons[0].name or '').strip().split(' ')[-1].isdigit() %}
+
     <section class="content-section">
 
         <h2 class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
 
-            <span><i class="fas fa-film"></i> {{ t('Seasons') }}</span>
+            <span><i class="fas fa-film"></i> {{ t('Episodes') if _flat_label else t('Seasons') }}</span>
 
             <a href="/reviews" style="font-size:0.55em;color:#22c55e;text-decoration:none;font-weight:500;white-space:nowrap;"><i class="fas fa-external-link-alt"></i> {{ t('Go to Reviews') }} →</a>
 
@@ -388,7 +391,7 @@
 
                 {% set is_numbered = raw_name.startswith('Season ') and raw_name.split(' ')[-1].isdigit() %}
 
-                {% set season_label = (t('Season') ~ ' ' ~ raw_name.split(' ')[-1]) if is_numbered else (raw_name | default('Episodes')) %}
+                {% set season_label = 'Episodes' if _flat_label else ((t('Season') ~ ' ' ~ raw_name.split(' ')[-1]) if is_numbered else (raw_name | default('Episodes'))) %}
 
                 <div class="season-top">
 
@@ -400,7 +403,7 @@
 
                     <span>
 
-                        {{ season.episodes|length }} {{ t('Episodes') }}
+                        {% if season_label == 'Episodes' %}{{ season.episodes|length }}{% else %}{{ season.episodes|length }} {{ t('Episodes') }}{% endif %}
 
                     </span>
 

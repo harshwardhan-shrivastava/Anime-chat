@@ -93,23 +93,15 @@
 
     <h1>
 
-        {% if current_lang == 'ja' %}次の<span>アニメコミュニティ</span>を見つけよう{% else %}Find Your Next
+        {% if current_lang == 'ja' %}みんなの<span>レビュー</span>で、次のお気に入りを見つけよう{% else %}Find Your Next
 
-        <span class="hero-words"><span>Anime</span> <span>Community</span></span>{% endif %}
+        <span class="hero-words"><span>Anime,</span> <span>Reviewed</span> <span>by</span> <span>Fans</span></span>{% endif %}
 
     </h1>
 
     <p>
 
-        {% if current_lang == 'ja' %}何千人ものアニメファンが集まる、アニメごとの巨大チャットルーム。エピソードを語り、考察を共有し、仲間を作ろう。{% else %}Join thousands of anime fans.
-
-        Discuss episodes.
-
-        Share theories.
-
-        Make friends.
-
-        One giant chatroom for every anime.{% endif %}
+        {% if current_lang == 'ja' %}アニメも各話も10点満点でレビューし合う、レビューが主役のファンコミュニティ。本音のレビューを読み、上位レビュアーがつけた評点を信頼して、次に見る1本を見つけよう。{% else %}Otakul is review-first: rate every anime and episode out of 10, read reviews by fans who've actually finished the show, and trust the grades earned by top-ranked reviewers. Then join the threads and make your case.{% endif %}
 
     </p>
 
@@ -126,6 +118,14 @@
     <div id="searchResults"></div>
 
 </div>
+
+    <div class="hero-cta" style="display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:12px;margin-top:14px;">
+
+        <a href="/reviews" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#00c16a,#00e676);color:#04140b;font-weight:800;padding:12px 24px;border-radius:999px;text-decoration:none;font-size:15px;box-shadow:0 10px 25px rgba(0,193,106,.28);"><i class="fas fa-star"></i> Explore Reviews</a>
+
+        <a href="/threads" style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);color:#fff;font-weight:700;padding:12px 24px;border-radius:999px;text-decoration:none;font-size:15px;"><i class="fas fa-comments"></i> Join the Threads</a>
+
+    </div>
 
 </section>
 
