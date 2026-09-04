@@ -220,6 +220,18 @@ def manifest_webmanifest():
     return response
 
 
+@app.route("/sw.js")
+def service_worker_js():
+    """Service worker at the origin root so it controls the WHOLE site (a SW
+    under /static/ would only scope /static/). Service-Worker-Allowed keeps
+    the scope at / even though the file physically lives in static/."""
+    response = make_response(send_from_directory("static", "sw.js"))
+    response.headers["Content-Type"] = "application/javascript; charset=utf-8"
+    response.headers["Service-Worker-Allowed"] = "/"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 app.register_blueprint(auth)
 app.register_blueprint(chat_bp)
 app.register_blueprint(profile_bp)
