@@ -1028,7 +1028,16 @@ html, body {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
-.thr-msg:hover .thr-msg-actions { display: flex; }
+.thr-msg:hover .thr-msg-actions,
+.thr-msg.thr-actions-open .thr-msg-actions { display: flex; }
+
+/* Mobile swipe-to-reply: the row rides along with the finger and gets a
+   violet reply tint + accent edge so the gesture reads as "reply". */
+.thr-msg.thr-swipe-reply {
+    background: rgba(139, 92, 246, 0.16);
+    box-shadow: inset 4px 0 0 var(--thr-accent);
+}
+.thr-msg.thr-swipe-reply .thr-msg-actions { display: none; }
 
 .thr-msg-act {
     display: inline-flex;

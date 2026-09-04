@@ -951,7 +951,14 @@
                 attachment_url: payload.attachment_url,
                 attachment_preview: payload.attachment_preview,
                 parent_message_id: payload.parent_message_id,
-                parent: null,
+                // Fill the parent from the reply target so the "Replying to
+                // @x" quote shows the moment the bubble appears — no waiting
+                // on the server round-trip (that felt like a late reply).
+                parent: State.replyTo ? {
+                    id: State.replyTo.id,
+                    sender_username: (State.replyTo.sender && State.replyTo.sender.username) || "someone",
+                    content: State.replyTo.content || ""
+                } : null,
                 created_at: new Date().toISOString().replace("T", " ").slice(0, 19),
                 temp: true,
             };

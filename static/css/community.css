@@ -3045,6 +3045,18 @@ input:focus-visible{
 
 }
 
+/* Mobile swipe-to-reply: the row rides along with the finger and gets a
+   violet reply tint + accent edge so the gesture reads as "reply". */
+.msg-line.cm-swipe-reply{
+
+    background:rgba(143,91,255,.16);
+
+    box-shadow:inset 4px 0 0 #8F5BFF;
+
+    border-radius:10px;
+
+}
+
 .msg-line-body{
 
     flex:1;

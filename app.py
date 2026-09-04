@@ -15,7 +15,7 @@ import requests
 from dotenv import load_dotenv
 load_dotenv()
 
-from flask import make_response, Flask, render_template, request, jsonify, g, url_for, flash, redirect, abort
+from flask import make_response, Flask, render_template, request, jsonify, g, url_for, flash, redirect, abort, send_from_directory
 
 from anime_data import anime_database, preload_catalog
 from review_vote_gate import apply_review_vote_gate
@@ -206,6 +206,18 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 # Sessions last 10 years, so users stay logged in across devices/visits.
 app.permanent_session_lifetime = timedelta(days=3650)
+
+
+@app.route("/manifest.webmanifest")
+def manifest_webmanifest():
+    """PWA manifest for the Android APK / Add-to-home-screen. A root URL is
+    what TWA tooling (PWABuilder, bubblewrap) expects, with the exact MIME
+    Chrome wants. Content is tiny and re-fetched on install checks, so it is
+    kept fresh (no-cache) instead of going through the immutable static rule."""
+    response = make_response(send_from_directory("static", "manifest.webmanifest"))
+    response.headers["Content-Type"] = "application/manifest+json; charset=utf-8"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 app.register_blueprint(auth)

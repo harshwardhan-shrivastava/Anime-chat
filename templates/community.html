@@ -7,6 +7,9 @@
 
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0d1117">
+    <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
 
     <title>{{ anime_name }} | Otakul</title>
 
@@ -16,7 +19,7 @@
     <!-- Main CSS -->
 
     <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/community.css') }}?v=20260903a">
+          href="{{ url_for('static', filename='css/community.css') }}?v=20260904a">
     <link rel="stylesheet"
           href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260901c">
 
@@ -805,6 +808,16 @@ data-user='{{ current_user | tojson if current_user else "null" }}'
         <div id="modalGifGrid" class="gif-grid"></div>
     </div>
     <div class="chat-modal-composer" style="position:relative">
+        <div class="reply-preview" id="modalReplyPreview" hidden>
+            <span class="reply-preview-label">
+                <i class="fas fa-reply"></i>
+                Replying to <strong id="modalReplyName"></strong>
+            </span>
+            <span class="reply-preview-text" id="modalReplyText"></span>
+            <button type="button" class="reply-preview-cancel" id="modalReplyCancelBtn" aria-label="Cancel reply">
+                <span class="modal-x"></span>
+            </button>
+        </div>
         <div class="composer-tools">
             <button id="modalPlusBtn" class="tool-btn plus-btn" title="Share">+</button>
 
@@ -852,7 +865,7 @@ data-user='{{ current_user | tojson if current_user else "null" }}'
 
 </div>
 
-<script src="{{ url_for('static', filename='js/community.js') }}?v=20260902n6"></script>
+<script src="{{ url_for('static', filename='js/community.js') }}?v=20260904b"></script>
 
 {% include "_footer.html" %}
 

@@ -50,6 +50,11 @@ let lastMessageTime = null;
 let lastMessageId = 0;
 let lastReactionId = 0;
 let replyTarget = null;
+
+// id -> message object for every rendered line (feed + chat modal). The
+// modal clones DOM nodes that have no listeners of their own, so clicks on
+// reply/react/quote there are handled by delegation through this map.
+const msgById = {};
 let pendingGif = null;   // { url } or null
 let pendingAnime = null; // { slug, title, image, year, rating } or null
 
@@ -406,7 +411,16 @@ async function sendAnimeCard(slug, title, image, year, rating) {
     if (mAnimeP) mAnimeP.classList.add("hidden");
     if (mPlusM) mPlusM.classList.add("hidden");
 
+    // Capture the reply context BEFORE cancelReply() clears it, so the
+    // optimistic bubble already shows the "Replying to @x" quote — no
+    // waiting on the server round-trip (that felt like a late reply).
+    var rtId = replyTarget ? replyTarget.id : null;
+    var rtUser = replyTarget ? replyTarget.username : null;
+    var rtContent = replyTarget ? replyTarget.content : null;
+    var rtKind = replyTarget ? (replyTarget.kind || "text") : null;
     var payload = { kind: "anime", content: JSON.stringify({ slug: slug, title: title, image: image, year: year || "", rating: rating || "" }) };
+    if (replyTarget) payload.reply_to = replyTarget.id;
+    cancelReply();
 
     // Optimistic render
     var tempId = -Date.now();
@@ -419,13 +433,13 @@ async function sendAnimeCard(slug, title, image, year, rating) {
         avatar: CURRENT_USER.avatar || null,
         kind: "anime",
         content: payload.content,
-        reply_to: null,
+        reply_to: rtId,
         created_at: new Date().toISOString().replace("T", " ").slice(0, 19),
         reactions: [],
         my_reactions: [],
-        reply_to_username: null,
-        reply_to_content: null,
-        reply_to_kind: null,
+        reply_to_username: rtUser,
+        reply_to_content: rtContent,
+        reply_to_kind: rtKind,
         _temp: true,
     };
     renderIncomingMessage(optimisticMsg);
@@ -666,34 +680,77 @@ async function pollReactions() {
 // REPLY FLOW
 // ===============================
 
+// Shared markup so the inline feed and the full-screen chat modal render
+// identical reply quotes and identical reply/react tools.
+function replyLineToolsHtml() {
+    let h = '<div class="line-tools">' +
+        '<button type="button" class="line-tool reply-tool" title="Reply"><i class="fas fa-reply"></i></button>' +
+        '<button type="button" class="line-tool react-tool" title="React">+</button></div>' +
+        '<div class="quick-react">';
+    for (let i = 0; i < QUICK_REACT.length; i++) {
+        h += '<button type="button" class="qr-btn" data-emoji="' + QUICK_REACT[i] + '" title="React ' + QUICK_REACT[i] + '">' + QUICK_REACT[i] + '</button>';
+    }
+    h += '</div>';
+    return h;
+}
+
+function replyQuoteFor(msg) {
+    return (msg && msg.reply_to_username) ? replyQuoteHtml(msg) : "";
+}
+
+function modalChatActive() {
+    const m = document.getElementById("chatModal");
+    return !!(m && m.classList.contains("active"));
+}
+
 function startReply(message) {
     replyTarget = message;
 
+    const inModal = modalChatActive();
     const nameEl = document.getElementById("replyPreviewName");
     const textEl = document.getElementById("replyPreviewText");
     const bar = document.getElementById("replyPreview");
+    const mNameEl = document.getElementById("modalReplyName");
+    const mTextEl = document.getElementById("modalReplyText");
+    const mBar = document.getElementById("modalReplyPreview");
 
-    if (nameEl) nameEl.textContent = "@" + message.username;
-
-    let preview = message.kind === "gif" ? "sent a GIF" : message.content;
+    const label = "@" + message.username;
+    let preview = message.kind === "gif" ? "sent a GIF" : (message.content || "");
     if (preview.length > 120) preview = preview.slice(0, 120) + "…";
-    if (textEl) textEl.textContent = preview;
 
-    if (bar) bar.hidden = false;
-    if (input) input.focus();
+    if (nameEl) nameEl.textContent = label;
+    if (textEl) textEl.textContent = preview;
+    if (mNameEl) mNameEl.textContent = label;
+    if (mTextEl) mTextEl.textContent = preview;
+
+    // Show the bar in whichever composer is actually on screen.
+    if (bar) bar.hidden = inModal;
+    if (mBar) mBar.hidden = !inModal;
+
+    const focusEl = inModal ? document.getElementById("modalMessageInput") : input;
+    if (focusEl) focusEl.focus();
 }
 
 function cancelReply() {
     replyTarget = null;
     const bar = document.getElementById("replyPreview");
     if (bar) bar.hidden = true;
+    const mBar = document.getElementById("modalReplyPreview");
+    if (mBar) mBar.hidden = true;
 }
 
 const replyCancelBtn = document.getElementById("replyCancelBtn");
 if (replyCancelBtn) replyCancelBtn.addEventListener("click", cancelReply);
+const modalReplyCancelBtn = document.getElementById("modalReplyCancelBtn");
+if (modalReplyCancelBtn) modalReplyCancelBtn.addEventListener("click", cancelReply);
 
 function jumpToMessage(id) {
-    const target = chatBox.querySelector(`.msg-line[data-message-id="${id}"]`);
+    // When the full-screen chat modal is open, jump inside it (the inline
+    // feed behind the Enter-Chat overlay is not visible there).
+    const scope = modalChatActive()
+        ? document.getElementById("modalChatBox")
+        : chatBox;
+    const target = (scope || chatBox).querySelector(`.msg-line[data-message-id="${id}"]`);
     if (!target) {
         showToast("That message isn't loaded anymore.");
         return;
@@ -785,6 +842,7 @@ function appendLine(group, message, isMine, messageDate) {
     const line = document.createElement("div");
     line.className = "msg-line";
     line.dataset.messageId = message.id;
+    if (message && message.id) msgById[message.id] = message;
 
     const tools = `
         <div class="line-tools">
@@ -1087,6 +1145,7 @@ async function sendGif(url) {
 
     const payload = { kind: "gif", content: url };
     if (replyTarget) payload.reply_to = replyTarget.id;
+    const rtQuote = replyTarget ? replyQuoteHtml({ reply_to_username: replyTarget.username, reply_to_kind: replyTarget.kind || "text", reply_to_content: replyTarget.content || "" }) : "";
 
     // Optimistic: render the GIF instantly so it feels immediate
     const tempId = -Date.now();
@@ -1104,12 +1163,13 @@ async function sendGif(url) {
         '<span class="msg-group-time">' + ts + '</span></div>' +
         '<div class="msg-lines"><div class="msg-line" data-message-id="' + tempId + '">' +
         '<span class="msg-line-time">' + ts + '</span>' +
-        '<div class="msg-line-body"><div class="msg-content">' +
+        '<div class="msg-line-body">' + rtQuote + '<div class="msg-content">' +
         '<div class="gif-attachment"><img src="' + escapeHtml(url) + '" alt="sent gif" loading="lazy"></div>' +
         '</div><div class="reaction-chips"></div></div></div></div>';
     chatBox.appendChild(group);
     chatBox.scrollTop = chatBox.scrollHeight;
     removeWelcome();
+    cancelReply();
 
     try {
         const res = await fetch(`/community/${ANIME_SLUG}/messages`, {
@@ -1329,6 +1389,123 @@ setInterval(refreshPresence, 8000);
     var modalSeen = new Set();
     var modalPoll = null;
 
+    // The modal clones message groups (no live listeners of their own), so
+    // reply / react / jump are handled here by delegation on the modal feed.
+    modalBox.addEventListener("click", function (e) {
+        var line = e.target.closest(".msg-line");
+        if (!line) return;
+        var mid = line.getAttribute("data-message-id");
+        var msg = (mid && msgById[mid]) ? msgById[mid] : null;
+        if (e.target.closest(".reply-tool")) { if (msg) startReply(msg); return; }
+        if (e.target.closest(".react-tool")) {
+            var qb = line.querySelector(".quick-react");
+            if (qb) qb.classList.toggle("show");
+            return;
+        }
+        var qr = e.target.closest(".qr-btn");
+        if (qr) { toggleReaction(line, qr.getAttribute("data-emoji")); return; }
+        if (e.target.closest(".reply-quote")) {
+            if (msg && msg.reply_to) jumpToMessage(msg.reply_to);
+            return;
+        }
+    });
+
+    // Swipe RIGHT on a message = reply (Discord-mobile behaviour). The row
+    // rides along with the finger with a violet reply tint; releasing past
+    // the threshold fires the exact same code as tapping the reply tool.
+    // Only horizontal drags that start on a message row are claimed (never
+    // links/buttons/tools), so native scrolling is untouched.
+    var _swipe = null;
+    modalBox.addEventListener("touchstart", function (e) {
+        if (!e.touches.length) { _swipe = null; return; }
+        var el = e.target;
+        if (!el || !el.closest) { _swipe = null; return; }
+        var line = el.closest(".msg-line");
+        if (!line || el.closest("a, button, textarea, input, .reply-quote, .line-tools, .quick-react, .reaction-chip")) {
+            _swipe = null;
+            return;
+        }
+        var t = e.touches[0];
+        _swipe = { line: line, x0: t.clientX, y0: t.clientY, t0: Date.now(), mode: "pending" };
+    }, { passive: true });
+
+    modalBox.addEventListener("touchmove", function (e) {
+        if (!_swipe) return;
+        var t = e.touches[0];
+        var dx = t.clientX - _swipe.x0;
+        var dy = t.clientY - _swipe.y0;
+        if (_swipe.mode === "pending") {
+            // Vertical clearly leads -> it's a scroll, hands off.
+            if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx) * 1.2) { _swipe.mode = "scroll"; return; }
+            if (dx > 8 && dx > Math.abs(dy) * 1.2) { _swipe.mode = "reply"; }
+        }
+        if (_swipe.mode === "reply") {
+            e.preventDefault();
+            var d = Math.min(Math.max(dx, 0), 110);
+            _swipe.line.style.transition = "none";
+            _swipe.line.style.transform = "translateX(" + d + "px)";
+            _swipe.line.classList.add("cm-swipe-reply");
+        }
+    }, { passive: false });
+
+    function endSwipe(e) {
+        if (!_swipe) return;
+        var s = _swipe;
+        _swipe = null;
+        if (s.mode !== "reply") return;
+        var dx = 0, dt = 0;
+        if (e.changedTouches && e.changedTouches.length) {
+            dx = e.changedTouches[0].clientX - s.x0;
+            dt = Date.now() - s.t0;
+        }
+        var fired = (dx >= 62) || (dx >= 28 && dt <= 300);
+        s.line.classList.remove("cm-swipe-reply");
+        s.line.style.transition = "transform .16s ease, background .16s ease";
+        s.line.style.transform = "";
+        setTimeout(function () {
+            if (s.line && s.line.style) s.line.style.transition = "";
+        }, 200);
+        if (fired) {
+            var mid = s.line.getAttribute("data-message-id");
+            var msg = (mid && msgById[mid]) ? msgById[mid] : null;
+            if (msg) startReply(msg);
+        }
+    }
+    modalBox.addEventListener("touchend", endSwipe, { passive: true });
+    modalBox.addEventListener("touchcancel", endSwipe, { passive: true });
+
+    // The modal's own renderer (renderModalMsg) appends bare lines with no
+    // reply/react tools and no reply quotes. Every such message is rendered
+    // into the inline feed immediately afterwards with the full anatomy
+    // (and registered in msgById). Mirror those rich feed lines into the
+    // modal so every message in the actual chat can be replied to.
+    if (window.MutationObserver && chatFeed) {
+        var _mirrorObs = new MutationObserver(function (muts) {
+            if (!modal.classList.contains("active")) return;
+            for (var mi = 0; mi < muts.length; mi++) {
+                var _added = muts[mi].addedNodes;
+                for (var ai = 0; ai < _added.length; ai++) {
+                    var _node = _added[ai];
+                    if (!_node || _node.nodeType !== 1) continue;
+                    var _groups = (_node.classList && _node.classList.contains("msg-group"))
+                        ? [_node]
+                        : (_node.querySelectorAll ? Array.prototype.slice.call(_node.querySelectorAll(".msg-group")) : []);
+                    for (var gi = 0; gi < _groups.length; gi++) {
+                        var _line = _groups[gi].querySelector(".msg-line");
+                        if (!_line || !_line.querySelector(".line-tools")) continue;
+                        var _mid = _line.getAttribute("data-message-id");
+                        if (!_mid) continue;
+                        var _twin = modalBox.querySelector('.msg-line[data-message-id="' + _mid + '"]');
+                        if (_twin && !_twin.querySelector(".line-tools")) {
+                            _twin.parentNode.replaceChild(_line.cloneNode(true), _twin);
+                        }
+                    }
+                }
+            }
+        });
+        _mirrorObs.observe(chatFeed, { childList: true, subtree: true });
+    }
+
     function openChatModal() {
         // Show lock (and scroll to join) when not a member
         var isMember = document.body.dataset.isMember === "true";
@@ -1376,6 +1553,8 @@ setInterval(refreshPresence, 8000);
         modal.classList.remove("active");
         document.body.style.overflow = "";
         if (modalPoll) clearInterval(modalPoll);
+        // A reply staged in the modal makes no sense once it's closed.
+        cancelReply();
     }
 
     // Modal send — tap-to-send button + Enter both work
@@ -1401,6 +1580,13 @@ setInterval(refreshPresence, 8000);
             clearPendingPreview();
             modalInput.value = "";
 
+            // Stage the reply context (quote + tools + payload) before the
+            // bar is cleared, exactly like the text-only path below.
+            var rid = replyTarget ? replyTarget.id : null;
+            var rtQuote = replyTarget ? replyQuoteHtml({ reply_to_username: replyTarget.username, reply_to_kind: replyTarget.kind || "text", reply_to_content: replyTarget.content || "" }) : "";
+            var rtTools = replyLineToolsHtml();
+            cancelReply();
+
             var tempId = -Date.now();
             var ts = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
             var color = CURRENT_USER.avatar_color || "#3b82f6";
@@ -1420,21 +1606,29 @@ setInterval(refreshPresence, 8000);
                     '<div class="anime-card-msg-info"><div class="anime-card-msg-title">' + escapeHtml(mediaData.title) + '</div>' +
                     (meta ? '<div class="anime-card-msg-meta">' + escapeHtml(meta) + '</div>' : '') +
                     '</div><div class="anime-card-msg-arrow"><i class="fas fa-external-link-alt"></i></div></a>';
-            }
-
-            var g = document.createElement("div");
-            g.className = "msg-group mine";
-            g.innerHTML =
-                '<div class="msg-group-head">' + avatarHtml +
-                '<span class="msg-group-name" style="color:' + color + '">' + escapeHtml(CURRENT_USER.username) + '</span>' +
-                '<span class="msg-group-time">' + ts + '</span></div>' +
-                '<div class="msg-lines"><div class="msg-line" data-message-id="' + tempId + '">' +
-                '<span class="msg-line-time">' + ts + '</span>' +
-                '<div class="msg-line-body"><div class="msg-content">' + mediaHtml +
-                '<p class="msg-text">' + escapeHtml(leftover) + '</p></div>' +
-                '<div class="reaction-chips"></div></div></div></div>';
-            modalBox.appendChild(g);
-            modalBox.scrollTop = modalBox.scrollHeight;
+            }        var g = document.createElement("div");
+        g.className = "msg-group mine";
+        g.innerHTML =
+            '<div class="msg-group-head">' + avatarHtml +
+            '<span class="msg-group-name" style="color:' + color + '">' + escapeHtml(CURRENT_USER.username) + '</span>' +
+            '<span class="msg-group-time">' + ts + '</span></div>' +
+            '<div class="msg-lines"><div class="msg-line" data-message-id="' + tempId + '">' +
+            '<span class="msg-line-time">' + ts + '</span>' +
+            '<div class="msg-line-body">' + rtQuote + '<div class="msg-content">' + mediaHtml +
+            '<p class="msg-text">' + escapeHtml(leftover) + '</p></div>' +
+            '<div class="reaction-chips"></div></div>' + rtTools + '</div></div>';
+        msgById[tempId] = {
+            id: tempId,
+            username: CURRENT_USER.username,
+            kind: "text",
+            content: leftover,
+            reply_to: rid,
+            reply_to_username: replyTarget ? replyTarget.username : null,
+            reply_to_content: replyTarget ? replyTarget.content : null,
+            reply_to_kind: replyTarget ? (replyTarget.kind || "text") : null,
+        };
+        modalBox.appendChild(g);
+        modalBox.scrollTop = modalBox.scrollHeight;
 
             // Send both in background
             var mediaPayload = mediaType === "gif"
@@ -1448,7 +1642,7 @@ setInterval(refreshPresence, 8000);
             }).catch(function () {});
             fetch("/community/" + ANIME_SLUG + "/messages", {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ kind: "text", content: leftover }),
+                body: JSON.stringify({ kind: "text", content: leftover, reply_to: rid }),
             }).then(function (r) { return r.json(); }).then(function (d) {
                 if (d.success) { modalSeen.add(d.message.id); modalLastId = Math.max(modalLastId, d.message.id); }
             }).catch(function () {});
@@ -1458,13 +1652,21 @@ setInterval(refreshPresence, 8000);
         // --- Media only (no text) ---
         if (pendingGif) {
             var url = pendingGif.url;
+            var rid = replyTarget ? replyTarget.id : null;
             clearPendingPreview();
+            cancelReply();
             fetch("/community/" + ANIME_SLUG + "/messages", {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ kind: "gif", content: url }),
+                body: JSON.stringify({ kind: "gif", content: url, reply_to: rid }),
             }).then(function (r) { return r.json(); }).then(function (data) {
-                if (data.success) renderIncomingMessage(data.message);
-                else showToast(data.error || "Couldn't send GIF.");
+                if (data.success) {
+                    // Echo into the modal feed so replies/quotes show up
+                    // instantly instead of waiting for the next poll tick.
+                    modalSeen.add(data.message.id);
+                    modalLastId = Math.max(modalLastId, data.message.id);
+                    renderModalMsg(data.message);
+                    renderIncomingMessage(data.message);
+                } else showToast(data.error || "Couldn't send GIF.");
             }).catch(function () { showToast("Network error."); });
             return;
         }
@@ -1478,6 +1680,14 @@ setInterval(refreshPresence, 8000);
         // --- Text only ---
         if (!text || !CURRENT_USER) return;
         modalInput.value = "";
+
+        // Stage the reply quote + tools and read the target id BEFORE the
+        // reply bar is cleared, so the optimistic bubble already shows the
+        // quote and the payload carries the parent.
+        var rid = replyTarget ? replyTarget.id : null;
+        var rtQuote = replyTarget ? replyQuoteHtml({ reply_to_username: replyTarget.username, reply_to_kind: replyTarget.kind || "text", reply_to_content: replyTarget.content || "" }) : "";
+        var rtTools = replyLineToolsHtml();
+        cancelReply();
 
         var tempId = -Date.now();
         var ts = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -1494,18 +1704,30 @@ setInterval(refreshPresence, 8000);
             '<span class="msg-group-time">' + ts + '</span></div>' +
             '<div class="msg-lines"><div class="msg-line" data-message-id="' + tempId + '">' +
             '<span class="msg-line-time">' + ts + '</span>' +
-            '<div class="msg-line-body"><div class="msg-content"><p class="msg-text">' + escapeHtml(text) + '</p></div>' +
-            '<div class="reaction-chips"></div></div></div></div>';
+            '<div class="msg-line-body">' + rtQuote + '<div class="msg-content"><p class="msg-text">' + escapeHtml(text) + '</p></div>' +
+            '<div class="reaction-chips"></div></div>' + rtTools + '</div></div>';
+        msgById[tempId] = {
+            id: tempId,
+            username: CURRENT_USER.username,
+            kind: "text",
+            content: text,
+            reply_to: rid,
+            reply_to_username: replyTarget ? replyTarget.username : null,
+            reply_to_content: replyTarget ? replyTarget.content : null,
+            reply_to_kind: replyTarget ? (replyTarget.kind || "text") : null,
+        };
         modalBox.appendChild(g);
         modalBox.scrollTop = modalBox.scrollHeight;
 
         fetch("/community/" + ANIME_SLUG + "/messages", {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ kind: "text", content: text }),
+            body: JSON.stringify({ kind: "text", content: text, reply_to: rid }),
         }).then(function (r) { return r.json(); }).then(function (data) {
             if (data.success) {
                 var line = modalBox.querySelector('.msg-line[data-message-id="' + tempId + '"]');
                 if (line) line.dataset.messageId = data.message.id;
+                if (data.message && data.message.id) msgById[data.message.id] = data.message;
+                delete msgById[tempId];
                 modalSeen.add(data.message.id);
                 modalLastId = Math.max(modalLastId, data.message.id);
                 renderIncomingMessage(data.message);

@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0d1117">
+    <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
     <title>Ota-chan | Otakul</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260903e">
@@ -104,5 +107,36 @@
 </section>
 
 <script src="{{ url_for('static', filename='js/otachan.js') }}?v=20260902va"></script>
+
+<script>
+/* PWA bootstrap (same snippet as _footer.html): manifest + service worker
+   so the Android APK and "Add to Home Screen" work. */
+(function () {
+    if (!("serviceWorker" in navigator)) return;
+    if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return;
+    if (!document.querySelector('link[rel="manifest"]')) {
+        var m = document.createElement("link");
+        m.rel = "manifest";
+        m.href = "/manifest.webmanifest";
+        document.head.appendChild(m);
+    }
+    if (!document.querySelector('meta[name="theme-color"]')) {
+        var t = document.createElement("meta");
+        t.name = "theme-color";
+        t.content = "#0d1117";
+        document.head.appendChild(t);
+    }
+    if (!document.querySelector('link[rel="apple-touch-icon"]')) {
+        var a = document.createElement("link");
+        a.rel = "apple-touch-icon";
+        a.href = "/static/icons/apple-touch-icon.png";
+        document.head.appendChild(a);
+    }
+    window.addEventListener("load", function () {
+        navigator.serviceWorker.register("/sw.js").catch(function () {});
+    });
+})();
+</script>
+
 </body>
 </html>
