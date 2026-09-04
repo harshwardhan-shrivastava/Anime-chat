@@ -834,7 +834,46 @@ html, body {
     flex: 1;
     overflow-y: auto;
     padding: 16px 18px 8px;
-    scroll-behavior: smooth;
+}
+
+/* ============================================================
+   MOBILE - scroll polish (Discord-mobile feel): kill the
+   rubber-band chaining through nested lists and let the chat
+   glide back with the drawer on release instead of snapping.
+============================================================ */
+@media (max-width: 700px){
+    /* nested scroll panes stop pulling/bouncing the app once they
+       hit their end (the springy feel when scrolling guilds,
+       channels and messages on a phone) */
+    #threads-app{
+        overscroll-behavior: none;
+    }
+    #convList,
+    #msgList,
+    #channelList,
+    #partyList,
+    #discoverList,
+    #commRailList{
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+    /* the chat rides with the finger (dx * .22) while the drawer
+       drags, so it must spring back with the same easing curve on
+       release - otherwise it snaps back while the drawer glides */
+    .thr-main{
+        will-change: transform;
+        transition: transform .3s cubic-bezier(.22, .9, .3, 1);
+    }
+    /* never let that transition fight the finger mid-drag */
+    #threads-app.thr-drag .thr-main{
+        transition: none;
+    }
+    /* a chat opening on a phone slides in gently instead of popping
+       (Discord-mobile feel for list -> chat swaps) */
+    #threads-app.thr-dm-open .thr-main,
+    #threads-app.thr-guild-open .thr-main{
+        animation: thrChatIn .22s ease;
+    }
 }
 /* ---- Messages ---- */
 .thr-day-divider {

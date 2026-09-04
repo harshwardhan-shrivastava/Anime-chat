@@ -447,7 +447,30 @@ def _backfill_one(entry, aired):
                     # episode-name matches), so swap in the correct still.
                     ep["thumb"] = img
                     thumbs += 1
+
+    # TVmaze publishes stills late for brand-new episodes (sometimes days
+    # after airing). If any aired episode still has no thumb after the TVmaze
+    # pass, fall back to Kitsu's anime-specific CDN for the remaining gaps.
+    if _aired_missing_thumbs(entry, aired):
+        try:
+            from scripts.kitsu_thumbs import kitsu_backfill_one
+            _, kth = kitsu_backfill_one(entry, aired)
+            thumbs += kth
+        except Exception as exc:
+            print("[kitsu-fill] %s failed: %s" % (entry.get("slug"), exc), flush=True)
     return titles, thumbs
+
+
+def _aired_missing_thumbs(entry, aired):
+    """True when some aired episode of the card lacks a thumbnail."""
+    seasons = entry.get("seasons") or []
+    for si, s in enumerate(seasons):
+        for ep in s.get("episodes") or []:
+            if _global_number(seasons, si, ep.get("number") or 0) > aired:
+                continue
+            if not ep.get("thumb"):
+                return True
+    return False
 
 
 def _needs_backfill(entry, aired):
