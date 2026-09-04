@@ -1,9 +1,12 @@
 <!-- ================= APK DOWNLOAD BANNER (Android mobile only) =================
      Bottom-sheet prompt offering the standalone Otakul APK. Appears on
      Android phones a few seconds after load, sits above the mobile tab bar,
-     and never shows inside the installed app itself. Dismissals are
-     remembered for a week (localStorage). The APK itself lives at
-     static/apk/otakul.apk and is served from /static/apk/otakul.apk. -->
+     and never shows inside the installed app itself. Only an explicit ✕
+     dismiss is remembered (a week, via localStorage) — tapping Download
+     does NOT suppress it. Appending ?apk=1 to the URL force-shows the
+     banner for testing (ignores dismissal memory and the delay). The APK
+     itself lives at static/apk/otakul.apk and is served from
+     /static/apk/otakul.apk. -->
 <style>
     #otakulApkBanner {
         position: fixed;
@@ -138,20 +141,31 @@
     "use strict";
     try {
         if (window.__otakulApkWired) return;
+        // Force mode (?apk=1): always show the banner for testing — bypasses
+        // the dismissal memory, the standalone check and the slide-in delay.
+        var force = /[?&]apk=1($|&)/.test(window.location.search);
         // Already running inside the installed app (TWA / Add to Home Screen)?
-        if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true) return;
+        if (!force && (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true)) return;
         // The APK is Android-only.
-        if (!/Android/i.test(navigator.userAgent)) return;
+        if (!force && !/Android/i.test(navigator.userAgent)) return;
         var banner = document.getElementById("otakulApkBanner");
         if (!banner) return;
         window.__otakulApkWired = true;
 
         var KEY = "otakul_apk_prompt";
         var WEEK = 7 * 24 * 60 * 60 * 1000;
-        try {
-            var last = parseInt(localStorage.getItem(KEY) || "0", 10);
-            if (last && Date.now() - last < WEEK) return;
-        } catch (e) { /* localStorage unavailable — still show */ }
+        // Only an explicit ✕ dismiss is remembered for a week. Tapping
+        // Download is NOT — the download can fail (Android "unknown sources"
+        // prompt) or the user may come back later, and once someone really
+        // installs the app the standalone check above hides the banner
+        // anyway. Remembering on download made the banner silently disappear
+        // for a week for anyone who had tapped it just once.
+        if (!force) {
+            try {
+                var last = parseInt(localStorage.getItem(KEY) || "0", 10);
+                if (last && Date.now() - last < WEEK) return;
+            } catch (e) { /* localStorage unavailable — still show */ }
+        }
 
         function remember() {
             try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {}
@@ -162,9 +176,7 @@
         }
 
         var close = document.getElementById("otakulApkClose");
-        var dl = document.getElementById("otakulApkDownload");
         if (close) close.addEventListener("click", function () { remember(); hide(); });
-        if (dl) dl.addEventListener("click", function () { remember(); });
 
         // Sit above the mobile bottom tab bar when one is on the page.
         var tabbar = document.querySelector(".mob-tabbar");
@@ -172,8 +184,9 @@
             banner.style.bottom = (tabbar.offsetHeight + 12) + "px";
         }
 
-        // Slide in a few seconds after the page settles.
-        setTimeout(function () { banner.classList.add("is-visible"); }, 3500);
+        // Slide in right away in force mode, otherwise a few seconds after
+        // the page settles so it never blocks the first paint.
+        setTimeout(function () { banner.classList.add("is-visible"); }, force ? 250 : 3500);
     } catch (err) { /* never let the banner break the page */ }
 })();
 </script>
