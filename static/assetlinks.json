@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "co.otakul.twa",
+      "sha256_cert_fingerprints": [
+        "92:06:42:1E:11:89:6D:33:46:F3:20:09:B6:F2:1F:9E:9D:66:F6:0B:84:F8:CC:F5:14:3B:C1:F6:E3:80:6B:27"
+      ]
+    }
+  }
+]

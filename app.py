@@ -232,6 +232,22 @@ def service_worker_js():
     return response
 
 
+@app.route("/.well-known/assetlinks.json")
+def assetlinks_json():
+    """Android Digital Asset Links file so the PWABuilder app
+    (co.otakul.twa) launches as a fullscreen Trusted Web Activity.
+
+    Without this exact file Android can't verify the installed app owns
+    otakul.co, so opening the app falls back to showing the site in a
+    browser Custom Tab with the URL bar. The JSON matches the signing
+    certificate of static/apk/otakul.apk — if the APK is ever rebuilt
+    with a different keystore, this fingerprint must be updated too."""
+    response = make_response(send_from_directory("static", "assetlinks.json"))
+    response.headers["Content-Type"] = "application/json; charset=utf-8"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 app.register_blueprint(auth)
 app.register_blueprint(chat_bp)
 app.register_blueprint(profile_bp)
