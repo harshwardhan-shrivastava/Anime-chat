@@ -7,6 +7,9 @@
     <meta name="theme-color" content="#0d1117">
     <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
     <title>User not found — Otakul</title>
+    {% set noindex = True %}
+    {% set meta_title = "User not found — Otakul" %}
+    {% include "_meta.html" %}
     <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>

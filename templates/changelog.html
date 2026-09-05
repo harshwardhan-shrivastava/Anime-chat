@@ -8,6 +8,10 @@
     <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
     <title>What's New | Otakul</title>
 
+    {% set meta_title = "What's New | Otakul" %}
+    {% set meta_desc = "Everything new on Otakul — see the latest features shipped for real anime reviews, episode ratings, community threads, guilds and the War Zone." %}
+    {% include "_meta.html" %}
+
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260903e">

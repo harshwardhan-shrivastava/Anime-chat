@@ -207,6 +207,76 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Sessions last 10 years, so users stay logged in across devices/visits.
 app.permanent_session_lifetime = timedelta(days=3650)
 
+# Canonical public origin — used for canonical/OG URLs, robots.txt and the
+# sitemap. Defaults to the custom domain; override with a SITE_URL env var
+# if the site is ever served from another host.
+SITE_URL = os.environ.get("SITE_URL", "https://otakul.co")
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    """robots.txt at the origin root. Full crawl allowed; points crawlers
+    at the sitemap so every anime page gets discovered."""
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        # Account pages and private user space are useless in search
+        "Disallow: /login\n"
+        "Disallow: /signup\n"
+        "Disallow: /verify-email\n"
+        "Disallow: /forgot-password\n"
+        "Disallow: /reset-password\n"
+        "Disallow: /profile\n"
+        "Disallow: /user/\n"
+        "\n"
+        f"Sitemap: {SITE_URL}/sitemap.xml\n"
+    )
+    response = make_response(body)
+    response.headers["Content-Type"] = "text/plain; charset=utf-8"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    """Sitemap for search engines: the core public pages plus every anime
+    detail page in the catalog. Generated live so new shows appear as soon
+    as the catalog refreshes."""
+    from xml.sax.saxutils import escape
+
+    pages = [
+        ("/", "1.0", "daily"),
+        ("/reviews", "0.9", "daily"),
+        ("/browse", "0.8", "weekly"),
+        ("/threads", "0.8", "daily"),
+        ("/characters", "0.7", "weekly"),
+        ("/otachan", "0.7", "weekly"),
+        ("/war", "0.6", "weekly"),
+        ("/quiz", "0.5", "monthly"),
+        ("/changelog", "0.3", "monthly"),
+        ("/privacy", "0.2", "yearly"),
+    ]
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    for path, priority, freq in pages:
+        lines.append(
+            f"<url><loc>{SITE_URL}{path}</loc><changefreq>{freq}</changefreq>"
+            f"<priority>{priority}</priority></url>"
+        )
+    for slug in sorted(anime_database.keys()):
+        safe_slug = escape(slug)
+        lines.append(
+            f"<url><loc>{SITE_URL}/anime/{safe_slug}</loc>"
+            f"<changefreq>weekly</changefreq><priority>0.7</priority></url>"
+        )
+    lines.append("</urlset>")
+    response = make_response("\n".join(lines))
+    response.headers["Content-Type"] = "application/xml; charset=utf-8"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
 
 @app.route("/manifest.webmanifest")
 def manifest_webmanifest():
@@ -304,7 +374,7 @@ def _performance_headers(response):
         and not response.headers.get("Content-Encoding")
         and (
             response.mimetype.startswith("text/")
-            or response.mimetype in ("application/json", "application/javascript", "image/svg+xml")
+            or response.mimetype in ("application/json", "application/javascript", "application/xml", "image/svg+xml")
         )
     ):
         try:
@@ -334,6 +404,7 @@ def _inject_user():
         "current_lang": get_language(),
         "is_developer": is_developer,
         "get_warzones": get_warzones,
+        "site_url": SITE_URL,
     }
 
 

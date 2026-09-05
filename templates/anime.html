@@ -12,6 +12,12 @@
 
     <title>{{ anime.title }} | Otakul</title>
 
+    {% set meta_title = anime.title ~ " | Otakul" %}
+    {% set meta_desc = "Read real reviews of " ~ anime.title ~ " on Otakul — " ~ ((anime.synopsis or "") | truncate(110, true, "…")) if anime.synopsis else "Real reviews of " ~ anime.title ~ " — honest out-of-10 ratings from fans who actually finished the show, plus per-episode scores and community threads." %}
+    {% set meta_image = (anime.image | anime_img) if (anime.image or "").startswith("http") else "" %}
+    {% set meta_type = "article" %}
+    {% include "_meta.html" %}
+
     <link rel="icon" type="image/svg+xml"
     href="{{ url_for('static', filename='favicon.svg') }}">
 

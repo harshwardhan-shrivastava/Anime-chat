@@ -12,6 +12,10 @@
 
     <title>{{ episode_title }} | Otakul</title>
 
+    {% set meta_title = episode_title ~ " | Otakul" %}
+    {% set meta_desc = "Rate " ~ episode_title ~ " out of 10 and read real episode reviews from fans who actually watched — every episode on Otakul gets its own honest score." %}
+    {% include "_meta.html" %}
+
     <link rel="icon" type="image/svg+xml"
     href="{{ url_for('static', filename='favicon.svg') }}">
 

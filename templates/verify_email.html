@@ -7,6 +7,9 @@
     <meta name="theme-color" content="#0d1117">
     <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
     <title>{{ "Verify Email | Otakul" if purpose == "verify" else "Reset Password | Otakul" }}</title>
+    {% set noindex = True %}
+    {% set meta_title = "Verify Email | Otakul" %}
+    {% include "_meta.html" %}
 
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 

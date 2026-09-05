@@ -7,6 +7,9 @@
     <meta name="theme-color" content="#0d1117">
     <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
     <title>War Zone | Otakul</title>
+    {% set meta_title = "War Zone | Otakul" %}
+    {% set meta_desc = "Take your takes to the War Zone on Otakul — put reviews head-to-head and let the community vote on which side has the real argument." %}
+    {% include "_meta.html" %}
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260903e">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}?v=20260902t">

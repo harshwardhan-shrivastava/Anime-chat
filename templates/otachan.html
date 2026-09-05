@@ -7,6 +7,9 @@
     <meta name="theme-color" content="#0d1117">
     <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
     <title>Ota-chan | Otakul</title>
+    {% set meta_title = "Ota-chan | Otakul" %}
+    {% set meta_desc = "Ota-chan, Otakul's anime finder — answer a few questions and get real recommendations grounded in reviews from fans who actually watched, not popularity lists." %}
+    {% include "_meta.html" %}
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260903e">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">

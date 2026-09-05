@@ -7,6 +7,10 @@
     <meta name="theme-color" content="#0d1117">
     <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
     <title>New to Anime | Otakul</title>
+    {% set noindex = True %}
+    {% set meta_title = "New to Anime | Otakul" %}
+    {% set meta_desc = "Personalized anime picks on Otakul — recommendations built from real reviews of shows rated by fans who actually finished them." %}
+    {% include "_meta.html" %}
     <link rel="icon" type="image/svg+xml"
           href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet"

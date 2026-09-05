@@ -8,6 +8,10 @@
     <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
     <title>Privacy Policy | Otakul</title>
 
+    {% set meta_title = "Privacy Policy | Otakul" %}
+    {% set meta_desc = "Otakul's privacy policy — what data real reviews, ratings and community accounts collect, how it's used, and the rights you have over it." %}
+    {% include "_meta.html" %}
+
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260903e">

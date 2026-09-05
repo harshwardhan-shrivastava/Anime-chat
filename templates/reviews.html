@@ -7,6 +7,9 @@
     <meta name="theme-color" content="#0d1117">
     <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
     <title>Community Reviews | Otakul</title>
+    {% set meta_title = "Community Reviews | Otakul" %}
+    {% set meta_desc = "Read real anime reviews from fans who actually watched — every show and episode rated out of 10, with trusted grades earned by reviewers, not hype." %}
+    {% include "_meta.html" %}
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260903e">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}?v=20260902t">

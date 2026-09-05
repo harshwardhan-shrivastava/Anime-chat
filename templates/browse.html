@@ -9,6 +9,10 @@
 
     <title>{{ page_title }} · Otakul</title>
 
+    {% set meta_title = page_title ~ " Anime · Otakul" %}
+    {% set meta_desc = "Browse and compare " ~ page_title ~ " anime on Otakul — every show rated out of 10 with real reviews, per-episode scores, and a community that rewards honest verdicts, not hype." %}
+    {% include "_meta.html" %}
+
     <link rel="icon" type="image/svg+xml"
     href="{{ url_for('static', filename='favicon.svg') }}">
 

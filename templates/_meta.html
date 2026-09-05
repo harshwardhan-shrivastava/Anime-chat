@@ -1,0 +1,30 @@
+{# =============================================================
+   Shared SEO meta block. Drop into any page <head> after <title>:
+
+       {% set meta_title = "…" %}        (og/twitter title; matches the
+                                          page <title> text)
+       {% set meta_desc = "…" %}         (meta description, ~150 chars)
+       {% set meta_image = "…" %}        (optional absolute og image URL;
+                                          defaults to the app icon)
+       {% set meta_type = "article" %}   (optional; default website)
+       {% set noindex = True %}          (optional; auth/private pages)
+
+       {% include "_meta.html" %}
+
+   Vars come from the page context (Jinja includes share context), so
+   undefined vars are simply skipped by the include.
+   ============================================================= #}
+{% if noindex %}<meta name="robots" content="noindex, nofollow">
+{% else %}<meta name="robots" content="index, follow, max-image-preview:large">
+{% endif %}{% if meta_desc %}<meta name="description" content="{{ meta_desc }}">
+{% endif %}<link rel="canonical" href="{{ site_url }}{{ request.path }}">
+<meta property="og:site_name" content="Otakul">
+<meta property="og:type" content="{{ meta_type | default('website') }}">
+<meta property="og:title" content="{{ meta_title | default('Otakul') }}">
+<meta property="og:description" content="{{ meta_desc | default('Real reviews from real fans — rate anime and episodes out of 10 on Otakul.') }}">
+<meta property="og:url" content="{{ site_url }}{{ request.path }}">
+<meta property="og:image" content="{{ meta_image | default(site_url ~ '/static/icons/icon-512.png') }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ meta_title | default('Otakul') }}">
+<meta name="twitter:description" content="{{ meta_desc | default('Real reviews from real fans — rate anime and episodes out of 10 on Otakul.') }}">
+<meta name="twitter:image" content="{{ meta_image | default(site_url ~ '/static/icons/icon-512.png') }}">

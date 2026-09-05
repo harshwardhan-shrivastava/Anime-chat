@@ -13,6 +13,10 @@
 
     <title>{{ anime_name }} | Otakul</title>
 
+    {% set meta_title = anime_name ~ " Community | Otakul" %}
+    {% set meta_desc = "Join the " ~ anime_name ~ " community on Otakul — discuss episodes with real fans, share honest takes on the show, and back up your reviews with rank." %}
+    {% include "_meta.html" %}
+
     <link rel="icon" type="image/svg+xml"
           href="{{ url_for('static', filename='favicon.svg') }}">
 

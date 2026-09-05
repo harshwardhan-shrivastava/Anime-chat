@@ -7,6 +7,10 @@
     <meta name="theme-color" content="#0d1117">
     <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
     <title>Log In | Otakul</title>
+    {% set noindex = True %}
+    {% set meta_title = "Log In | Otakul" %}
+    {% set meta_desc = "Log in to Otakul to rate anime and episodes out of 10 and join real fan reviews, threads and guilds." %}
+    {% include "_meta.html" %}
 
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 
