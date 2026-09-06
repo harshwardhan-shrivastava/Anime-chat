@@ -38,30 +38,48 @@
         }
     });
 
-    // ---- Search + sort ----
+    // ---- Search + sort + live counts ----
     var activeKind = "anime";
     function activePane() { return $("#rvtab-" + activeKind); }
+    function rvParseDate(s) {
+        var t = Date.parse(String(s || "").replace(" ", "T"));
+        return isNaN(t) ? 0 : t;
+    }
     function applyFilter() {
         var pane = activePane();
+        if (!pane) return;
         var q = ($("#rvSearch").value || "").toLowerCase().trim();
         var sort = $("#rvSort").value;
         var cards = $$(".rv-card", pane);
+        var visible = [];
         cards.forEach(function (c) {
-            var hit = !q || (c.dataset.title || "").indexOf(q) !== -1 || (c.dataset.user || "").indexOf(q) !== -1;
+            var hay = (c.dataset.search || [c.dataset.title, c.dataset.user].join(" ") || "").toLowerCase();
+            var hit = !q || hay.indexOf(q) !== -1;
             c.style.display = hit ? "" : "none";
+            if (hit) visible.push(c);
         });
-        var visible = cards.filter(function (c) { return c.style.display !== "none"; });
         if (sort === "new") {
-            visible.sort(function (a, b) { return (b.dataset.created || "").localeCompare(a.dataset.created || ""); });
+            visible.sort(function (a, b) { return rvParseDate(b.dataset.created) - rvParseDate(a.dataset.created); });
         } else if (sort === "rated") {
             visible.sort(function (a, b) { return (parseInt(b.dataset.votes,10)||0) - (parseInt(a.dataset.votes,10)||0); });
         } else {
-            visible.sort(function (a, b) { return (parseInt(a.dataset.rank,10)||5) - (parseInt(b.dataset.rank,10)||5); });
+            visible.sort(function (a, b) {
+                var d = (parseInt(a.dataset.rank,10)||5) - (parseInt(b.dataset.rank,10)||5);
+                if (d) return d;
+                d = (parseInt(b.dataset.xp,10)||0) - (parseInt(a.dataset.xp,10)||0);
+                if (d) return d;
+                return (parseInt(b.dataset.votes,10)||0) - (parseInt(a.dataset.votes,10)||0);
+            });
         }
         visible.forEach(function (c) { pane.appendChild(c); });
+        var cnt = document.getElementById("cnt-" + activeKind);
+        if (cnt) cnt.textContent = visible.length;
+        var empty = pane.querySelector(".rv-filter-empty");
+        if (empty) empty.style.display = (cards.length && !visible.length) ? "" : "none";
     }
     $("#rvSearch").addEventListener("input", applyFilter);
     $("#rvSort").addEventListener("change", applyFilter);
+    applyFilter();
 
     // ---- Optimistic voting ----
     $$(".rv-vote").forEach(function (bar) {

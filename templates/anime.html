@@ -26,7 +26,8 @@
     <link rel="preload" as="image" fetchpriority="high" href="{{ anime.banner | anime_img_large }}">
     {% endif %}
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/anime.css') }}?v=20260903a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/anime.css') }}?v=20260906a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/nav_search.css') }}?v=20260906a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260901c">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/list_picker.css') }}?v=20260902u">
@@ -69,6 +70,16 @@
             <span class="logo-anime">Ota</span><span class="logo-chat">kul</span>
 
         </a>
+
+        <div class="nav-search">
+
+            <i class="fas fa-search"></i>
+
+            <input type="text" id="navSearch" placeholder="{{ t('Search anime...') }}" autocomplete="off" aria-label="Search anime">
+
+            <div class="nav-search-results" id="navSearchResults"></div>
+
+        </div>
 
         <div class="nav-right">
 
@@ -432,6 +443,8 @@
 
                     {% set ep_stats = (episode_stats.get(season.name, {}) or {}).get(episode.number) %}
 
+                    {% set my_ep_rating = (my_ep_ratings or {}).get((season.name or '') ~ ':' ~ episode.number) or (my_ep_ratings or {}).get(outer_loop.index ~ ':' ~ episode.number) %}
+
                     {% set is_tbc = episode.released is sameas false or episode.title == 'TBC' %}
 
                     {% if is_tbc %}
@@ -504,9 +517,9 @@
 
                         <div class="episode-side">
 
-                            {% if ep_stats and ep_stats.votes > 0 %}
-                            <span class="episode-rating" title="{{ ep_stats.votes }} rating{{ 's' if ep_stats.votes != 1 else '' }}">
-                                <i class="fas fa-star"></i> {{ ep_stats.average }}
+                            {% if my_ep_rating %}
+                            <span class="episode-rating mine" title="Your rating of this episode — the community score shows on the episode page.">
+                                <i class="fas fa-star"></i> {{ my_ep_rating }}
                             </span>
                             {% endif %}
 
@@ -844,6 +857,7 @@
 
     </section>
 
+    <script src="{{ url_for('static', filename='js/nav_search.js') }}?v=20260906a"></script>
     <script src="{{ url_for('static', filename='js/anime.js') }}?v=20260902w"></script>
     <script src="{{ url_for('static', filename='js/list_picker.js') }}?v=20260902u"></script>
 

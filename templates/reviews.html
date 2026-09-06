@@ -225,8 +225,8 @@
         <!-- ===== TOOLBAR / TABS ===== -->
         <div class="rv-toolbar">
             <div class="rv-tabs">
-                <button type="button" class="rv-tab active" data-rtab="anime"><i class="fas fa-film"></i> Anime Reviews <span class="cnt">{{ reviews | length }}</span></button>
-                <button type="button" class="rv-tab" data-rtab="episode"><i class="fas fa-tv"></i> Episode Reviews <span class="cnt">{{ episode_reviews | length }}</span></button>
+                <button type="button" class="rv-tab active" data-rtab="anime"><i class="fas fa-film"></i> Anime Reviews <span class="cnt" id="cnt-anime">{{ reviews | length }}</span></button>
+                <button type="button" class="rv-tab" data-rtab="episode"><i class="fas fa-tv"></i> Episode Reviews <span class="cnt" id="cnt-episode">{{ episode_reviews | length }}</span></button>
             </div>
             <div class="rv-spacer"></div>
             <div class="rv-search">
@@ -249,8 +249,10 @@
                  data-title="{{ r.anime_title | lower }}"
                  data-user="{{ r.username | lower }}"
                  data-rank="{{ RANK_TIER.get(r['rank'], 5) }}"
+                 data-xp="{{ r.user_xp or 0 }}"
                  data-created="{{ r.created_at }}"
-                 data-votes="{{ r.likes + r.dislikes }}">
+                 data-votes="{{ r.likes + r.dislikes }}"
+                 data-search="{{ (r.anime_title ~ ' ' ~ r.username ~ ' ' ~ (r.comment or '')) | lower }}">
                 {% if r.anime_image %}
                 <a class="rv-art" href="/anime/{{ r.anime_slug }}" aria-label="{{ r.anime_title }}">
                     <img src="{{ r.anime_image }}" alt="{{ r.anime_title }}" loading="lazy" onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src=this.src.replace('/cover/large/','/cover/medium/')}else{this.closest('.rv-art').style.display='none'}">
@@ -314,6 +316,7 @@
             {% else %}
             <div class="rv-empty"><i class="fas fa-film"></i>No reviews yet — be the first to rate an anime! 🎌</div>
             {% endfor %}
+            <div class="rv-empty rv-filter-empty" style="display:none"><i class="fas fa-filter"></i> No reviews match — try a different title or reviewer.</div>
         </div>
 
         <!-- ===== EPISODE REVIEWS ===== -->
@@ -325,8 +328,10 @@
                  data-title="{{ r.anime_title | lower }}"
                  data-user="{{ r.username | lower }}"
                  data-rank="{{ RANK_TIER.get(r['rank'], 5) }}"
+                 data-xp="{{ r.user_xp or 0 }}"
                  data-created="{{ r.created_at }}"
-                 data-votes="{{ r.likes + r.dislikes }}">
+                 data-votes="{{ r.likes + r.dislikes }}"
+                 data-search="{{ (r.anime_title ~ ' ' ~ r.username ~ ' ' ~ (r.episode_title or '') ~ ' ' ~ (r.comment or '')) | lower }}">
                 {% if r.episode_thumb %}
                 <a class="rv-art{% if r.episode_thumb_is_poster %} poster-fallback{% endif %}" href="/anime/{{ r.anime_slug }}/episode/{{ r.season_idx }}/{{ r.episode_number }}" aria-label="{{ r.anime_title }}">
                     <img src="{{ r.episode_thumb }}" alt="{{ r.anime_title }}" loading="lazy" onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src=this.src.replace('/original_untouched/','/original/')}else{this.closest('.rv-art').style.display='none'}">
@@ -396,6 +401,7 @@
             {% else %}
             <div class="rv-empty"><i class="fas fa-tv"></i>No episode reviews yet — rate an episode to kick things off! 🎬</div>
             {% endfor %}
+            <div class="rv-empty rv-filter-empty" style="display:none"><i class="fas fa-filter"></i> No reviews match — try a different title, episode or reviewer.</div>
         </div>
     </div>
 
@@ -424,7 +430,7 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/reviews.js') }}?v=20260902b"></script>
+    <script src="{{ url_for('static', filename='js/reviews.js') }}?v=20260906a"></script>
 {% include "_footer.html" %}
 
 {% include "_mobile_tabbar.html" %}

@@ -1425,11 +1425,20 @@ def anime(anime_slug):
                 "average": round((a1 * v1 + a2 * v2) / total, 1) if total else 0,
                 "votes": total,
             }
+    # Each episode card shows only YOUR rating for that episode — the
+    # community overall score lives on the episode page itself.
+    my_ep_ratings = {}
+    if user:
+        try:
+            my_ep_ratings = get_user_episode_ratings(anime_slug, user["id"])
+        except Exception:
+            my_ep_ratings = {}
     return render_template(
         "anime.html",
         anime=anime_with_recs,
         next_episode_label=_episode_badge(anime),
         episode_stats=episode_stats,
+        my_ep_ratings=my_ep_ratings,
         grade_card=grade_card,
         overall_xp=overall_xp,
         overall_count=overall_count,
@@ -1440,6 +1449,28 @@ def anime(anime_slug):
         vote_schedule=_build_rating_power(),
         GRADE_ORDER=GRADE_ORDER,
     )
+
+
+def get_user_episode_ratings(anime_slug, user_id):
+    """All episode ratings a user gave for one anime, keyed by
+    'season_key:episode_number' where season_key is the stored season
+    spelling (display name like 'Season 1' or the raw index like '1').
+    Used on the anime page so each episode card shows only YOUR score
+    (the community overall lives on the episode page itself)."""
+    if not user_id:
+        return {}
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT season_name, episode_number, rating FROM episode_reviews "
+        "WHERE anime_slug=? AND user_id=?",
+        (anime_slug, user_id),
+    )
+    out = {}
+    for row in cursor.fetchall():
+        out["%s:%s" % (row["season_name"], row["episode_number"])] = row["rating"]
+    conn.close()
+    return out
 
 
 def _season_name_prongs(anime_slug, season_name):

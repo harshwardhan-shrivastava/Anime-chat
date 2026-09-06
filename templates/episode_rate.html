@@ -19,7 +19,8 @@
     <link rel="icon" type="image/svg+xml"
     href="{{ url_for('static', filename='favicon.svg') }}">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/anime.css') }}?v=20260903a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/anime.css') }}?v=20260906a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/nav_search.css') }}?v=20260906a">
     <link rel="preconnect" href="https://s4.anilist.co" crossorigin>
     <link rel="dns-prefetch" href="https://s4.anilist.co">
     <link rel="preconnect" href="https://static.tvmaze.com" crossorigin>
@@ -57,6 +58,16 @@
             <span class="logo-anime">Ota</span><span class="logo-chat">kul</span>
 
         </a>
+
+        <div class="nav-search">
+
+            <i class="fas fa-search"></i>
+
+            <input type="text" id="navSearch" placeholder="Search anime..." autocomplete="off" aria-label="Search anime">
+
+            <div class="nav-search-results" id="navSearchResults"></div>
+
+        </div>
 
         <div class="nav-right">
 
@@ -420,6 +431,7 @@
 
     </section>
 
+    <script src="{{ url_for('static', filename='js/nav_search.js') }}?v=20260906a"></script>
     <script src="{{ url_for('static', filename='js/episode_rate.js') }}?v=2"></script>
 
     <script>
