@@ -344,6 +344,17 @@ preload_catalog()
 
 
 @app.before_request
+def _redirect_onrender_to_custom_domain():
+    """Forward the old *.onrender.com URL to the real domain (301) so old
+    links, bookmarks and any search history keep working. Render's health
+    check counts 2xx/3xx as healthy, so this cannot break deployments."""
+    host = (request.host or "").lower()
+    if host.endswith(".onrender.com"):
+        return redirect(SITE_URL + request.full_path, code=301)
+    return None
+
+
+@app.before_request
 def _attach_user():
     load_logged_in_user()
 
