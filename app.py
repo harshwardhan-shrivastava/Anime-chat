@@ -379,6 +379,14 @@ def _redirect_onrender_to_custom_domain():
 
 @app.before_request
 def _attach_user():
+    # Static assets never need a logged-in user. Reading the session here
+    # marks it as accessed, and Werkzeug re-adds "Cookie" to Vary in
+    # save_session — which runs AFTER after_request hooks — so stripping it
+    # there never sticks. Skipping the session for /static/ is the only way
+    # to keep Vary: Cookie off asset responses (and it saves a cookie
+    # decrypt per asset request).
+    if request.path.startswith("/static/"):
+        return
     load_logged_in_user()
 
 
