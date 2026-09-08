@@ -395,6 +395,11 @@ def _performance_headers(response):
     """
     if request.path.startswith("/static/"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        # Werkzeug adds "Cookie" to Vary whenever a session cookie is present
+        # in the request. Cloudflare refuses to cache any response with
+        # Vary: Cookie, so static assets (which never vary per-user) never got
+        # edge-cached. Drop it here so Cloudflare's cache rule works.
+        response.vary.discard("Cookie")
     elif response.mimetype == "text/html":
         response.headers["Cache-Control"] = "no-store, max-age=0"
     elif response.mimetype == "application/json":
