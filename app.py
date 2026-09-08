@@ -403,6 +403,12 @@ def _performance_headers(response):
     """
     if request.path.startswith("/static/"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        # SEND_FILE_MAX_AGE_DEFAULT=0 makes Werkzeug stamp an Expires header
+        # set to "now" (already expired) on every static file. That conflicts
+        # with the 1-year Cache-Control above and blocks Cloudflare from
+        # edge-caching these files. Drop it: the max-age directive in
+        # Cache-Control is authoritative.
+        response.headers.pop("Expires", None)
         # Werkzeug adds "Cookie" to Vary whenever a session cookie is present
         # in the request. Cloudflare refuses to cache any response with
         # Vary: Cookie, so static assets (which never vary per-user) never got
