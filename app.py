@@ -217,7 +217,30 @@ SITE_URL = os.environ.get("SITE_URL", "https://otakul.co")
 def robots_txt():
     """robots.txt at the origin root. Full crawl allowed; points crawlers
     at the sitemap so every anime page gets discovered."""
-    body = (
+    # AI scrapers & SEO-spam bots re-crawl the whole 14k-page catalog for
+    # zero search value and eat bandwidth fast. Block them explicitly;
+    # Googlebot / Bingbot (real search) and Applebot / social preview
+    # crawlers stay fully allowed.
+    blocked_bots = [
+        "GPTBot",
+        "ChatGPT-User",
+        "Google-Extended",
+        "ClaudeBot",
+        "anthropic-ai",
+        "CCBot",
+        "PerplexityBot",
+        "Bytespider",
+        "Amazonbot",
+        "Applebot-Extended",
+        "AhrefsBot",
+        "SemrushBot",
+        "DataForSeoBot",
+        "DotBot",
+        "MJ12bot",
+    ]
+    body = "".join(
+        f"User-agent: {ua}\nDisallow: /\n\n" for ua in blocked_bots
+    ) + (
         "User-agent: *\n"
         "Allow: /\n"
         # Account pages and private user space are useless in search
