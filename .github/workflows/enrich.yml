@@ -39,6 +39,10 @@ jobs:
           # that only exist during a run — git add fails hard on a missing
           # path, which used to kill the whole workflow after enrichment
           # had already succeeded. Only stage files that actually exist.
+          # Also skip anything .gitignore now excludes (the regenerable
+          # character/VA/backfill caches) — `git add` on an ignored path
+          # fails the whole step, which silently stopped every deploy of
+          # fresh episode data.
           for f in \
             anime_data.json \
             anime_airing_a0.json \
@@ -51,7 +55,7 @@ jobs:
             anime_characters_index.json \
             anime_characters_progress.json \
             anime_character_va_progress.json; do
-            if [ -f "$f" ]; then git add "$f"; fi
+            if [ -f "$f" ] && ! git check-ignore -q "$f"; then git add "$f"; fi
           done
 
           if git diff --cached --quiet; then
