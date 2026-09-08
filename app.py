@@ -904,6 +904,17 @@ def _schedule_loop():
         time.sleep(_SCHEDULE_TTL)
 
 
+# Render serves the app with gunicorn, where the __main__ block below never
+# executes. Start the lightweight airing refresher at import time instead, so
+# episode countdowns and released/TBC flags stay fresh on the live site with
+# zero page traffic (previously it only refreshed when someone loaded a page
+# that rebuilt the catalog). It is in-memory-only, so it is safe on the free
+# tier. The heavy enrichment (TVmaze thumbnails, HD upgrades, characters) is
+# deliberately NOT run here — it needs a second ~60MB catalog copy and OOMs
+# Render's 512MB instance; the GitHub Actions pipeline does that off-server.
+threading.Thread(target=_schedule_loop, daemon=True).start()
+
+
 # ---------------------------------------------------------------------------
 # Full auto-enrichment (airing + TVmaze + HD upgrade) every 10 minutes
 # ---------------------------------------------------------------------------
