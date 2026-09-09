@@ -1294,12 +1294,20 @@ def _episode_badge(entry):
     prev_ep, prev_at = _last_aired_episode(entry)
     if prev_ep and prev_at and now - prev_at <= _JUST_AIRED_WINDOW:
         return f"EP {prev_ep} JUST AIRED"
-    days = delta / 86400
-    if days < 1:
+    # Calendar-accurate day labels in the site's timezone (Asia/Kolkata —
+    # matches the audience, and for typical anime air times the same
+    # calendar day as JST). A rolling 24h window made an episode airing
+    # Thursday evening say "TODAY" on Wednesday night.
+    from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+    site_tz = _tz(_td(hours=5, minutes=30))
+    air_day = _dt.fromtimestamp(at, tz=site_tz).date()
+    today = _dt.fromtimestamp(now, tz=site_tz).date()
+    day_diff = (air_day - today).days
+    if day_diff <= 0:
         return f"EP {n} TODAY"
-    if days < 2:
+    if day_diff == 1:
         return f"EP {n} TOMORROW"
-    return f"EP {n} IN {int(days)}D"
+    return f"EP {n} IN {day_diff}D"
 
 
 def _start_badge(entry):
