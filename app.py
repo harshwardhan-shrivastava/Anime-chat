@@ -737,8 +737,15 @@ def _resolve_next_airing(entry):
         for ep, at in sched:
             if at > now:
                 return ep, at
-        last = sched[-1]
-        return last[0], last[1]
+        # Schedule window exhausted (long-runners ship truncated windows that
+        # end years ago). Trust the catalog anchor when the airing worker kept
+        # it fresh; otherwise report no known next episode. Never fabricate a
+        # past airing from the stale window: that would sink exhausted cards
+        # to the TOP of "Airing Now" (oldest timestamp sorts first) wearing
+        # stale "EP N AIRED" badges.
+        if entry.get("next_episode_at"):
+            return entry.get("next_episode"), entry.get("next_episode_at")
+        return None, None
     return entry.get("next_episode"), entry.get("next_episode_at")
 
 
@@ -759,6 +766,14 @@ def _last_aired_episode(entry):
             last = (ep, at)
         else:
             break
+    # Prefer the catalog anchor when it's newer than the (possibly ancient)
+    # schedule window, so stale long-runners report their real latest episode.
+    anchor_ep = entry.get("next_episode")
+    anchor_at = entry.get("next_episode_at")
+    if anchor_ep and anchor_at and anchor_at <= now and (
+        last is None or anchor_ep > last[0]
+    ):
+        last = (anchor_ep, anchor_at)
     return last or (None, None)
 
 
@@ -1191,6 +1206,12 @@ def _enriched_catalog_items():
         # so card badges, sort order and detail-page countdowns all agree even
         # when the static anchor is stale (e.g. AniList down / workflow gap).
         nxt_air = _resolve_next_airing(entry)
+        # A past "next" airing means the card has no known upcoming episode
+        # (stale long-runner window, finished season) — drop the timestamp so
+        # it sorts after real upcoming episodes instead of floating to the
+        # top of Airing Now, and so countdown UI hides itself.
+        if nxt_air[1] and nxt_air[1] <= now:
+            nxt_air = (nxt_air[0], None)
         items.append({
             "slug": slug,
             "title": entry.get("title", slug),
