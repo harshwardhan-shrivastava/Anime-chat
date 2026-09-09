@@ -682,6 +682,85 @@ class _LazyByAid(dict):
 
 _BY_AID = _LazyByAid()
 
+# ---------------------------------------------------------------------------
+# Per-episode airing schedules, loaded from the tracked airing cache
+# (anime_airing_a0/a1.json) that the enrichment workflow keeps fresh on every
+# run. These give exact air times per episode, so countdown badges stay
+# correct even when the static catalog's next_episode anchor is stale or the
+# AniList API is temporarily unreachable (both are happening right now on the
+# live site — anchors stuck at Sep 1, AniList returning 403).
+# ---------------------------------------------------------------------------
+
+_airing_sched_state = {"loaded": False, "sched": {}}
+
+
+def _load_airing_schedules():
+    """Lazily load {anilist_id: [(episode, airing_at), ...]} from the airing
+    cache files. A few hundred shows, sorted chronologically — cheap enough
+    for the free tier (no second catalog copy, no reload)."""
+    if _airing_sched_state["loaded"]:
+        return _airing_sched_state["sched"]
+    sched = {}
+    root = os.path.dirname(os.path.abspath(__file__))
+    for fname in ("anime_airing_a0.json", "anime_airing_a1.json"):
+        try:
+            with open(os.path.join(root, fname), "r", encoding="utf-8") as fh:
+                cache = json.load(fh)
+        except Exception:
+            continue
+        for aid_s, info in cache.items():
+            nodes = ((info or {}).get("airingSchedule") or {}).get("nodes") or []
+            pairs = [(nd.get("episode"), nd.get("airingAt")) for nd in nodes
+                     if nd.get("episode") and nd.get("airingAt")]
+            if pairs:
+                pairs.sort(key=lambda p: (p[1] or 0))
+                sched[str(aid_s)] = pairs
+    _airing_sched_state["sched"] = sched
+    _airing_sched_state["loaded"] = True
+    return sched
+
+
+def _airing_schedule_for(entry):
+    aid = entry.get("anilist_id")
+    if not aid:
+        return None
+    return _load_airing_schedules().get(str(aid))
+
+
+def _resolve_next_airing(entry):
+    """(episode, airing_at) of the next episode to air, preferring the
+    per-episode airing schedule so countdowns survive stale anchors and an
+    unreachable AniList API. Falls back to the catalog's own anchor."""
+    sched = _airing_schedule_for(entry)
+    if sched:
+        now = time.time()
+        for ep, at in sched:
+            if at > now:
+                return ep, at
+        last = sched[-1]
+        return last[0], last[1]
+    return entry.get("next_episode"), entry.get("next_episode_at")
+
+
+def _last_aired_episode(entry):
+    """(episode, airing_at) of the most recent episode that has aired, or
+    (None, None) when unknown."""
+    sched = _airing_schedule_for(entry)
+    if not sched:
+        at = entry.get("next_episode_at")
+        n = entry.get("next_episode")
+        if at and n and at <= time.time():
+            return n, at
+        return None, None
+    now = time.time()
+    last = None
+    for ep, at in sched:
+        if at <= now:
+            last = (ep, at)
+        else:
+            break
+    return last or (None, None)
+
 
 def _save_fresh_airing_cache(fresh):
     from scripts.enrich_airing import load_json, save_json, _cache_files
@@ -728,8 +807,21 @@ def _apply_episode_state(entry, st, nxt):
     if st == "Ongoing":
         aired = (nxt or {}).get("episode")
         if not aired:
+            aired = 0
+        else:
+            aired -= 1
+        # Every scheduled episode whose airing time has already passed has
+        # aired — the same dual-signal logic apply_airing uses. Robust to a
+        # stale nextAiringEpisode, so a freshly-aired episode stops being
+        # marked TBC even while the API lags or is down.
+        sched = _airing_schedule_for(entry)
+        if sched:
+            now = time.time()
+            done = [e for e, t in sched if t <= now]
+            if done and done[-1] > aired:
+                aired = done[-1]
+        if aired <= 0:
             return
-        aired -= 1
     elif st in ("Completed", "Cancelled"):
         aired = entry.get("total_episodes") or 0
         if not aired:
@@ -794,8 +886,10 @@ def _tvmaze_live_fill():
     for slug, entry in anime_database.items():
         status = entry.get("status")
         if status == "Ongoing":
-            nxt = entry.get("next_episode")
-            aired = (nxt - 1) if nxt else (entry.get("total_episodes") or 0)
+            aired = _last_aired_episode(entry)[0] or 0
+            if not aired:
+                nxt = entry.get("next_episode")
+                aired = (nxt - 1) if nxt else (entry.get("total_episodes") or 0)
             backoff = _TVMAZE_FILL_ONGOING_TTL
         elif status == "Completed":
             aired = entry.get("total_episodes") or 0
@@ -866,6 +960,17 @@ def _refresh_airing_schedule_worker():
                     entry["next_episode"] = nxt.get("episode") or entry.get("next_episode")
                 else:
                     entry["next_episode_at"] = None
+                # Keep the in-memory per-episode schedule current so badges
+                # stay right between workflow runs (and while the API is down).
+                if nxt.get("airingAt") and nxt.get("episode"):
+                    aid_s = str(m.get("id"))
+                    sched_all = _load_airing_schedules()
+                    pairs = sched_all.get(aid_s)
+                    if pairs is not None:
+                        pairs = [p for p in pairs if p[0] != nxt.get("episode")]
+                        pairs.append((nxt["episode"], nxt["airingAt"]))
+                        pairs.sort(key=lambda p: (p[1] or 0))
+                        sched_all[aid_s] = pairs
                 sd = m.get("startDate") or {}
                 if sd.get("year"):
                     entry["start_year"] = sd["year"]
@@ -1082,6 +1187,10 @@ def _enriched_catalog_items():
     for slug, entry in anime_database.items():
         status = entry.get("status", "")
         stats = all_stats.get(slug, {"votes": 0, "average": 0})
+        # Resolve the real next episode from the per-episode airing schedule
+        # so card badges, sort order and detail-page countdowns all agree even
+        # when the static anchor is stale (e.g. AniList down / workflow gap).
+        nxt_air = _resolve_next_airing(entry)
         items.append({
             "slug": slug,
             "title": entry.get("title", slug),
@@ -1093,8 +1202,8 @@ def _enriched_catalog_items():
             "release": entry.get("release", ""),
             "genre": entry.get("genre", ""),
             "status": status,
-            "next_episode": entry.get("next_episode"),
-            "next_episode_at": entry.get("next_episode_at"),
+            "next_episode": nxt_air[0],
+            "next_episode_at": nxt_air[1],
             "start_year": entry.get("start_year"),
             "start_month": entry.get("start_month"),
             "total_episodes": entry.get("total_episodes", 0) or 0,
@@ -1144,14 +1253,26 @@ def _catalog_entries(sort="latest", genre=None, limit=None):
     return [dict(e) for e in entries]
 
 
+# How long a just-aired episode keeps its celebration badge before the card
+# rolls over to the countdown of the next episode (the old code showed
+# "JUST AIRED" forever whenever the schedule anchor went stale).
+_JUST_AIRED_WINDOW = 12 * 3600
+
+
 def _episode_badge(entry):
-    at = entry.get("next_episode_at")
-    n = entry.get("next_episode")
-    if not at or not n:
+    n, at = _resolve_next_airing(entry)
+    if not at:
         return "AIRING NOW"
-    delta = at - time.time()
+    now = time.time()
+    delta = at - now
     if delta <= 0:
-        return f"EP {n} JUST AIRED"
+        # Schedule exhausted (season finished) — stop showing a stale
+        # countdown, label the latest episode as aired instead.
+        last_ep, _ = _last_aired_episode(entry)
+        return f"EP {last_ep} AIRED" if last_ep else "AIRING NOW"
+    prev_ep, prev_at = _last_aired_episode(entry)
+    if prev_ep and prev_at and now - prev_at <= _JUST_AIRED_WINDOW:
+        return f"EP {prev_ep} JUST AIRED"
     days = delta / 86400
     if days < 1:
         return f"EP {n} TODAY"
