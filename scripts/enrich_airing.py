@@ -484,6 +484,26 @@ def _needs_backfill(entry, aired):
     return False
 
 
+def _aired_from_flags(entry):
+    """Aired count implied by the card's own released flags: the highest
+    episode number apply_airing did NOT mark released:False. Returns 0 when
+    the card carries no released flags at all (never processed yet), so the
+    caller falls back to the schedule-derived count."""
+    seasons = entry.get("seasons") or []
+    max_out = 0
+    seen = False
+    for si, s in enumerate(seasons):
+        for ep in s.get("episodes") or []:
+            if "released" in ep:
+                seen = True
+            if ep.get("released") is False:
+                continue
+            g = _global_number(seasons, si, ep.get("number") or 0)
+            if g > max_out:
+                max_out = g
+    return max_out if seen else 0
+
+
 def tvmaze_backfill(count=0, offset=0, todo_path=None, cross_path=None):
     """Fill TVmaze titles + HD thumbs for aired episodes missing them."""
     data = load_json(DATA_FILE)
@@ -499,6 +519,15 @@ def tvmaze_backfill(count=0, offset=0, todo_path=None, cross_path=None):
         nxt = entry.get("next_episode")
         if nxt:
             aired = nxt - 1
+        # apply_airing keeps each card's released flags authoritative from
+        # airing timestamps, so when a card has them, trust the aired count
+        # they imply. AniList's nextAiringEpisode can lag (or its API can go
+        # down entirely), and the old next_episode - 1 gate then stalls
+        # backfill for episodes that already aired -- they keep rendering
+        # without a title/thumb until AniList catches up.
+        flagged = _aired_from_flags(entry)
+        if flagged:
+            aired = max(aired, flagged)
         if aired > 0 and _needs_backfill(entry, aired):
             jobs.append((slug, aired))
 
