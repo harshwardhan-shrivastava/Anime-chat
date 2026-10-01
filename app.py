@@ -1276,8 +1276,10 @@ def _catalog_entries(sort="latest", genre=None, limit=None):
 
 # How long a just-aired episode keeps its celebration badge before the card
 # rolls over to the countdown of the next episode (the old code showed
-# "JUST AIRED" forever whenever the schedule anchor went stale).
-_JUST_AIRED_WINDOW = 12 * 3600
+# "JUST AIRED" forever whenever the schedule anchor went stale). ~6h keeps
+# the "just aired" moment visible for the evening, then the card moves on
+# to the next upcoming episode like it used to.
+_JUST_AIRED_WINDOW = 6 * 3600
 
 
 def _episode_badge(entry):

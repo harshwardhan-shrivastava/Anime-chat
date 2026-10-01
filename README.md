@@ -46,6 +46,25 @@ Anime discussion platform built with Flask
   shows); `--skip-fetch` applies details from the existing AniList cache
   without hitting the API. Hand-curated entries are never overwritten.
 
+### Brand-new season anime are added automatically
+- `.github/workflows/enrich.yml` runs the enrichment pipeline every 15 minutes.
+  The first step, `scripts/season_topup.py`, makes sure BRAND-NEW season
+  premieres get a card without anyone running `fetch_anime_catalog.py` by hand.
+- It asks AniList for the previous + current + next season's
+  airing/upcoming titles, inserts the ones the catalog is missing (poster,
+  banner, synopsis, studio, genres, status, AniList id, and the start date so
+  the card shows "EXP OCT 2026" right away) and then runs a
+  bounded pass of the existing per-title enrichment for just those slugs:
+  Sub/Dub + episode list, real US/JP streaming from JustWatch, and TVmaze/Kitsu
+  episode thumbnails. The airing refresh in the same run then fills the
+  countdown, released flags, real episode titles and HD thumbs.
+- Dedupe is by AniList id first, then normalised title, so a new season of a
+  show already in the catalog is never duplicated. Insertions are capped per
+  run (`MAX_NEW`, `MAX_JUSTWATCH` in the module) so a backlog is filled over
+  several ticks instead of hammering the APIs.
+- It is cheap when there is nothing new (a few AniList season queries), and
+  best-effort: a transient API failure never aborts the 15-minute run.
+
 ### Real per-country streaming availability (US / Japan) from JustWatch
 - `python3 scripts/enrich_streaming.py --offset N --count M --cache FILE` looks
   up each title on JustWatch (the same data Google shows in "Where to Watch"
