@@ -6,6 +6,9 @@ It mirrors the local dev auto-enrichment (app.py -> _full_enrich_worker)
 but runs standalone on a runner with plenty of RAM, so the heavy
 disk-based steps that would OOM Render's 512MB free instance can run here:
 
+  0. season_topup  -> auto-onboard brand-new season premieres (AniList
+                      previous/current/next season) with their card, poster,
+                      Sub/Dub, episode list, streaming links and thumbnails
   1. plan_todo     -> rebuild the list of Ongoing/Upcoming anime
   2. fetch_window  -> refresh AniList airing data (status, episodes,
                       next airing, full airing schedule) into the cache
@@ -42,6 +45,22 @@ def main():
     cache_path = os.path.join(ROOT, "anime_airing_a0.json")
 
     t0 = time.time()
+
+    # Auto-onboard brand-new season premieres before the airing refresh, so
+    # the cards added here are picked up by plan_todo/apply_airing in this very
+    # run. Best-effort: a transient API failure must not abort the whole
+    # 15-minute enrichment of the existing catalog.
+    print("[enrich] season_topup", flush=True)
+    try:
+        from scripts.season_topup import season_topup
+        new_slugs = season_topup()
+        if new_slugs:
+            print(f"[enrich] onboarded {len(new_slugs)} new titles: "
+                  f"{', '.join(new_slugs)}", flush=True)
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        print("[enrich] season_topup failed - continuing", flush=True)
 
     print("[enrich] plan_todo", flush=True)
     plan_todo(todo_path)
