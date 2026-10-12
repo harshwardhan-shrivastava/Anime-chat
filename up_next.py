@@ -30,7 +30,9 @@ Design notes
 Kept as a blueprint so app.py can register it from one reachable spot.
 """
 import base64
+import hmac
 import json
+import os
 import threading
 import time
 from datetime import date, datetime, timedelta, timezone
@@ -45,6 +47,7 @@ from database import (
     UP_NEXT_NOW,
     UP_NEXT_PLANNED,
     UP_NEXT_STATUSES,
+    ack_up_next_reminder,
     clear_up_next,
     delete_push_subscription,
     get_done_slugs,
@@ -71,9 +74,17 @@ SITE_TZ = timezone(timedelta(hours=5, minutes=30))
 TONIGHT_HOUR = 17
 REMINDER_SWEEP_SECONDS = 300
 
+# Shared secret for the external sweep trigger (see api_sweep). Unset means
+# the endpoint stays switched off rather than open to the world.
+SWEEP_TOKEN_ENV = "SWEEP_TOKEN"
+
 # Upper bound for an 'hours' timer. Anything longer is a calendar plan, not a
 # timer, so 'date' is the right tool and the picker never offers more.
 MAX_REMIND_HOURS = 72
+
+# A reminder that came due inside this window is flagged as 'fresh' for the
+# site-wide dock, which draws attention to the one that just went off.
+FRESH_SECONDS = 600
 
 # How the pill on a card is rendered per state.
 STATUS_PILL = {
@@ -448,6 +459,97 @@ def queued_cards(user_id, limit=24, qmap=None):
     return cards, resolved
 
 
+def _reminder_sort_key(state):
+    """Soonest-first key for a reminder that is not due yet.
+
+    A running timer is ranked by its real moment, a dated one by the day it
+    lands on (its 17:00 for `tonight`, because that is when it becomes due),
+    and an `after` reminder has no moment of its own — it sorts last rather
+    than pretending to be imminent.
+    """
+    if state.get("remind_kind") == "hours":
+        at = parse_datetime(state.get("remind_at"))
+        if at is not None:
+            return (0, at.timestamp())
+    on = parse_date(state.get("remind_on"))
+    if on is not None:
+        return (0, datetime(on.year, on.month, on.day, tzinfo=SITE_TZ).timestamp())
+    return (1, 0)
+
+
+def _alert_items(pairs, now_ts=None):
+    """Trim resolved rows down to the few fields the dock renders.
+
+    ``fresh`` marks a reminder that came due in the last ten minutes — or that
+    has no moment of its own, which only happens when the show it waited on was
+    finished moments ago — so the box can point at the one that just went off.
+    """
+    out = []
+    for slug, state in pairs:
+        entry = anime_database.get(slug) or {}
+        due_since = state.get("due_since")
+        out.append({
+            "slug": slug,
+            "title": entry.get("title") or slug,
+            "image": entry.get("image") or "",
+            "caption": state.get("caption") or "",
+            "ago": state.get("ago") or "",
+            "pill": state.get("pill") or {},
+            "kind": state.get("remind_kind"),
+            "fresh": bool(
+                state.get("due")
+                and (due_since is None or now_ts is None
+                     or now_ts - due_since <= FRESH_SECONDS)
+            ),
+        })
+    return out
+
+
+def alert_state(user_id, due_limit=8, upcoming_limit=4):
+    """(due_total, due_items, upcoming_total, upcoming_items) for the dock.
+
+    One pass over the user's rows, because the dock polls this from every page.
+    ``due`` is what is calling for the user right now; ``upcoming`` is every
+    other armed reminder, soonest first — that is what makes a timer *set*
+    visible on the site, not just a missed one.
+
+    Deliberately cheaper than ``queued_cards``: it resolves the rows and keeps
+    only reminders, instead of building a hundred card dicts to discard them.
+
+    The due list runs most-recent-first and is long enough to hold everything a
+    user realistically parks on the queue at once (the limit only bites on a
+    queue nobody visits for weeks), because the reminder someone is looking for
+    is the one that just fired — an oldest-first list truncated at three hid
+    exactly that one.
+    """
+    qmap = get_up_next_map(user_id)
+    if not qmap:
+        return 0, [], 0, []
+    done = {s for s, r in qmap.items() if r.get("status") == UP_NEXT_DONE}
+    today = _today()
+    due = []
+    upcoming = []
+    for slug, row in qmap.items():
+        state = resolve(row, done, today)
+        if state["due"]:
+            due.append((slug, state))
+        elif state["status"] != UP_NEXT_DONE and state["remind_kind"]:
+            upcoming.append((slug, state))
+
+    now_ts = _now().timestamp()
+    # Most recent first: the top row is the reminder that just went off. A due
+    # reminder with no moment of its own counts as just-now rather than last —
+    # the only way an 'after' reminder comes due is its blocker being finished,
+    # which is a fresh event from the user's side. (A plain backlog row with no
+    # reminder is not a reminder at all, so it never appears here.)
+    due.sort(key=lambda pair: pair[1].get("due_since") or now_ts, reverse=True)
+    upcoming.sort(key=lambda pair: _reminder_sort_key(pair[1]))
+    return (
+        len(due), _alert_items(due[:due_limit], now_ts),
+        len(upcoming), _alert_items(upcoming[:upcoming_limit], now_ts),
+    )
+
+
 # ---------------------------------------------------------------------------
 # VAPID keys — generated once, stored in the DB, shared by every worker
 # ---------------------------------------------------------------------------
@@ -508,14 +610,18 @@ def push_available():
         return False
 
 
-def send_push(user_id, payload):
+def send_push(user_id, payload, subs=None):
     """Push `payload` to every device this user subscribed.
 
     Returns (sent, failed). Dead subscriptions (the push service answers
     404/410 — the browser was uninstalled or the subscription expired) are
     deleted so they stop being retried forever.
+
+    `subs` lets the caller hand in a subscription list it already read, so a
+    sweep does not pay for the same query twice.
     """
-    subs = get_push_subscriptions(user_id)
+    if subs is None:
+        subs = get_push_subscriptions(user_id)
     if not subs:
         return 0, 0
     if not push_available():
@@ -609,18 +715,38 @@ def due_reminders():
 
 
 def run_reminder_sweep(log=True):
-    """Send the push for every due reminder. Returns the number sent."""
+    """Send the push for every due reminder. Returns the number sent.
+
+    A reminder is only stamped as notified once the user actually has a
+    device to notify. Stamping it with zero subscriptions would consume the
+    reminder silently: the user turns notifications on afterwards and the
+    thing they were waiting to be told about is already gone. With no
+    subscription the row simply stays armed, and the next sweep after a
+    device subscribes fires it exactly once.
+    """
     due = due_reminders()
     if not due:
         return 0
     sent_total = 0
     for row, state in due:
+        subs = get_push_subscriptions(row["user_id"])
+        if not subs:
+            # Nothing to push to yet — leave it armed and say so, because
+            # "reminder is due but no device is subscribed" is the single
+            # most common reason a user sees no notification at all.
+            if log:
+                print(
+                    f"[up-next] reminder {row['user_id']}/{row['anime_slug']} "
+                    f"({row.get('remind_kind')}) is due but no device is "
+                    f"subscribed — leaving it armed",
+                    flush=True,
+                )
+            continue
         entry = anime_database.get(row["anime_slug"]) or {}
         payload = _reminder_body(row, entry, state)
-        sent, _failed = send_push(row["user_id"], payload)
-        # Mark it notified even with zero subscriptions: the reminder has
-        # been *surfaced* (it shows as READY in the queue), and re-arming a
-        # reminder is an explicit user action that clears notified_at again.
+        sent, _failed = send_push(row["user_id"], payload, subs=subs)
+        # Stamped once *a device was notified* — a send that fails still
+        # counts, so a dead push service is not retried every five minutes.
         mark_up_next_notified(row["user_id"], row["anime_slug"])
         sent_total += sent
         if log:
@@ -695,6 +821,28 @@ def api_queue():
             for c in cards
         ],
         "push": push_available(),
+    })
+
+
+@up_next_bp.route("/api/up-next/alerts", methods=["GET"])
+def api_alerts():
+    """What the site-wide dock renders: what is ready, and what is coming.
+
+    The dock lives in the shared footer, so this runs from every page. Signed
+    out it answers 401 and the dock stays silent: a reminder that came due
+    must not require opening the show's own page to find out, but it also
+    must never bounce a visitor to /login for opening a public page.
+    """
+    user, err = _require_user_json()
+    if err:
+        return err
+    count, items, upcoming_count, upcoming = alert_state(user["id"])
+    return jsonify({
+        "success": True,
+        "count": count,
+        "items": items,
+        "upcoming_count": upcoming_count,
+        "upcoming": upcoming,
     })
 
 
@@ -817,6 +965,35 @@ def _released_after(user_id, finished_slug):
     return changed
 
 
+@up_next_bp.route("/api/up-next/ack", methods=["POST"])
+def api_ack():
+    """"I got the notification, I'll watch it" — the dock's ✓ button.
+
+    Body (JSON): {slug} or {slugs: [...]}. Stops the reminder (the timer goes
+    off) while leaving the show on the queue, so Up Next still lists it for
+    anyone who missed the notification. Returns the slugs actually cleared.
+    """
+    user, err = _require_user_json()
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    raw = data.get("slugs")
+    if isinstance(raw, list):
+        slugs = list(raw)
+    else:
+        slugs = [data.get("slug")]
+
+    cleared = []
+    for value in slugs:
+        slug = _clean_slug(value)
+        if slug is None or slug in cleared:
+            continue
+        if ack_up_next_reminder(user["id"], slug):
+            cleared.append(slug)
+    return jsonify({"success": True, "cleared": cleared})
+
+
 @up_next_bp.route("/api/up-next/<anime_slug>", methods=["DELETE"])
 def api_remove(anime_slug):
     user, err = _require_user_json()
@@ -907,6 +1084,30 @@ def api_push_status():
         "devices": len(subs),
         "public_key": pub,
     })
+
+
+@up_next_bp.route("/api/up-next/sweep", methods=["GET", "POST"])
+def api_sweep():
+    """Run the reminder sweep on demand, for an external scheduler.
+
+    Render's free plan spins a web service down after 15 minutes without
+    traffic, and the reminder thread lives inside that process — so while the
+    user is away nothing sweeps and a due reminder never reaches their phone.
+    A five-minute tick (.github/workflows/reminders.yml) wakes the app and
+    calls this, which is the only reason reminders fire with nobody browsing.
+
+    Token-gated by the SWEEP_TOKEN env var. Unset -> 503, so a deploy that
+    has not configured a token never exposes an open push trigger.
+    """
+    expected = (os.environ.get(SWEEP_TOKEN_ENV) or "").strip()
+    if not expected:
+        return jsonify({"success": False, "error": "sweep_disabled"}), 503
+    supplied = (
+        request.headers.get("X-Sweep-Token") or request.args.get("token") or ""
+    ).strip()
+    if not hmac.compare_digest(supplied, expected):
+        return jsonify({"success": False, "error": "unauthorized"}), 401
+    return jsonify({"success": True, "sent": run_reminder_sweep(log=True)})
 
 
 @up_next_bp.route("/up-next")

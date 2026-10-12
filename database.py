@@ -1098,8 +1098,11 @@ def create_tables():
     # status: 'now' (watching right now) | 'planned' (on the queue) |
     #         'done' (finished — this is what releases an 'after' reminder
     #         that was waiting on this show).
-    # remind_kind: NULL | 'tonight' | 'tomorrow' | 'date' | 'after'.
+    # remind_kind: NULL | 'tonight' | 'tomorrow' | 'date' | 'hours' | 'after'.
     #   'tomorrow'/'date' store the calendar day in remind_on (YYYY-MM-DD),
+    #   'hours' stores the exact due moment in remind_at (ISO 8601 with the
+    #   site's UTC+5:30 offset) so a short "ping me in 3 hours" timer does not
+    #   collapse onto a day boundary,
     #   'after' stores the blocking show in remind_after_slug.
     # notified_at: set once the push for this reminder has gone out, so a
     #   due reminder never pings the same device twice.
@@ -1112,6 +1115,7 @@ def create_tables():
             remind_kind TEXT,
             remind_on TEXT,
             remind_after_slug TEXT,
+            remind_at TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
             notified_at TEXT,
@@ -1119,6 +1123,13 @@ def create_tables():
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
     """)
+
+    # Migration: 'hours' reminders need an absolute due moment. Existing rows
+    # keep working untouched — a NULL remind_at simply never falls due.
+    up_next_cols = [r[1] for r in cursor.execute(
+        "PRAGMA table_info(user_up_next)").fetchall()]
+    if "remind_at" not in up_next_cols:
+        cursor.execute("ALTER TABLE user_up_next ADD COLUMN remind_at TEXT")
 
     # Web Push subscriptions (one per browser/device the user enabled push
     # on). endpoint is the push service URL; p256dh/auth are the browser's
@@ -3335,11 +3346,11 @@ UP_NEXT_PLANNED = "planned"
 UP_NEXT_DONE = "done"
 UP_NEXT_STATUSES = (UP_NEXT_NOW, UP_NEXT_PLANNED, UP_NEXT_DONE)
 # Reminder kinds, in the order the picker shows them.
-REMIND_KINDS = ("tonight", "tomorrow", "date", "after")
+REMIND_KINDS = ("tonight", "tomorrow", "date", "hours", "after")
 
 
 def set_up_next(user_id, anime_slug, status, remind_kind=None,
-                remind_on=None, remind_after_slug=None):
+                remind_on=None, remind_after_slug=None, remind_at=None):
     """Put an anime on the user's Up Next queue (or update its entry).
 
     One upsert. Returns the stored row. `notified_at` is reset whenever the
@@ -3351,18 +3362,19 @@ def set_up_next(user_id, anime_slug, status, remind_kind=None,
         """
         INSERT INTO user_up_next
             (user_id, anime_slug, status, remind_kind, remind_on,
-             remind_after_slug, notified_at)
-        VALUES (?, ?, ?, ?, ?, ?, NULL)
+             remind_after_slug, remind_at, notified_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
         ON CONFLICT(user_id, anime_slug) DO UPDATE SET
             status = excluded.status,
             remind_kind = excluded.remind_kind,
             remind_on = excluded.remind_on,
             remind_after_slug = excluded.remind_after_slug,
+            remind_at = excluded.remind_at,
             notified_at = NULL,
             updated_at = CURRENT_TIMESTAMP
         """,
         (user_id, anime_slug, status, remind_kind, remind_on,
-         remind_after_slug),
+         remind_after_slug, remind_at),
     )
     conn.commit()
     cursor.execute(
@@ -3386,6 +3398,37 @@ def clear_up_next(user_id, anime_slug):
     removed = cursor.rowcount > 0
     conn.close()
     return removed
+
+
+def ack_up_next_reminder(user_id, anime_slug):
+    """The user saw this reminder: stop its timer, keep the show queued.
+
+    A reminder that has been acknowledged must not keep pinging or hanging a
+    badge on the site, but the show itself stays on the queue — the user still
+    means to watch it, so it must remain findable on /up-next. Clearing the
+    remind_* columns is what makes `resolve()` stop calling it due; the row
+    keeps its status. True when a reminder was actually cleared.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        UPDATE user_up_next
+        SET remind_kind = NULL,
+            remind_on = NULL,
+            remind_after_slug = NULL,
+            remind_at = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ? AND anime_slug = ?
+          AND (remind_kind IS NOT NULL OR remind_on IS NOT NULL
+               OR remind_after_slug IS NOT NULL OR remind_at IS NOT NULL)
+        """,
+        (user_id, anime_slug),
+    )
+    conn.commit()
+    cleared = cursor.rowcount > 0
+    conn.close()
+    return cleared
 
 
 def get_up_next_map(user_id):
@@ -3443,7 +3486,7 @@ def get_pending_reminders():
     cursor.execute(
         """
         SELECT user_id, anime_slug, status, remind_kind, remind_on,
-               remind_after_slug
+               remind_after_slug, remind_at
         FROM user_up_next
         WHERE remind_kind IS NOT NULL
           AND remind_kind != ''

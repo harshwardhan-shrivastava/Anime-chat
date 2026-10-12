@@ -794,6 +794,12 @@
 })();
 </script>
 
+{# Deliberately *no* _up_next_alert.html here. Threads has its own bell (the
+   one in .thr-topbar-right, with its own dropdown and "Mark all read"), and
+   two bells in one header is exactly the inconsistency the reminder dock is
+   not allowed to create. Everywhere else the dock's bell IS the notification
+   logo; here the page already has one. #}
+
 {% include "_apk_banner.html" %}
 
 </body>

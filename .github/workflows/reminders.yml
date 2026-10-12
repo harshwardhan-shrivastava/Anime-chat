@@ -1,0 +1,58 @@
+name: Up Next reminder tick
+
+# Why this exists
+# ---------------
+# The reminder sweep (up_next.py -> _reminder_loop) is a daemon thread inside
+# the Flask process. otakul.co runs on Render's FREE plan, which spins a web
+# service down after 15 minutes without inbound traffic — so with nobody
+# browsing there is no process to sweep and a due reminder never reaches a
+# phone. This tick is the inbound traffic: it wakes the app and runs the same
+# sweep over HTTP.
+#
+# The endpoint is inert until SWEEP_TOKEN is set on Render AND as a repo
+# secret here (same value). Until then this job exits 0 with a note.
+#
+# Cost note: a 5-minute tick keeps the free instance awake around the clock,
+# which is ~720 of the 750 free instance-hours a month. To trade latency for
+# headroom, widen the cron below (e.g. */15) — reminders then arrive up to
+# that much later, since a spun-down service can only be woken by traffic.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Wake the app and run the reminder sweep
+        env:
+          SWEEP_TOKEN: ${{ secrets.SWEEP_TOKEN }}
+          SWEEP_URL: ${{ vars.SWEEP_URL || 'https://otakul.co/api/up-next/sweep' }}
+        run: |
+          if [ -z "$SWEEP_TOKEN" ]; then
+            echo "SWEEP_TOKEN is not set — skipping."
+            echo "Add it as a repo secret here and as SWEEP_TOKEN on Render to enable push reminders."
+            exit 0
+          fi
+
+          # A spun-down instance needs up to a minute to boot, so the request
+          # that wakes it can time out or 502. Retry rather than fail the run
+          # on a cold start.
+          for attempt in 1 2 3; do
+            code=$(curl -sS --max-time 120 -o sweep-body.txt -w "%{http_code}" \
+                     -X POST "$SWEEP_URL" \
+                     -H "X-Sweep-Token: $SWEEP_TOKEN" || echo "000")
+            echo "attempt $attempt -> HTTP $code"
+            cat sweep-body.txt 2>/dev/null || true
+            echo
+            if [ "$code" = "200" ]; then
+              exit 0
+            fi
+            sleep 20
+          done
+
+          echo "The sweep endpoint never answered 200 — check the Render logs." >&2
+          exit 1

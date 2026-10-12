@@ -21,6 +21,10 @@
         .uh-crumb {
             max-width: 900px; margin: 0 auto; padding: 14px 18px 0;
             font-size: 0.85rem; font-weight: 700;
+            /* The reminder bell's seat sits on the right of this bar, so the
+               bell is part of the page chrome here like it is everywhere else
+               instead of floating over the corner. */
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
         }
         .uh-crumb a { color: #d6c9ff; text-decoration: none; }
         .uh-crumb a:hover { color: #fff; }
@@ -106,6 +110,9 @@
 <body>
     <div class="uh-crumb">
         <a href="{{ url_for('reviews_page') }}"><i class="fas fa-arrow-left"></i> Community reviews</a>
+        {# The reminder bell's seat. templates/_up_next_alert.html moves its
+           button in here so the bell is page chrome, not a floating widget. #}
+        <div class="nav-bell-slot" id="unNavSlot"></div>
     </div>
 
     <main class="profile-page">

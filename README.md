@@ -121,26 +121,112 @@ I mean to watch?".
   guarantees the push fires exactly once. Day boundaries use Asia/Kolkata, the
   same clock the episode countdown badges use.
 - **Real Web Push.** `get_vapid()` generates a P-256 VAPID keypair on first use
-  and stores it in `app_settings`, so there are **no new environment variables to
-  configure**. The reminder sweep runs in a daemon thread inside the web process
-  (`start_reminder_thread()`), which is why this needs no external cron; each
-  send has a 10 s timeout, and subscriptions the push service reports as
-  404/410 are deleted instead of retried forever.
+  and stores it in `app_settings`, so signing needs no keys on disk and they
+  survive redeploys. Each send has a 10 s timeout, and subscriptions the push
+  service reports as 404/410 are deleted instead of retried forever.
+- **The sweep needs traffic, because the host sleeps.** `start_reminder_thread()`
+  is a daemon thread *inside* the web process. Render's free plan spins a web
+  service down after 15 minutes without inbound traffic, so with nobody browsing
+  there is no process, no sweep, and a due reminder never reaches a phone. The
+  fix is an external tick: `POST /api/up-next/sweep` runs the same sweep over
+  HTTP, and `.github/workflows/reminders.yml` calls it every 5 minutes — that
+  request is also what wakes the app.
+- **The sweep endpoint is token-gated.** Set `SWEEP_TOKEN` to any long random
+  string on Render **and** as a repo secret of the same name; the endpoint sends
+  it back in an `X-Sweep-Token` header (`?token=` also works). With the variable
+  unset the endpoint answers 503, so a deploy that has not configured one never
+  exposes an open push trigger. Cost note: a 5-minute tick keeps the free
+  instance awake around the clock (~720 of the 750 free instance-hours a month);
+  widen the cron in that workflow to trade notification latency for headroom.
+- **A reminder is not consumed until a device can receive it.** The sweep only
+  stamps `notified_at` once the user has a subscribed device. Stamping with zero
+  subscriptions silently ate the reminder — you turned notifications on later and
+  the thing you were waiting to be told about had already gone. With no device
+  the row stays armed, so it fires exactly once the moment one subscribes (and
+  `[up-next] reminder … is due but no device is subscribed` is logged).
 - **UI**: status pill on every card (bottom-left of the poster), an Up Next
   button on anime pages, a queue rail on the homepage, a `/up-next` page with
   shelves (ready / watching now / tonight / later / waiting), all driven by
   `static/js/up_next.js` + `static/css/up_next.css`. The picker paints its rows
   before it asks the server for state, so it opens instantly and then corrects
   the tick marks when the response lands.
-- **A missed reminder surfaces itself.** Nothing is silently dropped when the
-  push is not seen: the pill reads READY, the show moves into the "Ready now"
-  shelf, and a dismissable "N reminders are waiting" pop-up card docks to the
-  right edge of the page (the queue page shows the same card at the top of its
-  list) with how long the oldest has been sitting. `due_moment()` derives that age per
+- **Reminders surface themselves — on every page, not just their own.** The
+  pill reads READY, the show moves into the "Ready now" shelf, and a dock in the
+  top-right corner shows it wherever the user happens to be. That dock is
+  `templates/_up_next_alert.html`, included by `_footer.html` (and directly by
+  `threads.html` / `otachan.html`, which have no footer include), so it renders
+  on *every* page — a reminder that came due must not require opening the
+  show's own page to discover. Two pieces:
+  - a **bell that is page chrome, like the homepage's, everywhere**: a page
+    leaves an empty `#unNavSlot` and the dock moves its button into that place.
+    `_navbar.html` has one beside the profile pill (deliberately outside
+    `.nav-right`, which phones hide inside the ☰ drawer), and the anime /
+    episode / community headers and the user-history crumb bar have one too, so
+    the bell is part of the header instead of a widget bolted over the corner.
+    It appears as soon as a reminder is armed or due, dressed as the burger's
+    twin (its size and chrome, the accent on hover) by `.un-bell.in-nav`, and it
+    stays put while the box is open, because it is what opens the box. The one
+    exception is **threads**, which already has its own bell and dropdown in its
+    own top bar: `_up_next_alert.html` is deliberately not included there, since
+    two bells in one header is exactly the inconsistency this dock exists to
+    avoid. The icon is inline SVG, so a blocked icon font can never leave an
+    empty square where the bell should be;
+  - a **badge that counts what is *unread***, not everything that is due.
+    Seeing the box is seeing the notifications, so opening it — or ✕/Escape, or
+    the ✓ — marks what it showed as seen (`sessionStorage`, so it survives
+    navigation within the tab) and the number clears instead of claiming
+    "1 unread" forever. A quiet violet dot still means "only timers ticking", so
+    the bell never claims something is ready when it is just counting down;
+  - a **wide, low notification box** that hangs from the top-right, just under
+    the navbar — its top is measured from the navbar's bottom edge rather than
+    guessed, because the navbar wraps onto a second row between 820px and
+    1150px. One row per reminder, wide and short: the show's square thumbnail,
+    the show's name, a line of why ("ready — came due 2h ago", "tonight",
+    "waiting for you to finish another show") and the reminder's state on the
+    right (`READY`, or the running `IN 3H` pill). Every row is a link straight
+    to that anime, and *Open queue* goes to `/up-next`.
+  The box opens by itself only for a reminder that **just went off** (inside
+  `FRESH_SECONDS`), and only on a page that does not already render the same
+  thing as page furniture (the `/up-next` page's own "while you were away"
+  card; the bell still works there, it just waits to be asked). A stale reminder
+  popping a box open over the page is what reads as being nagged — the bell and
+  its unread count already say something is waiting, and one click shows the
+  whole list. No page keeps a *second*, lesser reminder box for it: the homepage
+  used to show a "1 reminder is waiting" strip and then the box landed on top
+  of it, which read as two notifications for one reminder — the box is the
+  homepage's reminder surface now. Once it has opened by itself it stays put: it
+  is the notification, not a menu, so clicking the page under it does not take
+  the row away (that is what made a row "vanish" the moment the user looked at
+  anything). ✕ or Escape retires it — the reminder itself stays pending on the
+  queue — and every row also carries a ✓ whose tooltip is the whole point:
+  "Got it, I'll watch it". It reads
+  `GET /api/up-next/alerts`, which answers with what is ready plus what is
+  coming up (so a timer you *set* is visible on the site, not only a missed one)
+  and 401 when signed out, whereupon the dock stays quiet rather than bouncing a
+  visitor to `/login` for opening a public page. The ready list runs
+  **most-recently-due first**, so the row on top is the reminder that just fired,
+  and it is long enough to hold everything a queue realistically carries at once
+  — an oldest-first list truncated at three hid exactly the one the user was
+  looking for. The one that came due in the last ten minutes is highlighted
+  (`fresh`). It re-polls every 60s while the tab is visible and on
+  `visibilitychange`, so a timer that runs out mid-browse pops on its own, and
+  a reminder already seen this session is not announced again. When the
+  device has no push subscription the box also offers **Turn on notifications**
+  — a due reminder with nothing subscribed is the most common reason someone
+  sees no notification at all, and the check costs no request (the browser's
+  push manager answers it locally). `due_moment()` derives that age per
   kind — an `hours` timer from `remind_at`, the dated kinds from `remind_on` (at
   17:00 for `tonight`, midnight otherwise), and `after` from the sweep's
   `notified_at`, which SQLite writes in UTC and therefore has to be converted to
   the site clock or every label would be 5:30 out.
+- **"Got it, I'll watch it" is a real action, not a dismiss.** The ✓ on a row
+  posts to `POST /api/up-next/ack`, which calls `ack_up_next_reminder()`: the
+  `remind_*` columns are cleared, so the timer goes off, the row leaves the box
+  and the badge, and the sweep can never fire it again — while the row keeps its
+  status and stays on the queue, so `/up-next` still lists the show for anyone
+  who missed the notification. That is the difference between "stop telling me"
+  and "I watched it": acknowledging never deletes a show the user still means to
+  watch. The same endpoint accepts `{"slugs": [...]}` for a batch.
 - Requires the `pywebpush` dependency (pinned in `requirements.txt`). If it is
   missing the feature degrades quietly — the pickers and queue still work and
   the push endpoints report `push_unavailable` instead of erroring. iOS needs the
