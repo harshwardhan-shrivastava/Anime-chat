@@ -10,7 +10,7 @@
  *
  * Bump CACHE when this file changes on purpose.
  * ============================================================ */
-var CACHE = "otakul-v2";
+var CACHE = "otakul-v5";
 
 self.addEventListener("install", function (e) {
     e.waitUntil(

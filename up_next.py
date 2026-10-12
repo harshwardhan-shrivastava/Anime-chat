@@ -11,6 +11,7 @@ mean to watch?". Three states plus four reminder kinds:
     remind      tonight   ping me this evening
                 tomorrow  ping me tomorrow
                 date      ping me on a specific calendar day
+                hours     ping me in N hours (an exact timer, not a day)
                 after     ping me once I finish <another show>
 
 Design notes
@@ -70,6 +71,10 @@ SITE_TZ = timezone(timedelta(hours=5, minutes=30))
 TONIGHT_HOUR = 17
 REMINDER_SWEEP_SECONDS = 300
 
+# Upper bound for an 'hours' timer. Anything longer is a calendar plan, not a
+# timer, so 'date' is the right tool and the picker never offers more.
+MAX_REMIND_HOURS = 72
+
 # How the pill on a card is rendered per state.
 STATUS_PILL = {
     UP_NEXT_NOW: {"label": "NOW", "icon": "fa-play", "cls": "un-now"},
@@ -81,6 +86,7 @@ REMIND_LABEL = {
     "tonight": "Tonight",
     "tomorrow": "Tomorrow",
     "date": "Pick a day",
+    "hours": "In a few hours",
     "after": "After I finish…",
 }
 
@@ -103,6 +109,115 @@ def parse_date(value):
         return datetime.strptime((value or "").strip(), "%Y-%m-%d").date()
     except (TypeError, ValueError):
         return None
+
+
+def parse_datetime(value):
+    """ISO 8601 -> aware datetime in the site clock, or None.
+
+    'hours' reminders store a full timestamp rather than a calendar day, so
+    they need to survive the round trip through SQLite text. Never raises on
+    user input; a naive value is assumed to be site-local.
+    """
+    try:
+        dt = datetime.fromisoformat((value or "").strip())
+    except (TypeError, ValueError):
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=SITE_TZ)
+
+
+def _short_countdown(left):
+    """Pill label for a running timer.
+
+    Rounds to the nearest minute and then the nearest hour. Flooring the
+    seconds was subtly wrong: a timer stored exactly one hour out renders a
+    fraction of a second later, so it would read "IN 59M" instead of "IN 1H".
+    """
+    minutes = max(1, int(round(max(0.0, left.total_seconds()) / 60)))
+    if minutes < 60:
+        return f"IN {minutes}M"
+    return f"IN {max(1, int(round(minutes / 60)))}H"
+
+
+def _parse_utc_stamp(value):
+    """SQLite CURRENT_TIMESTAMP -> aware datetime in the site clock.
+
+    CURRENT_TIMESTAMP is UTC and carries no offset, so it must be tagged UTC
+    *before* converting. Reading it as local time would put every "came due
+    4h ago" label out by the 5:30 this site is offset from UTC.
+    """
+    try:
+        naive = datetime.strptime((value or "").strip(), "%Y-%m-%d %H:%M:%S")
+    except (TypeError, ValueError):
+        return None
+    return naive.replace(tzinfo=timezone.utc).astimezone(SITE_TZ)
+
+
+def due_moment(row):
+    """When this reminder actually came due, in the site clock, or None.
+
+    Each kind stores its timing differently, so "how long has this been
+    waiting?" has to be derived per kind rather than read off one column.
+    """
+    kind = (row.get("remind_kind") or "").strip()
+    if kind == "hours":
+        return parse_datetime(row.get("remind_at"))
+    on = parse_date(row.get("remind_on"))
+    if on is not None and kind in ("tonight", "tomorrow", "date"):
+        # 'tonight' only starts at TONIGHT_HOUR; the date-based kinds are due
+        # from the start of their day.
+        hour = TONIGHT_HOUR if kind == "tonight" else 0
+        return datetime(on.year, on.month, on.day, hour, 0, tzinfo=SITE_TZ)
+    # 'after' stores no moment of its own — it becomes due when its blocker is
+    # finished. The sweep stamps notified_at within one sweep of that, so it is
+    # the best available proxy rather than a guess.
+    return _parse_utc_stamp(row.get("notified_at"))
+
+
+def _ago_label(moment):
+    """Human age of a past moment: '4h ago', '2 days ago', or '' if unknown."""
+    if moment is None:
+        return ""
+    seconds = (_now() - moment).total_seconds()
+    if seconds < 60:
+        return "just now"
+    minutes = int(seconds // 60)
+    if minutes < 60:
+        return f"{minutes}m ago"
+    hours = int(minutes // 60)
+    if hours < 24:
+        return f"{hours}h ago"
+    days = int(hours // 24)
+    return "1 day ago" if days == 1 else f"{days} days ago"
+
+
+def waiting_summary(cards):
+    """(count, longest wait) across due reminders — the "while you were
+    away" summary. The count says something is waiting; the age is what tells
+    the user it slipped past them."""
+    stamps = [
+        c["up_next"].get("due_since")
+        for c in (cards or [])
+        if (c.get("up_next") or {}).get("due")
+    ]
+    if not stamps:
+        return 0, ""
+    known = [s for s in stamps if s]
+    if not known:
+        return len(stamps), ""
+    return len(stamps), _ago_label(datetime.fromtimestamp(min(known), SITE_TZ))
+
+
+def _friendly_countdown(left):
+    """Human caption for a running timer, in the pill's voice."""
+    minutes = int(left.total_seconds() // 60)
+    if minutes < 1:
+        return "any second now"
+    if minutes < 60:
+        return f"in {minutes} min"
+    hours = minutes / 60
+    if hours < 1.5:
+        return "in about an hour"
+    return f"in about {int(round(hours))} hours"
 
 
 def _friendly_day(target, today):
@@ -136,6 +251,7 @@ def resolve(row, done_slugs=None, today=None):
 
     due = False
     caption = ""
+    countdown = None
 
     if status != UP_NEXT_DONE and kind:
         if kind == "after":
@@ -145,6 +261,16 @@ def resolve(row, done_slugs=None, today=None):
                 caption = "ready — you finished the show before it"
             else:
                 caption = "waiting for you to finish another show" if blocker else ""
+        elif kind == "hours":
+            at = parse_datetime(row.get("remind_at"))
+            if at is not None:
+                left = at - _now()
+                if left.total_seconds() <= 0:
+                    due = True
+                    caption = "your timer just ran out"
+                else:
+                    caption = _friendly_countdown(left)
+                    countdown = _short_countdown(left)
         elif on:
             if today > on:
                 due = True
@@ -171,8 +297,16 @@ def resolve(row, done_slugs=None, today=None):
         # Waiting on another show — deliberately quiet, it is not calling
         # for you yet.
         pill = {"label": "WAITING", "icon": "fa-hourglass-half", "cls": "un-waiting"}
+    elif status == UP_NEXT_PLANNED and countdown:
+        # A running timer counts itself down on the poster instead of showing
+        # the generic PLANNED label.
+        pill = {"label": countdown, "icon": "fa-clock", "cls": "un-planned"}
     elif status == UP_NEXT_PLANNED and on:
         pill["label"] = _friendly_day(on, today)
+
+    # A due reminder carries its own age, which is what lets the site say
+    # "this came due 4h ago" when the user comes back to it.
+    moment = due_moment(row) if due else None
 
     return {
         "slug": row.get("anime_slug"),
@@ -180,9 +314,14 @@ def resolve(row, done_slugs=None, today=None):
         "remind_kind": kind or None,
         "remind_on": on.isoformat() if on else None,
         "remind_after_slug": (row.get("remind_after_slug") or "").strip() or None,
+        # Exposed so the picker can prefill its timer stepper with whatever is
+        # left of a running countdown.
+        "remind_at": row.get("remind_at"),
         "due": due,
         "caption": caption,
         "pill": pill,
+        "due_since": int(moment.timestamp()) if moment else None,
+        "ago": _ago_label(moment),
     }
 
 
@@ -428,6 +567,8 @@ def _reminder_body(row, entry, due_state):
     kind = row.get("remind_kind")
     if kind == "after":
         why = "you finished the show before it"
+    elif kind == "hours":
+        why = "your timer's up"
     elif due_state.get("caption") == "from an earlier day":
         why = "you planned this earlier"
     elif kind == "tonight":
@@ -606,6 +747,7 @@ def api_set():
     today = _today()
     remind_on = None
     remind_after = None
+    remind_at = None
 
     if kind == "tonight":
         remind_on = today.isoformat()
@@ -623,6 +765,17 @@ def api_set():
             if chosen < today:
                 chosen = today
             remind_on = chosen.isoformat()
+    elif kind == "hours":
+        try:
+            hours = int(data.get("remind_hours") or 0)
+        except (TypeError, ValueError):
+            hours = 0
+        if hours < 1:
+            return jsonify({"success": False, "error": "remind_hours"}), 400
+        hours = min(hours, MAX_REMIND_HOURS)
+        # An absolute moment, so the timer keeps ticking across restarts and
+        # does not drift onto a day boundary the way a date would.
+        remind_at = (_now() + timedelta(hours=hours)).isoformat()
     elif kind == "after":
         after = _clean_slug(data.get("remind_after"))
         if after is None or after == slug:
@@ -637,9 +790,11 @@ def api_set():
         kind = None
         remind_on = None
         remind_after = None
+        remind_at = None
 
     row = set_up_next(
-        user["id"], slug, status, kind, remind_on, remind_after
+        user["id"], slug, status, kind, remind_on, remind_after,
+        remind_at=remind_at,
     )
     done = get_done_slugs(user["id"])
     return jsonify({
@@ -783,10 +938,13 @@ def page():
         else:
             buckets["later"].append(card)
 
+    ready_count, ready_oldest = waiting_summary(cards)
     return render_template(
         "up_next.html",
         signed_in=True,
         ready=buckets["ready"],
+        ready_count=ready_count,
+        ready_oldest=ready_oldest,
         now=buckets["now"],
         tonight=buckets["tonight"],
         later=buckets["later"],

@@ -9,7 +9,7 @@
  *      sense), and the /up-next page has an explicit on/off card.
  *
  * Reminder kinds mirror the server (up_next.py):
- *   now | tonight | tomorrow | date | after
+ *   now | tonight | tomorrow | hours | date | after
  */
 (function () {
     "use strict";
@@ -18,6 +18,7 @@
     var currentSlug = null;
     var currentTitle = "";
     var currentState = null;
+    var stateCache = {};     // slug -> last known state, so reopening is instant
     var REPO = null;         // service worker registration
 
     /* ---------------------------------------------------------------- utils */
@@ -89,94 +90,128 @@
         if (e.key === "Escape") closePicker();
     }
 
+    /* The picker's whole vocabulary lives in one table, so the markup and the
+     * in-place refresh below can never disagree about a row's label. Ordered
+     * as it reads top-to-bottom: what I'm doing, then when to nudge me, then
+     * the two "just file it" actions. */
+    var ROWS = [
+        { kind: "now", ico: "fa-play", title: "Currently watching",
+          desc: "A live dot on every poster" },
+        { kind: "tonight", ico: "fa-moon", title: "Ping me tonight",
+          desc: "One nudge after 5pm IST" },
+        { kind: "tomorrow", ico: "fa-sun", title: "Ping me tomorrow",
+          desc: "One nudge tomorrow" },
+        { kind: "hours", ico: "fa-clock", title: "Ping me in a few hours",
+          desc: "Set a timer — 1 to 72 hours" },
+        { kind: "date", ico: "fa-calendar-day", title: "Ping me on a set day",
+          desc: "Pick any date" },
+        { kind: "after", ico: "fa-hourglass-half", title: "After I finish another show",
+          desc: "Unlocks the moment you finish it" },
+        { kind: "none", ico: "fa-bookmark", title: "Park it on my backlog",
+          desc: "No reminder" },
+        { kind: "done", ico: "fa-flag-checkered", title: "Finished this one",
+          desc: "Clears it, and frees whatever waited on it" }
+    ];
+
+    // The single source of truth for whether a row is "on", shared by the
+    // initial paint and the later state refresh.
+    function isOn(key, state) {
+        var s = state || {};
+        if (key === "now") return s.status === "now";
+        if (key === "none") return s.status === "planned" && !s.remind_kind;
+        if (key === "done") return s.status === "done";
+        return s.remind_kind === key;
+    }
+
+    function rowDesc(row, state) {
+        var s = state || {};
+        if (s.remind_kind !== row.kind) return row.desc;
+        if (row.kind === "date" && s.remind_on) return "Set for " + s.remind_on;
+        // resolve() already phrases a running timer for us ("in about 3 hours").
+        if (row.kind === "hours" && s.caption) return s.caption;
+        if (row.kind === "after" && s.remind_after_slug) return "Waiting on another show";
+        return row.desc;
+    }
+
     function optionsHTML(state) {
-        var active = state || {};
-        function cls(key) {
-            var on = false;
-            if (key === "now") on = active.status === "now";
-            else if (key === "none") on = active.status === "planned" && !active.remind_kind;
-            else if (key === "done") on = active.status === "done";
-            else on = active.remind_kind === key;
-            return "un-row" + (on ? " active" : "");
-        }
-        function tick(key) {
-            var on = false;
-            if (key === "now") on = active.status === "now";
-            else if (key === "none") on = active.status === "planned" && !active.remind_kind;
-            else if (key === "done") on = active.status === "done";
-            else on = active.remind_kind === key;
-            return on ? '<i class="fas fa-check un-row-tick"></i>' : "";
-        }
-        return '' +
-            '<button type="button" class="' + cls("now") + '" data-kind="now">' +
-            '  <span class="un-row-ico ico-now' + (active.status === "now" ? " on" : "") + '"><i class="fas fa-play"></i></span>' +
-            '  <span class="un-row-text">' +
-            '    <span class="un-row-title">I\'m watching this now</span>' +
-            '    <span class="un-row-desc">Shows a live indicator on every card</span>' +
-            '  </span>' + tick("now") +
-            '</button>' +
-            '<button type="button" class="' + cls("tonight") + '" data-kind="tonight">' +
-            '  <span class="un-row-ico"><i class="fas fa-moon"></i></span>' +
-            '  <span class="un-row-text">' +
-            '    <span class="un-row-title">Remind me tonight</span>' +
-            '    <span class="un-row-desc">A ping this evening</span>' +
-            '  </span>' + tick("tonight") +
-            '</button>' +
-            '<button type="button" class="' + cls("tomorrow") + '" data-kind="tomorrow">' +
-            '  <span class="un-row-ico"><i class="fas fa-sun"></i></span>' +
-            '  <span class="un-row-text">' +
-            '    <span class="un-row-title">Remind me tomorrow</span>' +
-            '    <span class="un-row-desc">One ping tomorrow</span>' +
-            '  </span>' + tick("tomorrow") +
-            '</button>' +
-            '<button type="button" class="' + cls("date") + '" data-kind="date">' +
-            '  <span class="un-row-ico"><i class="fas fa-calendar-day"></i></span>' +
-            '  <span class="un-row-text">' +
-            '    <span class="un-row-title">Remind me on a specific day</span>' +
-            '    <span class="un-row-desc">' +
-            (active.remind_kind === "date" && active.remind_on ? "Set for " + active.remind_on : "Pick any date") +
-            '</span>' +
-            '  </span>' + tick("date") +
-            '</button>' +
-            '<div class="un-inline" id="unDateRow">' +
-            '  <input type="date" id="unDateInput" min="' + todayISO() + '"' +
-            (active.remind_kind === "date" && active.remind_on ? ' value="' + active.remind_on + '"' : "") + '>' +
-            '  <button type="button" class="un-mini-btn" id="unDateSet">Set</button>' +
-            '</div>' +
-            '<button type="button" class="' + cls("after") + '" data-kind="after">' +
-            '  <span class="un-row-ico ico-after"><i class="fas fa-hourglass-half"></i></span>' +
-            '  <span class="un-row-text">' +
-            '    <span class="un-row-title">After I finish another show</span>' +
-            '    <span class="un-row-desc" id="unAfterDesc">' +
-            (active.remind_kind === "after" && active.remind_after_slug ? "Waiting on another show" : "Unlocks when you finish a queued show") +
-            '</span>' +
-            '  </span>' + tick("after") +
-            '</button>' +
-            '<div class="un-inline" id="unAfterRow">' +
-            '  <select id="unAfterInput"></select>' +
-            '  <button type="button" class="un-mini-btn" id="unAfterSet">Set</button>' +
-            '</div>' +
-            '<button type="button" class="' + cls("none") + '" data-kind="none">' +
-            '  <span class="un-row-ico"><i class="fas fa-bookmark"></i></span>' +
-            '  <span class="un-row-text">' +
-            '    <span class="un-row-title">Just add to my queue</span>' +
-            '    <span class="un-row-desc">No reminder</span>' +
-            '  </span>' + tick("none") +
-            '</button>' +
-            '<button type="button" class="' + cls("done") + '" data-kind="done">' +
-            '  <span class="un-row-ico"><i class="fas fa-check"></i></span>' +
-            '  <span class="un-row-text">' +
-            '    <span class="un-row-title">I finished it</span>' +
-            '    <span class="un-row-desc">Clears it, and releases any show waiting on it</span>' +
-            '  </span>' + tick("done") +
-            '</button>' +
-            (active.slug || currentSlug ?
-                '<button type="button" class="un-row un-danger-row" data-kind="remove">' +
-                '  <span class="un-row-ico"><i class="fas fa-trash"></i></span>' +
+        var s = state || {};
+        var html = "";
+        ROWS.forEach(function (row) {
+            var on = isOn(row.kind, state);
+            html +=
+                '<button type="button" class="un-row' + (on ? " active" : "") +
+                '" data-kind="' + row.kind + '">' +
+                '  <span class="un-row-ico ico-' + row.kind + (on ? " on" : "") + '">' +
+                '    <i class="fas ' + row.ico + '"></i></span>' +
                 '  <span class="un-row-text">' +
-                '    <span class="un-row-title">Remove from Up Next</span>' +
+                '    <span class="un-row-title">' + row.title + '</span>' +
+                '    <span class="un-row-desc">' + rowDesc(row, state) + '</span>' +
                 '  </span>' +
-                '</button>' : '');
+                (on ? '<i class="fas fa-check un-row-tick"></i>' : '') +
+                '</button>';
+            if (row.kind === "hours") {
+                html +=
+                    '<div class="un-inline" id="unHoursRow">' +
+                    '  <input type="number" id="unHoursInput" min="1" max="72" step="1" value="3"' +
+                    '         inputmode="numeric" aria-label="Hours from now">' +
+                    '  <span class="un-inline-unit">hrs from now</span>' +
+                    '  <button type="button" class="un-mini-btn" id="unHoursSet">Set</button>' +
+                    '</div>';
+            }
+            if (row.kind === "date") {
+                html +=
+                    '<div class="un-inline" id="unDateRow">' +
+                    '  <input type="date" id="unDateInput" min="' + todayISO() + '"' +
+                    (s.remind_kind === "date" && s.remind_on ? ' value="' + s.remind_on + '"' : "") + '>' +
+                    '  <button type="button" class="un-mini-btn" id="unDateSet">Set</button>' +
+                    '</div>';
+            }
+            if (row.kind === "after") {
+                html +=
+                    '<div class="un-inline" id="unAfterRow">' +
+                    '  <select id="unAfterInput"></select>' +
+                    '  <button type="button" class="un-mini-btn" id="unAfterSet">Set</button>' +
+                    '</div>';
+            }
+        });
+        return html +
+            '<button type="button" class="un-row un-danger-row" data-kind="remove">' +
+            '  <span class="un-row-ico"><i class="fas fa-trash"></i></span>' +
+            '  <span class="un-row-text">' +
+            '    <span class="un-row-title">Take it off Up Next</span>' +
+            '  </span>' +
+            '</button>';
+    }
+
+    // Refresh an already-painted list in place rather than rebuilding it, so
+    // the rows the user is reading never flicker under them.
+    function applyState(pop, state) {
+        currentState = state;
+        var rows = pop.querySelector("#unRows");
+        if (!rows) return;
+        ROWS.forEach(function (row) {
+            var btn = rows.querySelector('.un-row[data-kind="' + row.kind + '"]');
+            if (!btn) return;
+            var on = isOn(row.kind, state);
+            btn.classList.toggle("active", on);
+            var ico = btn.querySelector(".un-row-ico");
+            if (ico) ico.classList.toggle("on", on);
+            var desc = btn.querySelector(".un-row-desc");
+            if (desc) desc.textContent = rowDesc(row, state);
+            var tick = btn.querySelector(".un-row-tick");
+            if (on && !tick) {
+                btn.insertAdjacentHTML("beforeend", '<i class="fas fa-check un-row-tick"></i>');
+            } else if (!on && tick) {
+                tick.remove();
+            }
+        });
+        var s = state || {};
+        var hInput = pop.querySelector("#unHoursInput");
+        if (hInput && s.remind_kind === "hours" && s.remind_at) {
+            // Prefill the stepper with whatever is left of a running timer.
+            var left = (new Date(s.remind_at).getTime() - Date.now()) / 3600000;
+            hInput.value = Math.max(1, Math.min(72, Math.round(left) || 1));
+        }
     }
 
     function openPicker(slug, title) {
@@ -188,13 +223,11 @@
         var pop = el("div", "list-picker-popover modal un-pop");
         pop.innerHTML =
             '<div class="list-picker-head">' +
-            '  <div class="list-picker-title">Up Next</div>' +
+            '  <div class="list-picker-title"><i class="fas fa-tv"></i> Up Next</div>' +
             '  <button type="button" class="list-picker-close" aria-label="Close"><span class="modal-x"></span></button>' +
             '</div>' +
             '<div class="list-picker-sub">' + escapeHtml(currentTitle) + '</div>' +
-            '<div class="list-picker-rows un-rows" id="unRows">' +
-            '  <div class="list-picker-empty">Loading…</div>' +
-            '</div>';
+            '<div class="list-picker-rows un-rows" id="unRows"></div>';
 
         overlay.appendChild(pop);
         document.body.appendChild(overlay);
@@ -206,17 +239,24 @@
         pop.querySelector(".list-picker-close").addEventListener("click", closePicker);
         document.addEventListener("keydown", onKey, true);
 
+        // Paint the rows before touching the network. This box used to sit on
+        // "Loading…" until /api/up-next/state returned, which is exactly what
+        // made it feel slow — the rows themselves are static, so only the tick
+        // marks actually need the server. The last known state (if we have
+        // one) is applied straight away and corrected when the response lands.
+        currentState = stateCache[slug] || null;
+        pop.querySelector("#unRows").innerHTML = optionsHTML(currentState);
+        wireRows(pop);
+
         api("/api/up-next/state?slug=" + encodeURIComponent(slug))
             .then(function (data) {
-                currentState = data.state || null;
-                var rows = pop.querySelector("#unRows");
-                rows.innerHTML = optionsHTML(currentState);
-                wireRows(pop, data);
+                stateCache[slug] = data.state || null;
+                applyState(pop, data.state || null);
             })
             .catch(function () {
-                var rows = pop.querySelector("#unRows");
-                if (rows) rows.innerHTML =
-                    '<div class="list-picker-empty">Couldn\'t load your queue.</div>';
+                // The rows still work — say the ticks may be stale instead of
+                // silently showing state we could not verify.
+                if (!stateCache[slug]) toast("Couldn't load your queue — tap a choice to set it");
             });
     }
 
@@ -226,31 +266,14 @@
         return d.innerHTML;
     }
 
-    function wireRows(pop, data) {
+    function wireRows(pop) {
         var rows = pop.querySelector("#unRows");
         var dateRow = pop.querySelector("#unDateRow");
         var dateInput = pop.querySelector("#unDateInput");
+        var hoursRow = pop.querySelector("#unHoursRow");
+        var hoursInput = pop.querySelector("#unHoursInput");
         var afterRow = pop.querySelector("#unAfterRow");
         var afterInput = pop.querySelector("#unAfterInput");
-
-        // "After I finish…" needs somewhere to finish first.
-        api("/api/up-next/options?exclude=" + encodeURIComponent(currentSlug))
-            .then(function (res) {
-                var opts = res.options || [];
-                if (!opts.length) {
-                    afterInput.innerHTML = '<option value="">Queue another show first</option>';
-                    afterInput.disabled = true;
-                    pop.querySelector("#unAfterSet").disabled = true;
-                    return;
-                }
-                afterInput.innerHTML = opts.map(function (o) {
-                    var sel = (currentState && currentState.remind_after_slug === o.slug)
-                        ? " selected" : "";
-                    return '<option value="' + o.slug + '"' + sel + '>' +
-                        escapeHtml(o.title) + '</option>';
-                }).join("");
-            })
-            .catch(function () {});
 
         rows.querySelectorAll(".un-row[data-kind]").forEach(function (btn) {
             btn.addEventListener("click", function () {
@@ -260,13 +283,19 @@
                     return;
                 }
                 if (kind === "date") {
-                    toggleInline(dateRow, [afterRow]);
+                    toggleInline(dateRow, [hoursRow, afterRow]);
                     if (dateInput && !dateInput.value) dateInput.value = todayISO();
                     if (dateInput) dateInput.focus();
                     return;
                 }
+                if (kind === "hours") {
+                    toggleInline(hoursRow, [dateRow, afterRow]);
+                    if (hoursInput) { hoursInput.focus(); hoursInput.select(); }
+                    return;
+                }
                 if (kind === "after") {
-                    toggleInline(afterRow, [dateRow]);
+                    toggleInline(afterRow, [dateRow, hoursRow]);
+                    loadAfterOptions(pop);
                     var sel = pop.querySelector("#unAfterInput");
                     if (sel && !sel.disabled) sel.focus();
                     return;
@@ -276,7 +305,7 @@
                 } else if (kind === "done") {
                     save({ status: "done", remind_kind: null }, "Marked as finished");
                 } else if (kind === "none") {
-                    save({ status: "planned", remind_kind: null }, "Added to Up Next");
+                    save({ status: "planned", remind_kind: null }, "Parked on your backlog");
                 } else {
                     save({ status: "planned", remind_kind: kind }, "Reminder set");
                 }
@@ -290,6 +319,15 @@
             save({ status: "planned", remind_kind: "date", remind_on: v }, "Reminder scheduled");
         });
 
+        var hoursSet = pop.querySelector("#unHoursSet");
+        if (hoursSet) hoursSet.addEventListener("click", function () {
+            var n = parseInt(hoursInput && hoursInput.value, 10);
+            if (!n || n < 1) { toast("Give it at least an hour"); return; }
+            n = Math.min(n, 72);
+            save({ status: "planned", remind_kind: "hours", remind_hours: n },
+                 "Timer set — " + n + (n === 1 ? " hour" : " hours") + " from now");
+        });
+
         var afterSet = pop.querySelector("#unAfterSet");
         if (afterSet) afterSet.addEventListener("click", function () {
             var v = afterInput.value;
@@ -297,6 +335,35 @@
             save({ status: "planned", remind_kind: "after", remind_after: v },
                  "Queued for after you finish that");
         });
+    }
+
+    // The "after I finish…" row is the only one that needs the user's queue, so
+    // it is fetched on demand rather than on every picker open.
+    function loadAfterOptions(pop) {
+        var sel = pop.querySelector("#unAfterInput");
+        if (!sel || sel.dataset.loaded === "1") return;
+        sel.dataset.loaded = "1";
+        api("/api/up-next/options?exclude=" + encodeURIComponent(currentSlug))
+            .then(function (res) {
+                var opts = res.options || [];
+                if (!opts.length) {
+                    sel.innerHTML = '<option value="">Queue another show first</option>';
+                    sel.disabled = true;
+                    var b = pop.querySelector("#unAfterSet");
+                    if (b) b.disabled = true;
+                    return;
+                }
+                sel.innerHTML = opts.map(function (o) {
+                    var chosen = (currentState && currentState.remind_after_slug === o.slug)
+                        ? " selected" : "";
+                    return '<option value="' + o.slug + '"' + chosen + '>' +
+                        escapeHtml(o.title) + '</option>';
+                }).join("");
+            })
+            .catch(function () {
+                sel.dataset.loaded = "0";   // let the next open retry
+                sel.innerHTML = '<option value="">Couldn\'t load your queue</option>';
+            });
     }
 
     function toggleInline(row, others) {
@@ -573,10 +640,29 @@
         }
     }
 
+    // The "while you were away" banner. Dismissal is per-session on purpose:
+    // those reminders really are still waiting, so hiding it permanently would
+    // be a lie. Coming back tomorrow should mention them again.
+    function wireAwayBanner() {
+        var banner = document.getElementById("unAway");
+        if (!banner || banner.dataset.wired) return;
+        banner.dataset.wired = "1";
+        var key = "unAwayDismissed";
+        try {
+            if (sessionStorage.getItem(key)) { banner.remove(); return; }
+        } catch (err) { /* private mode: just leave the banner up */ }
+        var x = document.getElementById("unAwayX");
+        if (x) x.addEventListener("click", function () {
+            try { sessionStorage.setItem(key, "1"); } catch (err) { /* ignore */ }
+            banner.remove();
+        });
+    }
+
     function wire() {
         wireAnimeButton();
         wireQueueCards();
         wirePushCard();
+        wireAwayBanner();
     }
 
     if (document.readyState === "loading") {

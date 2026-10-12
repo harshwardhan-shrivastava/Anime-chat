@@ -144,6 +144,7 @@
 /* ---------------- Picker rows (shares list_picker.css chrome) ------- */
 
 .un-pop .list-picker-title{ color:#fff; }
+.un-pop .list-picker-title i{ color:#ff6f93; margin-right:7px; font-size:13px; }
 .un-rows{ gap:7px; }
 
 .un-row{
@@ -223,6 +224,7 @@
 }
 .un-inline.open{ display:flex; }
 .un-inline input[type="date"],
+.un-inline input[type="number"],
 .un-inline select{
     flex:1;
     min-width:0;
@@ -238,6 +240,7 @@
 }
 .un-inline select option{ background:#141a2e; color:#fff; }
 .un-inline input[type="date"]:focus,
+.un-inline input[type="number"]:focus,
 .un-inline select:focus{
     border-color:#8F5BFF;
     box-shadow:0 0 12px rgba(143,91,255,.35);
@@ -259,6 +262,22 @@
 .un-mini-btn:hover{ box-shadow:0 0 16px rgba(123,46,255,.7); }
 .un-danger-row{ color:#ff8ea6; }
 .un-danger-row .un-row-ico{ background:rgba(255,59,107,.14); color:#ff8ea6; }
+
+/* Timer stepper: the number field stays narrow, so its unit reads beside it. */
+.un-inline-unit{
+    flex:0 0 auto;
+    align-self:center;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.4px;
+    text-transform:uppercase;
+    color:#8f94b0;
+    white-space:nowrap;
+}
+/* The hours row has the shortest fuse of the lot, so it takes the warm accent
+   the site already uses for "ready now". */
+.un-row-ico.ico-hours{ background:rgba(255,140,66,.2); color:#ffab5e; }
+.un-row.active .un-row-ico.ico-hours{ background:#ff8c42; color:#0d1117; }
 
 .un-hint{
     color:#8f94b0;
@@ -583,10 +602,142 @@
     .un-push-actions .un-btn-ghost{ flex:1; justify-content:center; }
 }
 
+/* --------------- "While you were away": right-side pop-up ------------- */
+
+/* A square notification card docked to the right edge, just under the
+   sticky navbar. Fixed rather than in-flow, so a reminder you missed while
+   the tab was closed greets you where a notification belongs instead of
+   shoving the queue down the page. Session-dismissable (wireAwayBanner in
+   up_next.js) - and above content, below modals (.modal-overlay is 2000). */
+.un-away{
+    position:fixed;
+    top:92px;
+    /* Hug the right edge, but never drift outside the navbar's content
+       column on ultra-wide screens. */
+    right:max(22px,calc((100vw - 1680px) / 2));
+    z-index:1540;
+    width:min(330px,calc(100vw - 28px));
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr);
+    align-items:start;
+    gap:12px;
+    padding:15px 15px 14px;
+    box-sizing:border-box;
+    border-radius:20px;
+    border:1px solid rgba(255,140,66,.4);
+    background:
+    linear-gradient(150deg,rgba(255,140,66,.16),rgba(143,91,255,.14)),
+    rgba(13,17,28,.94);
+    box-shadow:0 20px 46px rgba(0,0,0,.55),0 0 34px rgba(255,140,66,.12);
+    font-family:'Montserrat',sans-serif;
+    animation:unAwayIn .42s cubic-bezier(.22,1,.36,1) both;
+}
+/* Explicit placement only: with no CTA present (the queue page) there is no
+   row 2, so no empty strip is left behind the text. */
+.un-away-ico{ grid-column:1; grid-row:1; }
+.un-away-text{ grid-column:2; grid-row:1; }
+.un-away-btn{ grid-column:1 / -1; grid-row:2; }
+@keyframes unAwayIn{
+    from{ opacity:0; transform:translate3d(24px,-8px,0) scale(.96); }
+    to{ opacity:1; transform:none; }
+}
+.un-away-ico{
+    width:42px;
+    height:42px;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:17px;
+    background:linear-gradient(145deg,#ff9f57,#ff7a2f);
+    color:#141a26;
+    box-shadow:0 6px 18px rgba(255,140,66,.35);
+    animation:unAwayPulse 2.4s ease-in-out infinite;
+}
+/* Keep the icon's resting shadow in the keyframes - the pulse would
+   otherwise wipe it out for the whole animation. */
+@keyframes unAwayPulse{
+    0%,100%{ box-shadow:0 6px 18px rgba(255,140,66,.35),0 0 0 0 rgba(255,140,66,.5); }
+    50%{ box-shadow:0 6px 18px rgba(255,140,66,.35),0 0 0 9px rgba(255,140,66,0); }
+}
+.un-away-text{
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    /* Clear of the card's top-right dismiss button. */
+    padding-right:22px;
+}
+.un-away-text strong{
+    color:#fff;
+    font-size:14px;
+    font-weight:800;
+    letter-spacing:.2px;
+    line-height:1.25;
+}
+.un-away-text span{
+    color:#a9adc4;
+    font-size:12.5px;
+    font-weight:500;
+    line-height:1.4;
+}
+.un-away-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:11px 16px;
+    border-radius:13px;
+    background:linear-gradient(135deg,#ff9f57,#ff7a2f);
+    color:#141a26;
+    font-size:12px;
+    font-weight:800;
+    letter-spacing:.7px;
+    text-transform:uppercase;
+    text-decoration:none;
+    transition:.2s;
+}
+.un-away-btn:hover{
+    box-shadow:0 0 20px rgba(255,140,66,.55);
+    transform:translateY(-1px);
+}
+.un-away-x{
+    position:absolute;
+    top:10px;
+    right:10px;
+    width:26px;
+    height:26px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:9px;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.05);
+    color:#c8cbe0;
+    font-size:15px;
+    line-height:1;
+    cursor:pointer;
+    transition:.2s;
+}
+.un-away-x:hover{ background:rgba(255,255,255,.15); color:#fff; }
+
+/* Phones/tablets: stretch across the top instead of hugging the right edge
+   (the fixed .mob-tabbar already owns the bottom of the screen). */
+@media (max-width:820px){
+    .un-away{
+        top:76px;
+        left:12px;
+        right:12px;
+        width:auto;
+    }
+}
+
 /* Reduced motion: keep the states legible without the pulse. */
 @media (prefers-reduced-motion:reduce){
+    .un-away,
     .un-live-dot,
     .un-ready,
-    .un-pill-due{ animation:none; }
+    .un-pill-due,
+    .un-away-ico{ animation:none; }
     .un-rail-card:hover{ transform:none; }
 }
