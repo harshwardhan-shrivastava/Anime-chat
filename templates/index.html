@@ -44,6 +44,9 @@
     href="{{ url_for('static', filename='css/list_picker.css') }}?v=20260902u">
 
     <link rel="stylesheet"
+    href="{{ url_for('static', filename='css/up_next.css') }}?v=20261011a">
+
+    <link rel="stylesheet"
     href="{{ url_for('static', filename='css/auth.css') }}?v=20260903a">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -146,6 +149,51 @@
 </nav>
 {% endif %}
 
+<!-- ================= UP NEXT (your queue) ================= -->
+
+{% if up_next_list %}
+<section class="un-rail-wrap">
+
+    <div class="un-rail-head">
+        <div>
+            <h2><i class="fas fa-bell"></i> {{ t('Up Next') }}</h2>
+            <p class="un-rail-sub">
+                {% if up_next_ready %}{{ up_next_ready }} ready to watch · {% endif %}Your queue, in the order you meant to watch it.
+            </p>
+        </div>
+        <a href="{{ url_for('up_next.page') }}" class="un-rail-all">
+            Open queue <i class="fas fa-arrow-right"></i>
+        </a>
+    </div>
+
+    <div class="un-rail">
+        {% for item in up_next_list %}
+        <a class="un-rail-card" href="/anime/{{ item.slug }}">
+            <div class="un-rail-poster">
+                <img src="{{ item.image | anime_img }}" alt="{{ item.title }}"
+                     loading="lazy" decoding="async"
+                     onerror="this.onerror=null;this.src=this.src.replace('/cover/large/','/cover/medium/');">
+                <span class="un-pill {{ item.up_next.pill.cls }}{% if item.up_next.due %} un-pill-due{% endif %}">
+                    {% if item.up_next.pill.cls == 'un-now' %}<span class="un-live-dot"></span>{% endif %}
+                    <i class="fas {{ item.up_next.pill.icon }}"></i>
+                    <span>{{ item.up_next.pill.label }}</span>
+                </span>
+            </div>
+            <div class="un-rail-meta">
+                <strong>{{ item | jp_title }}</strong>
+                <span class="un-rail-note">
+                    {% if item.up_next.caption %}{{ item.up_next.caption }}
+                    {% elif item.up_next.remind_kind %}reminder set
+                    {% else %}on your queue{% endif %}
+                </span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+</section>
+{% endif %}
+
 <!-- ================= RECOMMENDED FOR YOU ================= -->
 
 {% if for_you_list %}
@@ -206,6 +254,7 @@
 
 <script src="{{ url_for('static', filename='js/search.js') }}?v=20260902u"></script>
 <script src="{{ url_for('static', filename='js/list_picker.js') }}?v=20260902u" defer></script>
+<script src="{{ url_for('static', filename='js/up_next.js') }}?v=20261011a" defer></script>
 <script src="{{ url_for('static', filename='js/navigation.js') }}?v=20260902u" defer></script>
 {% include "_footer.html" %}
 

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0d1117">
+    <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+    <title>Up Next | Otakul</title>
+    {% set noindex = True %}
+    {% set meta_title = "Up Next | Otakul" %}
+    {% set meta_desc = "Your personal anime watch queue — mark what you're watching right now, set a reminder for tonight or a specific day, or queue a show for after you finish another." %}
+    {% include "_meta.html" %}
+    <link rel="icon" type="image/svg+xml"
+          href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}?v=20260903e">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/auth.css') }}?v=20260903a">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/list_picker.css') }}?v=20260902u">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/up_next.css') }}?v=20261011a">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://s4.anilist.co" crossorigin>
+    <link rel="dns-prefetch" href="https://s4.anilist.co">
+    <link rel="preconnect" href="https://static.tvmaze.com" crossorigin>
+    <link rel="dns-prefetch" href="https://static.tvmaze.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    </noscript>
+    <script src="https://kit.fontawesome.com/6c5c3d9d54.js" crossorigin="anonymous" defer></script>
+</head>
+<body>
+    <div class="background">
+        <div class="circle one"></div>
+        <div class="circle two"></div>
+        <div class="circle three"></div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-list" style="max-width:1300px;margin:20px auto 0;width:90%;">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {% include "_navbar.html" %}
+
+    <section class="un-hero">
+        <span class="un-hero-badge"><i class="fas fa-bell"></i> Your watch queue</span>
+        <h1>Up <span>Next</span></h1>
+        <p>
+            What you're watching right now, what you meant to start tonight,
+            and what you queued for after you finish another show.
+        </p>
+    </section>
+
+    {% if not signed_in %}
+    <section class="un-section un-empty">
+        <div class="un-empty-card">
+            <div class="un-empty-icon"><i class="fas fa-bell"></i></div>
+            <h2>Keep your queue in one place</h2>
+            <p>
+                Sign in to mark shows you're watching right now, set a reminder
+                for tonight or a specific day, and get a push notification when
+                it's time.
+            </p>
+            <a href="{{ url_for('auth.login') }}?next=%2Fup-next" class="un-btn-solid">
+                <i class="fas fa-right-to-bracket"></i> Sign in
+            </a>
+        </div>
+    </section>
+    {% else %}
+
+    {# ---- Notifications: the honest state, not a vague toggle ---- #}
+    <section class="un-section un-push-card-wrap">
+        <div class="un-push-card" id="unPushCard"
+             data-devices="{{ push_devices }}"
+             data-available="{{ '1' if push_available else '0' }}">
+            <div class="un-push-icon"><i class="fas fa-mobile-screen-button"></i></div>
+            <div class="un-push-body">
+                <h3>Reminder notifications</h3>
+                <p id="unPushText">
+                    {% if push_devices %}
+                    On for {{ push_devices }} device{{ '' if push_devices == 1 else 's' }}.
+                    Reminders fire even when Otakul is closed.
+                    {% else %}
+                    Turn these on and Up Next pings you when a reminder comes due —
+                    even with the site closed.
+                    {% endif %}
+                </p>
+                <p class="un-push-note" id="unPushNote" hidden></p>
+            </div>
+            <div class="un-push-actions">
+                <button type="button" class="un-btn-solid" id="unEnablePush">
+                    <i class="fas fa-bell"></i> {% if push_devices %}Add this device{% else %}Enable notifications{% endif %}
+                </button>
+                {% if push_devices %}
+                <button type="button" class="un-btn-ghost" id="unDisablePush">
+                    Turn off
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    {% if total == 0 %}
+    <section class="un-section un-empty">
+        <div class="un-empty-card">
+            <div class="un-empty-icon">🍿</div>
+            <h2>Nothing queued yet</h2>
+            <p>
+                Open any anime and hit <strong>Up Next</strong> to say you're
+                watching it now, or to be reminded about it tonight, tomorrow,
+                on a day you pick, or after you finish another show.
+            </p>
+            <a href="{{ url_for('home') }}" class="un-btn-solid">
+                <i class="fas fa-compass"></i> Find something to watch
+            </a>
+        </div>
+    </section>
+    {% endif %}
+
+    {% macro shelf(title, note, items, accent) %}
+    {% if items %}
+    <section class="un-section">
+        <div class="un-section-head">
+            <h2 class="{{ accent }}">{{ title|safe }}</h2>
+            <p>{{ note }}</p>
+        </div>
+        <div class="anime-grid un-grid">
+            {% for item in items %}
+                {% with anime=item %}
+                {% include "_anime_card.html" %}
+                {% endwith %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+    {% endmacro %}
+
+    {{ shelf('Ready now',
+             'A reminder came due — the queue is waiting on you.',
+             ready, 'un-h-ready') }}
+    {{ shelf('Watching now',
+             'Shows you marked as currently watching.',
+             now, 'un-h-now') }}
+    {{ shelf('Tonight',
+             'Queued for this evening.',
+             tonight, 'un-h-tonight') }}
+    {{ shelf('Later',
+             'Dated reminders and everything else on the queue.',
+             later, 'un-h-later') }}
+    {{ shelf('Waiting on another show',
+             'These unlock the moment you mark the show before them as finished.',
+             waiting, 'un-h-waiting') }}
+
+    {% endif %}
+
+    {% include "_footer.html" %}
+
+    {% include "_mobile_tabbar.html" %}
+
+    {# Tells up_next.js this is the queue page: shelves are grouped on the
+       server, so a change has to reload to move a card between them. #}
+    <script>window.__UN_QUEUE_PAGE = true;</script>
+    <script src="{{ url_for('static', filename='js/up_next.js') }}?v=20261011a"></script>
+</body>
+</html>

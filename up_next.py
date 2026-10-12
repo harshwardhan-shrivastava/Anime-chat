@@ -1,0 +1,798 @@
+"""Up Next — Otakul's personal watch queue.
+
+One row per (user, anime) that answers "what am I watching?" and "what did I
+mean to watch?". Three states plus four reminder kinds:
+
+    status      now       I'm watching this right now
+                planned   it's on my queue
+                done      finished — this is what releases an
+                          ``after`` reminder that was waiting on this show
+
+    remind      tonight   ping me this evening
+                tomorrow  ping me tomorrow
+                date      ping me on a specific calendar day
+                after     ping me once I finish <another show>
+
+Design notes
+------------
+* Reminders are *lazy*: nothing needs a cron. A reminder is "due" the first
+  time anything asks (a page render, the queue API, or the sweep thread
+  below). ``notified_at`` makes the push fire exactly once.
+* Everything is evaluated in the site's timezone (Asia/Kolkata — the same
+  clock ``_episode_badge`` in app.py uses), so a reminder set for "tomorrow"
+  flips over at local midnight, not UTC.
+* Web Push keys are generated on first use and kept in the database, so
+  there is nothing to configure. ``pywebpush`` is imported defensively —
+  if the package is missing the rest of the site keeps working and the push
+  endpoint reports that push is unavailable instead of erroring.
+
+Kept as a blueprint so app.py can register it from one reachable spot.
+"""
+import base64
+import json
+import threading
+import time
+from datetime import date, datetime, timedelta, timezone
+
+from flask import Blueprint, g, jsonify, render_template, request
+from cryptography.hazmat.primitives import serialization
+
+from anime_data import anime_database
+from database import (
+    REMIND_KINDS,
+    UP_NEXT_DONE,
+    UP_NEXT_NOW,
+    UP_NEXT_PLANNED,
+    UP_NEXT_STATUSES,
+    clear_up_next,
+    delete_push_subscription,
+    get_done_slugs,
+    get_pending_reminders,
+    get_push_subscriptions,
+    get_setting,
+    get_up_next_map,
+    mark_up_next_notified,
+    save_push_subscription,
+    set_setting,
+    set_up_next,
+    touch_push_subscription,
+)
+
+up_next_bp = Blueprint("up_next", __name__)
+
+# The site speaks one clock: Asia/Kolkata (UTC+5:30). Cards already label
+# episodes "EP 5 TODAY" against this timezone, so reminders must agree with
+# it or a show and its reminder would disagree about what day it is.
+SITE_TZ = timezone(timedelta(hours=5, minutes=30))
+
+# "Tonight" only means tonight after this local hour; before that a tonight
+# reminder is armed but not yet due (so it does not ping anyone at 9am).
+TONIGHT_HOUR = 17
+REMINDER_SWEEP_SECONDS = 300
+
+# How the pill on a card is rendered per state.
+STATUS_PILL = {
+    UP_NEXT_NOW: {"label": "NOW", "icon": "fa-play", "cls": "un-now"},
+    UP_NEXT_PLANNED: {"label": "PLANNED", "icon": "fa-bookmark", "cls": "un-planned"},
+    UP_NEXT_DONE: {"label": "DONE", "icon": "fa-check", "cls": "un-done"},
+}
+
+REMIND_LABEL = {
+    "tonight": "Tonight",
+    "tomorrow": "Tomorrow",
+    "date": "Pick a day",
+    "after": "After I finish…",
+}
+
+
+# ---------------------------------------------------------------------------
+# Dates
+# ---------------------------------------------------------------------------
+
+def _now():
+    return datetime.now(SITE_TZ)
+
+
+def _today():
+    return _now().date()
+
+
+def parse_date(value):
+    """'YYYY-MM-DD' -> date, or None. Never raises on user input."""
+    try:
+        return datetime.strptime((value or "").strip(), "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return None
+
+
+def _friendly_day(target, today):
+    """Short human label for a due date, in the pill's voice."""
+    delta = (target - today).days
+    if delta <= 0:
+        return "TODAY"
+    if delta == 1:
+        return "TOMORROW"
+    if delta < 7:
+        return f"IN {delta}D"
+    return target.strftime("%b %d").upper()
+
+
+# ---------------------------------------------------------------------------
+# Resolving a queue row into something a template can render
+# ---------------------------------------------------------------------------
+
+def resolve(row, done_slugs=None, today=None):
+    """Turn a stored queue row into display state.
+
+    Returns a dict with the pill, whether the reminder is due, and a short
+    reminder caption. Pure function of the row + the user's finished set, so
+    it is cheap enough to run for every card on a page.
+    """
+    done_slugs = done_slugs or set()
+    today = today or _today()
+    status = row.get("status") or UP_NEXT_PLANNED
+    kind = (row.get("remind_kind") or "").strip()
+    on = parse_date(row.get("remind_on"))
+
+    due = False
+    caption = ""
+
+    if status != UP_NEXT_DONE and kind:
+        if kind == "after":
+            blocker = (row.get("remind_after_slug") or "").strip()
+            if blocker and blocker in done_slugs:
+                due = True
+                caption = "ready — you finished the show before it"
+            else:
+                caption = "waiting for you to finish another show" if blocker else ""
+        elif on:
+            if today > on:
+                due = True
+                caption = "from an earlier day"
+            elif today == on:
+                if kind == "tonight":
+                    if _now().hour >= TONIGHT_HOUR:
+                        due = True
+                        caption = "tonight"
+                    else:
+                        caption = "later tonight"
+                else:
+                    due = True
+                    caption = "today"
+            else:
+                caption = _friendly_day(on, today).lower()
+
+    pill = dict(STATUS_PILL.get(status) or STATUS_PILL[UP_NEXT_PLANNED])
+    if due:
+        # A due reminder outranks the plain status: this is the thing the
+        # user asked to be told about.
+        pill = {"label": "READY", "icon": "fa-bell", "cls": "un-ready"}
+    elif kind == "after":
+        # Waiting on another show — deliberately quiet, it is not calling
+        # for you yet.
+        pill = {"label": "WAITING", "icon": "fa-hourglass-half", "cls": "un-waiting"}
+    elif status == UP_NEXT_PLANNED and on:
+        pill["label"] = _friendly_day(on, today)
+
+    return {
+        "slug": row.get("anime_slug"),
+        "status": status,
+        "remind_kind": kind or None,
+        "remind_on": on.isoformat() if on else None,
+        "remind_after_slug": (row.get("remind_after_slug") or "").strip() or None,
+        "due": due,
+        "caption": caption,
+        "pill": pill,
+    }
+
+
+def _ensure_queue_shape(qmap, done_slugs=None, today=None):
+    """Resolve a whole slug -> row map in one pass (one `today` for all)."""
+    done_slugs = done_slugs if done_slugs is not None else set()
+    today = today or _today()
+    return {
+        slug: resolve(row, done_slugs, today)
+        for slug, row in (qmap or {}).items()
+    }
+
+
+def decorate_card(entry, qmap, done_slugs=None, today=None):
+    """Attach the Up Next pill to one card dict (used by _anime_card.html).
+
+    Mutates and returns `entry` so it can be called inline while building a
+    list of card dicts. Cards outside the queue are untouched, so a page with
+    no queue costs nothing.
+    """
+    row = (qmap or {}).get(entry.get("slug"))
+    if not row:
+        return entry
+    entry["up_next"] = resolve(row, done_slugs, today)
+    return entry
+
+
+# ---------------------------------------------------------------------------
+# Card shaping (matches the pick dicts _anime_card.html expects)
+# ---------------------------------------------------------------------------
+
+def _card(slug):
+    e = anime_database.get(slug)
+    if e is None:
+        return None
+    return {
+        "slug": slug,
+        "title": e.get("title") or slug,
+        "image": e.get("image") or "",
+        "rating": e.get("rating") or "N/A",
+        "live_rating": e.get("rating") or "N/A",
+        "year": e.get("release") or "",
+        "genre": e.get("genre") or "",
+        "total_episodes": e.get("total_episodes", 0) or 0,
+        "member_count": e.get("member_count", 0) or 0,
+        "has_sub": bool(e.get("subtitles")),
+        "has_dub": any(
+            str(d).strip().lower() == "english" for d in (e.get("dub") or [])
+        ),
+        "arc_count": len(e.get("watch_order") or []) or len(e.get("seasons") or []),
+        "next_episode_at": e.get("next_episode_at"),
+    }
+
+
+def attach_queue_state(cards, user_id, qmap=None):
+    """Merge Up Next pills into a list of card dicts, in place.
+
+    Called by the page routes (home, browse, category) after pagination, so
+    only the cards actually being rendered are resolved, and the whole queue
+    is fetched in one query rather than one per card. A missing user or an
+    empty queue is a no-op, so signed-out pages are unaffected.
+    """
+    if not user_id or not cards:
+        return cards
+    if qmap is None:
+        qmap = get_up_next_map(user_id)
+    if not qmap:
+        return cards
+    done = {s for s, r in qmap.items() if r.get("status") == UP_NEXT_DONE}
+    today = _today()
+    for card in cards:
+        decorate_card(card, qmap, done, today)
+    return cards
+
+
+def queued_cards(user_id, limit=24, qmap=None):
+    """The user's queue as card dicts, most-actionable first.
+
+    Ordering is the whole point of the rail: due reminders, then the show
+    you're watching right now, then dated reminders soonest-first, then the
+    rest of the queue. Anything already marked done is left out.
+
+    Pass `qmap` when the caller already loaded the queue (the homepage needs
+    it for both the rail and the card pills) — the remote DB is hit over
+    HTTP, so a redundant fetch is a real round trip.
+    """
+    if qmap is None:
+        qmap = get_up_next_map(user_id)
+    if not qmap:
+        return [], {}
+    done_slugs = {s for s, r in qmap.items() if r.get("status") == UP_NEXT_DONE}
+    today = _today()
+    resolved = _ensure_queue_shape(qmap, done_slugs, today)
+
+    def rank(item):
+        r = item[1]
+        if r["status"] == UP_NEXT_DONE:
+            return (9, 0)
+        if r["due"]:
+            return (0, 0)
+        if r["status"] == UP_NEXT_NOW:
+            return (1, 0)
+        d = parse_date(r["remind_on"])
+        if d:
+            return (2, (d - today).days)
+        return (3, 0)
+
+    ordered = sorted(
+        ((slug, r) for slug, r in resolved.items()
+         if r["status"] != UP_NEXT_DONE),
+        key=rank,
+    )
+
+    # Snooze-before/after ordering within the same bucket: most recent
+    # additions first, so a big queue still surfaces fresh intent.
+    order = [slug for slug, _ in ordered]
+    cards = []
+    for slug in order[:limit]:
+        card = _card(slug)
+        if card is None:
+            continue
+        card["up_next"] = resolved[slug]
+        cards.append(card)
+    return cards, resolved
+
+
+# ---------------------------------------------------------------------------
+# VAPID keys — generated once, stored in the DB, shared by every worker
+# ---------------------------------------------------------------------------
+
+_VAPID_LOCK = threading.Lock()
+_vapid_cache = {}
+
+
+def _b64u(raw):
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+
+def get_vapid():
+    """(private_key_b64url, public_key_b64url), generating on first use.
+
+    The private key is the raw 32-byte P-256 scalar, base64url-encoded — the
+    exact string ``py_vapid.Vapid.from_string`` accepts, so signing needs no
+    PEM files on disk and the key survives redeploys in the database.
+    """
+    if _vapid_cache:
+        return _vapid_cache["priv"], _vapid_cache["pub"]
+
+    with _VAPID_LOCK:
+        if _vapid_cache:
+            return _vapid_cache["priv"], _vapid_cache["pub"]
+
+        priv = get_setting("vapid_private_key")
+        pub = get_setting("vapid_public_key")
+        if not priv or not pub:
+            from py_vapid import Vapid
+
+            key = Vapid()
+            key.generate_keys()
+            priv = _b64u(
+                key.private_key.private_numbers().private_value.to_bytes(32, "big")
+            )
+            pub = _b64u(
+                key.public_key.public_bytes(
+                    serialization.Encoding.X962,
+                    serialization.PublicFormat.UncompressedPoint,
+                )
+            )
+            set_setting("vapid_private_key", priv)
+            set_setting("vapid_public_key", pub)
+            print("[up-next] generated a new VAPID keypair for web push",
+                  flush=True)
+
+        _vapid_cache["priv"] = priv
+        _vapid_cache["pub"] = pub
+        return priv, pub
+
+
+def push_available():
+    try:
+        import pywebpush  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+def send_push(user_id, payload):
+    """Push `payload` to every device this user subscribed.
+
+    Returns (sent, failed). Dead subscriptions (the push service answers
+    404/410 — the browser was uninstalled or the subscription expired) are
+    deleted so they stop being retried forever.
+    """
+    subs = get_push_subscriptions(user_id)
+    if not subs:
+        return 0, 0
+    if not push_available():
+        print("[up-next] pywebpush not installed — skipping push", flush=True)
+        return 0, 0
+
+    from pywebpush import webpush, WebPushException
+
+    priv, _ = get_vapid()
+    body = json.dumps(payload)
+    sent = failed = 0
+    for sub in subs:
+        info = {
+            "endpoint": sub["endpoint"],
+            "keys": {"p256dh": sub["p256dh"], "auth": sub["auth"]},
+        }
+        try:
+            webpush(
+                info,
+                body,
+                vapid_private_key=priv,
+                # The "sub" claim must be a mailto: or https: URL. Using the
+                # site origin keeps it valid without extra configuration.
+                vapid_claims={"sub": "mailto:hello@otakul.co"},
+                ttl=86400,
+                # pywebpush defaults to NO timeout, so one unresponsive push
+                # service would wedge the reminder sweep thread forever.
+                timeout=10,
+            )
+            touch_push_subscription(sub["endpoint"])
+            sent += 1
+        except WebPushException as exc:
+            status = getattr(getattr(exc, "response", None), "status_code", None)
+            if status in (404, 410):
+                delete_push_subscription(sub["endpoint"])
+            failed += 1
+        except Exception:
+            failed += 1
+    return sent, failed
+
+
+# ---------------------------------------------------------------------------
+# The reminder sweep
+# ---------------------------------------------------------------------------
+
+def _reminder_body(row, entry, due_state):
+    """Notification copy. Short, specific, and in the site's voice."""
+    title = (entry or {}).get("title") or row["anime_slug"]
+    kind = row.get("remind_kind")
+    if kind == "after":
+        why = "you finished the show before it"
+    elif due_state.get("caption") == "from an earlier day":
+        why = "you planned this earlier"
+    elif kind == "tonight":
+        why = "it's tonight"
+    else:
+        why = "it's queued for today"
+    return {
+        "title": "Up Next",
+        "body": f"▶ {title} — {why}. Ready when you are.",
+        "url": f"/anime/{row['anime_slug']}",
+        "tag": f"up-next-{row['anime_slug']}",
+        "icon": "/static/icons/icon-192.png",
+        "badge": "/static/icons/icon-192.png",
+    }
+
+
+def due_reminders():
+    """Every armed reminder that is due right now, with display state.
+
+    Reads the small pending-reminder slice once and decides due-ness in
+    Python, because ``after`` reminders depend on a different row's status.
+    """
+    pending = get_pending_reminders()
+    if not pending:
+        return []
+
+    done_by_user = {}
+    today = _today()
+    out = []
+    for row in pending:
+        uid = row["user_id"]
+        if uid not in done_by_user:
+            done_by_user[uid] = get_done_slugs(uid)
+        state = resolve(row, done_by_user[uid], today)
+        if state["due"]:
+            out.append((row, state))
+    return out
+
+
+def run_reminder_sweep(log=True):
+    """Send the push for every due reminder. Returns the number sent."""
+    due = due_reminders()
+    if not due:
+        return 0
+    sent_total = 0
+    for row, state in due:
+        entry = anime_database.get(row["anime_slug"]) or {}
+        payload = _reminder_body(row, entry, state)
+        sent, _failed = send_push(row["user_id"], payload)
+        # Mark it notified even with zero subscriptions: the reminder has
+        # been *surfaced* (it shows as READY in the queue), and re-arming a
+        # reminder is an explicit user action that clears notified_at again.
+        mark_up_next_notified(row["user_id"], row["anime_slug"])
+        sent_total += sent
+        if log:
+            print(
+                f"[up-next] reminder {row['user_id']}/{row['anime_slug']} "
+                f"({row.get('remind_kind')}) -> {sent} device(s)",
+                flush=True,
+            )
+    return sent_total
+
+
+def _reminder_loop():
+    """Background thread: keep pushing reminders even with no page traffic.
+
+    Runs inside the long-lived Flask process (Render runs `python app.py`),
+    so this works without any external cron. Cheap: one small SELECT and a
+    handful of HTTP posts every five minutes.
+    """
+    # Let the app finish booting first.
+    time.sleep(20)
+    while True:
+        try:
+            run_reminder_sweep()
+        except Exception as exc:
+            print(f"[up-next] reminder sweep failed: {exc}", flush=True)
+        time.sleep(REMINDER_SWEEP_SECONDS)
+
+
+def start_reminder_thread():
+    threading.Thread(target=_reminder_loop, daemon=True).start()
+
+
+# ---------------------------------------------------------------------------
+# API helpers
+# ---------------------------------------------------------------------------
+
+def _require_user_json():
+    user = g.get("user")
+    if user is None:
+        return None, (jsonify({"success": False, "error": "login"}), 401)
+    return user, None
+
+
+def _clean_slug(raw):
+    slug = (raw or "").strip()
+    if not slug or anime_database.get(slug) is None:
+        return None
+    return slug
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+@up_next_bp.route("/api/up-next", methods=["GET"])
+def api_queue():
+    """The whole queue, already resolved for display."""
+    user, err = _require_user_json()
+    if err:
+        return err
+    cards, resolved = queued_cards(user["id"])
+    return jsonify({
+        "success": True,
+        "items": [{"slug": s, **r} for s, r in resolved.items()],
+        "cards": [
+            {
+                "slug": c["slug"],
+                "title": c["title"],
+                "image": c["image"],
+                "up_next": c["up_next"],
+            }
+            for c in cards
+        ],
+        "push": push_available(),
+    })
+
+
+@up_next_bp.route("/api/up-next/state", methods=["GET"])
+def api_state():
+    """State for one anime — what the anime page's button renders."""
+    user, err = _require_user_json()
+    if err:
+        return err
+    slug = _clean_slug(request.args.get("slug"))
+    if slug is None:
+        return jsonify({"success": False, "error": "slug"}), 400
+    qmap = get_up_next_map(user["id"])
+    done = {s for s, r in qmap.items() if r.get("status") == UP_NEXT_DONE}
+    row = qmap.get(slug)
+    return jsonify({
+        "success": True,
+        "slug": slug,
+        "state": resolve(row, done) if row else None,
+        "push": push_available(),
+        "remind_kinds": list(REMIND_KINDS),
+    })
+
+
+@up_next_bp.route("/api/up-next/set", methods=["POST"])
+def api_set():
+    """Add / update the anime's queue entry.
+
+    Body (JSON): {slug, status, remind_kind?, remind_on?, remind_after?}
+    ``remind_on`` accepts 'tomorrow' as a convenience or a YYYY-MM-DD date;
+    ``remind_after`` must be another slug already on the user's queue.
+    """
+    user, err = _require_user_json()
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    slug = _clean_slug(data.get("slug"))
+    if slug is None:
+        return jsonify({"success": False, "error": "slug"}), 400
+
+    status = (data.get("status") or UP_NEXT_PLANNED).strip().lower()
+    if status not in UP_NEXT_STATUSES:
+        return jsonify({"success": False, "error": "status"}), 400
+
+    kind = (data.get("remind_kind") or "").strip().lower()
+    if kind not in REMIND_KINDS:
+        kind = None
+
+    today = _today()
+    remind_on = None
+    remind_after = None
+
+    if kind == "tonight":
+        remind_on = today.isoformat()
+    elif kind == "tomorrow":
+        remind_on = (today + timedelta(days=1)).isoformat()
+    elif kind == "date":
+        raw = (data.get("remind_on") or "").strip()
+        if raw.lower() == "tomorrow":
+            remind_on = (today + timedelta(days=1)).isoformat()
+        else:
+            chosen = parse_date(raw)
+            if chosen is None:
+                return jsonify({"success": False, "error": "remind_on"}), 400
+            # A reminder in the past would push instantly and read as a bug.
+            if chosen < today:
+                chosen = today
+            remind_on = chosen.isoformat()
+    elif kind == "after":
+        after = _clean_slug(data.get("remind_after"))
+        if after is None or after == slug:
+            return jsonify({"success": False, "error": "remind_after"}), 400
+        qmap = get_up_next_map(user["id"])
+        if after not in qmap:
+            return jsonify({"success": False, "error": "remind_after_not_queued"}), 400
+        remind_after = after
+
+    # Marking something done must not leave a dangling reminder armed.
+    if status == UP_NEXT_DONE:
+        kind = None
+        remind_on = None
+        remind_after = None
+
+    row = set_up_next(
+        user["id"], slug, status, kind, remind_on, remind_after
+    )
+    done = get_done_slugs(user["id"])
+    return jsonify({
+        "success": True,
+        "state": resolve(row, done),
+        # Chains that were waiting on this show may now be due.
+        "released": [s for s in _released_after(user["id"], slug)],
+    })
+
+
+def _released_after(user_id, finished_slug):
+    """Slugs whose ``after`` reminder just became due because we finished
+    `finished_slug` — used to tell the client to refresh those cards."""
+    rows = get_pending_reminders()
+    changed = []
+    for row in rows:
+        if (row["user_id"] == user_id
+                and row.get("remind_after_slug") == finished_slug):
+            changed.append(row["anime_slug"])
+    return changed
+
+
+@up_next_bp.route("/api/up-next/<anime_slug>", methods=["DELETE"])
+def api_remove(anime_slug):
+    user, err = _require_user_json()
+    if err:
+        return err
+    slug = _clean_slug(anime_slug)
+    if slug is None:
+        return jsonify({"success": False, "error": "slug"}), 400
+    removed = clear_up_next(user["id"], slug)
+    return jsonify({"success": True, "removed": bool(removed)})
+
+
+@up_next_bp.route("/api/up-next/options", methods=["GET"])
+def api_options():
+    """Candidate shows for an ``after I finish…`` reminder: the user's own
+    queue (minus the anime being edited), so the picker never offers a show
+    they are not already watching or planning."""
+    user, err = _require_user_json()
+    if err:
+        return err
+    exclude = (request.args.get("exclude") or "").strip()
+    qmap = get_up_next_map(user["id"])
+    out = []
+    for slug, row in qmap.items():
+        if slug == exclude or row.get("status") == UP_NEXT_DONE:
+            continue
+        entry = anime_database.get(slug) or {}
+        out.append({"slug": slug, "title": entry.get("title") or slug})
+    out.sort(key=lambda o: o["title"].lower())
+    return jsonify({"success": True, "options": out, "push": push_available()})
+
+
+@up_next_bp.route("/api/up-next/push/key", methods=["GET"])
+def api_push_key():
+    """The VAPID public key the browser needs to subscribe."""
+    if not push_available():
+        return jsonify({"success": False, "error": "push_unavailable"}), 503
+    _priv, pub = get_vapid()
+    return jsonify({"success": True, "key": pub})
+
+
+@up_next_bp.route("/api/up-next/push/subscribe", methods=["POST"])
+def api_push_subscribe():
+    user, err = _require_user_json()
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    endpoint = (data.get("endpoint") or "").strip()
+    keys = data.get("keys") or {}
+    p256dh = (keys.get("p256dh") or "").strip()
+    auth = (keys.get("auth") or "").strip()
+    if not endpoint or not p256dh or not auth:
+        return jsonify({"success": False, "error": "subscription"}), 400
+    save_push_subscription(
+        user["id"], endpoint, p256dh, auth,
+        request.headers.get("User-Agent") or "",
+    )
+    return jsonify({"success": True})
+
+
+@up_next_bp.route("/api/up-next/push/unsubscribe", methods=["POST"])
+def api_push_unsubscribe():
+    user, err = _require_user_json()
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    endpoint = (data.get("endpoint") or "").strip()
+    if endpoint:
+        delete_push_subscription(endpoint)
+    else:
+        for sub in get_push_subscriptions(user["id"]):
+            delete_push_subscription(sub["endpoint"])
+    return jsonify({"success": True})
+
+
+@up_next_bp.route("/api/up-next/push/status", methods=["GET"])
+def api_push_status():
+    """How many devices this user has push enabled on — the page shows the
+    honest count instead of a vague "notifications on"."""
+    user, err = _require_user_json()
+    if err:
+        return err
+    subs = get_push_subscriptions(user["id"])
+    _priv, pub = get_vapid() if push_available() else ("", "")
+    return jsonify({
+        "success": True,
+        "push": push_available(),
+        "devices": len(subs),
+        "public_key": pub,
+    })
+
+
+@up_next_bp.route("/up-next")
+def page():
+    """The Up Next page: tonight, tomorrow, later, and watching now.
+
+    Shelves are computed server-side so the page is useful before any JS
+    runs, and the client only takes over for setting/clearing entries.
+    """
+    user = g.get("user")
+    if user is None:
+        return render_template("up_next.html", signed_in=False)
+
+    cards, resolved = queued_cards(user["id"], limit=120)
+    today = _today()
+    buckets = {"ready": [], "now": [], "tonight": [], "later": [], "waiting": []}
+    for card in cards:
+        state = card["up_next"]
+        kind = state.get("remind_kind")
+        on = parse_date(state.get("remind_on"))
+        if state["due"]:
+            buckets["ready"].append(card)
+        elif state["status"] == UP_NEXT_NOW:
+            buckets["now"].append(card)
+        elif kind == "tonight" or (on and on == today):
+            buckets["tonight"].append(card)
+        elif kind == "after":
+            buckets["waiting"].append(card)
+        else:
+            buckets["later"].append(card)
+
+    return render_template(
+        "up_next.html",
+        signed_in=True,
+        ready=buckets["ready"],
+        now=buckets["now"],
+        tonight=buckets["tonight"],
+        later=buckets["later"],
+        waiting=buckets["waiting"],
+        total=len(cards),
+        push_devices=len(get_push_subscriptions(user["id"])),
+        push_available=push_available(),
+        vapid_public_key=(get_vapid()[1] if push_available() else ""),
+    )

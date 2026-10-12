@@ -43,6 +43,21 @@
 
         </div>
 
+        {# ---- Up Next: your own indicator on the poster ----
+           Bottom-left completes the poster into a four-corner system
+           (editorial badge top-left, rating top-right, your queue here).
+           Tapping it jumps to the queue so the pill is a shortcut, not
+           just decoration. #}
+        {% if anime.up_next %}
+        <a class="un-pill {{ anime.up_next.pill.cls }}"
+           href="{{ url_for('up_next.page') }}"
+           title="{% if anime.up_next.due %}Due now{% elif anime.up_next.status == 'now' %}Watching now{% else %}On your Up Next queue{% endif %}{% if anime.up_next.caption %} — {{ anime.up_next.caption }}{% endif %}">
+            {% if anime.up_next.pill.cls == 'un-now' %}<span class="un-live-dot"></span>{% endif %}
+            <i class="fas {{ anime.up_next.pill.icon }}"></i>
+            <span>{{ anime.up_next.pill.label }}</span>
+        </a>
+        {% endif %}
+
     </div>    <!-- Card Info -->
     <div class="card-content">
 

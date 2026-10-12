@@ -10,7 +10,7 @@
  *
  * Bump CACHE when this file changes on purpose.
  * ============================================================ */
-var CACHE = "otakul-v1";
+var CACHE = "otakul-v2";
 
 self.addEventListener("install", function (e) {
     e.waitUntil(
@@ -36,6 +36,60 @@ self.addEventListener("activate", function (e) {
                     .map(function (k) { return caches.delete(k); })
             );
         }).then(function () { return self.clients.claim(); })
+    );
+});
+
+/* ------------------------------------------------------------
+ * Up Next reminders
+ *
+ * The server pushes a JSON payload when a reminder comes due
+ * (see up_next.py). Show it, and open the anime page (or the queue)
+ * when the user taps it.
+ * ------------------------------------------------------------ */
+self.addEventListener("push", function (e) {
+    var data = { title: "Up Next", body: "A reminder is due.", url: "/up-next" };
+    try {
+        if (e.data) data = Object.assign(data, e.data.json());
+    } catch (err) {
+        try { data.body = e.data.text(); } catch (err2) { /* keep defaults */ }
+    }
+    e.waitUntil(
+        self.registration.showNotification(data.title || "Up Next", {
+            body: data.body || "",
+            icon: data.icon || "/static/icons/icon-192.png",
+            badge: data.badge || "/static/icons/icon-192.png",
+            // Same tag = a newer reminder replaces the older one for that
+            // show instead of stacking duplicate notifications.
+            tag: data.tag || "up-next",
+            renotify: true,
+            data: { url: data.url || "/up-next" }
+        })
+    );
+});
+
+self.addEventListener("notificationclick", function (e) {
+    e.notification.close();
+    var url = (e.notification.data && e.notification.data.url) || "/up-next";
+    e.waitUntil(
+        self.clients.matchAll({ type: "window", includeUncontrolled: true })
+            .then(function (wins) {
+                // Reuse an open tab when there is one — focusing beats
+                // spawning yet another Otakul window.
+                for (var i = 0; i < wins.length; i++) {
+                    var w = wins[i];
+                    // w.url is not guaranteed to be set (or parseable) on
+                    // every client, so never let that throw the whole
+                    // click handler away.
+                    var sameOrigin = false;
+                    try { sameOrigin = new URL(w.url).origin === self.location.origin; }
+                    catch (err) { sameOrigin = false; }
+                    if ("focus" in w && sameOrigin) {
+                        if ("navigate" in w) { try { w.navigate(url); } catch (err2) {} }
+                        return w.focus();
+                    }
+                }
+                if (self.clients.openWindow) return self.clients.openWindow(url);
+            })
     );
 });
 

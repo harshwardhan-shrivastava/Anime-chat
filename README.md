@@ -101,3 +101,32 @@ up their own account and open the same `/community/<anime>` page.
 - Coverage note: TVmaze has episode stills mostly for mainstream/popular
   anime; older/obscure titles often have none, and those episodes keep falling
   back to the official poster.
+
+### Up Next — personal watch queue + reminder push notifications
+
+`up_next.py` is a self-contained blueprint (registered in `app.py` the same way
+as `threads.py` / `war_zone.py`) that answers "what am I watching?" and "what did
+I mean to watch?".
+
+- **Three states** in `user_up_next` (one row per user + anime): `now`
+  (watching right now), `planned` (on the queue), `done` (finished). Marking a
+  show `done` is what releases a reminder that was waiting on it.
+- **Four reminder kinds**: `tonight`, `tomorrow`, a specific calendar `date`, or
+  `after` you finish another show you have queued. A reminder is *due* the first
+  time anything asks (`resolve()` in `up_next.py`), never on a timer, and
+  `notified_at` guarantees the push fires exactly once. Day boundaries use
+  Asia/Kolkata, the same clock the episode countdown badges use.
+- **Real Web Push.** `get_vapid()` generates a P-256 VAPID keypair on first use
+  and stores it in `app_settings`, so there are **no new environment variables to
+  configure**. The reminder sweep runs in a daemon thread inside the web process
+  (`start_reminder_thread()`), which is why this needs no external cron; each
+  send has a 10 s timeout, and subscriptions the push service reports as
+  404/410 are deleted instead of retried forever.
+- **UI**: status pill on every card (bottom-left of the poster), an Up Next
+  button on anime pages, a queue rail on the homepage, a `/up-next` page with
+  shelves (ready / watching now / tonight / later / waiting), all driven by
+  `static/js/up_next.js` + `static/css/up_next.css`.
+- Requires the `pywebpush` dependency (pinned in `requirements.txt`). If it is
+  missing the feature degrades quietly — the pickers and queue still work and
+  the push endpoints report `push_unavailable` instead of erroring. iOS needs the
+  site added to the Home Screen before `PushManager` exists.
