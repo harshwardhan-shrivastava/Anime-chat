@@ -81,6 +81,10 @@ SWEEP_TOKEN_ENV = "SWEEP_TOKEN"
 # timer, so 'date' is the right tool and the picker never offers more.
 MAX_REMIND_HOURS = 72
 
+# A reminder that came due inside this window is flagged as 'fresh' for the
+# site-wide dock, which draws attention to the one that just went off.
+FRESH_SECONDS = 600
+
 # How the pill on a card is rendered per state.
 STATUS_PILL = {
     UP_NEXT_NOW: {"label": "NOW", "icon": "fa-play", "cls": "un-now"},
@@ -472,11 +476,17 @@ def _reminder_sort_key(state):
     return (1, 0)
 
 
-def _alert_items(pairs):
-    """Trim resolved rows down to the few fields the dock renders."""
+def _alert_items(pairs, now_ts=None):
+    """Trim resolved rows down to the few fields the dock renders.
+
+    ``fresh`` marks a reminder that came due in the last ten minutes — or that
+    has no moment of its own, which only happens when the show it waited on was
+    finished moments ago — so the box can point at the one that just went off.
+    """
     out = []
     for slug, state in pairs:
         entry = anime_database.get(slug) or {}
+        due_since = state.get("due_since")
         out.append({
             "slug": slug,
             "title": entry.get("title") or slug,
@@ -485,20 +495,31 @@ def _alert_items(pairs):
             "ago": state.get("ago") or "",
             "pill": state.get("pill") or {},
             "kind": state.get("remind_kind"),
+            "fresh": bool(
+                state.get("due")
+                and (due_since is None or now_ts is None
+                     or now_ts - due_since <= FRESH_SECONDS)
+            ),
         })
     return out
 
 
-def alert_state(user_id, due_limit=3, upcoming_limit=4):
+def alert_state(user_id, due_limit=8, upcoming_limit=4):
     """(due_total, due_items, upcoming_total, upcoming_items) for the dock.
 
-    One pass over the user's rows, because the dock polls this from every
-    page. ``due`` is what is calling for the user right now, oldest waiting
-    first; ``upcoming`` is every other armed reminder, soonest first — that is
-    what makes a timer *set* visible on the site, not just a missed one.
+    One pass over the user's rows, because the dock polls this from every page.
+    ``due`` is what is calling for the user right now; ``upcoming`` is every
+    other armed reminder, soonest first — that is what makes a timer *set*
+    visible on the site, not just a missed one.
 
     Deliberately cheaper than ``queued_cards``: it resolves the rows and keeps
     only reminders, instead of building a hundred card dicts to discard them.
+
+    The due list runs most-recent-first and is long enough to hold everything a
+    user realistically parks on the queue at once (the limit only bites on a
+    queue nobody visits for weeks), because the reminder someone is looking for
+    is the one that just fired — an oldest-first list truncated at three hid
+    exactly that one.
     """
     qmap = get_up_next_map(user_id)
     if not qmap:
@@ -514,19 +535,17 @@ def alert_state(user_id, due_limit=3, upcoming_limit=4):
         elif state["status"] != UP_NEXT_DONE and state["remind_kind"]:
             upcoming.append((slug, state))
 
-    # A due reminder with no derivable moment sorts last rather than first:
-    # 0 would claim it had been waiting longest. (A plain backlog row with no
-    # reminder is not a reminder, so it never appears here.)
-    due.sort(
-        key=lambda pair: (
-            pair[1].get("due_since") is None,
-            pair[1].get("due_since") or 0,
-        )
-    )
+    now_ts = _now().timestamp()
+    # Most recent first: the top row is the reminder that just went off. A due
+    # reminder with no moment of its own counts as just-now rather than last —
+    # the only way an 'after' reminder comes due is its blocker being finished,
+    # which is a fresh event from the user's side. (A plain backlog row with no
+    # reminder is not a reminder at all, so it never appears here.)
+    due.sort(key=lambda pair: pair[1].get("due_since") or now_ts, reverse=True)
     upcoming.sort(key=lambda pair: _reminder_sort_key(pair[1]))
     return (
-        len(due), _alert_items(due[:due_limit]),
-        len(upcoming), _alert_items(upcoming[:upcoming_limit]),
+        len(due), _alert_items(due[:due_limit], now_ts),
+        len(upcoming), _alert_items(upcoming[:upcoming_limit], now_ts),
     )
 
 

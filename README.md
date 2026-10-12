@@ -151,35 +151,51 @@ I mean to watch?".
   before it asks the server for state, so it opens instantly and then corrects
   the tick marks when the response lands.
 - **Reminders surface themselves — on every page, not just their own.** The
-  pill reads READY, the show moves into the "Ready now" shelf, and a
-  right-edge dock shows it wherever the user happens to be. That dock is
+  pill reads READY, the show moves into the "Ready now" shelf, and a dock in the
+  top-right corner shows it wherever the user happens to be. That dock is
   `templates/_up_next_alert.html`, included by `_footer.html` (and directly by
   `threads.html` / `otachan.html`, which have no footer include), so it renders
   on *every* page — a reminder that came due must not require opening the
-  show's own page to discover. It stands down where the homepage or queue page
-  already renders its own waiting banner, so nothing is ever reported twice.
-  Two pieces, docked to the right edge:
-  - a **square bell** that appears as soon as a reminder is armed or due,
-    with a count badge for the ones that are ready (a quiet violet dot when
-    only timers are ticking, so the bell never claims something is ready);
-  - a **wide, low notification box** — one row per reminder, wide and short:
-    the show's square thumbnail, the show's name, a line of why ("ready — came
-    due 2h ago", "tonight", "waiting for you to finish another show") and the
-    reminder's state on the right (`READY`, or the running `IN 3H` pill). Every
-    row is a link straight to that anime, and *Open queue* goes to `/up-next`.
-  It opens by itself when something becomes due, and the ✕ collapses it back
-  to the bell while the badge keeps counting — collapsing the box must not mean
-  forgetting the reminder. It reads `GET /api/up-next/alerts`, which answers
-  with what is ready plus what is coming up (so a timer you *set* is visible on
-  the site, not only a missed one) and 401 when signed out, whereupon the dock
-  stays quiet rather than bouncing a visitor to `/login` for opening a public
-  page. It re-polls every 60s while the tab is visible and on
+  show's own page to discover. Two pieces:
+  - a **bell that lives in the navbar**, beside the profile pill: `_navbar.html`
+    leaves an empty `#unNavSlot` and the dock moves its button into that place,
+    so it reads as navbar chrome (the burger's size and chrome, the navbar's
+    accent on hover) instead of a widget bolted to the screen edge. It appears
+    as soon as a reminder is armed or due, with a count badge for the ones that
+    are ready — a quiet violet dot when only timers are ticking, so the bell
+    never claims something is ready when it is just counting down. It sits
+    deliberately outside `.nav-right`, which phones hide inside the ☰ drawer,
+    and pages with no navbar at all (anime, threads, Ota-chan) keep the button
+    in the corner instead. The icon is inline SVG, so a blocked icon font can
+    never leave an empty square where the bell should be;
+  - a **wide, low notification box** that hangs from the top-right, just under
+    the navbar — its top is measured from the navbar's bottom edge rather than
+    guessed, because the navbar wraps onto a second row between 820px and
+    1150px. One row per reminder, wide and short: the show's square thumbnail,
+    the show's name, a line of why ("ready — came due 2h ago", "tonight",
+    "waiting for you to finish another show") and the reminder's state on the
+    right (`READY`, or the running `IN 3H` pill). Every row is a link straight
+    to that anime, and *Open queue* goes to `/up-next`.
+  The box opens by itself when something becomes due — except on the homepage
+  and the queue page, which render their own waiting card and must not report
+  the same reminder twice (the bell still works there, it just waits to be
+  asked) — and the ✕ collapses it back to the bell while the badge keeps
+  counting: collapsing the box must not mean forgetting the reminder. It reads
+  `GET /api/up-next/alerts`, which answers with what is ready plus what is
+  coming up (so a timer you *set* is visible on the site, not only a missed one)
+  and 401 when signed out, whereupon the dock stays quiet rather than bouncing a
+  visitor to `/login` for opening a public page. The ready list runs
+  **most-recently-due first**, so the row on top is the reminder that just fired,
+  and it is long enough to hold everything a queue realistically carries at once
+  — an oldest-first list truncated at three hid exactly the one the user was
+  looking for. The one that came due in the last ten minutes is highlighted
+  (`fresh`). It re-polls every 60s while the tab is visible and on
   `visibilitychange`, so a timer that runs out mid-browse pops on its own, and
-  a collapsed reminder stays collapsed until a different one comes due. When that device has no push
-  subscription the card also offers **Turn on notifications** — a due reminder
-  with nothing subscribed is the most common reason someone sees no
-  notification at all, and the check costs no request (the browser's push
-  manager answers it locally). `due_moment()` derives that age per
+  a collapsed reminder stays collapsed until a different one comes due. When the
+  device has no push subscription the box also offers **Turn on notifications**
+  — a due reminder with nothing subscribed is the most common reason someone
+  sees no notification at all, and the check costs no request (the browser's
+  push manager answers it locally). `due_moment()` derives that age per
   kind — an `hours` timer from `remind_at`, the dated kinds from `remind_on` (at
   17:00 for `tonight`, midnight otherwise), and `after` from the sweep's
   `notified_at`, which SQLite writes in UTC and therefore has to be converted to

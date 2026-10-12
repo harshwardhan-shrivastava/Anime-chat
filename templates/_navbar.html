@@ -109,7 +109,58 @@
         </a>
         {% endif %}
     </div>
+    {# The reminder bell's seat. templates/_up_next_alert.html moves its button
+       in here so it reads as navbar chrome; the placeholder is empty (and so
+       invisible) when there are no reminders, when the visitor is signed out,
+       or on the pages that load neither template. Deliberately outside
+       .nav-right, which phones hide until the ☰ drawer opens. #}
+    <div class="nav-bell-slot" id="unNavSlot"></div>
 </nav>
+<style>
+    /* An empty seat must not claim a flex gap's worth of space (the navbar has
+       gap:14px) while the script is still parsing, or on the pages and for the
+       visitors where the bell never arrives at all. The script takes the
+       placeholder out of the DOM as soon as it drops the button in. */
+    .nav-bell-slot:empty{ display:none; }
+    /* The bell matches the burger it sits beside: same size, same chrome, and
+       the navbar's own accent on hover. _up_next_alert.html brings the button,
+       the icon and the badge; this only dresses and places it. */
+    .main-nav > .un-bell{
+        width:42px;
+        height:42px;
+        flex-shrink:0;
+        border-radius:11px;
+        border:1px solid rgba(255,255,255,.12);
+        background:rgba(255,255,255,.06);
+        color:#e7e9f3;
+        box-shadow:none;
+        transition:background .22s, border-color .22s, color .22s, box-shadow .22s;
+    }
+    .main-nav > .un-bell:hover{
+        background:rgba(143,91,255,.18);
+        border-color:rgba(143,91,255,.45);
+        color:#fff;
+        transform:none;
+        filter:none;
+        box-shadow:0 0 16px rgba(143,91,255,.32);
+    }
+    .main-nav > .un-bell .un-svg-bell{ width:19px; height:19px; }
+    .main-nav > .un-bell .un-bell-count{
+        top:-5px;
+        right:-5px;
+        min-width:19px;
+        height:19px;
+        line-height:19px;
+        font-size:10px;
+        padding:0 5px;
+    }
+    /* On phones every nav link lives in the ☰ drawer and .nav-right is hidden,
+       so the bell takes the burger's place in the row instead of vanishing
+       with them. */
+    @media (max-width:820px){
+        .main-nav > .un-bell{ order:2; width:40px; height:40px; }
+    }
+</style>
 <script>
 (function () {
     "use strict";
