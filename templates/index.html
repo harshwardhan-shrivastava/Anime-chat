@@ -44,7 +44,7 @@
     href="{{ url_for('static', filename='css/list_picker.css') }}?v=20260902u">
 
     <link rel="stylesheet"
-    href="{{ url_for('static', filename='css/up_next.css') }}?v=20261012a">
+    href="{{ url_for('static', filename='css/up_next.css') }}?v=20261012c">
 
     <link rel="stylesheet"
     href="{{ url_for('static', filename='css/auth.css') }}?v=20260903a">
@@ -152,6 +152,24 @@
 <!-- ================= UP NEXT (your queue) ================= -->
 
 {% if up_next_list %}
+
+{# "While you were away": anything that came due and is still waiting. Says
+   how long the oldest has sat there, because that is what tells you it
+   slipped past you. Session-dismissable in up_next.js. #}
+{% if up_next_ready %}
+<section class="un-away" id="unAway" role="status">
+    <span class="un-away-ico"><i class="fas fa-bell"></i></span>
+    <div class="un-away-text">
+        <strong>{{ up_next_ready }} reminder{{ '' if up_next_ready == 1 else 's' }} {{ 'is' if up_next_ready == 1 else 'are' }} waiting</strong>
+        <span>{% if up_next_oldest %}The oldest came due {{ up_next_oldest }} — ready whenever you are.{% else %}Your queue has something ready for you.{% endif %}</span>
+    </div>
+    <a href="{{ url_for('up_next.page') }}" class="un-away-btn">
+        Open queue <i class="fas fa-arrow-right"></i>
+    </a>
+    <button type="button" class="un-away-x" id="unAwayX" aria-label="Dismiss for now">&times;</button>
+</section>
+{% endif %}
+
 <section class="un-rail-wrap">
 
     <div class="un-rail-head">
@@ -182,7 +200,8 @@
             <div class="un-rail-meta">
                 <strong>{{ item | jp_title }}</strong>
                 <span class="un-rail-note">
-                    {% if item.up_next.caption %}{{ item.up_next.caption }}
+                    {% if item.up_next.due and item.up_next.ago %}came due {{ item.up_next.ago }}
+                    {% elif item.up_next.caption %}{{ item.up_next.caption }}
                     {% elif item.up_next.remind_kind %}reminder set
                     {% else %}on your queue{% endif %}
                 </span>
@@ -254,7 +273,7 @@
 
 <script src="{{ url_for('static', filename='js/search.js') }}?v=20260902u"></script>
 <script src="{{ url_for('static', filename='js/list_picker.js') }}?v=20260902u" defer></script>
-<script src="{{ url_for('static', filename='js/up_next.js') }}?v=20261012a" defer></script>
+<script src="{{ url_for('static', filename='js/up_next.js') }}?v=20261012c" defer></script>
 <script src="{{ url_for('static', filename='js/navigation.js') }}?v=20260902u" defer></script>
 {% include "_footer.html" %}
 

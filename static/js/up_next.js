@@ -640,10 +640,29 @@
         }
     }
 
+    // The "while you were away" banner. Dismissal is per-session on purpose:
+    // those reminders really are still waiting, so hiding it permanently would
+    // be a lie. Coming back tomorrow should mention them again.
+    function wireAwayBanner() {
+        var banner = document.getElementById("unAway");
+        if (!banner || banner.dataset.wired) return;
+        banner.dataset.wired = "1";
+        var key = "unAwayDismissed";
+        try {
+            if (sessionStorage.getItem(key)) { banner.remove(); return; }
+        } catch (err) { /* private mode: just leave the banner up */ }
+        var x = document.getElementById("unAwayX");
+        if (x) x.addEventListener("click", function () {
+            try { sessionStorage.setItem(key, "1"); } catch (err) { /* ignore */ }
+            banner.remove();
+        });
+    }
+
     function wire() {
         wireAnimeButton();
         wireQueueCards();
         wirePushCard();
+        wireAwayBanner();
     }
 
     if (document.readyState === "loading") {

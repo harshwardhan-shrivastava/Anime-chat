@@ -20,7 +20,7 @@
     <link rel="stylesheet"
           href="{{ url_for('static', filename='css/list_picker.css') }}?v=20260902u">
     <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/up_next.css') }}?v=20261012a">
+          href="{{ url_for('static', filename='css/up_next.css') }}?v=20261012c">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://s4.anilist.co" crossorigin>
     <link rel="dns-prefetch" href="https://s4.anilist.co">
@@ -77,6 +77,18 @@
         </div>
     </section>
     {% else %}
+
+    {# ---- "While you were away": what came due and is still waiting ---- #}
+    {% if ready_count %}
+    <section class="un-away" id="unAway" role="status">
+        <span class="un-away-ico"><i class="fas fa-bell"></i></span>
+        <div class="un-away-text">
+            <strong>{{ ready_count }} reminder{{ '' if ready_count == 1 else 's' }} {{ 'is' if ready_count == 1 else 'are' }} waiting</strong>
+            <span>{% if ready_oldest %}The oldest came due {{ ready_oldest }}.{% else %}They're all ready to watch.{% endif %}</span>
+        </div>
+        <button type="button" class="un-away-x" id="unAwayX" aria-label="Dismiss for now">&times;</button>
+    </section>
+    {% endif %}
 
     {# ---- Notifications: the honest state, not a vague toggle ---- #}
     <section class="un-section un-push-card-wrap">
@@ -146,7 +158,7 @@
     {% endmacro %}
 
     {{ shelf('Ready now',
-             'A reminder came due — the queue is waiting on you.',
+             ('The oldest came due ' ~ ready_oldest ~ ' — everything here is ready to watch.') if ready_oldest else 'A reminder came due — the queue is waiting on you.',
              ready, 'un-h-ready') }}
     {{ shelf('Watching now',
              'Shows you marked as currently watching.',
@@ -170,6 +182,6 @@
     {# Tells up_next.js this is the queue page: shelves are grouped on the
        server, so a change has to reload to move a card between them. #}
     <script>window.__UN_QUEUE_PAGE = true;</script>
-    <script src="{{ url_for('static', filename='js/up_next.js') }}?v=20261012a"></script>
+    <script src="{{ url_for('static', filename='js/up_next.js') }}?v=20261012c"></script>
 </body>
 </html>

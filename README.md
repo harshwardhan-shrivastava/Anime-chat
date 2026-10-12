@@ -132,6 +132,15 @@ I mean to watch?".
   `static/js/up_next.js` + `static/css/up_next.css`. The picker paints its rows
   before it asks the server for state, so it opens instantly and then corrects
   the tick marks when the response lands.
+- **A missed reminder surfaces itself.** Nothing is silently dropped when the
+  push is not seen: the pill reads READY, the show moves into the "Ready now"
+  shelf, and a dismissable "N reminders are waiting" pop-up card docks to the
+  right edge of the page (the queue page shows the same card at the top of its
+  list) with how long the oldest has been sitting. `due_moment()` derives that age per
+  kind — an `hours` timer from `remind_at`, the dated kinds from `remind_on` (at
+  17:00 for `tonight`, midnight otherwise), and `after` from the sweep's
+  `notified_at`, which SQLite writes in UTC and therefore has to be converted to
+  the site clock or every label would be 5:30 out.
 - Requires the `pywebpush` dependency (pinned in `requirements.txt`). If it is
   missing the feature degrades quietly — the pickers and queue still work and
   the push endpoints report `push_unavailable` instead of erroring. iOS needs the

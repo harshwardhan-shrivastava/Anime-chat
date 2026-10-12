@@ -119,6 +119,7 @@ from up_next import (
     attach_queue_state,
     queued_cards,
     start_reminder_thread,
+    waiting_summary,
 )
 
 from threads import init_threads
@@ -1386,13 +1387,18 @@ def home():
         except Exception as exc:
             print(f"[up-next] home rail skipped: {exc}", flush=True)
 
+    # "While you were away": how many reminders are waiting, and how long the
+    # oldest has been sitting. The count alone says something is pending; the
+    # age is what tells the user it slipped past them.
+    up_next_ready, up_next_oldest = waiting_summary(up_next_cards)
     return render_template(
         "index.html",
         anime_list=ordered,
         for_you_list=rec_list,
         new_list=new_list,
         up_next_list=up_next_cards,
-        up_next_ready=sum(1 for c in up_next_cards if c["up_next"].get("due")),
+        up_next_ready=up_next_ready,
+        up_next_oldest=up_next_oldest,
         page_title="Discover Anime",
         genres=_genre_list(),
         site_stats=site_stats,
