@@ -701,6 +701,35 @@
     box-shadow:0 0 20px rgba(255,140,66,.55);
     transform:translateY(-1px);
 }
+/* The second action on the card: this device has no push subscription, so
+   the reminder that is waiting here cannot actually reach the user. Hidden
+   until the client confirms there is no subscription. */
+.un-away-notify{
+    grid-column:1 / -1;
+    grid-row:3;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:10px 14px;
+    border-radius:13px;
+    border:1px solid rgba(255,255,255,.15);
+    background:rgba(255,255,255,.06);
+    color:#e7e9f3;
+    font-family:'Montserrat',sans-serif;
+    font-size:12.5px;
+    font-weight:700;
+    letter-spacing:.2px;
+    cursor:pointer;
+    transition:.22s;
+}
+.un-away-notify[hidden]{ display:none; }
+.un-away-notify:hover{
+    background:rgba(255,255,255,.12);
+    border-color:rgba(255,140,66,.55);
+    color:#fff;
+}
+.un-away-notify:disabled{ opacity:.6; cursor:default; }
 .un-away-x{
     position:absolute;
     top:10px;

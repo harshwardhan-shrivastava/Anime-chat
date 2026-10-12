@@ -1,0 +1,567 @@
+<!-- ================= SITE-WIDE REMINDER DOCK =================
+     Included by _footer.html (and directly by threads.html / otachan.html,
+     which roll their own footer), so it exists on every page.
+
+     Two pieces, docked to the right edge of the screen:
+
+       .un-bell   a square button that appears as soon as a reminder is armed
+                  or due, carrying a count badge for the ones that are ready
+       .un-panel  a wide, low notification box — one row per reminder with
+                  the show's thumbnail, the show's name and a line of why,
+                  every row a link straight to that anime
+
+     The panel opens by itself when something becomes due (that is the "you
+     missed it" moment), and the ✕ collapses it back to the bell while the
+     badge keeps reporting the count — dismissing the box must not mean
+     forgetting the reminder.
+
+     Self-contained on purpose: markup, style and script all live here rather
+     than in up_next.css/js, because this partial lands on pages that load
+     neither. Data comes from GET /api/up-next/alerts (up_next.py), which
+     answers 401 when signed out so the dock stays silent instead of bouncing
+     a visitor to /login for reading a public page. It re-checks every 60s
+     while the tab is visible, so a timer that runs out mid-browse pops on its
+     own — nothing to open first, which is the whole point.
+     -->
+<style>
+    .un-dock{
+        position:fixed;
+        /* Right edge, vertically centred: clear of the navbar, the mobile tab
+           bar and the APK bottom-sheet, all of which own other edges. */
+        top:50%;
+        right:0;
+        transform:translateY(-50%);
+        z-index:1540;
+        display:flex;
+        flex-direction:column;
+        align-items:flex-end;
+        gap:10px;
+        font-family:'Montserrat',system-ui,sans-serif;
+    }
+    .un-dock[hidden]{ display:none; }
+
+    /* ---------------- the square bell ---------------- */
+    .un-bell{
+        position:relative;
+        width:54px;
+        height:54px;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        border:none;
+        border-radius:16px 0 0 16px;
+        background:linear-gradient(135deg,#ff9f57,#ff7a2f);
+        color:#1a1207;
+        font-size:20px;
+        cursor:pointer;
+        box-shadow:0 10px 26px rgba(0,0,0,.45),0 0 22px rgba(255,122,47,.32);
+        transition:transform .2s, filter .2s, box-shadow .2s;
+    }
+    .un-bell[hidden]{ display:none; }
+    .un-bell:hover{
+        transform:translateX(-3px);
+        filter:brightness(1.06);
+        box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 26px rgba(255,122,47,.45);
+    }
+    .un-bell-count{
+        position:absolute;
+        top:-7px;
+        left:-7px;
+        min-width:23px;
+        height:23px;
+        padding:0 6px;
+        box-sizing:border-box;
+        border-radius:999px;
+        background:#ff3b6b;
+        color:#fff;
+        font-size:11.5px;
+        font-weight:800;
+        line-height:23px;
+        text-align:center;
+        box-shadow:0 4px 12px rgba(0,0,0,.45);
+        animation:unBadgePulse 2.2s ease-out infinite;
+    }
+    .un-bell-count[hidden]{ display:none; }
+    @keyframes unBadgePulse{
+        0%   { box-shadow:0 4px 12px rgba(0,0,0,.45),0 0 0 0 rgba(255,59,107,.55); }
+        70%  { box-shadow:0 4px 12px rgba(0,0,0,.45),0 0 0 8px rgba(255,59,107,0); }
+        100% { box-shadow:0 4px 12px rgba(0,0,0,.45),0 0 0 0 rgba(255,59,107,0); }
+    }
+    /* Nothing is due yet, only armed: a quiet dot instead of a number, so the
+       bell never claims a reminder is ready when it is just ticking. */
+    .un-bell-count.quiet{
+        min-width:11px;
+        width:11px;
+        height:11px;
+        padding:0;
+        font-size:0;
+        line-height:0;
+        background:#8f5bff;
+        animation:none;
+    }
+
+    /* ---------------- the notification box ---------------- */
+    .un-panel{
+        position:relative;
+        width:min(340px,calc(100vw - 22px));
+        box-sizing:border-box;
+        padding:12px 12px 11px;
+        border-radius:18px 0 0 18px;
+        border:1px solid rgba(255,140,66,.42);
+        border-right:none;
+        background:
+            linear-gradient(150deg,rgba(255,140,66,.16),rgba(143,91,255,.14)),
+            rgba(13,17,28,.97);
+        box-shadow:0 20px 46px rgba(0,0,0,.55),0 0 34px rgba(255,140,66,.12);
+        backdrop-filter:blur(10px);
+        -webkit-backdrop-filter:blur(10px);
+    }
+    .un-panel[hidden]{ display:none; }
+    .un-panel-in{ animation:unPanelIn .34s cubic-bezier(.22,1,.36,1) both; }
+    @keyframes unPanelIn{
+        from{ opacity:0; transform:translateX(26px) scale(.97); }
+        to  { opacity:1; transform:none; }
+    }
+    .un-panel-head{
+        display:flex;
+        align-items:center;
+        gap:8px;
+        padding-right:26px;
+    }
+    .un-panel-title{
+        color:#ffb27a;
+        font-size:11px;
+        font-weight:800;
+        letter-spacing:1.1px;
+        text-transform:uppercase;
+        line-height:1.3;
+    }
+    .un-panel-x{
+        position:absolute;
+        margin-left:auto;
+        top:9px;
+        right:9px;
+        width:24px;
+        height:24px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        border-radius:8px;
+        border:1px solid rgba(255,255,255,.14);
+        background:rgba(255,255,255,.05);
+        color:#c8cbe0;
+        font-size:14px;
+        line-height:1;
+        cursor:pointer;
+        transition:.2s;
+    }
+    .un-panel-x:hover{ background:rgba(255,255,255,.15); color:#fff; }
+    .un-panel-list{
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+        margin-top:9px;
+        max-height:min(58vh,400px);
+        overflow-y:auto;
+    }
+    .un-group{
+        color:#8f94b0;
+        font-size:9.5px;
+        font-weight:800;
+        letter-spacing:1.1px;
+        text-transform:uppercase;
+        padding:5px 2px 0;
+    }
+    /* Wide and low: a 38px square thumbnail, one line of show, one line of
+       why, and the reminder's state on the right. */
+    .un-row{
+        display:flex;
+        align-items:center;
+        gap:10px;
+        padding:6px;
+        border-radius:12px;
+        border:1px solid rgba(255,255,255,.07);
+        background:rgba(255,255,255,.05);
+        text-decoration:none;
+        transition:background .2s, border-color .2s, transform .2s;
+    }
+    .un-row:hover{
+        background:rgba(255,140,66,.15);
+        border-color:rgba(255,140,66,.45);
+        transform:translateX(-2px);
+    }
+    .un-row-thumb{
+        width:38px;
+        height:38px;
+        flex:0 0 auto;
+        border-radius:10px;
+        overflow:hidden;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background:rgba(255,255,255,.08);
+        color:#8f94b0;
+        font-size:13px;
+    }
+    .un-row-thumb img{
+        width:100%;
+        height:100%;
+        object-fit:cover;
+        display:block;
+    }
+    .un-row-text{
+        min-width:0;
+        flex:1 1 auto;
+        display:flex;
+        flex-direction:column;
+        gap:1px;
+    }
+    .un-row-text strong{
+        color:#fff;
+        font-size:12.5px;
+        font-weight:700;
+        line-height:1.25;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+    }
+    .un-row-text span{
+        color:#a9adc4;
+        font-size:10.5px;
+        font-weight:600;
+        line-height:1.3;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+    }
+    .un-row.ready .un-row-text span{ color:#ffb27a; }
+    .un-row-pill{
+        flex:0 0 auto;
+        padding:4px 8px;
+        border-radius:999px;
+        font-size:9.5px;
+        font-weight:800;
+        letter-spacing:.6px;
+        text-transform:uppercase;
+        line-height:1.1;
+        white-space:nowrap;
+    }
+    .un-row-pill.ready{
+        background:linear-gradient(135deg,#ff8c42,#ffab5e);
+        color:#26140a;
+    }
+    .un-row-pill.soon{
+        border:1px solid rgba(143,91,255,.5);
+        background:rgba(143,91,255,.22);
+        color:#c9a8ff;
+    }
+    .un-panel-foot{
+        display:flex;
+        flex-direction:column;
+        gap:7px;
+        margin-top:10px;
+    }
+    .un-panel-all{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        gap:8px;
+        padding:10px 14px;
+        border-radius:12px;
+        background:linear-gradient(135deg,#ff9f57,#ff7a2f);
+        color:#141a26;
+        font-size:11px;
+        font-weight:800;
+        letter-spacing:.7px;
+        text-transform:uppercase;
+        text-decoration:none;
+        transition:.2s;
+    }
+    .un-panel-all:hover{
+        box-shadow:0 0 20px rgba(255,140,66,.55);
+        transform:translateY(-1px);
+        color:#141a26;
+    }
+    /* Shown only when this device has no push subscription: a due reminder
+       that cannot actually reach the phone is the whole complaint. */
+    .un-panel-notify{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        gap:8px;
+        padding:9px 14px;
+        border-radius:12px;
+        border:1px solid rgba(255,255,255,.15);
+        background:rgba(255,255,255,.06);
+        color:#e7e9f3;
+        font-family:'Montserrat',system-ui,sans-serif;
+        font-size:12px;
+        font-weight:700;
+        cursor:pointer;
+        transition:background .22s, border-color .22s, color .22s;
+    }
+    .un-panel-notify[hidden]{ display:none; }
+    .un-panel-notify:hover{
+        background:rgba(255,255,255,.12);
+        border-color:rgba(255,140,66,.55);
+        color:#fff;
+    }
+    .un-panel-notify:disabled{ opacity:.6; cursor:default; }
+    @media (max-width:820px){
+        .un-panel{ width:min(340px,calc(100vw - 14px)); }
+        .un-panel-list{ max-height:44vh; }
+        .un-bell{ width:50px; height:50px; font-size:18px; }
+    }
+    @media (prefers-reduced-motion:reduce){
+        .un-bell-count,
+        .un-panel-in{ animation:none; }
+        .un-row:hover{ transform:none; }
+    }
+</style>
+
+<div class="un-dock" id="unDock" hidden>
+    <button type="button" class="un-bell" id="unBell"
+            aria-label="Your reminders" aria-expanded="false" aria-controls="unPanel">
+        <i class="fas fa-bell" aria-hidden="true"></i>
+        <span class="un-bell-count" id="unBellCount" hidden>0</span>
+    </button>
+
+    <aside class="un-panel" id="unPanel" hidden aria-label="Your reminders">
+        <div class="un-panel-head">
+            <span class="un-panel-title" id="unPanelTitle">It's about time</span>
+            <button type="button" class="un-panel-x" id="unPanelX" aria-label="Collapse">&times;</button>
+        </div>
+        <div class="un-panel-list" id="unPanelList"></div>
+        <div class="un-panel-foot">
+            <button type="button" class="un-panel-notify" id="unPanelNotify" hidden>
+                <i class="fas fa-bell" aria-hidden="true"></i> Turn on notifications
+            </button>
+            <a class="un-panel-all" href="{{ url_for('up_next.page') }}">
+                Open queue <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
+        </div>
+    </aside>
+</div>
+
+<script>
+(function () {
+    "use strict";
+
+    var dock = document.getElementById("unDock");
+    if (!dock || window.__UN_DOCK_WIRED) return;
+
+    // The homepage and the queue page render their own "waiting" banner with
+    // live data already in the HTML — a second indicator there would just
+    // report the same reminder twice.
+    if (document.getElementById("unAway")) return;
+    window.__UN_DOCK_WIRED = true;
+
+    var POLL_MS = 60000;
+    var SEEN_KEY = "unDockSeen";
+    var bell = document.getElementById("unBell");
+    var badge = document.getElementById("unBellCount");
+    var panel = document.getElementById("unPanel");
+    var titleEl = document.getElementById("unPanelTitle");
+    var listEl = document.getElementById("unPanelList");
+    var xEl = document.getElementById("unPanelX");
+    var notifyEl = document.getElementById("unPanelNotify");
+    var seen = [];          // slugs whose box the user already collapsed this session
+    var manualOpen = false; // the user opened it themselves — leave it open
+    var open = false;
+    var timer = null;
+
+    try {
+        seen = JSON.parse(sessionStorage.getItem(SEEN_KEY) || "[]") || [];
+    } catch (err) { seen = []; }
+    if (!seen.length) seen = [];
+
+    function escapeHtml(s) {
+        var d = document.createElement("div");
+        d.textContent = s == null ? "" : String(s);
+        return d.innerHTML;
+    }
+
+    function setOpen(want) {
+        want = !!want;
+        // Applied every time, not only on a change: which of the two is on
+        // screen must never depend on what the last poll happened to do.
+        panel.hidden = !want;
+        bell.hidden = want;          // the box replaces the bell while it is up
+        bell.setAttribute("aria-expanded", want ? "true" : "false");
+        if (want === open) return;
+        open = want;
+        if (want) {
+            panel.classList.remove("un-panel-in");
+            void panel.offsetWidth;  // restart the entry animation
+            panel.classList.add("un-panel-in");
+        }
+    }
+
+    // Every row is a real link to the show, so the box leads somewhere instead
+    // of only informing. `data-due` is what the ✕ reads back to remember which
+    // reminders it collapsed.
+    function rowHtml(item, isDue) {
+        var note = isDue
+            ? (item.ago ? "ready — came due " + item.ago : (item.caption || "ready now"))
+            : (item.caption || "reminder set");
+        var pill = isDue ? "READY" : ((item.pill && item.pill.label) || "");
+        var thumb = item.image
+            ? '<img src="' + escapeHtml(item.image) + '" alt="" loading="lazy" decoding="async">'
+            : '<i class="fas fa-tv" aria-hidden="true"></i>';
+        return '<a class="un-row' + (isDue ? " ready" : "") + '"' +
+            (isDue ? ' data-due="1"' : '') +
+            ' data-slug="' + escapeHtml(item.slug) + '"' +
+            ' href="/anime/' + encodeURIComponent(item.slug) + '">' +
+            '<span class="un-row-thumb">' + thumb + '</span>' +
+            '<span class="un-row-text">' +
+            '<strong>' + escapeHtml(item.title) + '</strong>' +
+            '<span>' + escapeHtml(note) + '</span>' +
+            '</span>' +
+            (pill ? '<span class="un-row-pill ' + (isDue ? "ready" : "soon") + '">' +
+                    escapeHtml(pill) + '</span>' : '') +
+            '</a>';
+    }
+
+    function dueSlugsOnScreen() {
+        return [].map.call(listEl.querySelectorAll(".un-row[data-due]"), function (a) {
+            return a.getAttribute("data-slug");
+        });
+    }
+
+    function render(data) {
+        var due = (data && data.items) || [];
+        var soon = (data && data.upcoming) || [];
+        var dueCount = (data && data.count) || 0;
+        var soonCount = (data && data.upcoming_count) || 0;
+
+        if (!dueCount && !soonCount) {
+            dock.hidden = true;
+            setOpen(false);
+            return;
+        }
+
+        dock.hidden = false;
+
+        // Badge: the number that is ready, or a quiet dot when only armed.
+        if (badge) {
+            badge.hidden = false;
+            if (dueCount > 0) {
+                badge.classList.remove("quiet");
+                badge.textContent = dueCount > 9 ? "9+" : String(dueCount);
+            } else {
+                badge.classList.add("quiet");
+                badge.textContent = "";
+            }
+        }
+        if (titleEl) {
+            titleEl.textContent = dueCount > 1
+                ? dueCount + " shows are ready"
+                : (dueCount === 1 ? "It's about time" : "Your reminders");
+        }
+
+        if (listEl) {
+            var html = "";
+            if (due.length) {
+                if (soon.length) html += '<div class="un-group">Ready now</div>';
+                html += due.map(function (i) { return rowHtml(i, true); }).join("");
+            }
+            if (soon.length) {
+                html += '<div class="un-group">Coming up</div>';
+                html += soon.map(function (i) { return rowHtml(i, false); }).join("");
+            }
+            listEl.innerHTML = html;
+        }
+
+        // A reminder the user has not been shown yet opens the box on its own;
+        // one they collapsed stays collapsed, while the badge keeps counting it.
+        var fresh = due.some(function (i) { return seen.indexOf(i.slug) === -1; });
+        setOpen(manualOpen || fresh);
+    }
+
+    function load() {
+        if (document.hidden) return;
+        fetch("/api/up-next/alerts", { credentials: "same-origin" })
+            .then(function (res) {
+                // 401 = signed out. fetch follows no API redirect, so a
+                // visitor reading a public page is never bounced to /login.
+                if (!res.ok) throw new Error("http " + res.status);
+                return res.json();
+            })
+            .then(function (data) {
+                if (!data || !data.success) throw new Error("bad payload");
+                render(data);
+            })
+            .catch(function () {
+                dock.hidden = true;
+                setOpen(false);
+            });
+    }
+
+    // A due reminder that cannot reach this device is the most common reason
+    // someone sees no notification at all, so offer the fix when there is no
+    // subscription. The subscribe flow lives in up_next.js, which this page
+    // may not load — the button only appears where it can actually work.
+    function offerNotify() {
+        var api = window.__UN;
+        if (!notifyEl || !api || !api.pushSupported || !api.pushSupported()) return;
+        if (!window.isSecureContext) return;
+        if (("Notification" in window) && Notification.permission === "denied") return;
+        navigator.serviceWorker.ready
+            .then(function (reg) { return reg.pushManager.getSubscription(); })
+            .then(function (sub) { notifyEl.hidden = !!sub; })
+            .catch(function () { /* no service worker yet: leave it hidden */ });
+    }
+
+    if (bell) {
+        bell.addEventListener("click", function () {
+            manualOpen = !open;
+            setOpen(manualOpen);
+        });
+    }
+
+    if (xEl) {
+        xEl.addEventListener("click", function () {
+            // Collapse, but let the badge keep reporting: the reminder is still
+            // waiting, so it must not disappear from the site entirely.
+            try {
+                seen = seen.concat(dueSlugsOnScreen());
+                sessionStorage.setItem(SEEN_KEY, JSON.stringify(seen.slice(-40)));
+            } catch (err) { /* private mode: collapsed for this page only */ }
+            manualOpen = false;
+            setOpen(false);
+        });
+    }
+
+    if (notifyEl) {
+        notifyEl.addEventListener("click", function () {
+            var api = window.__UN;
+            if (!api || !api.enablePush) return;
+            notifyEl.disabled = true;
+            api.enablePush().then(function (ok) {
+                notifyEl.disabled = false;
+                if (ok) notifyEl.hidden = true;
+            });
+        });
+    }
+
+    function startPolling() {
+        if (timer) return;
+        timer = setInterval(load, POLL_MS);
+    }
+
+    // A timer that ran out while the user was reading another page should
+    // surface the moment they come back, without a reload.
+    document.addEventListener("visibilitychange", function () {
+        if (document.hidden) return;
+        load();
+        startPolling();
+    });
+
+    load();
+    startPolling();
+
+    // The push helpers arrive with up_next.js (deferred), so check once the
+    // page has finished loading rather than at parse time.
+    window.addEventListener("load", offerNotify);
+})();
+</script>

@@ -121,22 +121,65 @@ I mean to watch?".
   guarantees the push fires exactly once. Day boundaries use Asia/Kolkata, the
   same clock the episode countdown badges use.
 - **Real Web Push.** `get_vapid()` generates a P-256 VAPID keypair on first use
-  and stores it in `app_settings`, so there are **no new environment variables to
-  configure**. The reminder sweep runs in a daemon thread inside the web process
-  (`start_reminder_thread()`), which is why this needs no external cron; each
-  send has a 10 s timeout, and subscriptions the push service reports as
-  404/410 are deleted instead of retried forever.
+  and stores it in `app_settings`, so signing needs no keys on disk and they
+  survive redeploys. Each send has a 10 s timeout, and subscriptions the push
+  service reports as 404/410 are deleted instead of retried forever.
+- **The sweep needs traffic, because the host sleeps.** `start_reminder_thread()`
+  is a daemon thread *inside* the web process. Render's free plan spins a web
+  service down after 15 minutes without inbound traffic, so with nobody browsing
+  there is no process, no sweep, and a due reminder never reaches a phone. The
+  fix is an external tick: `POST /api/up-next/sweep` runs the same sweep over
+  HTTP, and `.github/workflows/reminders.yml` calls it every 5 minutes — that
+  request is also what wakes the app.
+- **The sweep endpoint is token-gated.** Set `SWEEP_TOKEN` to any long random
+  string on Render **and** as a repo secret of the same name; the endpoint sends
+  it back in an `X-Sweep-Token` header (`?token=` also works). With the variable
+  unset the endpoint answers 503, so a deploy that has not configured one never
+  exposes an open push trigger. Cost note: a 5-minute tick keeps the free
+  instance awake around the clock (~720 of the 750 free instance-hours a month);
+  widen the cron in that workflow to trade notification latency for headroom.
+- **A reminder is not consumed until a device can receive it.** The sweep only
+  stamps `notified_at` once the user has a subscribed device. Stamping with zero
+  subscriptions silently ate the reminder — you turned notifications on later and
+  the thing you were waiting to be told about had already gone. With no device
+  the row stays armed, so it fires exactly once the moment one subscribes (and
+  `[up-next] reminder … is due but no device is subscribed` is logged).
 - **UI**: status pill on every card (bottom-left of the poster), an Up Next
   button on anime pages, a queue rail on the homepage, a `/up-next` page with
   shelves (ready / watching now / tonight / later / waiting), all driven by
   `static/js/up_next.js` + `static/css/up_next.css`. The picker paints its rows
   before it asks the server for state, so it opens instantly and then corrects
   the tick marks when the response lands.
-- **A missed reminder surfaces itself.** Nothing is silently dropped when the
-  push is not seen: the pill reads READY, the show moves into the "Ready now"
-  shelf, and a dismissable "N reminders are waiting" pop-up card docks to the
-  right edge of the page (the queue page shows the same card at the top of its
-  list) with how long the oldest has been sitting. `due_moment()` derives that age per
+- **Reminders surface themselves — on every page, not just their own.** The
+  pill reads READY, the show moves into the "Ready now" shelf, and a
+  right-edge dock shows it wherever the user happens to be. That dock is
+  `templates/_up_next_alert.html`, included by `_footer.html` (and directly by
+  `threads.html` / `otachan.html`, which have no footer include), so it renders
+  on *every* page — a reminder that came due must not require opening the
+  show's own page to discover. It stands down where the homepage or queue page
+  already renders its own waiting banner, so nothing is ever reported twice.
+  Two pieces, docked to the right edge:
+  - a **square bell** that appears as soon as a reminder is armed or due,
+    with a count badge for the ones that are ready (a quiet violet dot when
+    only timers are ticking, so the bell never claims something is ready);
+  - a **wide, low notification box** — one row per reminder, wide and short:
+    the show's square thumbnail, the show's name, a line of why ("ready — came
+    due 2h ago", "tonight", "waiting for you to finish another show") and the
+    reminder's state on the right (`READY`, or the running `IN 3H` pill). Every
+    row is a link straight to that anime, and *Open queue* goes to `/up-next`.
+  It opens by itself when something becomes due, and the ✕ collapses it back
+  to the bell while the badge keeps counting — collapsing the box must not mean
+  forgetting the reminder. It reads `GET /api/up-next/alerts`, which answers
+  with what is ready plus what is coming up (so a timer you *set* is visible on
+  the site, not only a missed one) and 401 when signed out, whereupon the dock
+  stays quiet rather than bouncing a visitor to `/login` for opening a public
+  page. It re-polls every 60s while the tab is visible and on
+  `visibilitychange`, so a timer that runs out mid-browse pops on its own, and
+  a collapsed reminder stays collapsed until a different one comes due. When that device has no push
+  subscription the card also offers **Turn on notifications** — a due reminder
+  with nothing subscribed is the most common reason someone sees no
+  notification at all, and the check costs no request (the browser's push
+  manager answers it locally). `due_moment()` derives that age per
   kind — an `hours` timer from `remind_at`, the dated kinds from `remind_on` (at
   17:00 for `tonight`, midnight otherwise), and `after` from the sweep's
   `notified_at`, which SQLite writes in UTC and therefore has to be converted to

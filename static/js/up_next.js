@@ -557,6 +557,18 @@
             .catch(function () {});
     }
 
+    /* One line explaining why push is unavailable on this device — shared by
+     * the reminder toast and the away card, so both say the same thing. */
+    function pushBlockedHint() {
+        if ("Notification" in window && Notification.permission === "denied") {
+            return "Notifications are blocked for this site in your browser settings.";
+        }
+        if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+            return "On iPhone, add Otakul to your Home Screen to get reminders.";
+        }
+        return "Couldn't turn on notifications — try again.";
+    }
+
     /* After setting a reminder, nudge once — never nag. */
     var offered = false;
     function maybeOfferPush() {
@@ -656,6 +668,31 @@
             try { sessionStorage.setItem(key, "1"); } catch (err) { /* ignore */ }
             banner.remove();
         });
+
+        // A reminder that is due but has no subscribed device is the most
+        // common reason someone sees no notification at all, so the card
+        // offers the fix rather than just reporting the waiting count.
+        // Cheap to check: the browser answers from its own push manager, no
+        // request on page load.
+        var notify = document.getElementById("unAwayNotify");
+        if (notify && pushSupported() && Notification.permission !== "denied") {
+            ready()
+                .then(function (reg) { return reg.pushManager.getSubscription(); })
+                .then(function (sub) { if (!sub) notify.hidden = false; })
+                .catch(function () { /* no service worker yet: leave it hidden */ });
+            notify.addEventListener("click", function () {
+                notify.disabled = true;
+                enablePush().then(function (ok) {
+                    notify.disabled = false;
+                    if (ok) {
+                        notify.remove();
+                        toast("Notifications on — we'll ping you when a reminder is due.");
+                    } else {
+                        toast(pushBlockedHint());
+                    }
+                });
+            });
+        }
     }
 
     function wire() {
@@ -673,4 +710,9 @@
     if (window.MutationObserver) {
         new MutationObserver(wire).observe(document.body, { childList: true, subtree: true });
     }
+
+    /* The site-wide alert dock (templates/_up_next_alert.html) is on every page
+     * but this file is only on a few, so it borrows these two where they exist
+     * instead of keeping a second copy of the subscribe flow in sync. */
+    window.__UN = { pushSupported: pushSupported, enablePush: enablePush };
 })();

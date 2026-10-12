@@ -794,6 +794,10 @@
 })();
 </script>
 
+{# This template has its own footer/PWA bootstrap instead of _footer.html, so
+   the site-wide reminder dock has to be included explicitly. #}
+{% include "_up_next_alert.html" %}
+
 {% include "_apk_banner.html" %}
 
 </body>

@@ -44,7 +44,7 @@
     href="{{ url_for('static', filename='css/list_picker.css') }}?v=20260902u">
 
     <link rel="stylesheet"
-    href="{{ url_for('static', filename='css/up_next.css') }}?v=20261012c">
+    href="{{ url_for('static', filename='css/up_next.css') }}?v=20261012d">
 
     <link rel="stylesheet"
     href="{{ url_for('static', filename='css/auth.css') }}?v=20260903a">
@@ -166,6 +166,12 @@
     <a href="{{ url_for('up_next.page') }}" class="un-away-btn">
         Open queue <i class="fas fa-arrow-right"></i>
     </a>
+    {# Shown by up_next.js only when this device has no push subscription —
+       a waiting reminder that cannot be delivered is the whole problem, so
+       offer the fix right here. #}
+    <button type="button" class="un-away-notify" id="unAwayNotify" hidden>
+        <i class="fas fa-bell"></i> Turn on notifications
+    </button>
     <button type="button" class="un-away-x" id="unAwayX" aria-label="Dismiss for now">&times;</button>
 </section>
 {% endif %}
@@ -273,7 +279,7 @@
 
 <script src="{{ url_for('static', filename='js/search.js') }}?v=20260902u"></script>
 <script src="{{ url_for('static', filename='js/list_picker.js') }}?v=20260902u" defer></script>
-<script src="{{ url_for('static', filename='js/up_next.js') }}?v=20261012c" defer></script>
+<script src="{{ url_for('static', filename='js/up_next.js') }}?v=20261012e" defer></script>
 <script src="{{ url_for('static', filename='js/navigation.js') }}?v=20260902u" defer></script>
 {% include "_footer.html" %}
 
