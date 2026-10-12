@@ -404,6 +404,7 @@
     var seen = [];          // slugs whose box the user already collapsed this session
     var manualOpen = false; // the user opened it themselves — leave it open
     var open = false;
+    var hasAny = false;     // anything armed or due at all
     var timer = null;
 
     // Two answers to the same question — "is a reminder being reported to me
@@ -446,12 +447,21 @@
         return d.innerHTML;
     }
 
+    /* Nothing to report — no reminders, or the request failed: no box, and no
+     * bell either. The bell lives in the navbar on most pages now, so hiding
+     * this wrapper is not enough to take it off the screen. */
+    function hideDock() {
+        hasAny = false;
+        setOpen(false);
+        dock.hidden = true;
+    }
+
     function setOpen(want) {
         want = !!want;
         // Applied every time, not only on a change: which of the two is on
         // screen must never depend on what the last poll happened to do.
         panel.hidden = !want;
-        if (bell) bell.hidden = want;   // the box replaces the bell while it is up
+        if (bell) bell.hidden = want || !hasAny;  // the box replaces the bell while it is up
         if (bell) bell.setAttribute("aria-expanded", want ? "true" : "false");
         if (want) syncPanelTop();
         if (want === open) return;
@@ -503,9 +513,9 @@
         var dueCount = (data && data.count) || 0;
         var soonCount = (data && data.upcoming_count) || 0;
 
-        if (!dueCount && !soonCount) {
-            dock.hidden = true;
-            setOpen(false);
+        hasAny = dueCount > 0 || soonCount > 0;
+        if (!hasAny) {
+            hideDock();
             return;
         }
 
@@ -572,10 +582,7 @@
                 if (!data || !data.success) throw new Error("bad payload");
                 render(data);
             })
-            .catch(function () {
-                dock.hidden = true;
-                setOpen(false);
-            });
+            .catch(function () { hideDock(); });
     }
 
     // A due reminder that cannot reach this device is the most common reason
