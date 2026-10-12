@@ -1093,6 +1093,61 @@ def create_tables():
         )
     """)
 
+    # ---- Up Next -------------------------------------------------------
+    # One row per (user, anime) the user put on their personal watch queue.
+    # status: 'now' (watching right now) | 'planned' (on the queue) |
+    #         'done' (finished — this is what releases an 'after' reminder
+    #         that was waiting on this show).
+    # remind_kind: NULL | 'tonight' | 'tomorrow' | 'date' | 'after'.
+    #   'tomorrow'/'date' store the calendar day in remind_on (YYYY-MM-DD),
+    #   'after' stores the blocking show in remind_after_slug.
+    # notified_at: set once the push for this reminder has gone out, so a
+    #   due reminder never pings the same device twice.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_up_next(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            anime_slug TEXT NOT NULL,
+            status TEXT NOT NULL,
+            remind_kind TEXT,
+            remind_on TEXT,
+            remind_after_slug TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            notified_at TEXT,
+            UNIQUE (user_id, anime_slug),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
+    # Web Push subscriptions (one per browser/device the user enabled push
+    # on). endpoint is the push service URL; p256dh/auth are the browser's
+    # encryption keys. Anything we cannot reach is deleted on send failure.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS push_subscriptions(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            endpoint TEXT NOT NULL UNIQUE,
+            p256dh TEXT NOT NULL,
+            auth TEXT NOT NULL,
+            user_agent TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            last_push_at TEXT,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
+    # Small key/value store for site-wide settings that must survive a
+    # redeploy — currently just the auto-generated VAPID keypair that signs
+    # the web-push messages (so nobody has to configure one by hand).
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS app_settings(
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS chat_reactions(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1173,10 +1228,6 @@ def create_tables():
         "CREATE INDEX IF NOT EXISTS idx_review_likes_type_review "
         "ON review_likes(review_type, review_id)"
     )
-    cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_review_reasons_type_review "
-        "ON review_reasons(review_type, review_id)"
-    )
 
     # Community chat reads feed windows by (anime_slug, id) and reactions by
     # message_id - without these, every chat open/poll scanned the whole
@@ -1213,6 +1264,15 @@ def create_tables():
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
     """)
+
+    # NOTE: this index must come *after* the CREATE TABLE above. It used to be
+    # issued further up the function, which made create_tables() blow up with
+    # "no such table: main.review_reasons" on any brand-new database — every
+    # table below that point was silently never created.
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_review_reasons_type_review "
+        "ON review_reasons(review_type, review_id)"
+    )
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS review_replies(
@@ -3264,6 +3324,253 @@ def remove_from_user_list(list_id, user_id, anime_slug):
     conn.commit()
     conn.close()
     return removed
+
+
+# ---------------------------------------------------------------------------
+# Up Next — the personal watch queue + its reminders and push subscriptions
+# ---------------------------------------------------------------------------
+
+UP_NEXT_NOW = "now"
+UP_NEXT_PLANNED = "planned"
+UP_NEXT_DONE = "done"
+UP_NEXT_STATUSES = (UP_NEXT_NOW, UP_NEXT_PLANNED, UP_NEXT_DONE)
+# Reminder kinds, in the order the picker shows them.
+REMIND_KINDS = ("tonight", "tomorrow", "date", "after")
+
+
+def set_up_next(user_id, anime_slug, status, remind_kind=None,
+                remind_on=None, remind_after_slug=None):
+    """Put an anime on the user's Up Next queue (or update its entry).
+
+    One upsert. Returns the stored row. `notified_at` is reset whenever the
+    reminder itself changes, so a re-scheduled reminder can push again.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO user_up_next
+            (user_id, anime_slug, status, remind_kind, remind_on,
+             remind_after_slug, notified_at)
+        VALUES (?, ?, ?, ?, ?, ?, NULL)
+        ON CONFLICT(user_id, anime_slug) DO UPDATE SET
+            status = excluded.status,
+            remind_kind = excluded.remind_kind,
+            remind_on = excluded.remind_on,
+            remind_after_slug = excluded.remind_after_slug,
+            notified_at = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        """,
+        (user_id, anime_slug, status, remind_kind, remind_on,
+         remind_after_slug),
+    )
+    conn.commit()
+    cursor.execute(
+        "SELECT * FROM user_up_next WHERE user_id = ? AND anime_slug = ?",
+        (user_id, anime_slug),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def clear_up_next(user_id, anime_slug):
+    """Take an anime off the queue. True when a row was actually removed."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM user_up_next WHERE user_id = ? AND anime_slug = ?",
+        (user_id, anime_slug),
+    )
+    conn.commit()
+    removed = cursor.rowcount > 0
+    conn.close()
+    return removed
+
+
+def get_up_next_map(user_id):
+    """slug -> row for the whole queue.
+
+    Cards need this per page render, so it is one query (not one per card)
+    and the caller indexes into it.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT * FROM user_up_next WHERE user_id = ?",
+        (user_id,),
+    )
+    rows = {r["anime_slug"]: dict(r) for r in cursor.fetchall()}
+    conn.close()
+    return rows
+
+
+def get_up_next_entry(user_id, anime_slug):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT * FROM user_up_next WHERE user_id = ? AND anime_slug = ?",
+        (user_id, anime_slug),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_up_next_count(user_id):
+    """How many shows are on the queue (anything not finished)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT COUNT(*) AS n FROM user_up_next WHERE user_id = ? AND status != ?",
+        (user_id, UP_NEXT_DONE),
+    )
+    n = cursor.fetchone()["n"]
+    conn.close()
+    return n
+
+
+def get_pending_reminders():
+    """Every un-notified reminder, across all users.
+
+    The reminder scheduler is the only bulk reader of this table, and it is
+    tiny (one row per armed reminder), so a single unfiltered SELECT is both
+    correct and cheaper than N per-user queries. Due-ness is decided in
+    Python because 'after' reminders depend on another row's status.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT user_id, anime_slug, status, remind_kind, remind_on,
+               remind_after_slug
+        FROM user_up_next
+        WHERE remind_kind IS NOT NULL
+          AND remind_kind != ''
+          AND notified_at IS NULL
+          AND status != ?
+        """,
+        (UP_NEXT_DONE,),
+    )
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
+def get_done_slugs(user_id):
+    """Slugs this user has finished — the gate for 'after I finish X'."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT anime_slug FROM user_up_next WHERE user_id = ? AND status = ?",
+        (user_id, UP_NEXT_DONE),
+    )
+    slugs = {r["anime_slug"] for r in cursor.fetchall()}
+    conn.close()
+    return slugs
+
+
+def mark_up_next_notified(user_id, anime_slug):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        UPDATE user_up_next
+        SET notified_at = CURRENT_TIMESTAMP
+        WHERE user_id = ? AND anime_slug = ?
+        """,
+        (user_id, anime_slug),
+    )
+    conn.commit()
+    conn.close()
+
+
+def save_push_subscription(user_id, endpoint, p256dh, auth, user_agent=None):
+    """Store/replace a browser push subscription (endpoint is unique)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO push_subscriptions
+            (user_id, endpoint, p256dh, auth, user_agent)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(endpoint) DO UPDATE SET
+            user_id = excluded.user_id,
+            p256dh = excluded.p256dh,
+            auth = excluded.auth,
+            user_agent = excluded.user_agent
+        """,
+        (user_id, endpoint, p256dh, auth, (user_agent or "")[:200]),
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_push_subscription(endpoint):
+    """Drop a subscription (user turned push off, or the push service
+    reported it gone — 404/410 — so it would only ever fail again)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM push_subscriptions WHERE endpoint = ?", (endpoint,)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_push_subscriptions(user_id=None):
+    """All push subscriptions, or just one user's, as dicts."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    if user_id is None:
+        cursor.execute("SELECT * FROM push_subscriptions")
+    else:
+        cursor.execute(
+            "SELECT * FROM push_subscriptions WHERE user_id = ?", (user_id,)
+        )
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
+def touch_push_subscription(endpoint):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        UPDATE push_subscriptions SET last_push_at = CURRENT_TIMESTAMP
+        WHERE endpoint = ?
+        """,
+        (endpoint,),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_setting(key, default=None):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT value FROM app_settings WHERE key = ?", (key,))
+    row = cursor.fetchone()
+    conn.close()
+    return row["value"] if row else default
+
+
+def set_setting(key, value):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO app_settings (key, value, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET
+            value = excluded.value,
+            updated_at = CURRENT_TIMESTAMP
+        """,
+        (key, value),
+    )
+    conn.commit()
+    conn.close()
 
 
 def record_view(user_id, anime_slug):

@@ -50,3 +50,8 @@ services:
       # the chat (threads). Without it the picker errors out.
       - key: GIPHY_API_KEY
         sync: false
+      # NOTE: Up Next reminder notifications need NO new env vars. The VAPID
+      # keypair that signs web-push messages is generated on first use and
+      # kept in app_settings (see up_next.py -> get_vapid), so it survives
+      # redeploys with the rest of the data. The reminder scheduler is a
+      # daemon thread in this process, so no cron service is required either.

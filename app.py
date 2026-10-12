@@ -46,6 +46,7 @@ from database import (
     delete_user_list,
     add_to_user_list,
     remove_from_user_list,
+    get_up_next_map as _up_next_map,
     record_view,
     get_view_history,
     get_taste_slugs,
@@ -113,6 +114,12 @@ from review_votes import (
 )
 from chat import chat_bp
 from profile_routes import bp as profile_bp
+from up_next import (
+    up_next_bp,
+    attach_queue_state,
+    queued_cards,
+    start_reminder_thread,
+)
 
 from threads import init_threads
 from ota_chan import init_ota_chan
@@ -344,6 +351,7 @@ def assetlinks_json():
 app.register_blueprint(auth)
 app.register_blueprint(chat_bp)
 app.register_blueprint(profile_bp)
+app.register_blueprint(up_next_bp)
 
 # Standalone War Zone (Free / Friendly wars) - registered here so the blueprint
 # is mounted alongside the rest of the app.
@@ -1040,6 +1048,12 @@ def _schedule_loop():
 # Render's 512MB instance; the GitHub Actions pipeline does that off-server.
 threading.Thread(target=_schedule_loop, daemon=True).start()
 
+# Up Next reminders: pushes a due reminder to every subscribed device even
+# when nobody has the site open. Same reasoning as the refresher above —
+# Render runs the app as one long-lived process, so a daemon thread is the
+# whole scheduler, and the sweep is idempotent (notified_at gates it).
+start_reminder_thread()
+
 
 # ---------------------------------------------------------------------------
 # Full auto-enrichment (airing + TVmaze + HD upgrade) every 10 minutes
@@ -1359,11 +1373,26 @@ def home():
     # For You section first, then New section
     ordered = rec_list + new_list
 
+    # --- Up Next: the user's own queue, pinned above For You/New ---
+    # One queue fetch serves both the rail and the pills on every card below
+    # (attach_queue_state accepts the map we already loaded).
+    user = g.get("user")
+    up_next_cards = []
+    if user:
+        try:
+            qmap = _up_next_map(user["id"])
+            up_next_cards, _resolved = queued_cards(user["id"], limit=12, qmap=qmap)
+            attach_queue_state(ordered, user["id"], qmap=qmap)
+        except Exception as exc:
+            print(f"[up-next] home rail skipped: {exc}", flush=True)
+
     return render_template(
         "index.html",
         anime_list=ordered,
         for_you_list=rec_list,
         new_list=new_list,
+        up_next_list=up_next_cards,
+        up_next_ready=sum(1 for c in up_next_cards if c["up_next"].get("due")),
         page_title="Discover Anime",
         genres=_genre_list(),
         site_stats=site_stats,
@@ -1407,6 +1436,10 @@ def browse():
     page_entries, page, has_more, loaded, total = _browse_page(
         _decorate(_catalog_entries(sort=sort), sort), page
     )
+    # Up Next pills for the signed-in user (after pagination, so only the 60
+    # cards on screen are resolved).
+    if g.get("user"):
+        attach_queue_state(page_entries, g.user["id"])
     next_url = None
     if has_more:
         args = {k: v for k, v in request.args.items() if k not in ("page", "partial")}
@@ -1438,6 +1471,8 @@ def category(genre):
     page_entries, page, has_more, loaded, total = _browse_page(
         _decorate(_catalog_entries(sort="popular", genre=genre), "popular"), page
     )
+    if g.get("user"):
+        attach_queue_state(page_entries, g.user["id"])
     next_url = None
     if has_more:
         args = {k: v for k, v in request.args.items() if k not in ("page", "partial")}
@@ -1649,9 +1684,24 @@ def anime(anime_slug):
             my_ep_ratings = get_user_episode_ratings(anime_slug, user["id"])
         except Exception:
             my_ep_ratings = {}
+    # Up Next: hand the anime page its queue state so the button paints in
+    # the right state on first render (no flash of "not added").
+    up_next_state = None
+    if user:
+        try:
+            qmap = _up_next_map(user["id"])
+            done = {s for s, r in qmap.items() if r.get("status") == "done"}
+            row = qmap.get(anime_slug)
+            if row:
+                from up_next import resolve as _resolve_up_next
+                up_next_state = _resolve_up_next(row, done)
+        except Exception as exc:
+            print(f"[up-next] anime state skipped: {exc}", flush=True)
+
     return render_template(
         "anime.html",
         anime=anime_with_recs,
+        up_next_state=up_next_state,
         next_episode_label=_episode_badge(anime),
         episode_stats=episode_stats,
         my_ep_ratings=my_ep_ratings,

@@ -130,6 +130,13 @@ def profile():
                 pick.pop("badge_label", None)  # history pill shows visit time
                 pick["visited_at"] = row["viewed_at"]
                 history.append(pick)
+            # Your own history is the place an Up Next indicator matters most,
+            # so these cards carry the status pill too. One query for the page.
+            try:
+                from up_next import attach_queue_state
+                attach_queue_state(history, user["id"])
+            except Exception:
+                pass
             history_count = get_history_count(user["id"])
         except Exception:
             history = []
@@ -197,6 +204,11 @@ def profile_list(list_id):
         pick = _pick_card(slug)
         if pick is not None:
             items.append(pick)
+    try:
+        from up_next import attach_queue_state
+        attach_queue_state(items, user["id"])
+    except Exception:
+        pass
 
     return render_template(
         "profile_list.html",

@@ -31,6 +31,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/rank_badges.css') }}?v=20260901c">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/list_picker.css') }}?v=20260902u">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/up_next.css') }}?v=20261011a">
 
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
@@ -254,6 +255,25 @@
 
                         {{ t('Add to List') }}
 
+                    </button>
+
+                    {# ---- Up Next: set how you mean to watch this ----
+                       Rendered with the current state (up_next_state) so the
+                       button never flashes "not added" on a show you are
+                       already watching. #}
+                    <button type="button"
+                            class="un-anime-btn{% if up_next_state %} un-set {{ up_next_state.pill.cls }}{% endif %}"
+                            id="unAnimeBtn"
+                            data-slug="{{ anime.slug }}"
+                            data-title="{{ anime.title }}">
+                        {% if up_next_state %}
+                            {% if up_next_state.pill.cls == 'un-now' %}<span class="un-live-dot"></span>{% endif %}
+                            <i class="fas {{ up_next_state.pill.icon }}"></i>
+                            <span class="un-anime-label">{{ up_next_state.pill.label }}</span>
+                        {% else %}
+                            <i class="fas fa-bell"></i>
+                            <span class="un-anime-label">{{ t('Up Next') }}</span>
+                        {% endif %}
                     </button>
 
                     <button type="button" class="review-scroll-btn" onclick="document.getElementById('animeReviewSection').scrollIntoView({behavior:'smooth',block:'start'})">
@@ -860,6 +880,7 @@
     <script src="{{ url_for('static', filename='js/nav_search.js') }}?v=20260906a"></script>
     <script src="{{ url_for('static', filename='js/anime.js') }}?v=20260902w"></script>
     <script src="{{ url_for('static', filename='js/list_picker.js') }}?v=20260902u"></script>
+    <script src="{{ url_for('static', filename='js/up_next.js') }}?v=20261011a"></script>
 
     <script>
     (function () {
