@@ -144,6 +144,7 @@
 /* ---------------- Picker rows (shares list_picker.css chrome) ------- */
 
 .un-pop .list-picker-title{ color:#fff; }
+.un-pop .list-picker-title i{ color:#ff6f93; margin-right:7px; font-size:13px; }
 .un-rows{ gap:7px; }
 
 .un-row{
@@ -223,6 +224,7 @@
 }
 .un-inline.open{ display:flex; }
 .un-inline input[type="date"],
+.un-inline input[type="number"],
 .un-inline select{
     flex:1;
     min-width:0;
@@ -238,6 +240,7 @@
 }
 .un-inline select option{ background:#141a2e; color:#fff; }
 .un-inline input[type="date"]:focus,
+.un-inline input[type="number"]:focus,
 .un-inline select:focus{
     border-color:#8F5BFF;
     box-shadow:0 0 12px rgba(143,91,255,.35);
@@ -259,6 +262,22 @@
 .un-mini-btn:hover{ box-shadow:0 0 16px rgba(123,46,255,.7); }
 .un-danger-row{ color:#ff8ea6; }
 .un-danger-row .un-row-ico{ background:rgba(255,59,107,.14); color:#ff8ea6; }
+
+/* Timer stepper: the number field stays narrow, so its unit reads beside it. */
+.un-inline-unit{
+    flex:0 0 auto;
+    align-self:center;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.4px;
+    text-transform:uppercase;
+    color:#8f94b0;
+    white-space:nowrap;
+}
+/* The hours row has the shortest fuse of the lot, so it takes the warm accent
+   the site already uses for "ready now". */
+.un-row-ico.ico-hours{ background:rgba(255,140,66,.2); color:#ffab5e; }
+.un-row.active .un-row-ico.ico-hours{ background:#ff8c42; color:#0d1117; }
 
 .un-hint{
     color:#8f94b0;

@@ -111,11 +111,15 @@ I mean to watch?".
 - **Three states** in `user_up_next` (one row per user + anime): `now`
   (watching right now), `planned` (on the queue), `done` (finished). Marking a
   show `done` is what releases a reminder that was waiting on it.
-- **Four reminder kinds**: `tonight`, `tomorrow`, a specific calendar `date`, or
-  `after` you finish another show you have queued. A reminder is *due* the first
-  time anything asks (`resolve()` in `up_next.py`), never on a timer, and
-  `notified_at` guarantees the push fires exactly once. Day boundaries use
-  Asia/Kolkata, the same clock the episode countdown badges use.
+- **Five reminder kinds**: `tonight`, `tomorrow`, a specific calendar `date`, a
+  short `hours` timer, or `after` you finish another show you have queued. The
+  timer is anything from 1 to 72 hours and is stored as an absolute `remind_at`
+  (ISO 8601 in the site's clock) rather than a calendar day, so "in 3 hours"
+  means three hours and not the next midnight; a running timer counts itself
+  down on the card's pill ("IN 3H"). A reminder is *due* the first time anything
+  asks (`resolve()` in `up_next.py`), never on a timer, and `notified_at`
+  guarantees the push fires exactly once. Day boundaries use Asia/Kolkata, the
+  same clock the episode countdown badges use.
 - **Real Web Push.** `get_vapid()` generates a P-256 VAPID keypair on first use
   and stores it in `app_settings`, so there are **no new environment variables to
   configure**. The reminder sweep runs in a daemon thread inside the web process
@@ -125,7 +129,9 @@ I mean to watch?".
 - **UI**: status pill on every card (bottom-left of the poster), an Up Next
   button on anime pages, a queue rail on the homepage, a `/up-next` page with
   shelves (ready / watching now / tonight / later / waiting), all driven by
-  `static/js/up_next.js` + `static/css/up_next.css`.
+  `static/js/up_next.js` + `static/css/up_next.css`. The picker paints its rows
+  before it asks the server for state, so it opens instantly and then corrects
+  the tick marks when the response lands.
 - Requires the `pywebpush` dependency (pinned in `requirements.txt`). If it is
   missing the feature degrades quietly — the pickers and queue still work and
   the push endpoints report `push_unavailable` instead of erroring. iOS needs the
