@@ -176,11 +176,19 @@ I mean to watch?".
     "waiting for you to finish another show") and the reminder's state on the
     right (`READY`, or the running `IN 3H` pill). Every row is a link straight
     to that anime, and *Open queue* goes to `/up-next`.
-  The box opens by itself when something becomes due — except on the homepage
-  and the queue page, which render their own waiting card and must not report
-  the same reminder twice (the bell still works there, it just waits to be
-  asked) — and the ✕ collapses it back to the bell while the badge keeps
-  counting: collapsing the box must not mean forgetting the reminder. It reads
+  The box opens by itself for any due reminder the user has not dismissed —
+  however long ago it came due, and on every page that does not already render
+  the same thing as page furniture (the `/up-next` page's own "while you were
+  away" card; the bell still works there, it just waits to be asked). No page
+  keeps a *second*, lesser reminder box for it: the homepage used to show a
+  "1 reminder is waiting" strip and then the box landed on top of it, which
+  read as two notifications for one reminder — the box is the homepage's
+  reminder surface now. Once it has opened by itself it stays put: it is the
+  notification, not a menu, so clicking the page under it does not take the row
+  away (that is what made a row "vanish" the moment the user looked at
+  anything). Only ✕ or Escape retires it, and that collapses it back to the bell
+  while the badge keeps counting: collapsing the box must not mean forgetting
+  the reminder. It reads
   `GET /api/up-next/alerts`, which answers with what is ready plus what is
   coming up (so a timer you *set* is visible on the site, not only a missed one)
   and 401 when signed out, whereupon the dock stays quiet rather than bouncing a

@@ -153,28 +153,12 @@
 
 {% if up_next_list %}
 
-{# "While you were away": anything that came due and is still waiting. Says
-   how long the oldest has sat there, because that is what tells you it
-   slipped past you. Session-dismissable in up_next.js. #}
-{% if up_next_ready %}
-<section class="un-away" id="unAway" role="status">
-    <span class="un-away-ico"><i class="fas fa-bell"></i></span>
-    <div class="un-away-text">
-        <strong>{{ up_next_ready }} reminder{{ '' if up_next_ready == 1 else 's' }} {{ 'is' if up_next_ready == 1 else 'are' }} waiting</strong>
-        <span>{% if up_next_oldest %}The oldest came due {{ up_next_oldest }} — ready whenever you are.{% else %}Your queue has something ready for you.{% endif %}</span>
-    </div>
-    <a href="{{ url_for('up_next.page') }}" class="un-away-btn">
-        Open queue <i class="fas fa-arrow-right"></i>
-    </a>
-    {# Shown by up_next.js only when this device has no push subscription —
-       a waiting reminder that cannot be delivered is the whole problem, so
-       offer the fix right here. #}
-    <button type="button" class="un-away-notify" id="unAwayNotify" hidden>
-        <i class="fas fa-bell"></i> Turn on notifications
-    </button>
-    <button type="button" class="un-away-x" id="unAwayX" aria-label="Dismiss for now">&times;</button>
-</section>
-{% endif %}
+{# No "while you were away" strip here on purpose. A reminder that came due
+   is announced by the one notification box (templates/_up_next_alert.html),
+   which the dock opens by itself on this page too; a second, lesser box above
+   the rail only said the same thing twice and then the real one arrived after
+   it. The rail below is the queue itself — a preview of what is coming —
+   never a reminder notice. #}
 
 <section class="un-rail-wrap">
 

@@ -16,6 +16,12 @@
      minutes is highlighted, because "which one just fired?" is the question
      the box exists to answer.
 
+     The box opens itself for any due reminder the user has not dismissed — on
+     any page, however long ago it came due — and, once open that way, it stays
+     until ✕ or Escape: it is the notification, not a menu, so clicking the page
+     under it must not take the row away. A box opened from the bell is a normal
+     drop-down and closes on an outside click.
+
      Self-contained on purpose: markup, style and script all live here rather
      than in up_next.css/js, because this partial lands on pages that load
      neither, and the icons are inline SVG so a blocked icon font can never
@@ -407,11 +413,11 @@
     var hasAny = false;     // anything armed or due at all
     var timer = null;
 
-    // Two answers to the same question — "is a reminder being reported to me
-    // already?" — decide whether the box may open itself. The homepage and the
-    // queue page render their own waiting card with live data in the HTML, so
-    // popping the box there would say the same thing twice. The bell still
-    // works on those pages; it just waits to be asked.
+    // The queue page renders its own "while you were away" card with live data
+    // in the HTML, so the box stays quiet there rather than reporting the same
+    // reminder twice — the bell still works, it just waits to be asked. The
+    // homepage has no such card: there the box *is* the notification, and it
+    // comes straight in instead of after a lesser strip saying the same thing.
     var hasAwayCard = !!document.getElementById("unAway");
 
     /* -------------------- place the bell in the navbar ------------------- */
@@ -563,10 +569,13 @@
             listEl.innerHTML = html;
         }
 
-        // A reminder the user has not been shown yet opens the box on its own;
-        // one they collapsed stays collapsed, while the badge keeps counting it.
-        var fresh = due.some(function (i) { return seen.indexOf(i.slug) === -1; });
-        setOpen(manualOpen || (fresh && !hasAwayCard));
+        // A due reminder the user has not dismissed opens the box on its own —
+        // whenever it came due, and on whatever page they are on — because a
+        // reminder that has to be looked for is a reminder that was missed. One
+        // they collapsed stays collapsed while the badge keeps counting it, and
+        // the queue page's own card keeps the box quiet there.
+        var unseen = due.some(function (i) { return seen.indexOf(i.slug) === -1; });
+        setOpen(manualOpen || (unseen && !hasAwayCard));
     }
 
     function load() {
@@ -608,18 +617,20 @@
         });
     }
 
-    if (xEl) {
-        xEl.addEventListener("click", function () {
-            // Collapse, but let the badge keep reporting: the reminder is still
-            // waiting, so it must not disappear from the site entirely.
-            try {
-                seen = seen.concat(dueSlugsOnScreen());
-                sessionStorage.setItem(SEEN_KEY, JSON.stringify(seen.slice(-40)));
-            } catch (err) { /* private mode: collapsed for this page only */ }
-            manualOpen = false;
-            setOpen(false);
-        });
+    /* Collapse, but let the badge keep reporting: the reminder is still
+     * waiting, so it must not disappear from the site entirely. Shared by ✕ and
+     * by Escape, so both mean "I have seen this one" instead of the box
+     * flickering back on the next poll. */
+    function dismiss() {
+        try {
+            seen = seen.concat(dueSlugsOnScreen());
+            sessionStorage.setItem(SEEN_KEY, JSON.stringify(seen.slice(-40)));
+        } catch (err) { /* private mode: collapsed for this page only */ }
+        manualOpen = false;
+        setOpen(false);
     }
+
+    if (xEl) xEl.addEventListener("click", dismiss);
 
     if (notifyEl) {
         notifyEl.addEventListener("click", function () {
@@ -633,19 +644,26 @@
         });
     }
 
-    // It is a drop-down, so clicking anywhere else closes it — except on the
-    // bell itself, which owns its own toggle.
+    // A box the user opened with the bell is a drop-down: clicking anywhere
+    // else closes it, except on the bell itself, which owns its own toggle. A
+    // box the site opened because a reminder came due is not a menu — it is the
+    // notification, so clicking the page under it must not wipe the row off the
+    // screen (that is exactly what made the row "vanish" the moment the user
+    // looked at anything). Only ✕ or Escape retires that one.
     document.addEventListener("click", function (e) {
-        if (!open) return;
+        if (!open || !manualOpen) return;
         if (dock.contains(e.target)) return;
         if (bell && bell.contains(e.target)) return;
         manualOpen = false;
         setOpen(false);
     });
     document.addEventListener("keydown", function (e) {
-        if (e.key === "Escape" && open) {
+        if (e.key !== "Escape" || !open) return;
+        if (manualOpen) {
             manualOpen = false;
             setOpen(false);
+        } else {
+            dismiss();
         }
     });
 
