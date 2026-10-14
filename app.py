@@ -117,9 +117,7 @@ from profile_routes import bp as profile_bp
 from up_next import (
     up_next_bp,
     attach_queue_state,
-    queued_cards,
     start_reminder_thread,
-    waiting_summary,
 )
 
 from threads import init_threads
@@ -1374,31 +1372,23 @@ def home():
     # For You section first, then New section
     ordered = rec_list + new_list
 
-    # --- Up Next: the user's own queue, pinned above For You/New ---
-    # One queue fetch serves both the rail and the pills on every card below
-    # (attach_queue_state accepts the map we already loaded).
+    # --- Up Next pills on the cards ---
+    # There is no queue rail on the homepage any more (it duplicated /up-next
+    # and the reminder dock), but the cards themselves keep their pill, so the
+    # queue is still legible where the user is already looking. One queue fetch
+    # serves every card below.
     user = g.get("user")
-    up_next_cards = []
     if user:
         try:
-            qmap = _up_next_map(user["id"])
-            up_next_cards, _resolved = queued_cards(user["id"], limit=12, qmap=qmap)
-            attach_queue_state(ordered, user["id"], qmap=qmap)
+            attach_queue_state(ordered, user["id"], qmap=_up_next_map(user["id"]))
         except Exception as exc:
-            print(f"[up-next] home rail skipped: {exc}", flush=True)
+            print(f"[up-next] home card pills skipped: {exc}", flush=True)
 
-    # "While you were away": how many reminders are waiting, and how long the
-    # oldest has been sitting. The count alone says something is pending; the
-    # age is what tells the user it slipped past them.
-    up_next_ready, up_next_oldest = waiting_summary(up_next_cards)
     return render_template(
         "index.html",
         anime_list=ordered,
         for_you_list=rec_list,
         new_list=new_list,
-        up_next_list=up_next_cards,
-        up_next_ready=up_next_ready,
-        up_next_oldest=up_next_oldest,
         page_title="Discover Anime",
         genres=_genre_list(),
         site_stats=site_stats,

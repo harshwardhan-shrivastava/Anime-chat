@@ -145,11 +145,13 @@ I mean to watch?".
   the row stays armed, so it fires exactly once the moment one subscribes (and
   `[up-next] reminder … is due but no device is subscribed` is logged).
 - **UI**: status pill on every card (bottom-left of the poster), an Up Next
-  button on anime pages, a queue rail on the homepage, a `/up-next` page with
-  shelves (ready / watching now / tonight / later / waiting), all driven by
-  `static/js/up_next.js` + `static/css/up_next.css`. The picker paints its rows
-  before it asks the server for state, so it opens instantly and then corrects
-  the tick marks when the response lands.
+  button on anime pages, and a `/up-next` page with shelves (ready / watching
+  now / tonight / later / waiting), all driven by
+  `static/js/up_next.js` + `static/css/up_next.css`. (The homepage has no queue
+  rail of its own: the cards keep their pill and the queue belongs to
+  `/up-next`, so the rail only repeated what those two already said.) The picker
+  paints its rows before it asks the server for state, so it opens instantly and
+  then corrects the tick marks when the response lands.
 - **Reminders surface themselves — on every page, not just their own.** The
   pill reads READY, the show moves into the "Ready now" shelf, and a dock in the
   top-right corner shows it wherever the user happens to be. That dock is
@@ -173,9 +175,15 @@ I mean to watch?".
     empty square where the bell should be;
   - a **badge that counts what is *unread***, not everything that is due.
     Seeing the box is seeing the notifications, so opening it — or ✕/Escape, or
-    the ✓ — marks what it showed as seen (`sessionStorage`, so it survives
-    navigation within the tab) and the number clears instead of claiming
-    "1 unread" forever. A quiet violet dot still means "only timers ticking", so
+    the ✓ — marks what it showed as seen and the number clears instead of
+    claiming "1 unread" forever. "Seen" lives in `localStorage` and is keyed per
+    reminder (its slug plus the moment it came due), so it survives a new tab
+    and a new visit — and re-reminding the same show later is genuinely new, not
+    the old notification coming back. A due reminder that has been waiting more
+    than a day (`NOTIFY_MAX_AGE`) stops counting as unread and never opens the
+    box by itself: past that point it is queue state, not news, and it is still
+    listed in the box and on `/up-next`, so nothing is dropped — the nagging
+    just has an end. A quiet violet dot still means "only timers ticking", so
     the bell never claims something is ready when it is just counting down;
   - a **wide, low notification box** that hangs from the top-right, just under
     the navbar — its top is measured from the navbar's bottom edge rather than
@@ -186,16 +194,19 @@ I mean to watch?".
     right (`READY`, or the running `IN 3H` pill). Every row is a link straight
     to that anime, and *Open queue* goes to `/up-next`.
   The box opens by itself only for a reminder that **just went off** (inside
-  `FRESH_SECONDS`), and only on a page that does not already render the same
-  thing as page furniture (the `/up-next` page's own "while you were away"
-  card; the bell still works there, it just waits to be asked). A stale reminder
-  popping a box open over the page is what reads as being nagged — the bell and
+  `FRESH_SECONDS`) and has **never been shown before**, and only on a page that
+  does not already render the same thing as page furniture (the `/up-next`
+  page's own "while you were away" card; the bell still works there, it just
+  waits to be asked). A stale reminder popping a box open over the page is what
+  reads as being nagged — the bell and
   its unread count already say something is waiting, and one click shows the
   whole list. No page keeps a *second*, lesser reminder box for it: the homepage
   used to show a "1 reminder is waiting" strip and then the box landed on top
   of it, which read as two notifications for one reminder — the box is the
-  homepage's reminder surface now. Once it has opened by itself it stays put: it
-  is the notification, not a menu, so clicking the page under it does not take
+  homepage's reminder surface now, and the homepage carries no queue rail
+  either, since that only said the same thing a third time. Once it has opened
+  by itself it stays put: it is the notification, not a menu, so clicking the
+  page under it does not take
   the row away (that is what made a row "vanish" the moment the user looked at
   anything). ✕ or Escape retires it — the reminder itself stays pending on the
   queue — and every row also carries a ✓ whose tooltip is the whole point:
@@ -210,7 +221,7 @@ I mean to watch?".
   looking for. The one that came due in the last ten minutes is highlighted
   (`fresh`). It re-polls every 60s while the tab is visible and on
   `visibilitychange`, so a timer that runs out mid-browse pops on its own, and
-  a reminder already seen this session is not announced again. When the
+  a reminder already seen is never announced again. When the
   device has no push subscription the box also offers **Turn on notifications**
   — a due reminder with nothing subscribed is the most common reason someone
   sees no notification at all, and the check costs no request (the browser's

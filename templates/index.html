@@ -149,59 +149,11 @@
 </nav>
 {% endif %}
 
-<!-- ================= UP NEXT (your queue) ================= -->
-
-{% if up_next_list %}
-
-{# No "while you were away" strip here on purpose. A reminder that came due
-   is announced by the one notification box (templates/_up_next_alert.html),
-   which the dock opens by itself on this page too; a second, lesser box above
-   the rail only said the same thing twice and then the real one arrived after
-   it. The rail below is the queue itself — a preview of what is coming —
-   never a reminder notice. #}
-
-<section class="un-rail-wrap">
-
-    <div class="un-rail-head">
-        <div>
-            <h2><i class="fas fa-bell"></i> {{ t('Up Next') }}</h2>
-            <p class="un-rail-sub">
-                {% if up_next_ready %}{{ up_next_ready }} ready to watch · {% endif %}Your queue, in the order you meant to watch it.
-            </p>
-        </div>
-        <a href="{{ url_for('up_next.page') }}" class="un-rail-all">
-            Open queue <i class="fas fa-arrow-right"></i>
-        </a>
-    </div>
-
-    <div class="un-rail">
-        {% for item in up_next_list %}
-        <a class="un-rail-card" href="/anime/{{ item.slug }}">
-            <div class="un-rail-poster">
-                <img src="{{ item.image | anime_img }}" alt="{{ item.title }}"
-                     loading="lazy" decoding="async"
-                     onerror="this.onerror=null;this.src=this.src.replace('/cover/large/','/cover/medium/');">
-                <span class="un-pill {{ item.up_next.pill.cls }}{% if item.up_next.due %} un-pill-due{% endif %}">
-                    {% if item.up_next.pill.cls == 'un-now' %}<span class="un-live-dot"></span>{% endif %}
-                    <i class="fas {{ item.up_next.pill.icon }}"></i>
-                    <span>{{ item.up_next.pill.label }}</span>
-                </span>
-            </div>
-            <div class="un-rail-meta">
-                <strong>{{ item | jp_title }}</strong>
-                <span class="un-rail-note">
-                    {% if item.up_next.due and item.up_next.ago %}came due {{ item.up_next.ago }}
-                    {% elif item.up_next.caption %}{{ item.up_next.caption }}
-                    {% elif item.up_next.remind_kind %}reminder set
-                    {% else %}on your queue{% endif %}
-                </span>
-            </div>
-        </a>
-        {% endfor %}
-    </div>
-
-</section>
-{% endif %}
+{# No Up Next rail here any more. The homepage is the landing surface: the
+   queue belongs on /up-next, and a due reminder is announced by the one
+   notification box (templates/_up_next_alert.html) that every page carries.
+   Cards below still wear their Up Next pill (attach_queue_state), so the
+   queue is visible without a second, duplicate shelf repeating it. #}
 
 <!-- ================= RECOMMENDED FOR YOU ================= -->
 

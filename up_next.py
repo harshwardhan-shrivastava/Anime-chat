@@ -494,6 +494,12 @@ def _alert_items(pairs, now_ts=None):
             "image": entry.get("image") or "",
             "caption": state.get("caption") or "",
             "ago": state.get("ago") or "",
+            # When this reminder came due, in epoch seconds (None when the
+            # kind has no moment of its own). The dock keys "already shown"
+            # and "too old to still be nagging" off this, so a reminder can
+            # be identified rather than a show — re-reminding the same show
+            # later is a new notification, not the old one coming back.
+            "since": due_since,
             "pill": state.get("pill") or {},
             "kind": state.get("remind_kind"),
             "fresh": bool(

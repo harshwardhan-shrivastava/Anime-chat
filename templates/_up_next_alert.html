@@ -23,13 +23,26 @@
      claiming "1 unread" forever. Threads keeps its own notification bell
      instead (see threads.html).
 
+     "Shown" is remembered in localStorage, per reminder (its show plus the
+     moment it came due), not per browser session: a number that reappears in
+     every new tab, or a box that pops open on every visit, is the same
+     notification arriving again and again and is the one thing this dock must
+     not do. Re-reminding the same show later is a new reminder and does tell
+     the user again.
+
+     A reminder also stops counting as unread once it has been waiting more
+     than a day (NOTIFY_MAX_AGE): past that point it is queue state, not news,
+     so it neither badges nor opens the box by itself. It is still listed in
+     the panel and on /up-next, so nothing is silently dropped — the nagging
+     just has an end.
+
      The box opens itself only for a reminder that *just* went off (inside
-     FRESH_SECONDS): a stale one popping a box over the page reads as being
-     nagged, while the bell and its count already say something is waiting and
-     one click shows the whole list. Once open that way it stays until ✕ or
-     Escape — it is the notification, not a menu, so clicking the page under it
-     must not take the row away. A box opened from the bell is a normal
-     drop-down and closes on an outside click.
+     FRESH_SECONDS) and that has never been shown before: a stale one popping a
+     box over the page reads as being nagged, while the bell and its count
+     already say something is waiting and one click shows the whole list. Once
+     open that way it stays until ✕ or Escape — it is the notification, not a
+     menu, so clicking the page under it must not take the row away. A box
+     opened from the bell is a normal drop-down and closes on an outside click.
 
      Every row carries a ✓: "I got it, I'll watch it" clears the reminder on
      the server (POST /api/up-next/ack) — the timer goes off, the row leaves the
@@ -484,7 +497,16 @@
     if (!dock || window.__UN_DOCK_WIRED) return;
 
     var POLL_MS = 60000;
-    var SEEN_KEY = "unDockSeen";
+    // Kept in localStorage rather than sessionStorage, and keyed per reminder
+    // (see ident) rather than per show: "seen" has to survive a new tab and a
+    // new visit, or the badge and the auto-opened box come back every single
+    // time — which is exactly what made this feel like it never ended.
+    var SEEN_KEY = "unDockSeen2";
+    var SEEN_MAX = 200;     // keep the list bounded; oldest ids fall off first
+    // A due reminder older than this is no longer news: it stops badging and
+    // never opens the box by itself, while still being listed in the panel.
+    var NOTIFY_MAX_AGE = 86400;
+    var seen = [];          // reminder ids the user has already been shown
     var bell = document.getElementById("unBell");
     var badge = document.getElementById("unBellCount");
     var panel = document.getElementById("unPanel");
@@ -492,7 +514,6 @@
     var listEl = document.getElementById("unPanelList");
     var xEl = document.getElementById("unPanelX");
     var notifyEl = document.getElementById("unPanelNotify");
-    var seen = [];          // slugs the user has already been shown this session
     var manualOpen = false; // the user opened it themselves — leave it open
     var open = false;
     var hasAny = false;     // anything armed or due at all
@@ -532,10 +553,17 @@
     window.addEventListener("resize", syncPanelTop);
     window.addEventListener("load", syncPanelTop);
 
-    try {
-        seen = JSON.parse(sessionStorage.getItem(SEEN_KEY) || "[]") || [];
-    } catch (err) { seen = []; }
-    if (!seen.length) seen = [];
+    function loadSeen() {
+        try {
+            seen = JSON.parse(localStorage.getItem(SEEN_KEY) || "[]") || [];
+        } catch (err) { seen = []; }
+        if (!Array.isArray(seen)) seen = [];
+    }
+    function saveSeen() {
+        try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen.slice(-SEEN_MAX))); }
+        catch (err) { /* private mode / storage full: this visit just forgets */ }
+    }
+    loadSeen();
 
     function escapeHtml(s) {
         var d = document.createElement("div");
@@ -552,22 +580,40 @@
         dock.hidden = true;
     }
 
-    /* Session-scoped "already shown": sessionStorage survives navigation
-     * within the tab, so a reminder the user has looked at stops counting as
-     * unread on the next page instead of nagging for the rest of the day. */
-    function markSeen(slugs) {
+    /* Persistent "already shown": localStorage outlives the tab, so a reminder
+     * the user has looked at stops counting as unread for good instead of
+     * coming back in every new tab. */
+    function markSeen(ids) {
         var changed = false;
-        (slugs || []).forEach(function (s) {
+        (ids || []).forEach(function (s) {
             if (s && seen.indexOf(s) === -1) { seen.push(s); changed = true; }
         });
         if (!changed) return false;
-        try { sessionStorage.setItem(SEEN_KEY, JSON.stringify(seen.slice(-60))); } catch (err) {}
+        saveSeen();
         return true;
+    }
+
+    /* One reminder's identity: its show plus the moment it came due. Two
+     * reminders for the same show are two notifications; the same reminder
+     * never counts as new twice. */
+    function ident(item) {
+        return (item && item.slug ? item.slug : "") + "@" +
+            (item && item.since ? item.since : 0);
+    }
+
+    /* Past a day a waiting reminder is queue state, not news — it stops
+     * badging and never pops the box. It stays in the panel (and on
+     * /up-next), so the reminder itself is never lost. */
+    function tooOld(item) {
+        if (!item || !item.since) return false;
+        return (Date.now() / 1000 - item.since) > NOTIFY_MAX_AGE;
     }
 
     function unreadDue() {
         var due = (last && last.items) || [];
-        return due.filter(function (i) { return seen.indexOf(i.slug) === -1; });
+        return due.filter(function (i) {
+            return !tooOld(i) && seen.indexOf(ident(i)) === -1;
+        });
     }
 
     /* The badge is the *unread* count, not every due reminder: a number that
@@ -608,7 +654,7 @@
             // Seeing the box is seeing the notifications: what it is showing is
             // no longer unread. This is what stops the badge from still
             // claiming "1" after the user has looked at it.
-            if (markSeen(dueSlugsOnScreen()) && last) paintBadge();
+            if (markSeen(dueIdentsOnScreen()) && last) paintBadge();
         }
         if (want === open) return;
         open = want;
@@ -636,7 +682,8 @@
         return '<div class="' + cls + '"' +
             (isDue ? ' data-due="1"' : '') +
             (item.fresh ? ' data-fresh="1"' : '') +
-            ' data-slug="' + escapeHtml(item.slug) + '">' +
+            ' data-slug="' + escapeHtml(item.slug) + '"' +
+            ' data-ident="' + escapeHtml(ident(item)) + '">' +
             '<a class="un-row-main" href="/anime/' + encodeURIComponent(item.slug) + '">' +
             '<span class="un-row-thumb">' + thumb + '</span>' +
             '<span class="un-row-text">' +
@@ -656,9 +703,9 @@
             '</div>';
     }
 
-    function dueSlugsOnScreen() {
+    function dueIdentsOnScreen() {
         return [].map.call(listEl.querySelectorAll(".un-row[data-due]"), function (a) {
-            return a.getAttribute("data-slug");
+            return a.getAttribute("data-ident");
         });
     }
 
@@ -717,7 +764,7 @@
         // something is waiting, and one click shows the whole list. The queue
         // page's own "while you were away" card keeps the box quiet there.
         var justFired = due.some(function (i) {
-            return i.fresh && seen.indexOf(i.slug) === -1;
+            return i.fresh && !tooOld(i) && seen.indexOf(ident(i)) === -1;
         });
         setOpen(manualOpen || (justFired && !hasAwayCard));
     }
@@ -767,7 +814,7 @@
      * mean "I have seen this one" instead of the box flickering back on the
      * next poll. (Private mode just means it is forgotten on reload.) */
     function dismiss() {
-        markSeen(dueSlugsOnScreen());
+        markSeen(dueIdentsOnScreen());
         if (last) paintBadge();
         manualOpen = false;
         setOpen(false);
@@ -780,11 +827,11 @@
      * leaves the box — while the show stays on the queue, so /up-next still
      * lists it for anyone who missed the notification. */
     var acking = {};
-    function ack(slug, btn) {
+    function ack(slug, key, btn) {
         if (!slug || acking[slug]) return;
         acking[slug] = true;
         if (btn) btn.disabled = true;
-        markSeen([slug]);
+        markSeen([key || slug]);
         fetch("/api/up-next/ack", {
             method: "POST",
             credentials: "same-origin",
@@ -813,7 +860,8 @@
             e.preventDefault();
             e.stopPropagation();
             var row = btn.closest(".un-row");
-            ack(row ? row.getAttribute("data-slug") : null, btn);
+            ack(row ? row.getAttribute("data-slug") : null,
+                row ? row.getAttribute("data-ident") : null, btn);
         });
     }
 
