@@ -175,7 +175,7 @@ I mean to watch?".
     empty square where the bell should be;
   - a **badge that counts what is *unread***, not everything that is due.
     Seeing the box is seeing the notifications, so opening it — or ✕/Escape, or
-    the ✓ — marks what it showed as seen and the number clears instead of
+    Mark read — marks what it showed as seen and the number clears instead of
     claiming "1 unread" forever. "Seen" lives in `localStorage` and is keyed per
     reminder (its slug plus the moment it came due), so it survives a new tab
     and a new visit — and re-reminding the same show later is genuinely new, not
@@ -209,8 +209,9 @@ I mean to watch?".
   page under it does not take
   the row away (that is what made a row "vanish" the moment the user looked at
   anything). ✕ or Escape retires it — the reminder itself stays pending on the
-  queue — and every row also carries a ✓ whose tooltip is the whole point:
-  "Got it, I'll watch it". It reads
+  queue — and every row also carries a **Mark read** button: a labelled pill
+  that says outright what a bare ✓ only said on hover ("Got it, I'll watch
+  it"). It reads
   `GET /api/up-next/alerts`, which answers with what is ready plus what is
   coming up (so a timer you *set* is visible on the site, not only a missed one)
   and 401 when signed out, whereupon the dock stays quiet rather than bouncing a
@@ -230,8 +231,9 @@ I mean to watch?".
   17:00 for `tonight`, midnight otherwise), and `after` from the sweep's
   `notified_at`, which SQLite writes in UTC and therefore has to be converted to
   the site clock or every label would be 5:30 out.
-- **"Got it, I'll watch it" is a real action, not a dismiss.** The ✓ on a row
-  posts to `POST /api/up-next/ack`, which calls `ack_up_next_reminder()`: the
+- **"Got it, I'll watch it" is a real action, not a dismiss.** The **Mark read**
+  button on a row posts to `POST /api/up-next/ack`, which calls
+  `ack_up_next_reminder()`: the
   `remind_*` columns are cleared, so the timer goes off, the row leaves the box
   and the badge, and the sweep can never fire it again — while the row keeps its
   status and stays on the queue, so `/up-next` still lists the show for anyone

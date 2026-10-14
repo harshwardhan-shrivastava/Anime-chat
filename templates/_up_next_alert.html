@@ -44,10 +44,13 @@
      menu, so clicking the page under it must not take the row away. A box
      opened from the bell is a normal drop-down and closes on an outside click.
 
-     Every row carries a ✓: "I got it, I'll watch it" clears the reminder on
-     the server (POST /api/up-next/ack) — the timer goes off, the row leaves the
-     box and the badge drops — while the show itself stays on the queue, so
-     /up-next still lists it for anyone who missed the notification.
+     Every row carries a Mark read button: "I got it, I'll watch it" clears the
+     reminder on the server (POST /api/up-next/ack) — the timer goes off, the
+     row leaves the box and the badge drops — while the show itself stays on the
+     queue, so /up-next still lists it for anyone who missed the notification.
+     The button is spelled out rather than a bare ✓: a lone tick said nothing
+     about what it did until it was hovered, and it read as a checkbox waiting
+     to be ticked instead of the one action that retires the reminder.
 
      Self-contained on purpose: markup, style and script all live here rather
      than in up_next.css/js, because this partial lands on pages that load
@@ -257,10 +260,10 @@
         padding:5px 2px 0;
     }
     /* Wide and low: a 38px square thumbnail, one line of show, one line of
-       why, the reminder's state, and the ✓ that retires it. The row is a
-       container rather than a link because the ✓ has to be a real button
-       inside it — a button inside an <a> is invalid and would follow the link
-       as well as doing its own job. */
+       why, the reminder's state, and the Mark read button that retires it.
+       The row is a container rather than a link because the button has to be
+       real inside it — a button inside an <a> is invalid and would follow the
+       link as well as doing its own job. */
     .un-row{
         display:flex;
         align-items:center;
@@ -285,22 +288,28 @@
         text-decoration:none;
     }
     /* "Got it, I'll watch it": the reminder's timer goes off and the row leaves
-       the box, while the show itself stays on the queue. */
+       the box, while the show itself stays on the queue. A text pill, not a
+       bare tick — the label is what makes the action read as an action. */
     .un-row-ack{
         flex:0 0 auto;
-        width:28px;
         height:28px;
         display:inline-flex;
         align-items:center;
         justify-content:center;
-        border-radius:9px;
-        border:1px solid rgba(255,255,255,.14);
-        background:rgba(255,255,255,.05);
-        color:#c8cbe0;
+        padding:0 11px;
+        border-radius:999px;
+        border:1px solid rgba(255,255,255,.16);
+        background:rgba(255,255,255,.06);
+        color:#d8dbe9;
+        font-family:'Montserrat',system-ui,sans-serif;
+        font-size:9.5px;
+        font-weight:800;
+        letter-spacing:.7px;
+        text-transform:uppercase;
+        white-space:nowrap;
         cursor:pointer;
         transition:background .2s, border-color .2s, color .2s;
     }
-    .un-row-ack svg{ width:14px; height:14px; }
     .un-row-ack:hover{
         border-color:rgba(96,220,140,.55);
         background:rgba(96,220,140,.16);
@@ -666,8 +675,8 @@
     }
 
     // One wide row per notification: the show's thumbnail and name link to the
-    // show (so the box leads somewhere instead of only informing) and the ✓
-    // retires the reminder. `data-due` is what the ✕ reads back to remember
+    // show (so the box leads somewhere instead of only informing) and the Mark
+    // read button retires the reminder. `data-due` is what the ✕ reads back to remember
     // what it collapsed.
     function rowHtml(item, isDue) {
         var note = isDue
@@ -695,11 +704,9 @@
                     escapeHtml(pill) + '</span>' : '') +
             (isDue ?
                 '<button type="button" class="un-row-ack" data-ack="1"' +
-                ' title="Got it — I\u2019ll watch it, stop the reminder"' +
-                ' aria-label="Got it, keep it on the queue">' +
-                '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
-                '<path fill="currentColor" d="M9.6 16.2 4.8 11.4l1.4-1.4 3.4 3.4 7.2-7.2 1.4 1.4-8.6 8.6Z"/>' +
-                '</svg></button>' : '') +
+                ' title="Mark read — got it, stop this reminder (the show stays on your queue)"' +
+                ' aria-label="Mark read: stop this reminder, keep the show on the queue">' +
+                'Mark read</button>' : '') +
             '</div>';
     }
 
@@ -809,8 +816,8 @@
     }
 
     /* ✕ / Escape: the user has seen this, so it stops counting as unread. The
-     * reminder itself stays pending on the queue until it is watched or the ✓
-     * retires it; only the badge goes quiet. Shared by ✕ and Escape so both
+     * reminder itself stays pending on the queue until it is watched or Mark
+     * read retires it; only the badge goes quiet. Shared by ✕ and Escape so both
      * mean "I have seen this one" instead of the box flickering back on the
      * next poll. (Private mode just means it is forgotten on reload.) */
     function dismiss() {
@@ -822,7 +829,7 @@
 
     if (xEl) xEl.addEventListener("click", dismiss);
 
-    /* The ✓ on a row: "yes, I got it, I'll watch this show". Clears the
+    /* Mark read on a row: "yes, I got it, I'll watch this show". Clears the
      * reminder on the server — the timer goes off, the badge drops, the row
      * leaves the box — while the show stays on the queue, so /up-next still
      * lists it for anyone who missed the notification. */
