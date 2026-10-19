@@ -1754,6 +1754,32 @@ def _season_name_prongs(anime_slug, season_name):
     return (season_name, None)
 
 
+_BLEACH_TYBW_PREFIX = "bleach-thousand-year-blood-war"
+
+
+def _thumb_reused_elsewhere(anime_slug, thumb):
+    """True when this still is already used by another Bleach TYBW cour.
+
+    TVmaze numbers episode stills per episode, and Kitsu ids are per episode
+    too, so the same URL on two cours means the enrichment copied one
+    series' art over the other. Comparing the URLs catches that without
+    hard-coding episode ids (which kept throwing away legitimate Kitsu
+    stills that don't contain a TVmaze number). Only the TYBW cours are
+    compared: they share one TVmaze show entry, which is where the mix-up
+    comes from.
+    """
+    if not thumb or not anime_slug.startswith(_BLEACH_TYBW_PREFIX):
+        return False
+    for slug, other in anime_database.items():
+        if slug == anime_slug or not slug.startswith(_BLEACH_TYBW_PREFIX):
+            continue
+        for season in other.get("seasons") or []:
+            for ep in season.get("episodes") or []:
+                if ep.get("thumb") == thumb:
+                    return True
+    return False
+
+
 def _find_episode(anime_slug, season_idx, episode_number):
     anime = anime_database.get(anime_slug)
     if anime is None:
@@ -1770,14 +1796,12 @@ def _find_episode(anime_slug, season_idx, episode_number):
         return anime, season, None, None, None
     season_name = season.get("name", f"Season {season_idx}")
     episode_title = episode.get("title") or f"Episode {episode_number}"
-    # Never allow an episode still to be inherited from another Bleach series
-    # or another cour. The catalog enrichment is the source of truth; the
-    # explicit guard also protects old cached review links from contamination.
-    if anime_slug == "bleach-thousand-year-blood-war-the-calamity":
-        valid_prefix = "1584708" if episode_number == 1 else "159020"
-        if episode.get("thumb") and valid_prefix not in episode["thumb"]:
-            episode = dict(episode)
-            episode.pop("thumb", None)
+    # Never allow an episode still to be inherited from another Bleach cour.
+    # The catalog enrichment is the source of truth; the explicit guard also
+    # protects old cached review links from contamination.
+    if _thumb_reused_elsewhere(anime_slug, episode.get("thumb")):
+        episode = dict(episode)
+        episode.pop("thumb", None)
     return anime, season, episode, season_name, episode_title
 
 
