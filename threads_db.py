@@ -754,7 +754,13 @@ def get_conversation_members(conv_id):
 
 def get_user_conversations(user_id):
     """Left-panel list: every conversation the user is in, newest activity
-    first, with last-message preview, unread count and mute state."""
+    first, with last-message preview, unread count and mute state.
+
+    Groups report `member_count`, NOT the member objects. The sidebar pollers
+    read this every few seconds, and shipping every member of every group made
+    one 200-member guild cost ~18 KB per poll (~0.3 GB/day for a single open
+    tab). Full member lists already arrive with the open conversation.
+    """
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
@@ -775,9 +781,15 @@ def get_user_conversations(user_id):
                (SELECT m.sender_id FROM thr_messages m
                  WHERE m.context_type = c.type AND m.context_id = c.id
                  ORDER BY m.id DESC LIMIT 1) AS last_sender_id,
+               (SELECT u.username FROM thr_messages m
+                  JOIN users u ON u.id = m.sender_id
+                 WHERE m.context_type = c.type AND m.context_id = c.id
+                 ORDER BY m.id DESC LIMIT 1) AS last_sender_name,
                (SELECT m.created_at FROM thr_messages m
                  WHERE m.context_type = c.type AND m.context_id = c.id
-                 ORDER BY m.id DESC LIMIT 1) AS last_at
+                 ORDER BY m.id DESC LIMIT 1) AS last_at,
+               (SELECT COUNT(*) FROM thr_conversation_members x
+                 WHERE x.conversation_id = c.id) AS member_count
         FROM thr_conversations c
         JOIN thr_conversation_members cm
           ON cm.conversation_id = c.id AND cm.user_id = ?
@@ -788,40 +800,30 @@ def get_user_conversations(user_id):
     )
     convs = [dict(r) for r in cur.fetchall()]
 
-    # Bulk-fetch the other party for DMs and member summaries for groups in
-    # two queries total (was two queries PER conversation -> slow on remote
-    # Turso where every query is a network round trip).
-    conv_ids = [c["id"] for c in convs]
+    # One extra query for the other party in DMs only (groups no longer need
+    # a member bulk-fetch at all).
+    dm_ids = [c["id"] for c in convs if c["type"] == "dm"]
     dm_others = {}
-    group_members = {}
-    if conv_ids:
-        placeholders = ",".join("?" for _ in conv_ids)
+    if dm_ids:
+        placeholders = ",".join("?" for _ in dm_ids)
         cur.execute(
             f"""
             SELECT cm.conversation_id, u.id, u.username, u.avatar_color, u.avatar
             FROM thr_conversation_members cm
             JOIN users u ON u.id = cm.user_id
-            WHERE cm.conversation_id IN ({placeholders})
+            WHERE cm.conversation_id IN ({placeholders}) AND cm.user_id != ?
             ORDER BY cm.joined_at ASC
             """,
-            tuple(conv_ids),
+            tuple(dm_ids) + (user_id,),
         )
         for r in cur.fetchall():
-            cid = r["conversation_id"]
-            member = {
+            dm_others.setdefault(r["conversation_id"], {
                 "id": r["id"],
                 "username": r["username"],
                 "avatar_color": r["avatar_color"],
                 "avatar": r["avatar"],
-            }
-            conv = next((c for c in convs if c["id"] == cid), None)
-            if conv and conv["type"] == "dm":
-                if r["id"] != user_id:
-                    dm_others[cid] = member
-            else:
-                group_members.setdefault(cid, []).append(member)
+            })
 
-    # Attach the other party for DMs and a member summary for groups.
     out = []
     for c in convs:
         item = {
@@ -834,17 +836,17 @@ def get_user_conversations(user_id):
             "muted": bool(c["muted"]),
             "unread": c["unread"] or 0,
             "last_read_message_id": c["last_read_message_id"] or 0,
+            "member_count": c["member_count"] or 0,
             "last_message": {
                 "content": c["last_content"] or "",
                 "kind": c["last_kind"] or "",
                 "sender_id": c["last_sender_id"],
+                "sender_name": c["last_sender_name"],
                 "created_at": c["last_at"],
             },
         }
         if c["type"] == "dm":
             item["other"] = dm_others.get(c["id"])
-        else:
-            item["members"] = group_members.get(c["id"], [])
         out.append(item)
     conn.close()
     return out

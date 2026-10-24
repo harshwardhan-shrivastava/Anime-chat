@@ -303,7 +303,15 @@ def sitemap_xml():
     lines.append("</urlset>")
     response = make_response("\n".join(lines))
     response.headers["Content-Type"] = "application/xml; charset=utf-8"
-    response.headers["Cache-Control"] = "no-cache"
+    # ~1.7 MB of URLs, and crawlers re-read it constantly. An hour of
+    # freshness is plenty for a catalog that changes on the enrich cycle, and
+    # it keeps repeat crawler fetches off the origin (and off the bandwidth
+    # allowance) instead of regenerating the whole list every time.
+    response.headers["Cache-Control"] = (
+        "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400"
+    )
+    # Nobody's cookie changes this document — let the edge store it.
+    response.vary.discard("Cookie")
     return response
 
 
@@ -392,7 +400,14 @@ def _attach_user():
     # there never sticks. Skipping the session for /static/ is the only way
     # to keep Vary: Cookie off asset responses (and it saves a cookie
     # decrypt per asset request).
-    if request.path.startswith("/static/"):
+    #
+    # The crawler-facing files are public and identical for everyone; keeping
+    # the session out of them lets Cloudflare edge-cache them (it refuses any
+    # response carrying Vary: Cookie), so bot re-crawls stop hitting Render.
+    path = request.path
+    if path.startswith("/static/") or path in (
+        "/sitemap.xml", "/robots.txt", "/manifest.webmanifest"
+    ):
         return
     load_logged_in_user()
 

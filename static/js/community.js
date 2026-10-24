@@ -32,6 +32,12 @@ const modalOnlineCountEl = document.getElementById("modalOnlineCount");
 
 const ANIME_SLUG = document.body.dataset.animeSlug;
 
+// One poll of each kind at a time. A slow response used to let the 1.2s / 2s
+// timers stack up overlapping requests and multiply traffic.
+let messagesInFlight = false;
+let reactionsInFlight = false;
+let presenceInFlight = false;
+
 // Mobile: the composer placeholder should read like every chat app, not
 // echo the anime name (it wraps/overflows on small screens). Swap it once
 // at boot; the full-screen modal input gets the same treatment.
@@ -161,6 +167,8 @@ function setOnlineCount(count) {
 }
 
 async function refreshPresence() {
+    if (document.hidden || presenceInFlight) return;
+    presenceInFlight = true;
     try {
         const res = await fetch(`/community/${ANIME_SLUG}/presence`);
         const data = await res.json();
@@ -171,6 +179,8 @@ async function refreshPresence() {
         renderMembers(members);
     } catch (err) {
         // presence is best-effort, fail quietly
+    } finally {
+        presenceInFlight = false;
     }
 }
 
@@ -661,6 +671,8 @@ async function toggleReaction(line, emoji) {
 }
 
 async function pollReactions() {
+    if (document.hidden || reactionsInFlight) return;
+    reactionsInFlight = true;
     try {
         const res = await fetch(`/community/${ANIME_SLUG}/reactions?after_id=${lastReactionId}`);
         const data = await res.json();
@@ -673,6 +685,8 @@ async function pollReactions() {
         });
     } catch (err) {
         // best-effort
+    } finally {
+        reactionsInFlight = false;
     }
 }
 
@@ -943,6 +957,12 @@ function renderIncomingMessage(message) {
 // ===============================
 
 async function pollMessages() {
+    // Hidden tab = nobody is reading it. The old loop kept firing 4 requests
+    // a second for every chat tab left open in the background, which is
+    // pure bandwidth for zero benefit. Also skip a tick while the previous
+    // poll is still in flight so a slow moment can't pile up requests.
+    if (document.hidden || messagesInFlight) return;
+    messagesInFlight = true;
     try {
         const res = await fetch(`/community/${ANIME_SLUG}/messages?after_id=${lastMessageId}`);
         const data = await res.json();
@@ -955,6 +975,8 @@ async function pollMessages() {
         }
     } catch (err) {
         // network hiccup -- just try again on the next tick
+    } finally {
+        messagesInFlight = false;
     }
 }
 
@@ -1354,6 +1376,14 @@ setInterval(pollMessages, 1200);
 setInterval(pollReactions, 2000);
 setInterval(refreshPresence, 8000);
 
+// Coming back to the tab: catch up immediately instead of waiting a tick.
+document.addEventListener("visibilitychange", function () {
+    if (document.hidden) return;
+    pollMessages();
+    pollReactions();
+    refreshPresence();
+});
+
 // ===============================
 // FULL-SCREEN CHAT MODAL
 // ===============================
@@ -1744,6 +1774,9 @@ setInterval(refreshPresence, 8000);
     function startModalPoll() {
         if (modalPoll) clearInterval(modalPoll);
         modalPoll = setInterval(function () {
+            // A full-screen chat left open in a background tab used to keep
+            // fetching every 1.2s. Nobody is reading it; skip until visible.
+            if (document.hidden) return;
             fetch("/community/" + ANIME_SLUG + "/messages?after_id=" + modalLastId)
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
