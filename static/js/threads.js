@@ -22,6 +22,7 @@
         hasMore: true,
         loadingOlder: false,
         reqSeq: 0,             // incremented per conversation switch; stale responses are dropped
+        metaAt: 0,             // last time the side panel (members/polls) was fetched
         newSinceId: 0,         // server read-marker at open time -> drives the "New messages" divider
         members: [],
         memberMap: {},         // id -> member row
@@ -218,7 +219,9 @@
 
     function convSubtitle(c) {
         if (c.type === "group") {
-            var n = (c.members || []).length;
+            // The sidebar gets a member COUNT, not the member list (that would
+            // be reshipped on every poll). Fall back for older cached objects.
+            var n = typeof c.member_count === "number" ? c.member_count : (c.members || []).length;
             return n + (n === 1 ? " member" : " members");
         }
         return "Direct message";
@@ -233,7 +236,7 @@
         if (lm.kind === "video") return "\uD83C\uDFA5 Video";
         var prefix = "";
         if (c.type === "group" && lm.sender_id && lm.sender_id !== State.me.id) {
-            var s = State.convMemberName(c, lm.sender_id);
+            var s = lm.sender_name || State.convMemberName(c, lm.sender_id);
             prefix = s ? s + ": " : "";
         }
         var text = lm.content || "";
@@ -340,6 +343,7 @@
         State.attach = null;
         State.editingId = null;
         State.reqSeq++;
+        State.metaAt = 0;   // first poll in a new context pulls its own panel
         var seq = State.reqSeq;
         var key = type + ":" + id;
         // Read marker captured BEFORE we mark anything read -> drives the
@@ -804,7 +808,10 @@
                 attach = '<div class="thr-attach"><img src="' + escapeHtml(m.attachment_url || content) +
                     '" alt="attachment" loading="lazy"></div>';
             } else if (m.kind === "video") {
-                attach = '<div class="thr-attach"><video src="' + escapeHtml(m.attachment_url) + '" controls></video></div>';
+                // preload="none": a thread full of clips used to make every
+                // viewer download a slice of every video just by scrolling
+                // past it. Nothing is fetched until the clip is played.
+                attach = '<div class="thr-attach"><video src="' + escapeHtml(m.attachment_url) + '" controls preload="none"></video></div>';
             }
         }
 
@@ -1143,7 +1150,13 @@
         var ctype = State.active.type, cid = State.active.id;
         var seq = State.reqSeq;
         var key = ctype + ":" + cid;
-        api("/threads/api/messages?ctx=" + ctype + ":" + cid + "&after=" + State.afterId).then(function (res) {
+        // Only new messages on a normal tick. The channel's member list, polls
+        // and parties are big and change slowly, so they ride along once every
+        // ~30s instead — polling them every 1.5s was the app's worst egress.
+        var wantMeta = !State.metaAt || Date.now() - State.metaAt > 30000;
+        api("/threads/api/messages?ctx=" + ctype + ":" + cid + "&after=" + State.afterId +
+            (wantMeta ? "&meta=1" : "")).then(function (res) {
+            if (wantMeta) State.metaAt = Date.now();
             if (seq !== State.reqSeq) return;   // switched conversations — never mix contexts
             if (!res.success) { handleApiError(res); return; }
             if (res.messages && res.messages.length) {
@@ -1302,7 +1315,6 @@
         State.pendingAnime = null;
         $("#attachPreview").classList.add("hidden");
         $("#animePreview").classList.add("hidden");
-        $("#fileInput").value = "";
     }
 
     function showAnimePreview(data) {
@@ -1905,8 +1917,6 @@
                 openModal("modalAnime");
                 var ai = $("#animeSearch");
                 if (ai) { ai.value = ""; var ag = $("#animeResults"); if (ag) ag.innerHTML = ""; setTimeout(function () { ai.focus(); }, 100); }
-            } else if (action === "attach") {
-                $("#fileInput").click();
             }
         });
 
@@ -2235,6 +2245,7 @@
         // without this, a DM's pending poll/history response could render its
         // messages inside this guild channel (the "merge" bug).
         State.reqSeq++;
+        State.metaAt = 0;   // first poll in a new context pulls its own panel
         var seq = State.reqSeq;
         var key = "channel:" + ch.id;
         State.newSinceId = ch.last_read_message_id || 0;
@@ -3516,32 +3527,6 @@
         });
         $("#btnClearAttach").addEventListener("click", clearAttach);
 
-        // attach
-        // Attach handled by + menu above
-        $("#fileInput").addEventListener("change", function () {
-            var file = this.files && this.files[0];
-            if (!file) return;
-            var ext = (file.name.split(".").pop() || "").toLowerCase();
-            if (["png", "jpg", "jpeg", "gif", "webp"].indexOf(ext) === -1 &&
-                ["mp4", "webm", "mov"].indexOf(ext) === -1) {
-                toast("That file type isn't supported", "error");
-                this.value = "";
-                return;
-            }
-            if (file.size > 25 * 1024 * 1024) {
-                toast("File must be under 25 MB", "error");
-                this.value = "";
-                return;
-            }
-            var fd = new FormData();
-            fd.append("file", file);
-            fetch("/threads/api/upload", { method: "POST", body: fd }).then(function (r) { return r.json(); }).then(function (res) {
-                if (!res.success) { handleApiError(res); toast(res.error || "Upload failed", "error"); return; }
-                State.attach = { kind: res.kind, url: res.url, preview: res.url, name: res.name };
-                showAttachPreview();
-            });
-        });
-
         // message actions (delegated)
         $("#msgList").addEventListener("click", function (e) {
             var act = e.target.closest("[data-act]");
@@ -3851,6 +3836,7 @@
                 if (conv) {
                     State.active = { type: pType, id: pId, conv: conv };
                     State.reqSeq++;
+                    State.metaAt = 0;   // first poll in a new context pulls its own panel
                     State.newSinceId = conv.last_read_message_id || 0;
                     State.messages = preloaded.messages;
                     State.messages.forEach(function (m) { State.seenIds[m.id] = true; });
@@ -3934,9 +3920,12 @@
         var _commTimer = setInterval(function () {
             if (!document.hidden) refreshCommunities();
         }, 10000);
+        // Presence doubles as the heartbeat and "online" means seen in the
+        // last 60s, so 30s keeps dots accurate while cutting the roster
+        // payload (every member of the open chat) to a third of the traffic.
         var _presTimer = setInterval(function () {
             if (!document.hidden) refreshPresence();
-        }, 10000);
+        }, 30000);
         var _notifTimer = setInterval(function () {
             if (!document.hidden) refreshNotifications();
         }, 15000);

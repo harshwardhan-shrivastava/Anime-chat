@@ -5,7 +5,7 @@ A single blueprint that owns:
   • GET /threads            — the full-screen Threads app (Discord-style shell)
   • /threads/api/*          — JSON endpoints for conversations, the unified
                               message engine, typing, presence, GIF search,
-                              uploads, settings and notifications.
+                              settings and notifications.
 
 Everything reads/writes the thr_* tables in threads_db.py. The legacy
 chat.py / chat_messages / chat_presence system is never touched.
@@ -16,9 +16,7 @@ To enable, add TWO lines to app.py (after the profile blueprint):
     init_threads(app)
 """
 
-import os
 import re
-import secrets
 import time
 
 from flask import (
@@ -38,15 +36,6 @@ import threads_db
 from services import giphy
 
 bp = Blueprint("threads", __name__)
-
-UPLOAD_DIR = os.path.join("static", "uploads")
-MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
-ALLOWED_EXT = {
-    "png": "image", "jpg": "image", "jpeg": "image",
-    "gif": "image", "webp": "image",
-    "mp4": "video", "webm": "video", "mov": "video",
-}
-
 
 # ---------------------------------------------------------------------------
 # Auth helpers
@@ -598,29 +587,41 @@ def messages_get():
     limit = min(int(request.args.get("limit") or 60), 200)
     blocked = threads_db.get_blocked_ids(user["id"])
 
+    # The 1.5s poll loop is the app's single biggest source of egress: it used
+    # to resend the channel's entire member list (plus polls and parties) on
+    # every tick, so a busy server's side panel came down the wire scores of
+    # times a minute. Incremental polls now carry only the new messages; the
+    # client explicitly asks for the side panel again every ~30s with ?meta=1
+    # (the initial load, before=..., still returns everything).
+    want_meta = (not after) or bool(request.args.get("meta"))
+
     members = []
     polls = []
     parties = []
-    if ctype in ("dm", "group"):
-        members = threads_db.get_conversation_members(cid)
-    elif ctype == "channel":
-        ch = threads_db.get_channel(cid)
-        if ch:
-            members = threads_db.get_community_members_public(ch["community_id"])
-            polls = threads_db.get_channel_polls(cid, user["id"])
-            parties = _enrich_parties(threads_db.get_channel_parties(cid, user["id"]))
+    if want_meta:
+        if ctype in ("dm", "group"):
+            members = threads_db.get_conversation_members(cid)
+        elif ctype == "channel":
+            ch = threads_db.get_channel(cid)
+            if ch:
+                members = threads_db.get_community_members_public(ch["community_id"])
+                polls = threads_db.get_channel_polls(cid, user["id"])
+                parties = _enrich_parties(threads_db.get_channel_parties(cid, user["id"]))
 
     if after:
         rows = threads_db.get_messages_after(ctype, cid, after, limit, exclude_user_ids=blocked)
         typing = threads_db.get_typing_users(ctype, cid, user["id"])
-        return jsonify({
+        payload = {
             "success": True,
             "messages": _enrich_messages(rows),
             "typing": typing,
-            "members": members,
-            "polls": polls,
-            "parties": parties,
-        })
+        }
+        # Omitted (not empty) so the client keeps the panel it already has.
+        if want_meta:
+            payload["members"] = members
+            payload["polls"] = polls
+            payload["parties"] = parties
+        return jsonify(payload)
 
     rows = threads_db.get_messages(
         ctype, cid, before_id=before or None, limit=limit, exclude_user_ids=blocked
@@ -808,41 +809,6 @@ def gifs():
             "hint": "Add your GIPHY_API_KEY to a .env file, then restart.",
         })
     return jsonify({"success": True, "results": giphy.simplify(raw).get("results", [])})
-
-
-# ---------------------------------------------------------------------------
-# Uploads (images / videos) — stored in static/uploads
-# ---------------------------------------------------------------------------
-
-@bp.route("/threads/api/upload", methods=["POST"])
-def upload():
-    user, err = _json_user()
-    if err:
-        return err
-    file = request.files.get("file")
-    if not file or not file.filename:
-        return jsonify({"success": False, "error": "no_file"}), 400
-    ext = (file.filename.rsplit(".", 1)[-1] or "").lower()
-    if ext not in ALLOWED_EXT:
-        return jsonify({"success": False, "error": "bad_type"}), 400
-    file.seek(0, os.SEEK_END)
-    size = file.tell()
-    file.seek(0)
-    if size > MAX_UPLOAD_BYTES:
-        return jsonify({"success": False, "error": "too_large"}), 400
-
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    fname = f"{secrets.token_hex(10)}.{ext}"
-    path = os.path.join(UPLOAD_DIR, fname)
-    file.save(path)
-    url = url_for("static", filename=f"uploads/{fname}")
-    return jsonify({
-        "success": True,
-        "kind": ALLOWED_EXT[ext],
-        "url": url,
-        "name": file.filename,
-    })
-
 
 # ---------------------------------------------------------------------------
 # Settings + notifications
@@ -1680,5 +1646,4 @@ def init_threads(app):
     """Call from app.py (two lines). Creates the thr_* tables and registers
     the blueprint. Idempotent."""
     threads_db.create_tables()
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
     app.register_blueprint(bp)
